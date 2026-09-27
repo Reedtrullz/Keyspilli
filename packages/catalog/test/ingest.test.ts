@@ -163,6 +163,35 @@ describe("ingestSource .mxl", () => {
     expect(Math.abs(fastDur - slowDur / 2)).toBeLessThanOrEqual(1);
   });
 
+  it("keeps curated MIDI beat positions when its playback clock is calibrated", async () => {
+    const track = [
+      0, 0xff, 0x51, 3, 0x07, 0xa1, 0x20, // 120 BPM at beat zero
+      ...Array.from({ length: 16 }, (_, index) => 60 + index).flatMap((pitch, index) => [
+        0, 0x90, pitch, 100,
+        0x83, 0x60, 0x80, pitch, 64,
+        ...(index === 3 ? [0, 0xff, 0x51, 3, 0x0f, 0x42, 0x40] : []), // 60 BPM after beat four
+      ]),
+      0, 0xff, 0x2f, 0,
+    ];
+    const buf = new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0xe0,
+      0x4d, 0x54, 0x72, 0x6b, 0, 0, track.length >> 8, track.length & 0xff, ...track,
+    ]);
+    const baseId = "curated-beat-clock";
+    const result = await ingestSource({
+      buf, baseId, title: "Beat clock", artist: "Tester", contentType: "standard",
+      tempo: 60, preserveSourceBeats: true,
+    });
+    expect(result.error).toBeUndefined();
+    const advanced = JSON.parse(readFileSync(join(artifactsDir(baseId, "a"), "notes.json"), "utf8")) as {
+      notes: Array<{ midi: number; start: number }>;
+      tempoBpm: number;
+    };
+    expect(advanced.tempoBpm).toBe(60);
+    expect(advanced.notes.find((note) => note.midi === 75)?.start).toBe(15);
+    expect(getSongsByBase(baseId).find((row) => row.level === "a")?.duration).toBe(16);
+  });
+
   it("stores each generated artifact duration instead of a removed transcription tail", async () => {
     const notes = [
       ...Array.from({ length: 12 }, (_, index) => ({ midi: 60 + index % 5, start: index * 0.5, dur: 0.5, vel: 80 })),

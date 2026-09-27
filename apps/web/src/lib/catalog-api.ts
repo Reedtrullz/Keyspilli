@@ -18,14 +18,14 @@ import {
   type SourceTimingMetadata,
   type SongRow,
 } from "@keyspilli/catalog";
-import { chordToNotes, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
-import { completeChordDurations, detectSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
+import { chordToNotes, inferHarmonyTimeline, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
+import { arithmeticMeasures, completeChordDurations, detectSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
   sourceKind?: "authored" | "inferred" | "generated" | "unknown";
   inferred?: boolean;
-  inferenceType?: "dyad-completion" | "carry-forward-root" | "nearest-symbol" | "subbeat-extension" | "voicing";
+  inferenceType?: ChordLabel["inferenceType"];
   duration?: number;
   durationBeats?: number;
 };
@@ -62,8 +62,13 @@ function preserveChordMetadata(value: unknown): Omit<PlayerChord, "beat" | "name
     metadata.inferenceType = obj.inferenceType as NonNullable<PlayerChord["inferenceType"]>;
   }
 
+  if (typeof obj.reviewReason === "string") metadata.reviewReason = obj.reviewReason;
   const durationBeats = finite(obj.durationBeats);
   const duration = finite(obj.duration);
+  const strikeSpacingBeats = finite(obj.strikeSpacingBeats);
+  if (strikeSpacingBeats !== null && strikeSpacingBeats > 0) metadata.strikeSpacingBeats = strikeSpacingBeats;
+  const maxStrikeDurationBeats = finite(obj.maxStrikeDurationBeats);
+  if (maxStrikeDurationBeats !== null && maxStrikeDurationBeats > 0) metadata.maxStrikeDurationBeats = maxStrikeDurationBeats;
   if (durationBeats !== null && durationBeats > 0) metadata.durationBeats = durationBeats;
   if (duration !== null && duration > 0) {
     metadata.duration = duration;
@@ -223,7 +228,8 @@ export function buildAutoChordSource(
   const autoFallback = merged.provenance.fallback === true;
   return {
     id: "auto",
-    label: autoFallback ? (ugSource ? "UG + generated fallback" : "Generated fallback") : ugSource ? "UG timeline" : "Generated fallback",
+    label: timeline.provenance.sourceRef.startsWith("prepared:") ? "Prepared backing"
+      : autoFallback ? (ugSource ? "UG + generated fallback" : "Generated fallback") : ugSource ? "UG timeline" : "Generated fallback",
     chords: merged.chords,
     provenance: ugSource?.provenance ?? merged.provenance.sourceRef ?? null,
     provenanceInfo: merged.provenance,
@@ -238,20 +244,37 @@ export function buildAutoChordSource(
   };
 }
 
-function prepareGeneratedChordData(data: SongData): SongData {
+function prepareGeneratedChordData(data: SongData, level: string): SongData {
   const durationBeats = arrangementDurationBeats(data);
+  // Chords always plays Advanced. Its stored per-onset labels are replaced by
+  // whole-arrangement harmony unless the artifact carries non-generated labels.
+  const chords = level === "a" && data.chords.every((chord) => (chord.sourceKind ?? "generated") === "generated")
+    ? inferHarmonyTimeline(data.notes, data.measures, { key: data.key, backingOnly: true })
+    : data.chords;
   return {
     ...data,
-    chords: completePlayerChordDurations(classifyGeneratedChords(data.chords), durationBeats),
+    chords: completePlayerChordDurations(classifyGeneratedChords(chords), durationBeats),
   };
 }
 
 /** Project loaded data through the same detail shape used by the player. */
-export function projectChordSources(data: SongData, timeline: ChordTimelineArtifact | null, level = "a"): SongData {
-  const prepared = prepareGeneratedChordData(data);
-  if (!timeline) return prepared;
+export function projectChordSources(data: SongData, loadedTimeline: ChordTimelineArtifact | null, level = "a"): SongData {
+  const prepared = prepareGeneratedChordData(data, level);
+  if (!loadedTimeline) return prepared;
+  // Prepared arrangements are tied to exact source bytes and timing. Never
+  // reuse one after a different upload/re-ingest, or silently regenerate it.
+  const preparedFor = loadedTimeline.provenance.sourceRef.startsWith("prepared:")
+    ? loadedTimeline.provenance.sourceRef.slice("prepared:".length) : null;
+  if (preparedFor !== null && preparedFor !== data.sourceFingerprint) return prepared;
   const durationBeats = arrangementDurationBeats(prepared);
   const generated = prepared.chords;
+  // The midi-derived "chart" is this artifact's stored labels read back from
+  // disk; it must carry the same harmony as the generated source.
+  const timeline: ChordTimelineArtifact = loadedTimeline.provenance.kind === "midi-derived"
+    && preparedFor === null
+    && generated.some((chord) => chord.inferenceType === "harmony-window")
+    ? { ...loadedTimeline, chords: generated.map((chord) => ({ ...chord, durationBeats: chord.durationBeats ?? 0, sourceKind: "generated" as const })) }
+    : loadedTimeline;
   const merged = mergeChartTimeline(timeline, generated, durationBeats);
   const strictChart = timeline.provenance.kind === "chart"
     ? completePlayerChordDurations(
@@ -311,6 +334,9 @@ export interface SongDetail {
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   data: SongData | null;
+  /** Advanced source on other levels; Advanced already has it in `data`. */
+  chordData: SongData | null;
+  chordUnavailableReason: string | null;
   variants: SongRow[];
   artifact: SongArtifactStatus;
 }
@@ -403,7 +429,7 @@ function unavailableArtifact(errors: string[], manifest?: ArrangementManifest): 
   return { status: "unavailable", errors, ...(manifest ? { manifest } : {}) };
 }
 
-export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
+export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "level" | "tempo">): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
   if (existsSync(join(dataDir(), "artifacts", `.${song.baseId}.reconciliation.json`))) {
     return { data: null, artifact: unavailableArtifact(["ARTIFACT_RECONCILIATION_REQUIRED"]) };
   }
@@ -492,6 +518,18 @@ export async function loadSongArtifact(song: SongRow): Promise<{ data: SongData 
   return { data, artifact: { status: "valid", errors: [], manifest: tempo.manifest } };
 }
 
+/** Attach the chord sources a Player sees for one loaded level. */
+export async function withChordSources(source: SongData, baseId: string, level: string): Promise<SongData> {
+  try {
+    const timeline = await loadChordTimeline(baseId, { fallbackLevel: level });
+    // A chart timed to a different recording cannot label the source player's bars.
+    return projectChordSources(source, timeline?.tempoBpm !== undefined && timeline.tempoBpm !== source.tempoBpm ? null : timeline, level);
+  } catch {
+    // An optional chart must never prevent the arrangement from loading.
+    return projectChordSources(source, null, level);
+  }
+}
+
 /**
  * Load the complete player payload without memoization.
  *
@@ -507,22 +545,72 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
   if (!song) return null;
   const loaded = await loadSongArtifact(song);
   let data = loaded.data;
+  const variants = getSongsByBase(song.baseId);
+  const advanced = variants.find((variant) => variant.level === "a");
+  const advancedData = advanced
+    ? advanced.id === song.id ? loaded.data : (await loadSongArtifact(advanced)).data
+    : null;
+  const sharesTimeline = (left: SongData, right: SongData) =>
+    left.tempoBpm === right.tempoBpm
+    && left.timeSig[0] === right.timeSig[0]
+    && left.timeSig[1] === right.timeSig[1]
+    && JSON.stringify(left.timeSigEvents ?? []) === JSON.stringify(right.timeSigEvents ?? [])
+    && left.measures.slice(0, Math.min(left.measures.length, right.measures.length))
+      .every((measure, index) => measure.startBeat === right.measures[index]!.startBeat
+        && measure.endBeat === right.measures[index]!.endBeat);
+  const chordUnavailableReason = !advancedData
+    ? "The Advanced arrangement is unavailable."
+    : data && !sharesTimeline(data, advancedData)
+      ? "The Advanced arrangement has different timing from this level."
+      : null;
+  let chordData = chordUnavailableReason || advanced?.id === song.id ? null : advancedData;
   if (data) {
-    // Chord charts live beside the immutable app image rather than in the
-    // mutable song database. Keep the existing generated timeline intact and
-    // expose a separate source timeline only when a verified chart exists.
-    try {
-      const timeline = await loadChordTimeline(song.baseId, { fallbackLevel: song.level });
-      data = projectChordSources(data, timeline, song.level);
-    } catch {
-      data = projectChordSources(data, null, song.level);
-      // A missing/invalid optional chart must never make a normal song fail to
-      // load; the player will use its generated chord fallback.
+    // Each level retains its own Original chart; Chords always uses Advanced.
+    [data, chordData] = await Promise.all([
+      withChordSources(data, song.baseId, song.level),
+      chordData ? withChordSources(chordData, song.baseId, "a") : Promise.resolve(null),
+    ]);
+    if (song.baseId === "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x" && !chordUnavailableReason) {
+      const chart = await loadChordTimeline(song.baseId, { fallbackLevel: "a" });
+      if (chart?.tempoBpm === 126 && chart.timeSig[0] === 4 && chart.timeSig[1] === 4) {
+        // The reviewed Chords target is the official recording; Original remains the Rousseau cover.
+        chordData = projectChordSources({
+          notes: [], chords: [], measures: arithmeticMeasures(chart.durationBeats, chart.timeSig),
+          key: chart.key ?? advancedData?.key ?? data.key, tempoBpm: chart.tempoBpm, timeSig: chart.timeSig,
+        }, chart, "a");
+      }
+    }
+    if (song.baseId === "the-beatles-help" && !chordUnavailableReason && advancedData?.sourceFingerprint === "variant:the-beatles-help:a:the-beatles-help-a:278f693cc9859cedee170d7709c49b5e7a1c98de632ea3ed34092c7bff05279a:notes:5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55") {
+      const chart = await loadChordTimeline(song.baseId, { fallbackLevel: "a" });
+      if (chart?.tempoBpm === 173 && chart.durationBeats === 436) {
+        // The source's beat grid matches the Beatles recording at 190 BPM; keep Original at 173.
+        chordData = projectChordSources({ ...advancedData, tempoBpm: 190 }, { ...chart, tempoBpm: 190 }, "a");
+      }
+    }
+    if (song.baseId === "ozzy-osbourne-dreamer" && !chordUnavailableReason) {
+      const chart = await loadChordTimeline(song.baseId, { fallbackLevel: "a" });
+      if (chart?.tempoBpm === 80 && chart.chords[0]?.beat === 0 && chart.chords[0]?.name === "N.C.") {
+        // The tutorial's extracted blue lane contains false adjacent keys; Chords uses the reviewed chart.
+        // The official video's performance starts 1.65s later than the tutorial (2.2 beats at 80 BPM).
+        const offset = 2.2;
+        const officialChart = {
+          ...chart,
+          durationBeats: chart.durationBeats + offset,
+          chords: chart.chords.map((chord, index) => index === 0
+            ? { ...chord, durationBeats: chord.durationBeats + offset }
+            : { ...chord, beat: chord.beat + offset }),
+        };
+        chordData = projectChordSources({
+          notes: [], chords: [],
+          measures: arithmeticMeasures(officialChart.durationBeats, chart.timeSig)
+            .map((measure) => ({ ...measure, endBeat: Math.min(measure.endBeat, officialChart.durationBeats) })),
+          key: chart.key ?? advancedData?.key ?? data.key, tempoBpm: chart.tempoBpm, timeSig: chart.timeSig,
+        }, officialChart, "a");
+      }
     }
   }
-  const variants = getSongsByBase(song.baseId);
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
-  return { song, data, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
+  return { song, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
 }
 
 /**

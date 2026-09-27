@@ -14,8 +14,17 @@ export interface Note {
   sourceLane?: string;
   /** Source lane for role-aware learner arrangement; absent on legacy notes. */
   identitySource?: "vocals" | "guitar" | "other";
+  /** Neutral source location; it carries no semantic role by itself. */
+  sourceOrigins?: SourceNoteOrigin[];
   /** optional lyric syllable for this note */
   lyrics?: string;
+}
+
+export interface SourceNoteOrigin {
+  id: string;
+  track?: number;
+  staff?: string;
+  voice?: string;
 }
 
 /** Provenance of a chord event; omitted on legacy chord labels. */
@@ -27,9 +36,13 @@ export type ChordInferenceType =
   | "carry-forward-root"
   | "nearest-symbol"
   | "subbeat-extension"
-  | "voicing";
+  | "voicing"
+  | "learner-harmonization"
+  | "harmony-window";
 
 export interface ChordLabel {
+  /** Unresolved generated harmony is silent, with this user-facing explanation. */
+  reviewReason?: string;
   /** beat position */
   beat: number;
   name: string;
@@ -42,6 +55,10 @@ export interface ChordLabel {
   inferenceType?: ChordInferenceType;
   /** Optional span in beats; legacy labels derive their span from the next event. */
   durationBeats?: number;
+  /** Curated minimum between re-strikes within this chord; changes still strike at their own beat. */
+  strikeSpacingBeats?: number;
+  /** Curated maximum sounding length of each re-strike; the harmony span remains unchanged. */
+  maxStrikeDurationBeats?: number;
 }
 
 /** Chord qualities supported by the lead-sheet parser and chord player. */
@@ -52,6 +69,8 @@ export type ChordQuality =
   | "7"
   | "maj7"
   | "m7"
+  | "m9"
+  | "madd9"
   | "6"
   | "sus2"
   | "sus4"

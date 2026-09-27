@@ -28,6 +28,7 @@ export type ChordInferenceType =
   | "nearest-symbol"
   | "subbeat-extension"
   | "voicing"
+  | "harmony-window"
   | (string & {});
 
 const EVENT_SOURCE_KINDS = new Set<ChordTimelineEventSourceKind>(["authored", "inferred", "generated", "unknown"]);
@@ -37,6 +38,10 @@ export interface ChordTimelineEvent {
   beat: number;
   /** Normalized positive span; never crosses the next event. */
   durationBeats: number;
+  /** Curated minimum between source-rhythm re-strikes within this event. */
+  strikeSpacingBeats?: number;
+  /** Curated maximum sounding length of each strike without ending the harmony span. */
+  maxStrikeDurationBeats?: number;
   name: string;
   /** Optional playable voicing supplied by a catalog curator. */
   notes?: number[];
@@ -112,6 +117,8 @@ interface TimelineInputEvent {
   beat?: unknown;
   startBeat?: unknown;
   durationBeats?: unknown;
+  strikeSpacingBeats?: unknown;
+  maxStrikeDurationBeats?: unknown;
   /** Legacy alias accepted by generated notes exports. */
   duration?: unknown;
   endBeat?: unknown;
@@ -265,6 +272,8 @@ function eventFingerprint(event: ParsedTimelineEvent): string {
     sourceKind: event.sourceKind,
     inferred: event.inferred ?? null,
     inferenceType: event.inferenceType ?? null,
+    strikeSpacingBeats: event.strikeSpacingBeats ?? null,
+    maxStrikeDurationBeats: event.maxStrikeDurationBeats ?? null,
   });
 }
 
@@ -408,6 +417,12 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       continue;
     }
     const duration = event.durationBeats ?? event.duration;
+    if (event.strikeSpacingBeats !== undefined && (!finite(event.strikeSpacingBeats) || event.strikeSpacingBeats <= 0)) {
+      errors.push(`${path}.strikeSpacingBeats must be positive`);
+    }
+    if (event.maxStrikeDurationBeats !== undefined && (!finite(event.maxStrikeDurationBeats) || event.maxStrikeDurationBeats <= 0)) {
+      errors.push(`${path}.maxStrikeDurationBeats must be positive`);
+    }
     const end = event.endBeat;
     if (duration !== undefined && (!finite(duration) || duration <= 0)) errors.push(`${path}.durationBeats must be positive`);
     if (end !== undefined && (!finite(end) || end <= (beatRaw as number))) errors.push(`${path}.endBeat must be after beat`);
@@ -426,6 +441,8 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       sourceKind,
       ...(inferred === undefined ? {} : { inferred }),
       ...(inferenceType === undefined ? {} : { inferenceType }),
+      ...(finite(event.strikeSpacingBeats) && event.strikeSpacingBeats > 0 ? { strikeSpacingBeats: event.strikeSpacingBeats } : {}),
+      ...(finite(event.maxStrikeDurationBeats) && event.maxStrikeDurationBeats > 0 ? { maxStrikeDurationBeats: event.maxStrikeDurationBeats } : {}),
       inputIndex: index,
       ...(parsedDuration === undefined ? {} : { explicitDuration: parsedDuration }),
       ...(parsedEnd === undefined ? {} : { explicitEnd: parsedEnd }),
@@ -481,6 +498,8 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       sourceKind: event.sourceKind,
       ...(event.inferred === undefined ? {} : { inferred: event.inferred }),
       ...(event.inferenceType === undefined ? {} : { inferenceType: event.inferenceType }),
+      ...(event.strikeSpacingBeats === undefined ? {} : { strikeSpacingBeats: event.strikeSpacingBeats }),
+      ...(event.maxStrikeDurationBeats === undefined ? {} : { maxStrikeDurationBeats: event.maxStrikeDurationBeats }),
     });
   }
 
@@ -497,8 +516,11 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       && JSON.stringify(previous.notes ?? []) === JSON.stringify(event.notes ?? [])
       && previous.sourceKind === event.sourceKind
       && previous.inferred === event.inferred
-      && previous.inferenceType === event.inferenceType;
-    if (samePayload && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
+      && previous.inferenceType === event.inferenceType
+      && previous.strikeSpacingBeats === event.strikeSpacingBeats
+      && previous.maxStrikeDurationBeats === event.maxStrikeDurationBeats;
+    // A separately authored event is an intentional new attack, even when its symbol repeats.
+    if (samePayload && event.sourceKind !== "authored" && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
       previous.durationBeats = roundBeat(previous.durationBeats + event.durationBeats);
       continue;
     }
@@ -652,6 +674,7 @@ function timelineDependencyPaths(
   }
   const level = options.fallbackLevel ?? "a";
   paths.push(join(options.runtimeDataDir ?? dataDir(), "artifacts", baseId, level, "notes.json"));
+  paths.push(join(options.runtimeDataDir ?? dataDir(), "artifacts", baseId, "chord-timeline.json"));
   return [...new Set(paths.map((path) => resolve(path)))];
 }
 
@@ -686,6 +709,20 @@ function rememberTimeline(key: string, value: ChordTimelineResolution | null): v
 /** Resolve the best checked-in chart, then fall back to generated MIDI chords. */
 async function resolveChordTimelineUncached(baseId: string, options: ChordTimelineLoadOptions = {}): Promise<ChordTimelineResolution | null> {
   const warnings: string[] = [];
+  // Approved packages travel with the song's artifact tree, so normal data
+  // backups and application upgrades preserve their exact prepared backing.
+  if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(baseId)) throw new Error("invalid chord base id");
+  try {
+    const timeline = parseChordTimeline(await readJson(join(options.runtimeDataDir ?? dataDir(), "artifacts", baseId, "chord-timeline.json")));
+    if (timeline.baseId !== baseId || !timeline.provenance.sourceRef.startsWith("prepared:")) {
+      throw new Error("persisted backing must identify this prepared song");
+    }
+    const p = timeline.provenance;
+    return { timeline, source: { id: p.sourceId, provider: p.provider, kind: p.kind,
+      sourceRef: p.sourceRef, sourceUrl: p.sourceUrl }, usedFallback: false, warnings };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
   let map: ChordSourceMap = { schemaVersion: 1, entries: [] };
   try {
     map = await loadChordSourceMap(options.mappingPath);

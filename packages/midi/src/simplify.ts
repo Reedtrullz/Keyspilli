@@ -1,7 +1,7 @@
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
 import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
-import { quantize } from "./quantize.js";
+import { mergedNoteLineage, quantize } from "./quantize.js";
 import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
@@ -2176,6 +2176,7 @@ function trimSamePitchOverlaps(notes: Note[], minDur = 0.125): Note[] {
         // written duration.
         prev.dur = Math.max(prev.dur, n.dur);
         prev.vel = Math.max(prev.vel, n.vel);
+        Object.assign(prev, mergedNoteLineage(prev, n));
         const prevRefs = learnerTraceRefs(prev);
         const nextRefs = learnerTraceRefs(n);
         const mergedRefs = [...new Set([...prevRefs, ...nextRefs])].sort();

@@ -379,7 +379,7 @@ describe("quantize", () => {
       dur: 0.75,
       vel: 84,
       hand: "L",
-      identitySource: "vocals",
+      identitySource: undefined, // conflicting parents cannot claim a vocal role
     })]);
   });
 

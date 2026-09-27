@@ -1,4 +1,5 @@
 import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
+import { mergedNoteLineage } from "./quantize.js";
 
 interface ParsedXmlNote extends Note {
   tieStart?: boolean;
@@ -47,6 +48,7 @@ function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
       if (index >= 0) {
         const previous = queue[index]!;
         previous.dur = note.start + note.dur - previous.start;
+        Object.assign(previous, mergedNoteLineage(previous, note));
         if (note.tieStart) queue[index] = previous;
         else queue.splice(index, 1);
         merged = true;
@@ -170,6 +172,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       // reconstruct to one playable note.
       const tieStart = /<(?:tie|tied)\b[^>]*type\s*=\s*["'](?:start|continue)["']/i.test(el);
       const tieStop = /<(?:tie|tied)\b[^>]*type\s*=\s*["'](?:stop|continue)["']/i.test(el);
+      const noteIndex = notes.length;
       notes.push({
         midi,
         start: measureStart + start,
@@ -180,6 +183,8 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
         tieStart,
         tieStop,
         voiceId: voiceRaw || staffRaw || undefined,
+        sourceOrigins: [{ id: `musicxml:${staffRaw || "?"}:${voiceRaw || "?"}:${noteIndex}`,
+          ...(staffRaw ? { staff: staffRaw } : {}), ...(voiceRaw ? { voice: voiceRaw } : {}) }],
       });
       measureEnd = Math.max(measureEnd, cursor, start + durBeats);
     }

@@ -94,6 +94,16 @@ describe("resolveAccompaniment", () => {
     expect(result.chords[0]!.notes.map((midi) => midi % 12)).toEqual([7, 0, 4]);
   });
 
+  it("uses neutral imported origins to keep co-onset correction IDs stable", () => {
+    const first = { ...note(60, 0, 1, "L"), sourceOrigins: [{ id: "midi:0:0", track: 0 }] };
+    const second = { ...note(60, 0, 1, "L"), sourceOrigins: [{ id: "midi:1:0", track: 1 }] };
+    const forward = sourceNoteIds([first, second]);
+    const reversed = sourceNoteIds([second, first]);
+    expect(forward[0]).toBe(reversed[1]);
+    expect(forward[1]).toBe(reversed[0]);
+    expect(forward[0]).not.toBe(forward[1]);
+  });
+
   it("omits a sustained source note and keeps the backed chord across a boundary", () => {
     const notes = [note(60, 1, 4, "R")];
     const chords = [{ beat: 2, durationBeats: 2, name: "C", notes: [48, 52, 55] }];
@@ -234,4 +244,32 @@ describe("resolveAccompaniment", () => {
     expect(noSource.chords).toHaveLength(1);
     expect(noSource.fallbackSpans).toContainEqual({ startBeat: 2, endBeat: 4, reason: "no chord coverage" });
   });
+});
+
+it("does not fill generated harmony with bar-line attacks or carry it through released source rests", () => {
+  const notes = [
+    ...[48, 52, 55].map(midi => note(midi, 0.5, 0.75, "L")),
+    ...[60, 64, 67].map(midi => note(midi, 6.25, 0.5, "R")),
+    note(84, 2, 0.5, "R"),
+  ];
+  const result = resolveAccompaniment(notes, [{ beat: 0, durationBeats: 12, name: "C", notes: [48, 60, 64, 67], sourceKind: "generated" }], "bass-chords", {
+    durationBeats: 12, sourceRhythmMeasures: [0, 4, 8].map(startBeat => ({ startBeat, endBeat: startBeat + 4 })),
+  });
+  expect(result.chords.map(c => [c.beat, c.durationBeats])).toEqual([[0.5, 0.75], [6.25, 0.5]]);
+  expect(result.notes).toEqual([]);
+  expect(result.guidanceNotes.every(n => n.midi !== 84)).toBe(true);
+});
+
+it("backs a rootless left-hand arpeggio without turning its upper melody into strikes", () => {
+  const notes = [note(52, 0, 1, "L"), note(55, 1, 1, "L"), note(52, 2, 1, "L"), note(55, 3, 1, "L"), note(84, 0.5, 3, "R")];
+  const result = resolveAccompaniment(notes, [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 60, 64, 67], sourceKind: "generated" }], "bass-chords", {
+    durationBeats: 4, sourceRhythmMeasures: [{ startBeat: 0, endBeat: 4 }],
+  });
+  expect(result.chords.map(c => c.beat)).toEqual([0, 1, 2, 3]);
+  expect(result.notes).toEqual([]);
+});
+
+it("does not describe unresolved harmony as an intentional rest", () => {
+  const result = resolve([note(72, 0)], [{ beat: 0, durationBeats: 4, name: "N.C.", notes: [], reviewReason: "Insufficient harmony evidence" }], "bass-chords", undefined, 4);
+  expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 4, reason: "uncertain harmony" }]);
 });

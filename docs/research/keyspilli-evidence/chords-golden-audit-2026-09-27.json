@@ -1,0 +1,1291 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-27T01:33:20.443788+00:00",
+  "inspectedHead": "85c6ec51c55a67bd977fbdad7d0dca12fd60ae9b",
+  "phaseOneMusicalGate": "incomplete",
+  "phaseTwoAutomation": "not started: handoff gate unmet",
+  "scope": "12 available golden arrangements; Fix You bounded; Clocks only 164 beats; no full-catalog claim",
+  "rows": [
+    {
+      "baseId": "adele-skyfall",
+      "title": "Skyfall",
+      "sourcePins": {
+        "baseId": "adele-skyfall",
+        "level": "a",
+        "sourceId": "ug-skyfall",
+        "advancedNotesSha256": "af41511639e95686e2bc88f8bc56bc7fc90ba70644c5870b05dad6773fd7eb18",
+        "timelineSha256": "c83c03a73ecd65f565bf3ebb5dbd7ee04295b5a25ba9b0ef855414177980ebf8",
+        "acceptedBackingSha256": "eb03d48967cf7cf96a3e7aa3c318ff93198e7e6d929ba520eff0eec70a53fb2f",
+        "acceptedAt": "2026-09-25"
+      },
+      "legacyReplayStatus": "DRIFT",
+      "observedPlaybackSha256": "4096b0068401c1c5a76fad14f934ef08763fa6d6e4df1f155d3e86bc41717650",
+      "sourceIdentity": {
+        "kind": "standard",
+        "sourceRef": "seed:adele-skyfall.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "adele-skyfall",
+        "url": "https://tabs.ultimate-guitar.com/tab/adele/skyfall-chords-1186885",
+        "checkedAt": "2026-09-27T01:21:16.375380+00:00",
+        "exit": 0,
+        "title": "Title: Adele - Skyfall (Chords)",
+        "bytes": 3100,
+        "sha256": "74f1eb5662fae9064e767987579f93b8b8cfe1234194bcded840b83c71893604",
+        "metadata": [
+          "Author: [comface](https://www.ultimate-guitar.com/u/comface) [a] 105 Difficulty: Intermediate"
+        ]
+      },
+      "clock": {
+        "advancedBpm": 75,
+        "chordsBpm": 75,
+        "endBeatExclusive": 360,
+        "seconds": 288,
+        "metadataKey": "Cm"
+      },
+      "anchors": [
+        {
+          "beat": 8,
+          "seconds": 6.4,
+          "chord": "Cm"
+        },
+        {
+          "beat": 180,
+          "seconds": 144,
+          "chord": "F"
+        },
+        {
+          "beat": 356,
+          "seconds": 284.8,
+          "chord": "Cm"
+        }
+      ],
+      "backing": {
+        "chordEvents": 206,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.9034722222222222,
+        "minMidi": 36,
+        "maxMidi": 96,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 11
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 9,
+            "maxRepresentativeLeapSemitones": 3
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0.06956521739130435,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 5,
+          "longestWaitForStrikeBeats": 6.5,
+          "strikes": 206,
+          "strikesOnSourceOnsets": 203,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 461,
+          "strongBeatTuneChordToneShare": 0.7326388888888888,
+          "tuneSemitoneClashShare": 0.16919739696312364
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 206,
+        "durationSeconds": 288,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "pending",
+        "independentKeyboardReview": "pending"
+      },
+      "drift": {
+        "reconstructedAcceptedSha256": "eb03d48967cf7cf96a3e7aa3c318ff93198e7e6d929ba520eff0eec70a53fb2f",
+        "acceptedStrikes": 223,
+        "currentStrikes": 206,
+        "removedAttacks": 22,
+        "addedAttacks": 5,
+        "changedDurationsAtRetainedAttacks": 93,
+        "changedPitchesAtRetainedAttacks": 0
+      }
+    },
+    {
+      "baseId": "frank-sinatra-my-way",
+      "title": "My Way",
+      "sourcePins": {
+        "baseId": "frank-sinatra-my-way",
+        "level": "a",
+        "sourceId": "ug-my-way",
+        "advancedNotesSha256": "b56e9470adf34b817bcb9e484edb9ec270d817c8224f5757145d2fc3ece72442",
+        "timelineSha256": "97988b88b7c1dcbfe31ecdcf03075b03c79fe8d8ffcfcf0776cb3c20c410300d",
+        "acceptedBackingSha256": "5fd8fe9f785087b2b8ee4c3efe3fa75ed9feff63724dfcd66ac045ecc8ad29cc",
+        "acceptedAt": "2026-09-25"
+      },
+      "legacyReplayStatus": "DRIFT",
+      "observedPlaybackSha256": "e2704face18b006745f7014e36151f14b35d8525dd97a3a3f011d05928a9a9c9",
+      "sourceIdentity": {
+        "kind": "standard",
+        "sourceRef": "seed:frank-sinatra-my-way.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "frank-sinatra-my-way",
+        "url": "https://tabs.ultimate-guitar.com/tab/frank-sinatra/my-way-chords-383263",
+        "checkedAt": "2026-09-27T01:21:22.325936+00:00",
+        "exit": 0,
+        "title": "Title: Frank Sinatra - My Way (Chords)",
+        "bytes": 16295,
+        "sha256": "b1bcdfcf035a51d991190416e1159b212acae2be8a5ea35d05993c085a9ecb74",
+        "metadata": [
+          "Author: [jongrimsson](https://www.ultimate-guitar.com/u/jongrimsson) [a] 115 8 contributors Difficulty: Intermediate",
+          "Tuning: [E A D G B E](https://www.ultimate-guitar.com/tools/tuner?tuning=E%20A%20D%20G%20B%20E)Key: D Capo: No capo"
+        ]
+      },
+      "clock": {
+        "advancedBpm": 77,
+        "chordsBpm": 77,
+        "endBeatExclusive": 352,
+        "seconds": 274.2857142857143,
+        "metadataKey": "D"
+      },
+      "anchors": [
+        {
+          "beat": 8,
+          "seconds": 6.233766,
+          "chord": "D"
+        },
+        {
+          "beat": 176,
+          "seconds": 137.142857,
+          "chord": "Em7"
+        },
+        {
+          "beat": 348,
+          "seconds": 271.168831,
+          "chord": "D"
+        }
+      ],
+      "backing": {
+        "chordEvents": 179,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.8899147727272727,
+        "minMidi": 36,
+        "maxMidi": 81,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 11
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 11,
+            "maxRepresentativeLeapSemitones": 3
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 3.75,
+          "strikes": 179,
+          "strikesOnSourceOnsets": 174,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 619,
+          "strongBeatTuneChordToneShare": 0.8664122137404581,
+          "tuneSemitoneClashShare": 0.13570274636510501
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 179,
+        "durationSeconds": 274.2857142857143,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "pending",
+        "independentKeyboardReview": "pending"
+      },
+      "drift": {
+        "reconstructedAcceptedSha256": "5fd8fe9f785087b2b8ee4c3efe3fa75ed9feff63724dfcd66ac045ecc8ad29cc",
+        "acceptedStrikes": 197,
+        "currentStrikes": 179,
+        "removedAttacks": 26,
+        "addedAttacks": 8,
+        "changedDurationsAtRetainedAttacks": 129,
+        "changedPitchesAtRetainedAttacks": 0
+      }
+    },
+    {
+      "baseId": "john-lennon-imagine",
+      "title": "Imagine",
+      "sourcePins": {
+        "baseId": "john-lennon-imagine",
+        "level": "a",
+        "sourceId": "ug-imagine",
+        "advancedNotesSha256": "157cd3dc92e6b3e819567d0cf51eab7a1c03a1b76c1cb3333e0b26d4e7fb8790",
+        "timelineSha256": "ef04458fb6b99cb72a9a38e44fb3a2c85314e8f913d08eebf7f501446f8004df",
+        "acceptedBackingSha256": "7c01beff6aca0dbbffd60185f18945fc1135764b4067df32ba4fde376265bfbb",
+        "acceptedAt": "2026-09-25"
+      },
+      "legacyReplayStatus": "DRIFT",
+      "observedPlaybackSha256": "9c54b62c3c7f7704dabab11cc2ca2212783e2aa528fc5f28a3ed3ba141dc484a",
+      "sourceIdentity": {
+        "kind": "standard",
+        "sourceRef": "seed:john-lennon-imagine.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "john-lennon-imagine",
+        "url": "https://tabs.ultimate-guitar.com/tab/john-lennon/imagine-chords-9306",
+        "checkedAt": "2026-09-27T01:21:22.579926+00:00",
+        "exit": 0,
+        "title": "Title: https://cm.adform.net/cookie",
+        "bytes": 270,
+        "sha256": "ac2a6e564374767faa3d430af7427cb2ceddf9f2b87442eeb71ff8de73ff919f",
+        "metadata": [],
+        "retry": {
+          "url": "https://tabs.ultimate-guitar.com/tab/john-lennon/imagine-chords-9306?no-cache=20260927",
+          "title": "Title: John Lennon - Imagine (Chords)",
+          "sha256": "a75ec1e3ea5b66802f6bbe718daf0fc2f4f32d3305c23130d2eec5480337f29a",
+          "checkedAt": "2026-09-27T01:30:50.183078+00:00"
+        }
+      },
+      "clock": {
+        "advancedBpm": 73,
+        "chordsBpm": 73,
+        "endBeatExclusive": 224,
+        "seconds": 184.1095890410959,
+        "metadataKey": "C"
+      },
+      "anchors": [
+        {
+          "beat": 0,
+          "seconds": 0,
+          "chord": "C"
+        },
+        {
+          "beat": 112,
+          "seconds": 92.054795,
+          "chord": "F"
+        },
+        {
+          "beat": 220,
+          "seconds": 180.821918,
+          "chord": "C"
+        }
+      ],
+      "backing": {
+        "chordEvents": 157,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.8565848214285714,
+        "minMidi": 36,
+        "maxMidi": 79,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 7
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 9,
+            "maxRepresentativeLeapSemitones": 1
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0.20224719101123595,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 3.875,
+          "strikes": 157,
+          "strikesOnSourceOnsets": 157,
+          "strikesUnderOneBeatApart": 6,
+          "tuneNotesOverBacking": 247,
+          "strongBeatTuneChordToneShare": 0.8837209302325582,
+          "tuneSemitoneClashShare": 0.12550607287449392
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 157,
+        "durationSeconds": 184.1095890410959,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "pending",
+        "independentKeyboardReview": "pending"
+      },
+      "drift": {
+        "reconstructedAcceptedSha256": "7c01beff6aca0dbbffd60185f18945fc1135764b4067df32ba4fde376265bfbb",
+        "acceptedStrikes": 166,
+        "currentStrikes": 157,
+        "removedAttacks": 9,
+        "addedAttacks": 0,
+        "changedDurationsAtRetainedAttacks": 134,
+        "changedPitchesAtRetainedAttacks": 0
+      }
+    },
+    {
+      "baseId": "the-beatles-let-it-be",
+      "title": "Let It Be",
+      "sourcePins": {
+        "baseId": "the-beatles-let-it-be",
+        "level": "a",
+        "sourceId": "ug-let-it-be",
+        "advancedNotesSha256": "b7fea761f20fe174c64e599041ba3e67f669b9efad4ddf2834dbf45aa34c3b36",
+        "timelineSha256": "b1d7460421acc3b09d887f0796b99cd2ad8af0c6c276247da57ca921f477fbd0",
+        "acceptedBackingSha256": "10eee395aeff09df182278a38557b5431971486d0b5e8d97cd5c7ad972ae98c2",
+        "acceptedAt": "2026-09-25"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "5fe1811116e0acf0fd8d5ec024830110c8db4cc1e9039b6b20734ea200cf78b6",
+      "sourceIdentity": {
+        "kind": "standard",
+        "sourceRef": "seed:the-beatles-let-it-be.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "the-beatles-let-it-be",
+        "url": "https://tabs.ultimate-guitar.com/tab/the-beatles/let-it-be-chords-17427",
+        "checkedAt": "2026-09-27T01:21:23.942943+00:00",
+        "exit": 0,
+        "title": "Title: The Beatles - Let It Be (Chords)",
+        "bytes": 4685,
+        "sha256": "c2de57856d29725d03c367425afc89d81290e1833196109ab1d5eedd1c88d122",
+        "metadata": []
+      },
+      "clock": {
+        "advancedBpm": 70,
+        "chordsBpm": 70,
+        "endBeatExclusive": 288,
+        "seconds": 246.85714285714286,
+        "metadataKey": "C"
+      },
+      "anchors": [
+        {
+          "beat": 4,
+          "seconds": 3.428571,
+          "chord": "C"
+        },
+        {
+          "beat": 144,
+          "seconds": 123.428571,
+          "chord": "G"
+        },
+        {
+          "beat": 282,
+          "seconds": 241.714286,
+          "chord": "C"
+        }
+      ],
+      "backing": {
+        "chordEvents": 255,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.9513888888888888,
+        "minMidi": 36,
+        "maxMidi": 79,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 11
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 9,
+            "maxRepresentativeLeapSemitones": 2
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0.6960352422907489,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 1.875,
+          "strikes": 255,
+          "strikesOnSourceOnsets": 255,
+          "strikesUnderOneBeatApart": 45,
+          "tuneNotesOverBacking": 502,
+          "strongBeatTuneChordToneShare": 0.9554655870445344,
+          "tuneSemitoneClashShare": 0.06573705179282868
+        },
+        "gate": {
+          "passed": false,
+          "reasons": [
+            "70% of chords last one beat or less"
+          ]
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 255,
+        "durationSeconds": 246.85714285714286,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "coldplay-clocks",
+      "title": "Clocks",
+      "sourcePins": {
+        "baseId": "coldplay-clocks",
+        "level": "a",
+        "sourceId": "ug-clocks",
+        "advancedNotesSha256": "053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51",
+        "timelineSha256": "d08081391a582c9a7837675115d2e0c018e8f08307d4255018e23b00ab6c85cf",
+        "acceptedBackingSha256": "f79fe9a2c55f33ed23f0c12efb849da3d5e2eb8bb2ac64d2debf3deb8aefc171",
+        "acceptedAt": "2026-09-25"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "767c0e4639feb4d4376427ecf54ebdd82920a575bff448cb7370f1c1db76df72",
+      "sourceIdentity": {
+        "kind": "standard",
+        "acquiredVia": "midi-pack",
+        "sourceRef": "seed:coldplay-clocks.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "coldplay-clocks",
+        "url": "https://tabs.ultimate-guitar.com/tab/coldplay/clocks-chords-1085329",
+        "checkedAt": "2026-09-27T01:21:24.373763+00:00",
+        "exit": 0,
+        "title": "Title: Coldplay - Clocks (Chords)",
+        "bytes": 5425,
+        "sha256": "8d1c4abde5edef2c65ca8e5043b7fc3d893fa7d5a37f136b49e70945bd811637",
+        "metadata": []
+      },
+      "clock": {
+        "advancedBpm": 130,
+        "chordsBpm": 130,
+        "endBeatExclusive": 164,
+        "seconds": 75.6923076923077,
+        "metadataKey": "A#m"
+      },
+      "anchors": [
+        {
+          "beat": 0,
+          "seconds": 0,
+          "chord": "Eb"
+        },
+        {
+          "beat": 82,
+          "seconds": 37.846154,
+          "chord": "Eb"
+        },
+        {
+          "beat": 160,
+          "seconds": 73.846154,
+          "chord": "Eb"
+        }
+      ],
+      "backing": {
+        "chordEvents": 105,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.8765243902439024,
+        "minMidi": 51,
+        "maxMidi": 65,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 7,
+            "maxRepresentativeLeapSemitones": 5
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 4,
+            "maxRepresentativeLeapSemitones": 4
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 3.75,
+          "strikes": 105,
+          "strikesOnSourceOnsets": 105,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 309,
+          "strongBeatTuneChordToneShare": 0.9090909090909091,
+          "tuneSemitoneClashShare": 0.019417475728155338
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 105,
+        "durationSeconds": 75.6923076923077,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0",
+      "title": "Fix You",
+      "sourcePins": {
+        "baseId": "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0",
+        "level": "a",
+        "sourceId": "ug-fix-you",
+        "advancedNotesSha256": "f251038e1ab8bdb0c5b23026d670fa819d5784580cf139db00e81ad1d09b2e9b",
+        "timelineSha256": "999945d6b2e19bcd771c035734f694ecd0859d431c561f869f0d36808fe4f124",
+        "acceptedEndBeatExclusive": 177.875,
+        "acceptedBackingSha256": "3904d59563f332068f0c887635f3248ded89d62090bd9b69b7f6111086c73f72",
+        "acceptedAt": "2026-09-26"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "952adbc574d854252d85736b6b7c36070d65689db67980e674935f6e6df644b1",
+      "sourceIdentity": {
+        "kind": "youtube",
+        "acquiredVia": "colored-keyboard-video",
+        "sourceRef": "youtube:9FJ-xBC81Z8",
+        "sourceYoutubeUrl": "https://youtu.be/9FJ-xBC81Z8"
+      },
+      "referenceCheck": {
+        "baseId": "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0",
+        "url": "https://tabs.ultimate-guitar.com/tab/coldplay/fix-you-chords-202592",
+        "checkedAt": "2026-09-27T01:21:29.843693+00:00",
+        "exit": 0,
+        "title": "Title: Coldplay - Fix You (Chords)",
+        "bytes": 15444,
+        "sha256": "55f3a84fb7ff20a41738ee982049999b158b0dfeec25d8bca20dec0f254e317f",
+        "metadata": [
+          "Author: Unregistered 5 contributors Difficulty: Intermediate",
+          "Tuning: [E A D G B E](https://www.ultimate-guitar.com/tools/tuner?tuning=E%20A%20D%20G%20B%20E)Key: Eb Capo: No capo"
+        ]
+      },
+      "clock": {
+        "advancedBpm": 68,
+        "chordsBpm": 68,
+        "endBeatExclusive": 177.875,
+        "seconds": 156.9485294117647,
+        "metadataKey": "Eb"
+      },
+      "anchors": [
+        {
+          "beat": 1.875,
+          "seconds": 1.654412,
+          "chord": "source-note"
+        },
+        {
+          "beat": 89.875,
+          "seconds": 79.301471,
+          "chord": "source-note"
+        },
+        {
+          "beat": 175.875,
+          "seconds": 155.183824,
+          "chord": "source-note"
+        }
+      ],
+      "backing": {
+        "chordEvents": 0,
+        "noteStreamAttacks": 422,
+        "coveredFraction": 0.9725931131412509,
+        "minMidi": 34,
+        "maxMidi": 75,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 12,
+            "maxRepresentativeLeapSemitones": 17
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 12,
+            "maxRepresentativeLeapSemitones": 5
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": null,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 0,
+          "strikes": 158,
+          "strikesOnSourceOnsets": 158,
+          "strikesUnderOneBeatApart": 51,
+          "tuneNotesOverBacking": 127,
+          "strongBeatTuneChordToneShare": 1,
+          "tuneSemitoneClashShare": 0.28346456692913385
+        },
+        "gate": {
+          "passed": false,
+          "reasons": [
+            "tune clashes by a semitone on 28% of notes"
+          ]
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 422,
+        "durationSeconds": 156.9485294117647,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "gloria-gaynor-i-will-survive",
+      "title": "I Will Survive",
+      "sourcePins": {
+        "baseId": "gloria-gaynor-i-will-survive",
+        "level": "a",
+        "sourceId": "ug-i-will-survive",
+        "advancedNotesSha256": "24044d6bbf1cd0dd91e97ef349c94201b22159bfdd4addac3ec5ab512ae1fc94",
+        "timelineSha256": "9f37442fc48e8327076bf1098104aa0fc83d3fce7f0856bdddce84bdcc270a8d",
+        "acceptedBackingSha256": "6e4d5dc4ce9fcbe87940d60f95dce73b4dcbe9460ae84587c3ee12895c6b7d36",
+        "acceptedAt": "2026-09-26"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "b60cff7e3c89e54ed735c71df1df631aeef8b46604a324b4b473d9e9dec056b3",
+      "sourceIdentity": {
+        "kind": "standard",
+        "sourceRef": "seed:gloria-gaynor-i-will-survive.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "gloria-gaynor-i-will-survive",
+        "url": "https://tabs.ultimate-guitar.com/tab/gloria-gaynor/i-will-survive-chords-154172",
+        "checkedAt": "2026-09-27T01:21:31.927806+00:00",
+        "exit": 0,
+        "title": "Title: Gloria Gaynor - I Will Survive (Chords)",
+        "bytes": 7293,
+        "sha256": "098208784e0d1d950acd5d426459e7dd37252afb271b25bc3efe7eed04d8916f",
+        "metadata": []
+      },
+      "clock": {
+        "advancedBpm": 117,
+        "chordsBpm": 117,
+        "endBeatExclusive": 388,
+        "seconds": 198.97435897435898,
+        "metadataKey": "Am"
+      },
+      "anchors": [
+        {
+          "beat": 8,
+          "seconds": 4.102564,
+          "chord": "E7"
+        },
+        {
+          "beat": 194,
+          "seconds": 99.487179,
+          "chord": "G7"
+        },
+        {
+          "beat": 379.5,
+          "seconds": 194.615385,
+          "chord": "Am7"
+        }
+      ],
+      "backing": {
+        "chordEvents": 165,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.8952963917525774,
+        "minMidi": 38,
+        "maxMidi": 79,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 7
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 11,
+            "maxRepresentativeLeapSemitones": 4
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0,
+          "deadAirOnsets": 3,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 9.375,
+          "strikes": 165,
+          "strikesOnSourceOnsets": 164,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 844,
+          "strongBeatTuneChordToneShare": 0.8627450980392157,
+          "tuneSemitoneClashShare": 0.26421800947867297
+        },
+        "gate": {
+          "passed": false,
+          "reasons": [
+            "tune clashes by a semitone on 26% of notes"
+          ]
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 165,
+        "durationSeconds": 198.97435897435898,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "mary-hopkin-those-were-the-days",
+      "title": "Those Were The Days",
+      "sourcePins": {
+        "baseId": "mary-hopkin-those-were-the-days",
+        "level": "a",
+        "sourceId": "ug-those-were-the-days",
+        "advancedNotesSha256": "5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545",
+        "timelineSha256": "e061e273049c3766528f674b43d443c5e689114ecc77c8db3f8f4dfd0da3e5bf",
+        "acceptedBackingSha256": "32fca1267396701e260a4debddfc7d4544a77a6dbc6dc392d57d4bcb7ced1385",
+        "acceptedAt": "2026-09-26"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "02692dcf0f29c5d182b511877100c417a851a3168b96b9f92bc33f15267538b8",
+      "sourceIdentity": {
+        "kind": "standard",
+        "sourceRef": "seed:mary-hopkin-those-were-the-days.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "mary-hopkin-those-were-the-days",
+        "url": "https://tabs.ultimate-guitar.com/tab/mary-hopkin/those-were-the-days-chords-81767",
+        "checkedAt": "2026-09-27T01:21:30.462173+00:00",
+        "exit": 0,
+        "title": "Title: Mary Hopkin - Those Were The Days (Chords)",
+        "bytes": 15944,
+        "sha256": "2cc819f5c097361e64016ec489fe1f29ddee9bbff72f4d810d381b443c28b348",
+        "metadata": [
+          "Author: Unregistered 3 contributors Difficulty: Beginner",
+          "Tuning: [E A D G B E](https://www.ultimate-guitar.com/tools/tuner?tuning=E%20A%20D%20G%20B%20E)Capo: No capo"
+        ]
+      },
+      "clock": {
+        "advancedBpm": 90,
+        "chordsBpm": 90,
+        "endBeatExclusive": 344,
+        "seconds": 229.33333333333334,
+        "metadataKey": "Am"
+      },
+      "anchors": [
+        {
+          "beat": 8,
+          "seconds": 5.333333,
+          "chord": "Am"
+        },
+        {
+          "beat": 172,
+          "seconds": 114.666667,
+          "chord": "Am"
+        },
+        {
+          "beat": 342,
+          "seconds": 228,
+          "chord": "Am"
+        }
+      ],
+      "backing": {
+        "chordEvents": 166,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.873546511627907,
+        "minMidi": 36,
+        "maxMidi": 80,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 7
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 10,
+            "maxRepresentativeLeapSemitones": 5
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0.09411764705882353,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 3.5,
+          "strikes": 166,
+          "strikesOnSourceOnsets": 165,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 527,
+          "strongBeatTuneChordToneShare": 0.7224080267558528,
+          "tuneSemitoneClashShare": 0.14231499051233396
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 166,
+        "durationSeconds": 229.33333333333334,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "abba-the-winner-takes-it-all",
+      "title": "The Winner Takes It All",
+      "sourcePins": {
+        "baseId": "abba-the-winner-takes-it-all",
+        "level": "a",
+        "sourceId": "ug-the-winner-takes-it-all",
+        "advancedNotesSha256": "9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664",
+        "timelineSha256": "16b5b19012af41e5b9cd9107af36966a6a94159f6aebe7510beda8be039c4762",
+        "acceptedBackingSha256": "5577a338bfef5a85c300d6c14234a6219eb4e2beecfb5a8584dbecfa88eb4c6c",
+        "acceptedAt": "2026-09-26"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "15e227af947214f1390d3e00a966b5b4cdb9b26056f9b40207d7540e2b92149f",
+      "sourceIdentity": {
+        "kind": "upload",
+        "acquiredVia": "youtube",
+        "sourceRef": "youtube:WEXCHqCY4js",
+        "sourceYoutubeUrl": "https://www.youtube.com/watch?v=WEXCHqCY4js"
+      },
+      "referenceCheck": {
+        "baseId": "abba-the-winner-takes-it-all",
+        "url": "https://tabs.ultimate-guitar.com/tab/abba/the-winner-takes-it-all-chords-18447",
+        "checkedAt": "2026-09-27T01:21:31.331878+00:00",
+        "exit": 0,
+        "title": "Title: Abba - The Winner Takes It All (Chords)",
+        "bytes": 6863,
+        "sha256": "3b24c72ab2fbb6d58528fa5779d4aa9bc73efce549956c3738ff1715ecdde88c",
+        "metadata": []
+      },
+      "clock": {
+        "advancedBpm": 123,
+        "chordsBpm": 123,
+        "endBeatExclusive": 592,
+        "seconds": 288.780487804878,
+        "metadataKey": "F#"
+      },
+      "anchors": [
+        {
+          "beat": 0,
+          "seconds": 0,
+          "chord": "F#"
+        },
+        {
+          "beat": 296,
+          "seconds": 144.390244,
+          "chord": "F#"
+        },
+        {
+          "beat": 585.5,
+          "seconds": 285.609756,
+          "chord": "F#"
+        }
+      ],
+      "backing": {
+        "chordEvents": 156,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.9413006756756757,
+        "minMidi": 37,
+        "maxMidi": 85,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 7
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 10,
+            "maxRepresentativeLeapSemitones": 12
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0.029411764705882353,
+          "deadAirOnsets": 2,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 7,
+          "strikes": 156,
+          "strikesOnSourceOnsets": 154,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 709,
+          "strongBeatTuneChordToneShare": 0.7051282051282052,
+          "tuneSemitoneClashShare": 0.09026798307475317
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 156,
+        "durationSeconds": 288.780487804878,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x",
+      "title": "All of Me",
+      "sourcePins": {
+        "baseId": "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x",
+        "level": "a",
+        "sourceId": "ug-all-of-me",
+        "advancedNotesSha256": "2d8212fa850c7dfcbc3dbf0029f4b22a2ee93385fe686214b48b20db28865cfb",
+        "timelineSha256": "e13eb191dcdcbf615a4e81c56061a633742042b48bddb1bf7a7ddacc0c21db21",
+        "acceptedBackingSha256": "5c1e5478045f1e595b1d693d092ca092d31c60fd850dbb0fa178338ca86bab64",
+        "acceptedAt": "2026-09-27"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "84cb2da19d0dd92e9febe13ef25f3239a9da9155c48aa5d70b3302e107973c2d",
+      "sourceIdentity": {
+        "kind": "youtube",
+        "acquiredVia": "youtube",
+        "sourceRef": "youtube:b3E6E6hYSSI",
+        "sourceYoutubeUrl": "https://www.youtube.com/watch?v=b3E6E6hYSSI"
+      },
+      "referenceCheck": {
+        "baseId": "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x",
+        "url": "https://tabs.ultimate-guitar.com/tab/john-legend/all-of-me-chords-2469556",
+        "checkedAt": "2026-09-27T01:21:37.726860+00:00",
+        "exit": 0,
+        "title": "Title: John Legend - All Of Me (Chords)",
+        "bytes": 7916,
+        "sha256": "9729c4fa6db049ecf0ed702c6c23867f9650ee465e7da234916ed63e55d890c6",
+        "metadata": []
+      },
+      "clock": {
+        "advancedBpm": 129,
+        "chordsBpm": 126,
+        "endBeatExclusive": 576,
+        "seconds": 274.2857142857143,
+        "metadataKey": "Fm"
+      },
+      "anchors": [
+        {
+          "beat": 0,
+          "seconds": 0,
+          "chord": "Fm"
+        },
+        {
+          "beat": 288,
+          "seconds": 137.142857,
+          "chord": "Bbm9"
+        },
+        {
+          "beat": 572,
+          "seconds": 272.380952,
+          "chord": "Ebsus2"
+        }
+      ],
+      "backing": {
+        "chordEvents": 179,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.6427951388888888,
+        "minMidi": 37,
+        "maxMidi": 80,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 7
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 11,
+            "maxRepresentativeLeapSemitones": 5
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0.0446927374301676,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 0,
+          "strikes": 179,
+          "strikesOnSourceOnsets": 0,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 0,
+          "strongBeatTuneChordToneShare": null,
+          "tuneSemitoneClashShare": null
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 179,
+        "durationSeconds": 274.2857142857143,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "the-beatles-help",
+      "title": "Help",
+      "sourcePins": {
+        "baseId": "the-beatles-help",
+        "level": "a",
+        "sourceId": "ug-help",
+        "advancedNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55",
+        "timelineSha256": "d6f0dd1eaa35b15e653e5a059d700644f2a99da7f94200b6ac0c87ec21350ae7",
+        "acceptedBackingSha256": "30e839d9f77a887f853cff96b54259125099aa34fc16c35bc633e64462195331",
+        "acceptedAt": "2026-09-27"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "202e7799715b9e60a4c75b3b0f6860df857b71f9389a4b0e88904fae2c22204c",
+      "sourceIdentity": {
+        "kind": "standard",
+        "sourceRef": "seed:the-beatles-help.mid",
+        "sourceYoutubeUrl": null
+      },
+      "referenceCheck": {
+        "baseId": "the-beatles-help",
+        "url": "https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269",
+        "checkedAt": "2026-09-27T01:21:38.646641+00:00",
+        "exit": 0,
+        "title": "Title: The Beatles - Help (Chords)",
+        "bytes": 3771,
+        "sha256": "e0b8d54ae910f4143df3d78dd3cb95838742e5eb362cf5cf4c13369379ba700e",
+        "metadata": []
+      },
+      "clock": {
+        "advancedBpm": 173,
+        "chordsBpm": 190,
+        "endBeatExclusive": 436,
+        "seconds": 137.68421052631578,
+        "metadataKey": "A"
+      },
+      "anchors": [
+        {
+          "beat": 4,
+          "seconds": 1.263158,
+          "chord": "Bm"
+        },
+        {
+          "beat": 220,
+          "seconds": 69.473684,
+          "chord": "D"
+        },
+        {
+          "beat": 432,
+          "seconds": 136.421053,
+          "chord": "A"
+        }
+      ],
+      "backing": {
+        "chordEvents": 190,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.8876146788990825,
+        "minMidi": 37,
+        "maxMidi": 88,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 8
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 10,
+            "maxRepresentativeLeapSemitones": 3
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0,
+          "deadAirOnsets": 0,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 7,
+          "strikes": 190,
+          "strikesOnSourceOnsets": 188,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 575,
+          "strongBeatTuneChordToneShare": 0.9074074074074074,
+          "tuneSemitoneClashShare": 0.09565217391304348
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 190,
+        "durationSeconds": 137.68421052631578,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    },
+    {
+      "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+      "title": "Your Song",
+      "sourcePins": {
+        "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+        "level": "a",
+        "sourceId": "ug-your-song",
+        "advancedNotesSha256": "b1a3051fc7e6f0fbc29d9449f6b8f188fc83507bb944b47ad8b1f0cbd73cd72a",
+        "timelineSha256": "9e0222f0f949f0fda1b01dcddf50ee08b1b9333fcc5449a231f749b13bee5dd0",
+        "acceptedBackingSha256": "d965fe88354636081ec509cc2ba109b21f48d294c8fa4f4da887faa65d87f11c",
+        "acceptedAt": "2026-09-27"
+      },
+      "legacyReplayStatus": "MATCH",
+      "observedPlaybackSha256": "8bcf81dc50a9a7ed2eee630b8c154f45ff8a778f67ef6cdb6602ebbc839ae608",
+      "sourceIdentity": {
+        "kind": "youtube",
+        "acquiredVia": "youtube",
+        "sourceRef": "youtube:JZ6uGVghbT8",
+        "sourceYoutubeUrl": "https://www.youtube.com/watch?v=JZ6uGVghbT8",
+        "sourceArtifactRef": "seed:the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8.mid"
+      },
+      "referenceCheck": {
+        "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+        "url": "https://tabs.ultimate-guitar.com/tab/elton-john/your-song-chords-2323509",
+        "checkedAt": "2026-09-27T01:21:39.445215+00:00",
+        "exit": 0,
+        "title": "Title: Elton John - Your Song (Chords)",
+        "bytes": 4912,
+        "sha256": "a9fcec61cfc199705a655a48e47eafb7bf5014219aacb1ced0e64a404e3e670f",
+        "metadata": []
+      },
+      "clock": {
+        "advancedBpm": 129,
+        "chordsBpm": 129,
+        "endBeatExclusive": 516,
+        "seconds": 240,
+        "metadataKey": "Eb"
+      },
+      "anchors": [
+        {
+          "beat": 1.25,
+          "seconds": 0.581395,
+          "chord": "Eb/Bb"
+        },
+        {
+          "beat": 258.375,
+          "seconds": 120.174419,
+          "chord": "Cm"
+        },
+        {
+          "beat": 501.375,
+          "seconds": 233.197674,
+          "chord": "Eb"
+        }
+      ],
+      "backing": {
+        "chordEvents": 101,
+        "noteStreamAttacks": 0,
+        "coveredFraction": 0.9498546511627907,
+        "minMidi": 36,
+        "maxMidi": 80,
+        "duplicateOnsetAttacks": 0,
+        "onsetGeometryByHand": {
+          "L": {
+            "maxSimultaneousSpanSemitones": 0,
+            "maxRepresentativeLeapSemitones": 11
+          },
+          "R": {
+            "maxSimultaneousSpanSemitones": 11,
+            "maxRepresentativeLeapSemitones": 2
+          }
+        },
+        "listener": {
+          "oneBeatChordShare": 0,
+          "deadAirOnsets": 4,
+          "intentionalSilenceOnsets": 0,
+          "longestWaitForStrikeBeats": 11.125,
+          "strikes": 101,
+          "strikesOnSourceOnsets": 101,
+          "strikesUnderOneBeatApart": 0,
+          "tuneNotesOverBacking": 543,
+          "strongBeatTuneChordToneShare": 0.6842105263157895,
+          "tuneSemitoneClashShare": 0.17863720073664824
+        },
+        "gate": {
+          "passed": true,
+          "reasons": []
+        }
+      },
+      "engineCheck": {
+        "version": "current",
+        "scheduledEvents": 101,
+        "durationSeconds": 240,
+        "graphDurationClampCount": 0
+      },
+      "gates": {
+        "sourceBytesAndTimelinePins": "match",
+        "chartPage": "retrieved; harmonic reference only",
+        "recordingAttackAlignment": "not reverified",
+        "agentListening": "not performed; audio-listening input unavailable",
+        "ownerCurrentBacking": "historically accepted within indexed scope",
+        "independentKeyboardReview": "pending"
+      }
+    }
+  ]
+}

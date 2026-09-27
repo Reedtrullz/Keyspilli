@@ -36,6 +36,13 @@ describe("chord source selection", () => {
     ]);
   });
 
+  it("keeps deliberate authored re-attacks even when the chord symbol is unchanged", () => {
+    expect(normalizeChordTimeline([
+      { beat: 0, name: "F", notes: [41, 53, 57, 60], sourceKind: "authored", durationBeats: 2 },
+      { beat: 2, name: "F", notes: [41, 53, 57, 60], sourceKind: "authored", durationBeats: 2 },
+    ]).map(({ beat }) => beat)).toEqual([0, 2]);
+  });
+
   it("selects UG source in auto mode when provenance is supplied", () => {
     const sources = resolveChordSources(song({
       ugChordTimeline: [

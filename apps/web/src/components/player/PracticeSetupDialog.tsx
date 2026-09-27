@@ -6,7 +6,7 @@ import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 export type PracticeSetup = {
   input: "keyboard" | "midi" | "microphone";
   wait: boolean;
-  scope: "current" | "beginning" | "loop";
+  scope: "bars" | "current" | "beginning" | "loop";
   countInBeats: 0 | 4;
 };
 
@@ -60,7 +60,7 @@ export function PracticeSetupDialog({ onChordPractice, initialSetup, hasLoop, mi
         </label>
         <label className="block text-sm">Passage
           <select aria-label="Passage" className="block w-full mt-1 min-h-11 rounded-lg border border-zinc-300 px-3" value={setup.scope} onChange={(e) => setSetup({ ...setup, scope: e.target.value as PracticeSetup["scope"] })}>
-            <option value="current">From current position</option><option value="beginning">From beginning</option><option value="loop" disabled={!hasLoop}>Selected loop (once)</option>
+            <option value="bars">Current 4 bars</option><option value="current">From current position to end</option><option value="beginning">From beginning</option><option value="loop" disabled={!hasLoop}>Selected loop (once)</option>
           </select>
         </label>
         <label className="block text-sm">Count-in

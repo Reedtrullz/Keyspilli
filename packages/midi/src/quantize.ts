@@ -35,6 +35,20 @@ function compareCollisionRepresentative(a: Note, b: Note, aDur: number, bDur: nu
     || a.midi - b.midi;
 }
 
+/**
+ * Lineage of one physical note that absorbed several source notes. Origins are
+ * unioned; a semantic role survives only when every parent agrees, so a
+ * vocal/accompaniment collision is never promoted to either role.
+ */
+export function mergedNoteLineage(a: Note, b: Note): Pick<Note, "identitySource" | "sourceOrigins"> {
+  const sourceOrigins = [...new Map([...(a.sourceOrigins ?? []), ...(b.sourceOrigins ?? [])]
+    .map((origin) => [origin.id, origin])).values()].sort((x, y) => compareText(x.id, y.id));
+  return {
+    identitySource: a.identitySource === b.identitySource ? a.identitySource : undefined,
+    ...(sourceOrigins.length ? { sourceOrigins } : {}),
+  };
+}
+
 /** Snap note times to a rhythmic grid, merge unisons, drop tiny/quiet notes. */
 export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
   const grid = opts.grid ?? 0.25;
@@ -63,21 +77,13 @@ export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
       const prevRefs = (prev as LearnerTaggedNote).learnerTraceRefs ?? [];
       const nextRefs = (n as LearnerTaggedNote).learnerTraceRefs ?? [];
       const representative = compareCollisionRepresentative(prev, n, prev.dur, dur) <= 0 ? prev : n;
-      if (!prevRefs.length && !nextRefs.length) {
-        out.set(key, {
-          ...representative,
-          start,
-          dur: Math.max(prev.dur, dur),
-          vel: Math.max(prev.vel, n.vel),
-        });
-        continue;
-      }
       const learnerTraceRefs = [...new Set([...prevRefs, ...nextRefs])].sort();
       const merged = {
         ...representative,
         start,
         dur: Math.max(prev.dur, dur),
         vel: Math.max(prev.vel, n.vel),
+        ...mergedNoteLineage(prev, n),
         ...(learnerTraceRefs.length ? { learnerTraceRefs } : {}),
       };
       out.set(key, merged);

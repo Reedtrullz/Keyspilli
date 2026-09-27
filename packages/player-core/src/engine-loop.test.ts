@@ -99,4 +99,39 @@ describe("F03: chord cursor resets on loop wrap", () => {
     expect(audio.clicks[0]?.when).toBeCloseTo(0.05, 6);
   });
 
+  it("clicks the metronome with playable chord backing", () => {
+    const audio = new ChordAudio();
+    const engine = new PlaybackEngine(
+      audio, [], 2, META,
+      { ...DEFAULT_SETTINGS, metronome: true, backgroundMode: "chord" },
+      [ch(0, "C", [48, 64, 67], 4)],
+    );
+    engine.start();
+    expect(audio.chords).toHaveLength(1);
+    expect(audio.clicks).toEqual([{ beat: 0, when: 0 }]);
+  });
+
+  it("waits for every simultaneous chord tone before moving to the next attack", () => {
+    const audio = new ChordAudio();
+    const targets: TimedNote[] = [60, 64, 67].map((midi) => ({ midi, startSec: 0.5, durSec: 2, vel: 80, hand: "R" }));
+    targets.push({ midi: 65, startSec: 2, durSec: 0.5, vel: 80, hand: "R" });
+    const engine = new PlaybackEngine(
+      audio, [], 4, META, { ...DEFAULT_SETTINGS, backgroundMode: "chord" }, [], targets,
+    );
+    engine.startGrading(true, { startSec: 0, endSec: 3 });
+
+    expect(engine.handleNoteOn(60)).toBe(true);
+    expect(engine.time).toBeCloseTo(0.5);
+    expect(engine.waitNote?.midi).toBe(64);
+    expect(engine.waitNotes.map((note) => note.midi)).toEqual([64, 67]);
+    expect(engine.handleNoteOn(64)).toBe(true);
+    expect(engine.time).toBeCloseTo(0.5);
+    expect(engine.handleNoteOn(67)).toBe(true);
+    expect(engine.time).toBeCloseTo(2);
+    expect(engine.waitNote?.midi).toBe(65);
+    expect(engine.handleNoteOn(65)).toBe(true);
+    expect(engine.gradeResult?.hit).toBe(4);
+    expect(engine.gradeResult?.missed).toBe(0);
+  });
+
 });

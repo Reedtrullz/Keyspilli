@@ -91,6 +91,8 @@ export interface IngestInput {
   mood?: string;
   key?: string;
   tempo?: number;
+  /** Keep curated MIDI note beats when a playback tempo override replaces its tempo map. */
+  preserveSourceBeats?: boolean;
   contentType: "standard" | "youtube" | "upload";
   acquiredVia?: string | null;
   sourceYoutubeUrl?: string | null;
@@ -277,6 +279,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   }
   // AI transcriptions carry ghost notes; human MIDI files do not.
   parsed.tempoBpm = normalizeTempoBpm(inp.tempo ?? parsed.tempoBpm);
+  if (inp.preserveSourceBeats) parsed.tempoEvents = undefined;
   if (inp.contentType === "youtube" && inp.cleanTranscription !== false) {
     // cleanTranscription uses a temporary pitch split while capping sustained
     // overlaps. Those labels are inferred implementation details, not source
@@ -493,6 +496,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       chords: inp.chords ?? null,
       key: inp.key ?? null,
       tempoOverride: inp.tempo ?? null,
+      ...(inp.preserveSourceBeats ? { preserveSourceBeats: true } : {}),
       transcription: transcription ? transcriptionConfigForFingerprint(transcription) : null,
       // Keep the effective downstream processing identity in the fingerprint
       // even when an older caller supplies provenance without the newer

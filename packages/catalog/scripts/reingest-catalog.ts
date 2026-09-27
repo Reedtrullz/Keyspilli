@@ -47,6 +47,7 @@ interface ManifestSong {
   mood?: string;
   key?: string;
   tempo?: number;
+  preserveSourceBeats?: boolean;
   sourceFile: string;
   sourceUrl?: string;
   contentType?: "standard" | "youtube" | "upload";
@@ -63,6 +64,7 @@ interface CatalogMeta {
   mood: string;
   key?: string;
   tempo?: number;
+  preserveSourceBeats?: boolean;
   contentType: "standard" | "youtube" | "upload";
   acquiredVia: string | null;
   sourceYoutubeUrl: string | null;
@@ -130,6 +132,7 @@ function metadataFor(baseId: string): CatalogMeta | undefined {
     mood: fromManifest?.mood ?? row.mood,
     key: fromManifest?.key ?? row.key,
     tempo: fromManifest?.tempo ?? row.tempo,
+    preserveSourceBeats: fromManifest?.preserveSourceBeats,
     contentType,
     acquiredVia: fromManifest?.acquiredVia ?? row.acquiredVia ?? (manifestYoutube ? "youtube" : null),
     sourceYoutubeUrl: manifestYoutube ? fromManifest?.sourceUrl ?? row.sourceYoutubeUrl : row.sourceYoutubeUrl,
@@ -342,6 +345,7 @@ for (const baseId of bases) {
       mood: meta.mood,
       key: meta.key,
       tempo: src.tempo ?? meta.tempo,
+      preserveSourceBeats: meta.preserveSourceBeats,
       contentType: meta.contentType,
       acquiredVia: meta.acquiredVia,
       sourceYoutubeUrl: src.sourceYoutubeUrl ?? meta.sourceYoutubeUrl,

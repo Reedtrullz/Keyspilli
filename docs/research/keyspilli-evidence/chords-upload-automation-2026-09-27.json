@@ -1,0 +1,5308 @@
+{
+  "checkedAt": "2026-09-27T02:07:53.382Z",
+  "datasetCommit": "be9094392903c471a930519e1c0bacf8b6be5d62",
+  "selection": "POP909-CL 055, 060, ... 150; twenty files selected before their first run",
+  "developmentExamples": "005, 010, ... 050 plus three local non-golden files; not held out after the first diagnostic run",
+  "ownerDecision": "Existing golden acceptance stands. No additional owner listening requested; acceptance pins unchanged.",
+  "sourceGroundedHarmony": {
+    "root": 0.8456880002491232,
+    "majMin": 0.8207922593574909,
+    "sevenths": 0.7852969285841105,
+    "segmentation": 0.8106918671880832
+  },
+  "legacyHarmony": {
+    "root": 0.8880519759412713,
+    "majMin": 0.865601924036631,
+    "sevenths": 0.8291608614905608,
+    "segmentation": 0.8078401980774002
+  },
+  "meanUncertainFraction": 0.045136413180097465,
+  "releaseGatePassed": false,
+  "strikes": 5085,
+  "strikesOnSourceOnsets": 5085,
+  "copiedSourceNoteStreamEvents": 0,
+  "meanBackingSoundingFraction": 0.5370815402648957,
+  "transportComparisons": 81,
+  "scheduledEventsChecked": 17848,
+  "heldout": [
+    {
+      "name": "055.mid",
+      "sourceSha256": "ab6d4617f771abe7f898be5d80063d10d720d11435c07f51c71836c0e11201b9",
+      "tempoBpm": 120,
+      "endBeat": 372,
+      "uncertainFraction": 0.026881720430107527,
+      "legacyHarmony": {
+        "beats": 372,
+        "root": 0.9408602150537635,
+        "majMin": 0.9088397790055248,
+        "sevenths": 0.8812154696132597,
+        "segmentation": 0.8978494623655914
+      },
+      "sourceGroundedHarmony": {
+        "beats": 372,
+        "root": 0.8931451612903226,
+        "majMin": 0.8787983425414365,
+        "sevenths": 0.856353591160221,
+        "segmentation": 0.896505376344086
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-ab6d4617f771abe7f898be5d80063d10d720d11435c07f51c71836c0e11201b9:a:eval-ab6d4617f771abe7f898be5d80063d10d720d11435c07f51c71836c0e11201b9-a:2133d1abcb7e2c6f838ffa5e90fadd2893c220a946398b69d64d4613ffd176e7:notes:efa46666ebaf225e95fac1ad25075005f7c254fa3ca356152e729982e8284341",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1346,
+          "chordCount": 195,
+          "chordProvenance": {
+            "generated": 195
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1346,
+          "durationBeats": 372,
+          "sourceRestBeats": 12.625,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1346,
+          "coveredBeats": 359.375,
+          "coveredFraction": 0.9660618279569892,
+          "minMidi": 34,
+          "maxMidi": 91,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 19
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 28
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.625
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 195,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 303,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1214,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 234.25,
+          "unsupportedSpans": [
+            {
+              "startBeat": 7.875,
+              "endBeat": 8,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 12,
+              "endBeat": 14,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 55.75,
+              "endBeat": 56,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 59.875,
+              "endBeat": 60,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 83.5,
+              "endBeat": 84,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 90.75,
+              "endBeat": 91,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 106.75,
+              "endBeat": 107,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 110,
+              "endBeat": 112,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 159.75,
+              "endBeat": 160,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 163.875,
+              "endBeat": 164,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 208.75,
+              "endBeat": 209,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 212,
+              "endBeat": 214,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 249.875,
+              "endBeat": 250,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 262,
+              "endBeat": 264,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 284.125,
+              "endBeat": 284.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 284.75,
+              "endBeat": 285,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 285.875,
+              "endBeat": 286,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 338,
+              "endBeat": 340,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 370,
+              "endBeat": 372,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1214,
+          "coveredBeats": 234.25,
+          "coveredFraction": 0.6297043010752689,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 11
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 5
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 5.5,
+          "listener": {
+            "oneBeatChordShare": 0.2840909090909091,
+            "deadAirOnsets": 0,
+            "intentionalSilenceOnsets": 21,
+            "longestWaitForStrikeBeats": 3.5,
+            "strikes": 303,
+            "strikesOnSourceOnsets": 303,
+            "strikesUnderOneBeatApart": 43,
+            "tuneNotesOverBacking": 406,
+            "strongBeatTuneChordToneShare": 0.892,
+            "tuneSemitoneClashShare": 0.09359605911330049
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "060.mid",
+      "sourceSha256": "a662decaef2b7f791deb4e4ddb203d51da0df763750a9c5b57e53aca89ef0d2b",
+      "tempoBpm": 120,
+      "endBeat": 196,
+      "uncertainFraction": 0.11224489795918367,
+      "legacyHarmony": {
+        "beats": 196,
+        "root": 0.923469387755102,
+        "majMin": 0.9166666666666666,
+        "sevenths": 0.9166666666666666,
+        "segmentation": 0.7448979591836735
+      },
+      "sourceGroundedHarmony": {
+        "beats": 196,
+        "root": 0.8303571428571429,
+        "majMin": 0.8465277777777778,
+        "sevenths": 0.8409722222222222,
+        "segmentation": 0.8163265306122449
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-a662decaef2b7f791deb4e4ddb203d51da0df763750a9c5b57e53aca89ef0d2b:a:eval-a662decaef2b7f791deb4e4ddb203d51da0df763750a9c5b57e53aca89ef0d2b-a:c461fb9d776bf89109f7280b150ca10468904896b9effdb0ff3c7542d4fb7c26:notes:335131b2c368ca151fd4836e9e7d374df81be3ceb8ec0e0b0d1941ea95e47892",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 922,
+          "chordCount": 82,
+          "chordProvenance": {
+            "generated": 82
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 922,
+          "durationBeats": 196,
+          "sourceRestBeats": 13.25,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 922,
+          "coveredBeats": 182.75,
+          "coveredFraction": 0.9323979591836735,
+          "minMidi": 35,
+          "maxMidi": 90,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 20
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 22
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.75
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 82,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 136,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 546,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 94.75,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 4,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 8,
+              "endBeat": 12,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 16,
+              "endBeat": 20,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 44,
+              "endBeat": 46,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 50,
+              "endBeat": 52,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 71.625,
+              "endBeat": 71.75,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 96,
+              "endBeat": 98,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 99.875,
+              "endBeat": 100,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 109.875,
+              "endBeat": 110,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 132,
+              "endBeat": 134,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 138,
+              "endBeat": 140,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 159.625,
+              "endBeat": 159.75,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 193.25,
+              "endBeat": 196,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 546,
+          "coveredBeats": 94.75,
+          "coveredFraction": 0.48341836734693877,
+          "minMidi": 37,
+          "maxMidi": 78,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 4.875,
+          "listener": {
+            "oneBeatChordShare": 0.3188405797101449,
+            "deadAirOnsets": 2,
+            "intentionalSilenceOnsets": 36,
+            "longestWaitForStrikeBeats": 3.875,
+            "strikes": 136,
+            "strikesOnSourceOnsets": 136,
+            "strikesUnderOneBeatApart": 12,
+            "tuneNotesOverBacking": 203,
+            "strongBeatTuneChordToneShare": 0.9181818181818182,
+            "tuneSemitoneClashShare": 0.04926108374384237
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "065.mid",
+      "sourceSha256": "b778108fe78d98601fa7aec0872db518fdc9976813af2053a7f43c8c6bee6f1c",
+      "tempoBpm": 120,
+      "endBeat": 488,
+      "uncertainFraction": 0.018442622950819672,
+      "legacyHarmony": {
+        "beats": 488,
+        "root": 0.9426229508196722,
+        "majMin": 0.9259259259259259,
+        "sevenths": 0.8806584362139918,
+        "segmentation": 0.48155737704918034
+      },
+      "sourceGroundedHarmony": {
+        "beats": 488,
+        "root": 0.9239241803278688,
+        "majMin": 0.9174382716049383,
+        "sevenths": 0.864454732510288,
+        "segmentation": 0.6759733606557377
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-b778108fe78d98601fa7aec0872db518fdc9976813af2053a7f43c8c6bee6f1c:a:eval-b778108fe78d98601fa7aec0872db518fdc9976813af2053a7f43c8c6bee6f1c-a:b393862a9d5fbf6d1e4e19b9a39aeeabdfdf15de0d663206da8f18e6438ae249:notes:18280311682fb98f36a2d5a483d78f75a4c9ee371093c8516913f274bb94778c",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 2109,
+          "chordCount": 288,
+          "chordProvenance": {
+            "generated": 288
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 2109,
+          "durationBeats": 488,
+          "sourceRestBeats": 11.75,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 2109,
+          "coveredBeats": 476.25,
+          "coveredFraction": 0.975922131147541,
+          "minMidi": 36,
+          "maxMidi": 84,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 17
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 15
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.375
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 288,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 386,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1592,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 188.125,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 6,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 6,
+              "endBeat": 8,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 392,
+              "endBeat": 396,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 476,
+              "endBeat": 478,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 484,
+              "endBeat": 485,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 485,
+              "endBeat": 488,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1592,
+          "coveredBeats": 188.125,
+          "coveredFraction": 0.3855020491803279,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 9
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 4.25,
+          "listener": {
+            "oneBeatChordShare": 0.6205673758865248,
+            "deadAirOnsets": 50,
+            "intentionalSilenceOnsets": 10,
+            "longestWaitForStrikeBeats": 7.5,
+            "strikes": 386,
+            "strikesOnSourceOnsets": 386,
+            "strikesUnderOneBeatApart": 73,
+            "tuneNotesOverBacking": 476,
+            "strongBeatTuneChordToneShare": 0.8421052631578947,
+            "tuneSemitoneClashShare": 0.06092436974789916
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "62% of chords last one beat or less",
+              "dead air at 50 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "070.mid",
+      "sourceSha256": "37420f1bb01ce77f48ed0ff7a13380db93fe5c5436fd40926160d493f7684f72",
+      "tempoBpm": 120,
+      "endBeat": 252,
+      "uncertainFraction": 0.07142857142857142,
+      "legacyHarmony": {
+        "beats": 252,
+        "root": 0.8432539682539683,
+        "majMin": 0.7681451612903226,
+        "sevenths": 0.5544354838709677,
+        "segmentation": 0.8273809523809523
+      },
+      "sourceGroundedHarmony": {
+        "beats": 252,
+        "root": 0.7688492063492064,
+        "majMin": 0.6895161290322581,
+        "sevenths": 0.501008064516129,
+        "segmentation": 0.8566468253968254
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-37420f1bb01ce77f48ed0ff7a13380db93fe5c5436fd40926160d493f7684f72:a:eval-37420f1bb01ce77f48ed0ff7a13380db93fe5c5436fd40926160d493f7684f72-a:db8f66e7d33589e13328ff32df20f0193a10ff476965efdfc79d159ea30c798d:notes:4af6bd31848ff29adfb15452a28ae94893720701e4d39472e9e1883ed5d4a001",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1141,
+          "chordCount": 119,
+          "chordProvenance": {
+            "generated": 119
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1141,
+          "durationBeats": 252,
+          "sourceRestBeats": 7.25,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1141,
+          "coveredBeats": 244.75,
+          "coveredFraction": 0.9712301587301587,
+          "minMidi": 37,
+          "maxMidi": 89,
+          "maximumHeldOverlap": 8,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 18
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 18
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.625
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 119,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 137,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 558,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 149.75,
+          "unsupportedSpans": [
+            {
+              "startBeat": 34,
+              "endBeat": 36,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 71.75,
+              "endBeat": 72,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 114,
+              "endBeat": 116,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 216,
+              "endBeat": 218,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 221.75,
+              "endBeat": 222,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 232,
+              "endBeat": 244,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 249.375,
+              "endBeat": 252,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 558,
+          "coveredBeats": 149.75,
+          "coveredFraction": 0.5942460317460317,
+          "minMidi": 37,
+          "maxMidi": 78,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 8
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.625,
+          "listener": {
+            "oneBeatChordShare": 0.36607142857142855,
+            "deadAirOnsets": 7,
+            "intentionalSilenceOnsets": 34,
+            "longestWaitForStrikeBeats": 13.75,
+            "strikes": 137,
+            "strikesOnSourceOnsets": 137,
+            "strikesUnderOneBeatApart": 11,
+            "tuneNotesOverBacking": 382,
+            "strongBeatTuneChordToneShare": 0.6143790849673203,
+            "tuneSemitoneClashShare": 0.20680628272251309
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "dead air at 7 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "075.mid",
+      "sourceSha256": "4eeac4d686ace78aea5760701bf16d7e23900be7869a113c1888e8ff4c6c99e8",
+      "tempoBpm": 120,
+      "endBeat": 260,
+      "uncertainFraction": 0.019230769230769232,
+      "legacyHarmony": {
+        "beats": 260,
+        "root": 0.8048076923076923,
+        "majMin": 0.8071705426356589,
+        "sevenths": 0.7877906976744186,
+        "segmentation": 0.8
+      },
+      "sourceGroundedHarmony": {
+        "beats": 260,
+        "root": 0.7735576923076923,
+        "majMin": 0.7713178294573644,
+        "sevenths": 0.749031007751938,
+        "segmentation": 0.7272435897435898
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-4eeac4d686ace78aea5760701bf16d7e23900be7869a113c1888e8ff4c6c99e8:a:eval-4eeac4d686ace78aea5760701bf16d7e23900be7869a113c1888e8ff4c6c99e8-a:18c1f8a2d8650bb02bdd6ae8363579f2fe2349b1014fe04c00619895602de0f4:notes:0f6026dc41fd825d1476ee7cc64bc82faa8b5476c4e05e8ed9bd3f39b75fce66",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1494,
+          "chordCount": 194,
+          "chordProvenance": {
+            "generated": 194
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1494,
+          "durationBeats": 260,
+          "sourceRestBeats": 20.125,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1494,
+          "coveredBeats": 239.875,
+          "coveredFraction": 0.9225961538461539,
+          "minMidi": 36,
+          "maxMidi": 93,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 22
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 20
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 1.5
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 194,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 232,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 934,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 125.375,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 0.75,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 30.875,
+              "endBeat": 31,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 46.875,
+              "endBeat": 47,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 58.875,
+              "endBeat": 59,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 74.375,
+              "endBeat": 74.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 78.375,
+              "endBeat": 78.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 94.875,
+              "endBeat": 95,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 156,
+              "endBeat": 158,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 160.875,
+              "endBeat": 161,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 176.375,
+              "endBeat": 176.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 180.375,
+              "endBeat": 180.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 197.875,
+              "endBeat": 198,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 208.875,
+              "endBeat": 209,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 216.875,
+              "endBeat": 217,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 255.875,
+              "endBeat": 256,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 256,
+              "endBeat": 259,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 259,
+              "endBeat": 260,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 934,
+          "coveredBeats": 125.375,
+          "coveredFraction": 0.48221153846153847,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 4.125,
+          "listener": {
+            "oneBeatChordShare": 0.5028248587570622,
+            "deadAirOnsets": 5,
+            "intentionalSilenceOnsets": 4,
+            "longestWaitForStrikeBeats": 5,
+            "strikes": 232,
+            "strikesOnSourceOnsets": 232,
+            "strikesUnderOneBeatApart": 77,
+            "tuneNotesOverBacking": 329,
+            "strongBeatTuneChordToneShare": 0.8930817610062893,
+            "tuneSemitoneClashShare": 0.03951367781155015
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "50% of chords last one beat or less",
+              "dead air at 5 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "080.mid",
+      "sourceSha256": "764cc957f20ce272fd3c704b4a7680cfb3b1bc3ef2617e9514d02d29d03359d5",
+      "tempoBpm": 120,
+      "endBeat": 340,
+      "uncertainFraction": 0.07941176470588235,
+      "legacyHarmony": {
+        "beats": 340,
+        "root": 0.7382352941176471,
+        "majMin": 0.8,
+        "sevenths": 0.8,
+        "segmentation": 0.7441176470588236
+      },
+      "sourceGroundedHarmony": {
+        "beats": 340,
+        "root": 0.7463235294117647,
+        "majMin": 0.79,
+        "sevenths": 0.785,
+        "segmentation": 0.7636029411764707
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-764cc957f20ce272fd3c704b4a7680cfb3b1bc3ef2617e9514d02d29d03359d5:a:eval-764cc957f20ce272fd3c704b4a7680cfb3b1bc3ef2617e9514d02d29d03359d5-a:0130164a9f20583acd1c849588719b8ae3bfe4aa98276dbe96559fd9664406af:notes:82b8f9a24ba92718d510d8eddeeefccac274b781d1b6a1207fdb99ed812606fa",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1600,
+          "chordCount": 226,
+          "chordProvenance": {
+            "generated": 226
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1600,
+          "durationBeats": 340,
+          "sourceRestBeats": 33.25,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1600,
+          "coveredBeats": 306.75,
+          "coveredFraction": 0.9022058823529412,
+          "minMidi": 38,
+          "maxMidi": 91,
+          "maximumHeldOverlap": 6,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 16
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 26
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 4
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 226,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 279,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1127,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 158.625,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 1,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 1,
+              "endBeat": 22,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 29.875,
+              "endBeat": 30,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 77.75,
+              "endBeat": 78,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 81.625,
+              "endBeat": 82,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 87.875,
+              "endBeat": 88,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 96.875,
+              "endBeat": 97,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 103.875,
+              "endBeat": 104,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 112.875,
+              "endBeat": 113,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 161.75,
+              "endBeat": 162,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 165.625,
+              "endBeat": 166,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 171.875,
+              "endBeat": 172,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 177.875,
+              "endBeat": 178,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 180.875,
+              "endBeat": 181,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 187.875,
+              "endBeat": 188,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 196.875,
+              "endBeat": 197,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 226.25,
+              "endBeat": 226.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 240.875,
+              "endBeat": 241,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 244.875,
+              "endBeat": 245,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 253.875,
+              "endBeat": 254,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 260.875,
+              "endBeat": 261,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 269.875,
+              "endBeat": 270,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 328,
+              "endBeat": 330,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 332,
+              "endBeat": 336,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 336,
+              "endBeat": 340,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1127,
+          "coveredBeats": 158.625,
+          "coveredFraction": 0.46654411764705883,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 11
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 8,
+          "listener": {
+            "oneBeatChordShare": 0.6019900497512438,
+            "deadAirOnsets": 2,
+            "intentionalSilenceOnsets": 17,
+            "longestWaitForStrikeBeats": 5,
+            "strikes": 279,
+            "strikesOnSourceOnsets": 279,
+            "strikesUnderOneBeatApart": 52,
+            "tuneNotesOverBacking": 351,
+            "strongBeatTuneChordToneShare": 0.8934426229508197,
+            "tuneSemitoneClashShare": 0.09971509971509972
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "60% of chords last one beat or less"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "085.mid",
+      "sourceSha256": "712925d337c09a2c2b426cba4e19f97edb854dd4f339aba0a220a9179c0095ff",
+      "tempoBpm": 120,
+      "endBeat": 460,
+      "uncertainFraction": 0,
+      "legacyHarmony": {
+        "beats": 460,
+        "root": 0.8978260869565218,
+        "majMin": 0.7894736842105263,
+        "sevenths": 0.7574370709382151,
+        "segmentation": 0.779945652173913
+      },
+      "sourceGroundedHarmony": {
+        "beats": 460,
+        "root": 0.8470108695652174,
+        "majMin": 0.7274027459954233,
+        "sevenths": 0.6947940503432495,
+        "segmentation": 0.7758695652173913
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-712925d337c09a2c2b426cba4e19f97edb854dd4f339aba0a220a9179c0095ff:a:eval-712925d337c09a2c2b426cba4e19f97edb854dd4f339aba0a220a9179c0095ff-a:4ff1b9ee0ccdea6fc63144bf7d2ca4126ac7476a60877bf76a14489e62579b24:notes:53c3ac223af56a8de85bd98f589ea43530644b74e9a42a23771b53ed6cc4853a",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1447,
+          "chordCount": 148,
+          "chordProvenance": {
+            "generated": 148
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1447,
+          "durationBeats": 460,
+          "sourceRestBeats": 16.25,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1447,
+          "coveredBeats": 443.75,
+          "coveredFraction": 0.9646739130434783,
+          "minMidi": 39,
+          "maxMidi": 87,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 19
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 24
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 148,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 292,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1170,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 290,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 1,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 30.75,
+              "endBeat": 31,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 56.875,
+              "endBeat": 57,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 88.875,
+              "endBeat": 89,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 252.875,
+              "endBeat": 253,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 438.75,
+              "endBeat": 439,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 457,
+              "endBeat": 460,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1170,
+          "coveredBeats": 290,
+          "coveredFraction": 0.6304347826086957,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 5
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3,
+          "listener": {
+            "oneBeatChordShare": 0.14184397163120568,
+            "deadAirOnsets": 1,
+            "intentionalSilenceOnsets": 0,
+            "longestWaitForStrikeBeats": 4,
+            "strikes": 292,
+            "strikesOnSourceOnsets": 292,
+            "strikesUnderOneBeatApart": 25,
+            "tuneNotesOverBacking": 377,
+            "strongBeatTuneChordToneShare": 0.8099547511312217,
+            "tuneSemitoneClashShare": 0.029177718832891247
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "090.mid",
+      "sourceSha256": "cb25dfc68daa9cfbc53eab351e6f8c700f4c7ca9ae728bccb344c928f09cdf84",
+      "tempoBpm": 120,
+      "endBeat": 300,
+      "uncertainFraction": 0.006666666666666667,
+      "legacyHarmony": {
+        "beats": 300,
+        "root": 0.9633333333333334,
+        "majMin": 0.9328859060402684,
+        "sevenths": 0.9161073825503355,
+        "segmentation": 0.85
+      },
+      "sourceGroundedHarmony": {
+        "beats": 300,
+        "root": 0.9470833333333334,
+        "majMin": 0.9198825503355704,
+        "sevenths": 0.9014261744966443,
+        "segmentation": 0.87125
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-cb25dfc68daa9cfbc53eab351e6f8c700f4c7ca9ae728bccb344c928f09cdf84:a:eval-cb25dfc68daa9cfbc53eab351e6f8c700f4c7ca9ae728bccb344c928f09cdf84-a:3ef87e116d89ae3b68e8e553d3968468b9c405a0e59f135ffeac9f2b0677ee55:notes:83f31ec3d5257a9ba0930f5ee3db579cd6d4e3de3a3cf198bf8fbe461af91491",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1054,
+          "chordCount": 117,
+          "chordProvenance": {
+            "generated": 117
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1054,
+          "durationBeats": 300,
+          "sourceRestBeats": 12.25,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1054,
+          "coveredBeats": 287.75,
+          "coveredFraction": 0.9591666666666666,
+          "minMidi": 38,
+          "maxMidi": 91,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 17
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 24
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.25
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 117,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 202,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 809,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 185,
+          "unsupportedSpans": [
+            {
+              "startBeat": 158,
+              "endBeat": 160,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 236.625,
+              "endBeat": 237,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 243.375,
+              "endBeat": 243.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 254.625,
+              "endBeat": 255,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 297.75,
+              "endBeat": 300,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 809,
+          "coveredBeats": 185,
+          "coveredFraction": 0.6166666666666667,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.25,
+          "listener": {
+            "oneBeatChordShare": 0.3125,
+            "deadAirOnsets": 2,
+            "intentionalSilenceOnsets": 2,
+            "longestWaitForStrikeBeats": 7.5,
+            "strikes": 202,
+            "strikesOnSourceOnsets": 202,
+            "strikesUnderOneBeatApart": 21,
+            "tuneNotesOverBacking": 269,
+            "strongBeatTuneChordToneShare": 0.8936170212765957,
+            "tuneSemitoneClashShare": 0.01858736059479554
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "095.mid",
+      "sourceSha256": "d9ea32e847e6f8fbb33ca07175ab0a1564d5d6593b550989d61589de65ed005b",
+      "tempoBpm": 120,
+      "endBeat": 364,
+      "uncertainFraction": 0.03296703296703297,
+      "legacyHarmony": {
+        "beats": 364,
+        "root": 0.8990384615384616,
+        "majMin": 0.9032951289398281,
+        "sevenths": 0.8889684813753582,
+        "segmentation": 0.8717948717948719
+      },
+      "sourceGroundedHarmony": {
+        "beats": 364,
+        "root": 0.8626373626373627,
+        "majMin": 0.8549426934097422,
+        "sevenths": 0.8398997134670487,
+        "segmentation": 0.8901098901098901
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-d9ea32e847e6f8fbb33ca07175ab0a1564d5d6593b550989d61589de65ed005b:a:eval-d9ea32e847e6f8fbb33ca07175ab0a1564d5d6593b550989d61589de65ed005b-a:0dc39e3e4760941d9923aafc9cd6c3dfe31f117cf0311b335ef205ab6d530468:notes:5aad52194f431b5fda48ad81ca8d03517c5c1e816658c4289123ee592b781ca3",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1746,
+          "chordCount": 243,
+          "chordProvenance": {
+            "generated": 243
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1746,
+          "durationBeats": 364,
+          "sourceRestBeats": 25,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1746,
+          "coveredBeats": 339,
+          "coveredFraction": 0.9313186813186813,
+          "minMidi": 29,
+          "maxMidi": 95,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 21
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 29
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.75
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 243,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 291,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1166,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 202.5,
+          "unsupportedSpans": [
+            {
+              "startBeat": 12.875,
+              "endBeat": 13,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 31.875,
+              "endBeat": 32,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 44,
+              "endBeat": 46,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 56.875,
+              "endBeat": 57,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 66.875,
+              "endBeat": 67,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 79.875,
+              "endBeat": 80,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 97.875,
+              "endBeat": 98,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 109.875,
+              "endBeat": 110,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 114.5,
+              "endBeat": 115,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 143.875,
+              "endBeat": 144,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 156,
+              "endBeat": 158,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 168.875,
+              "endBeat": 169,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 178.875,
+              "endBeat": 179,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 191.875,
+              "endBeat": 192,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 209.875,
+              "endBeat": 210,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 221.875,
+              "endBeat": 222,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 226.5,
+              "endBeat": 227,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 227.5,
+              "endBeat": 227.75,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 242.625,
+              "endBeat": 242.75,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 247.875,
+              "endBeat": 248,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 273.875,
+              "endBeat": 274,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 285.875,
+              "endBeat": 286,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 290.5,
+              "endBeat": 291,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 305.875,
+              "endBeat": 306,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 326,
+              "endBeat": 328,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 338,
+              "endBeat": 340,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 350,
+              "endBeat": 354,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 362,
+              "endBeat": 364,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1166,
+          "coveredBeats": 202.5,
+          "coveredFraction": 0.5563186813186813,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 8
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.875,
+          "listener": {
+            "oneBeatChordShare": 0.3813953488372093,
+            "deadAirOnsets": 5,
+            "intentionalSilenceOnsets": 22,
+            "longestWaitForStrikeBeats": 6.375,
+            "strikes": 291,
+            "strikesOnSourceOnsets": 291,
+            "strikesUnderOneBeatApart": 41,
+            "tuneNotesOverBacking": 421,
+            "strongBeatTuneChordToneShare": 0.9327731092436975,
+            "tuneSemitoneClashShare": 0.10688836104513064
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "dead air at 5 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "100.mid",
+      "sourceSha256": "0f42d3a086663851a6c916dca9547056c4e14452144801741e1b6772ef2c28d9",
+      "tempoBpm": 120,
+      "endBeat": 276,
+      "uncertainFraction": 0.2246376811594203,
+      "legacyHarmony": {
+        "beats": 276,
+        "root": 0.9311594202898551,
+        "majMin": 0.9010989010989011,
+        "sevenths": 0.9010989010989011,
+        "segmentation": 0.8115942028985508
+      },
+      "sourceGroundedHarmony": {
+        "beats": 276,
+        "root": 0.748641304347826,
+        "majMin": 0.7202380952380952,
+        "sevenths": 0.7202380952380952,
+        "segmentation": 0.7608695652173914
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-0f42d3a086663851a6c916dca9547056c4e14452144801741e1b6772ef2c28d9:a:eval-0f42d3a086663851a6c916dca9547056c4e14452144801741e1b6772ef2c28d9-a:22d71b6734a676beee2eaeed214b77a5491c4c2b9210b6117f476bec7509803c:notes:704bf916996188d4c32eb697cec84837050d4a5ae909c4521fc10a2cfa7d38ca",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1078,
+          "chordCount": 85,
+          "chordProvenance": {
+            "generated": 85
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1078,
+          "durationBeats": 276,
+          "sourceRestBeats": 4.625,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1078,
+          "coveredBeats": 271.375,
+          "coveredFraction": 0.9832427536231884,
+          "minMidi": 30,
+          "maxMidi": 95,
+          "maximumHeldOverlap": 6,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 29
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 24
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0.25
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 85,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 128,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 512,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 137.125,
+          "unsupportedSpans": [
+            {
+              "startBeat": 18,
+              "endBeat": 20,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 54,
+              "endBeat": 56,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 66,
+              "endBeat": 76,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 79.875,
+              "endBeat": 80,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 82,
+              "endBeat": 88,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 114,
+              "endBeat": 116,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 150,
+              "endBeat": 152,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 162,
+              "endBeat": 172,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 175.875,
+              "endBeat": 176,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 178,
+              "endBeat": 184,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 186,
+              "endBeat": 188,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 196,
+              "endBeat": 206,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 209.875,
+              "endBeat": 210,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 212,
+              "endBeat": 218,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 228,
+              "endBeat": 230,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 256,
+              "endBeat": 258,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 512,
+          "coveredBeats": 137.125,
+          "coveredFraction": 0.49682971014492755,
+          "minMidi": 38,
+          "maxMidi": 78,
+          "maximumHeldOverlap": 4,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 9
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 2
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 5.375,
+          "listener": {
+            "oneBeatChordShare": 0.07246376811594203,
+            "deadAirOnsets": 0,
+            "intentionalSilenceOnsets": 126,
+            "longestWaitForStrikeBeats": 11.375,
+            "strikes": 128,
+            "strikesOnSourceOnsets": 128,
+            "strikesUnderOneBeatApart": 17,
+            "tuneNotesOverBacking": 319,
+            "strongBeatTuneChordToneShare": 0.8306451612903226,
+            "tuneSemitoneClashShare": 0.02821316614420063
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "105.mid",
+      "sourceSha256": "7d17f635a135470dc32e82a4d65de898de738824a41b3ecfbce987bcde72601b",
+      "tempoBpm": 120,
+      "endBeat": 472,
+      "uncertainFraction": 0.125,
+      "legacyHarmony": {
+        "beats": 472,
+        "root": 0.9851694915254238,
+        "majMin": 0.9851694915254238,
+        "sevenths": 0.9851694915254238,
+        "segmentation": 0.9258474576271186
+      },
+      "sourceGroundedHarmony": {
+        "beats": 472,
+        "root": 0.8426906779661016,
+        "majMin": 0.8426906779661016,
+        "sevenths": 0.8426906779661016,
+        "segmentation": 0.8585805084745762
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-7d17f635a135470dc32e82a4d65de898de738824a41b3ecfbce987bcde72601b:a:eval-7d17f635a135470dc32e82a4d65de898de738824a41b3ecfbce987bcde72601b-a:94bf5ba9a268339d116146f6c3b60e3d8f801127847d22aa4a11e845340291d2:notes:c6a009276949a3386112e03b5eb9eac6d314af6a9539eb1f75e5e6fa7e2dbbd3",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1450,
+          "chordCount": 198,
+          "chordProvenance": {
+            "generated": 198
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1450,
+          "durationBeats": 472,
+          "sourceRestBeats": 24.75,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1450,
+          "coveredBeats": 447.25,
+          "coveredFraction": 0.9475635593220338,
+          "minMidi": 37,
+          "maxMidi": 89,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 19
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 28
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.5
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 198,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 342,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1368,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 249.25,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 1,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 1,
+              "endBeat": 2,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 53.875,
+              "endBeat": 54,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 70,
+              "endBeat": 74,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 85.875,
+              "endBeat": 86,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 91.875,
+              "endBeat": 92,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 97.75,
+              "endBeat": 98,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 104,
+              "endBeat": 106,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 109.875,
+              "endBeat": 110,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 115.75,
+              "endBeat": 116,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 116,
+              "endBeat": 118,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 134,
+              "endBeat": 138,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 141.875,
+              "endBeat": 142,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 142,
+              "endBeat": 144,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 147.75,
+              "endBeat": 148,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 148,
+              "endBeat": 150,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 158,
+              "endBeat": 160,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 163.75,
+              "endBeat": 164,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 169.875,
+              "endBeat": 170,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 176,
+              "endBeat": 178,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 180.875,
+              "endBeat": 181,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 210,
+              "endBeat": 212,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 237.875,
+              "endBeat": 238,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 243.875,
+              "endBeat": 244,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 249.75,
+              "endBeat": 250,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 261.875,
+              "endBeat": 262,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 267.75,
+              "endBeat": 268,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 268,
+              "endBeat": 270,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 278,
+              "endBeat": 280,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 293.875,
+              "endBeat": 294,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 294,
+              "endBeat": 296,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 299.75,
+              "endBeat": 300,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 300,
+              "endBeat": 302,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 310,
+              "endBeat": 312,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 315.75,
+              "endBeat": 316,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 321.875,
+              "endBeat": 322,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 328,
+              "endBeat": 330,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 332.875,
+              "endBeat": 333,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 342,
+              "endBeat": 346,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 350,
+              "endBeat": 352,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 358,
+              "endBeat": 362,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 374,
+              "endBeat": 376,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 381.875,
+              "endBeat": 382,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 382,
+              "endBeat": 384,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 387.75,
+              "endBeat": 388,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 388,
+              "endBeat": 390,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 398,
+              "endBeat": 400,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 403.75,
+              "endBeat": 404,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 409.875,
+              "endBeat": 410,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 416,
+              "endBeat": 418,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 420.875,
+              "endBeat": 421,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 426,
+              "endBeat": 428,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 428.875,
+              "endBeat": 429,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 445.75,
+              "endBeat": 446,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 453.875,
+              "endBeat": 454,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 457.375,
+              "endBeat": 457.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 458,
+              "endBeat": 460,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 468.5,
+              "endBeat": 472,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1368,
+          "coveredBeats": 249.25,
+          "coveredFraction": 0.528072033898305,
+          "minMidi": 36,
+          "maxMidi": 78,
+          "maximumHeldOverlap": 4,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 9
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.5,
+          "listener": {
+            "oneBeatChordShare": 0.16428571428571428,
+            "deadAirOnsets": 1,
+            "intentionalSilenceOnsets": 101,
+            "longestWaitForStrikeBeats": 4,
+            "strikes": 342,
+            "strikesOnSourceOnsets": 342,
+            "strikesUnderOneBeatApart": 49,
+            "tuneNotesOverBacking": 421,
+            "strongBeatTuneChordToneShare": 0.9206349206349206,
+            "tuneSemitoneClashShare": 0.09501187648456057
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "110.mid",
+      "sourceSha256": "198c6902691fc02c2c1e1854ec1a4563c9f52b257f06f54c0289f54181edae59",
+      "tempoBpm": 120,
+      "endBeat": 280,
+      "uncertainFraction": 0.04285714285714286,
+      "legacyHarmony": {
+        "beats": 280,
+        "root": 0.6714285714285714,
+        "majMin": 0.6758241758241759,
+        "sevenths": 0.6611721611721612,
+        "segmentation": 0.7071428571428571
+      },
+      "sourceGroundedHarmony": {
+        "beats": 280,
+        "root": 0.6995535714285714,
+        "majMin": 0.7083333333333334,
+        "sevenths": 0.6771978021978022,
+        "segmentation": 0.8008928571428572
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-198c6902691fc02c2c1e1854ec1a4563c9f52b257f06f54c0289f54181edae59:a:eval-198c6902691fc02c2c1e1854ec1a4563c9f52b257f06f54c0289f54181edae59-a:4a38a33bd8d8674820db37ea6c63f78c5657441e747da06a0fa0b5f3ca10b341:notes:52b999e3a7e3b1fe6dcc83945a7324c158c6d7217480874835c9d9628b1ba0b3",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 993,
+          "chordCount": 117,
+          "chordProvenance": {
+            "generated": 117
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 993,
+          "durationBeats": 280,
+          "sourceRestBeats": 20.875,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 993,
+          "coveredBeats": 259.125,
+          "coveredFraction": 0.9254464285714286,
+          "minMidi": 32,
+          "maxMidi": 101,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 19
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 31
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.875
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 117,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 169,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 680,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 130.625,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 2,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 16,
+              "endBeat": 18,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 98,
+              "endBeat": 98.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 114,
+              "endBeat": 116,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 182,
+              "endBeat": 182.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 203.125,
+              "endBeat": 203.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 206.875,
+              "endBeat": 207,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 246,
+              "endBeat": 248,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 252,
+              "endBeat": 256,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 256,
+              "endBeat": 257,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 257,
+              "endBeat": 258,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 261.25,
+              "endBeat": 261.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 276,
+              "endBeat": 277,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 277,
+              "endBeat": 280,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 680,
+          "coveredBeats": 130.625,
+          "coveredFraction": 0.46651785714285715,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 7.125,
+          "listener": {
+            "oneBeatChordShare": 0.18446601941747573,
+            "deadAirOnsets": 15,
+            "intentionalSilenceOnsets": 7,
+            "longestWaitForStrikeBeats": 8.75,
+            "strikes": 169,
+            "strikesOnSourceOnsets": 169,
+            "strikesUnderOneBeatApart": 15,
+            "tuneNotesOverBacking": 233,
+            "strongBeatTuneChordToneShare": 0.7246376811594203,
+            "tuneSemitoneClashShare": 0.11158798283261803
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "dead air at 15 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "115.mid",
+      "sourceSha256": "925d20b24e0b7c3f4fb45f00e7f6c144fa3a490f8891065524117b12200b8a71",
+      "tempoBpm": 120,
+      "endBeat": 364,
+      "uncertainFraction": 0.019230769230769232,
+      "legacyHarmony": {
+        "beats": 364,
+        "root": 0.978021978021978,
+        "majMin": 0.9106145251396648,
+        "sevenths": 0.9050279329608939,
+        "segmentation": 0.9752747252747253
+      },
+      "sourceGroundedHarmony": {
+        "beats": 364,
+        "root": 0.9381868131868132,
+        "majMin": 0.8613826815642458,
+        "sevenths": 0.8557960893854749,
+        "segmentation": 0.9014423076923077
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-925d20b24e0b7c3f4fb45f00e7f6c144fa3a490f8891065524117b12200b8a71:a:eval-925d20b24e0b7c3f4fb45f00e7f6c144fa3a490f8891065524117b12200b8a71-a:808cbcf3320f8b5f6da563091faa4367f8906a9bb5a0e5784080e72d8134bcb3:notes:ff33078cccbc34fb70cef16f3b99c245b8df25d82bf4053af4017004f2cd01d1",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1324,
+          "chordCount": 167,
+          "chordProvenance": {
+            "generated": 167
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1324,
+          "durationBeats": 364,
+          "sourceRestBeats": 19,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1324,
+          "coveredBeats": 345,
+          "coveredFraction": 0.9478021978021978,
+          "minMidi": 40,
+          "maxMidi": 93,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 17
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 27
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.875
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 167,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 256,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1024,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 189.25,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 1,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 1,
+              "endBeat": 2,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 20,
+              "endBeat": 22,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 32.75,
+              "endBeat": 33,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 52,
+              "endBeat": 54,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 97.875,
+              "endBeat": 98,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 165.75,
+              "endBeat": 166,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 172,
+              "endBeat": 174,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 217.875,
+              "endBeat": 218,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 265.375,
+              "endBeat": 265.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 281.875,
+              "endBeat": 282,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 329.375,
+              "endBeat": 329.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 362,
+              "endBeat": 364,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1024,
+          "coveredBeats": 189.25,
+          "coveredFraction": 0.5199175824175825,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 4,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 7
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 5
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.125,
+          "listener": {
+            "oneBeatChordShare": 0.2727272727272727,
+            "deadAirOnsets": 2,
+            "intentionalSilenceOnsets": 8,
+            "longestWaitForStrikeBeats": 6.875,
+            "strikes": 256,
+            "strikesOnSourceOnsets": 256,
+            "strikesUnderOneBeatApart": 43,
+            "tuneNotesOverBacking": 333,
+            "strongBeatTuneChordToneShare": 0.8730964467005076,
+            "tuneSemitoneClashShare": 0.057057057057057055
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "120.mid",
+      "sourceSha256": "3c63409fc7108c2152f4df2aae22977cba53a0d31a9484fe18047110affe9526",
+      "tempoBpm": 120,
+      "endBeat": 220,
+      "uncertainFraction": 0.031818181818181815,
+      "legacyHarmony": {
+        "beats": 220,
+        "root": 0.9590909090909091,
+        "majMin": 0.9409090909090909,
+        "sevenths": 0.9409090909090909,
+        "segmentation": 0.9090909090909091
+      },
+      "sourceGroundedHarmony": {
+        "beats": 220,
+        "root": 0.928409090909091,
+        "majMin": 0.9102272727272728,
+        "sevenths": 0.9102272727272728,
+        "segmentation": 0.8238636363636364
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-3c63409fc7108c2152f4df2aae22977cba53a0d31a9484fe18047110affe9526:a:eval-3c63409fc7108c2152f4df2aae22977cba53a0d31a9484fe18047110affe9526-a:aa02d7017c9acc5e91e6e29893d74bbcb565884df3cbbfa9229dc1a200815f35:notes:e3df84dc72843ccc9c5fc2b44665bba999f213f592bb04c2d52620afbdacdd24",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1256,
+          "chordCount": 137,
+          "chordProvenance": {
+            "generated": 137
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1256,
+          "durationBeats": 220,
+          "sourceRestBeats": 18.625,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1256,
+          "coveredBeats": 201.375,
+          "coveredFraction": 0.915340909090909,
+          "minMidi": 39,
+          "maxMidi": 94,
+          "maximumHeldOverlap": 6,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 19
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 21
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 137,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 203,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 812,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 116.375,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 1,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 1,
+              "endBeat": 2,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 9.375,
+              "endBeat": 9.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 9.875,
+              "endBeat": 10,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 11.875,
+              "endBeat": 12,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 13.875,
+              "endBeat": 14,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 17.625,
+              "endBeat": 18,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 25.875,
+              "endBeat": 26,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 29.875,
+              "endBeat": 30,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 33.875,
+              "endBeat": 34,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 53.875,
+              "endBeat": 54,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 61.875,
+              "endBeat": 62,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 67.875,
+              "endBeat": 68,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 69.875,
+              "endBeat": 70,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 77.875,
+              "endBeat": 78,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 81.875,
+              "endBeat": 82,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 98,
+              "endBeat": 102,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 109.875,
+              "endBeat": 110,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 117.875,
+              "endBeat": 118,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 137.875,
+              "endBeat": 138,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 145.875,
+              "endBeat": 146,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 151.875,
+              "endBeat": 152,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 153.875,
+              "endBeat": 154,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 161.875,
+              "endBeat": 162,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 165.875,
+              "endBeat": 166,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 169.875,
+              "endBeat": 170,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 177.875,
+              "endBeat": 178,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 183.875,
+              "endBeat": 184,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 185.875,
+              "endBeat": 186,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 193.875,
+              "endBeat": 194,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 197.875,
+              "endBeat": 198,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 214,
+              "endBeat": 216,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 812,
+          "coveredBeats": 116.375,
+          "coveredFraction": 0.5289772727272727,
+          "minMidi": 37,
+          "maxMidi": 78,
+          "maximumHeldOverlap": 4,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0,
+          "listener": {
+            "oneBeatChordShare": 0.17142857142857143,
+            "deadAirOnsets": 0,
+            "intentionalSilenceOnsets": 5,
+            "longestWaitForStrikeBeats": 1.75,
+            "strikes": 203,
+            "strikesOnSourceOnsets": 203,
+            "strikesUnderOneBeatApart": 33,
+            "tuneNotesOverBacking": 290,
+            "strongBeatTuneChordToneShare": 0.9325153374233128,
+            "tuneSemitoneClashShare": 0.10344827586206896
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "125.mid",
+      "sourceSha256": "6a4e26d828e0884170956e502dc4c574ca82f5fa11234eaa065f90767027871f",
+      "tempoBpm": 120,
+      "endBeat": 364,
+      "uncertainFraction": 0.0027472527472527475,
+      "legacyHarmony": {
+        "beats": 364,
+        "root": 0.9038461538461539,
+        "majMin": 0.8960674157303371,
+        "sevenths": 0.8960674157303371,
+        "segmentation": 0.7912087912087912
+      },
+      "sourceGroundedHarmony": {
+        "beats": 364,
+        "root": 0.8451236263736264,
+        "majMin": 0.8072331460674157,
+        "sevenths": 0.7819522471910112,
+        "segmentation": 0.7029532967032968
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-6a4e26d828e0884170956e502dc4c574ca82f5fa11234eaa065f90767027871f:a:eval-6a4e26d828e0884170956e502dc4c574ca82f5fa11234eaa065f90767027871f-a:b2d4b4918ce02f9c825af338559ca4d8a0b89023d28c1597f64f2df570cdf00a:notes:943979b56db28fbfe5239dcd68be6604e94c57b67264bac38938605cff8df0ff",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1909,
+          "chordCount": 228,
+          "chordProvenance": {
+            "generated": 228
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1909,
+          "durationBeats": 364,
+          "sourceRestBeats": 5,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1909,
+          "coveredBeats": 359,
+          "coveredFraction": 0.9862637362637363,
+          "minMidi": 38,
+          "maxMidi": 84,
+          "maximumHeldOverlap": 6,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 22
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 12
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 1.25
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 228,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 356,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1471,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 201.375,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 3,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 362,
+              "endBeat": 363,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 363,
+              "endBeat": 364,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1471,
+          "coveredBeats": 201.375,
+          "coveredFraction": 0.553228021978022,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 9
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 11,
+              "maxRepresentativeLeapSemitones": 2
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.5,
+          "listener": {
+            "oneBeatChordShare": 0.5422222222222223,
+            "deadAirOnsets": 0,
+            "intentionalSilenceOnsets": 0,
+            "longestWaitForStrikeBeats": 2.25,
+            "strikes": 356,
+            "strikesOnSourceOnsets": 356,
+            "strikesUnderOneBeatApart": 95,
+            "tuneNotesOverBacking": 515,
+            "strongBeatTuneChordToneShare": 0.7981220657276995,
+            "tuneSemitoneClashShare": 0.1203883495145631
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "54% of chords last one beat or less"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "130.mid",
+      "sourceSha256": "1d778b2376f4beb335f46d438f14c47ab66a5de240160e8a57216736c599e729",
+      "tempoBpm": 120,
+      "endBeat": 284,
+      "uncertainFraction": 0.0035211267605633804,
+      "legacyHarmony": {
+        "beats": 284,
+        "root": 0.9366197183098591,
+        "majMin": 0.9222614840989399,
+        "sevenths": 0.9081272084805654,
+        "segmentation": 0.852112676056338
+      },
+      "sourceGroundedHarmony": {
+        "beats": 284,
+        "root": 0.9234154929577465,
+        "majMin": 0.9019434628975265,
+        "sevenths": 0.8833922261484098,
+        "segmentation": 0.8701584507042254
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-1d778b2376f4beb335f46d438f14c47ab66a5de240160e8a57216736c599e729:a:eval-1d778b2376f4beb335f46d438f14c47ab66a5de240160e8a57216736c599e729-a:d921b07b0f24693e2414465b88e1cc67dd16d78e8201bb0f852d4458d75066bf:notes:e76b957ff1811373c036e0c0de6b6a2da613edbdaf5d2240ced954b5b190fb67",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1665,
+          "chordCount": 168,
+          "chordProvenance": {
+            "generated": 168
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1665,
+          "durationBeats": 284,
+          "sourceRestBeats": 9,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1665,
+          "coveredBeats": 275,
+          "coveredFraction": 0.9683098591549296,
+          "minMidi": 36,
+          "maxMidi": 93,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 16
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 28
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 1.25
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 168,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 255,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1026,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 148.5,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 2,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 25.875,
+              "endBeat": 26,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 145.375,
+              "endBeat": 145.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 161.875,
+              "endBeat": 162,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 189.625,
+              "endBeat": 189.75,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 189.875,
+              "endBeat": 190,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 193.875,
+              "endBeat": 194,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 195.875,
+              "endBeat": 196,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 205.875,
+              "endBeat": 206,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 229.875,
+              "endBeat": 230,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 231.875,
+              "endBeat": 232,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 241.875,
+              "endBeat": 242,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 282,
+              "endBeat": 283,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 283,
+              "endBeat": 284,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1026,
+          "coveredBeats": 148.5,
+          "coveredFraction": 0.522887323943662,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 11
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 5
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2,
+          "listener": {
+            "oneBeatChordShare": 0.37012987012987014,
+            "deadAirOnsets": 0,
+            "intentionalSilenceOnsets": 0,
+            "longestWaitForStrikeBeats": 3.75,
+            "strikes": 255,
+            "strikesOnSourceOnsets": 255,
+            "strikesUnderOneBeatApart": 38,
+            "tuneNotesOverBacking": 363,
+            "strongBeatTuneChordToneShare": 0.9457013574660633,
+            "tuneSemitoneClashShare": 0.05509641873278237
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "135.mid",
+      "sourceSha256": "d22e03d2086ce21cb4e3341f9854a085404ef365f3528e58e7c681d721ece9ab",
+      "tempoBpm": 120,
+      "endBeat": 368,
+      "uncertainFraction": 0.021739130434782608,
+      "legacyHarmony": {
+        "beats": 368,
+        "root": 0.9402173913043478,
+        "majMin": 0.9058823529411765,
+        "sevenths": 0.888235294117647,
+        "segmentation": 0.9483695652173914
+      },
+      "sourceGroundedHarmony": {
+        "beats": 368,
+        "root": 0.8953804347826086,
+        "majMin": 0.8698529411764706,
+        "sevenths": 0.8492647058823529,
+        "segmentation": 0.7758152173913043
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-d22e03d2086ce21cb4e3341f9854a085404ef365f3528e58e7c681d721ece9ab:a:eval-d22e03d2086ce21cb4e3341f9854a085404ef365f3528e58e7c681d721ece9ab-a:d10fd9258b30b8a671be6c347e3f1712320d413399b80d28b793d9d2f96d2755:notes:7da6e03a2a61af6dcc437671d374a19dd5fc76b4bc90dec31639224d743e132e",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 2278,
+          "chordCount": 270,
+          "chordProvenance": {
+            "generated": 270
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 2278,
+          "durationBeats": 368,
+          "sourceRestBeats": 23.125,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 2278,
+          "coveredBeats": 344.875,
+          "coveredFraction": 0.9371603260869565,
+          "minMidi": 31,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 8,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 28
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 17
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.25
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 270,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 389,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1570,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 183.75,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 20,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 20,
+              "endBeat": 24,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 35.875,
+              "endBeat": 36,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 165.875,
+              "endBeat": 166,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 200,
+              "endBeat": 204,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 215.875,
+              "endBeat": 216,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 311.875,
+              "endBeat": 312,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 357.875,
+              "endBeat": 358,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 366,
+              "endBeat": 368,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1570,
+          "coveredBeats": 183.75,
+          "coveredFraction": 0.499320652173913,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 11
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 11,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.25,
+          "listener": {
+            "oneBeatChordShare": 0.6360153256704981,
+            "deadAirOnsets": 0,
+            "intentionalSilenceOnsets": 30,
+            "longestWaitForStrikeBeats": 2,
+            "strikes": 389,
+            "strikesOnSourceOnsets": 389,
+            "strikesUnderOneBeatApart": 131,
+            "tuneNotesOverBacking": 526,
+            "strongBeatTuneChordToneShare": 0.9423728813559322,
+            "tuneSemitoneClashShare": 0.017110266159695818
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "64% of chords last one beat or less"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "140.mid",
+      "sourceSha256": "a246b70124494c42661a9b24d5459f2b0aedd7cf6886fcbf2d39930517b72fc3",
+      "tempoBpm": 120,
+      "endBeat": 460,
+      "uncertainFraction": 0.017391304347826087,
+      "legacyHarmony": {
+        "beats": 460,
+        "root": 0.6630434782608695,
+        "majMin": 0.6445652173913043,
+        "sevenths": 0.5739130434782609,
+        "segmentation": 0.6663043478260869
+      },
+      "sourceGroundedHarmony": {
+        "beats": 460,
+        "root": 0.74375,
+        "majMin": 0.7182065217391305,
+        "sevenths": 0.6464673913043478,
+        "segmentation": 0.7578804347826087
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-a246b70124494c42661a9b24d5459f2b0aedd7cf6886fcbf2d39930517b72fc3:a:eval-a246b70124494c42661a9b24d5459f2b0aedd7cf6886fcbf2d39930517b72fc3-a:3ac20dc3b11c093dc5a18b0cc0cdbfccde5636eb2d985da487f89785a36d67a6:notes:145db1cca09492354851d2e3f22bdc12f23a2b3efb2a220b8b7a1b390061a953",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1720,
+          "chordCount": 355,
+          "chordProvenance": {
+            "generated": 355
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1720,
+          "durationBeats": 460,
+          "sourceRestBeats": 48.75,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1720,
+          "coveredBeats": 411.25,
+          "coveredFraction": 0.8940217391304348,
+          "minMidi": 24,
+          "maxMidi": 91,
+          "maximumHeldOverlap": 6,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 17
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 35
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.5
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 355,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 367,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1480,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 251.5,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 3,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 46,
+              "endBeat": 46.25,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 70,
+              "endBeat": 70.25,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 87.75,
+              "endBeat": 88,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 152.375,
+              "endBeat": 152.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 153.25,
+              "endBeat": 153.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 153.75,
+              "endBeat": 154,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 155.75,
+              "endBeat": 156,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 156.75,
+              "endBeat": 157,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 157.25,
+              "endBeat": 157.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 158.75,
+              "endBeat": 159,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 160.25,
+              "endBeat": 160.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 161.25,
+              "endBeat": 161.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 162.25,
+              "endBeat": 162.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 165.25,
+              "endBeat": 165.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 165.75,
+              "endBeat": 166,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 166.25,
+              "endBeat": 166.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 167.25,
+              "endBeat": 167.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 168.25,
+              "endBeat": 168.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 168.75,
+              "endBeat": 169,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 169.25,
+              "endBeat": 169.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 170.25,
+              "endBeat": 170.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 173.25,
+              "endBeat": 173.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 174.25,
+              "endBeat": 174.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 174.75,
+              "endBeat": 175,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 176.75,
+              "endBeat": 177,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 177.25,
+              "endBeat": 177.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 177.75,
+              "endBeat": 178,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 178.25,
+              "endBeat": 178.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 178.75,
+              "endBeat": 179,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 179.25,
+              "endBeat": 179.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 180.25,
+              "endBeat": 180.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 180.75,
+              "endBeat": 181,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 181.25,
+              "endBeat": 181.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 181.75,
+              "endBeat": 182,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 182.625,
+              "endBeat": 183,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 215.25,
+              "endBeat": 216,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 216.375,
+              "endBeat": 216.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 228.375,
+              "endBeat": 228.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 236.375,
+              "endBeat": 236.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 246,
+              "endBeat": 248,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 328.375,
+              "endBeat": 328.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 329.25,
+              "endBeat": 329.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 329.75,
+              "endBeat": 330,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 331.75,
+              "endBeat": 332,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 332.75,
+              "endBeat": 333,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 333.25,
+              "endBeat": 333.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 334.75,
+              "endBeat": 335,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 336.25,
+              "endBeat": 336.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 337.25,
+              "endBeat": 337.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 338.25,
+              "endBeat": 338.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 341.25,
+              "endBeat": 341.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 341.75,
+              "endBeat": 342,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 342.25,
+              "endBeat": 342.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 343.25,
+              "endBeat": 343.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 344.25,
+              "endBeat": 344.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 344.75,
+              "endBeat": 345,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 345.25,
+              "endBeat": 345.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 346.25,
+              "endBeat": 346.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 349.25,
+              "endBeat": 349.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 350.25,
+              "endBeat": 350.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 350.75,
+              "endBeat": 351,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 352.75,
+              "endBeat": 353,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 353.25,
+              "endBeat": 353.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 353.75,
+              "endBeat": 354,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 354.25,
+              "endBeat": 354.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 354.75,
+              "endBeat": 355,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 355.25,
+              "endBeat": 355.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 356.25,
+              "endBeat": 356.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 356.75,
+              "endBeat": 357,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 357.25,
+              "endBeat": 357.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 357.75,
+              "endBeat": 358,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 358.625,
+              "endBeat": 361,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 361,
+              "endBeat": 362,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 452,
+              "endBeat": 457,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 457,
+              "endBeat": 460,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1480,
+          "coveredBeats": 251.5,
+          "coveredFraction": 0.5467391304347826,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 9
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 8,
+          "listener": {
+            "oneBeatChordShare": 0.45878136200716846,
+            "deadAirOnsets": 7,
+            "intentionalSilenceOnsets": 9,
+            "longestWaitForStrikeBeats": 5.5,
+            "strikes": 367,
+            "strikesOnSourceOnsets": 367,
+            "strikesUnderOneBeatApart": 87,
+            "tuneNotesOverBacking": 472,
+            "strongBeatTuneChordToneShare": 0.8011695906432749,
+            "tuneSemitoneClashShare": 0.029661016949152543
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "46% of chords last one beat or less",
+              "dead air at 7 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "145.mid",
+      "sourceSha256": "4be0a6d419aa81dfc8c97dc9828fd487ad63e95e07a6d3922a22c3056a1e0ee9",
+      "tempoBpm": 120,
+      "endBeat": 172,
+      "uncertainFraction": 0.046511627906976744,
+      "legacyHarmony": {
+        "beats": 172,
+        "root": 0.8997093023255814,
+        "majMin": 0.8879573170731707,
+        "sevenths": 0.6394817073170732,
+        "segmentation": 0.7044573643410854
+      },
+      "sourceGroundedHarmony": {
+        "beats": 172,
+        "root": 0.8284883720930233,
+        "majMin": 0.8125,
+        "sevenths": 0.6349085365853658,
+        "segmentation": 0.8539244186046513
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-4be0a6d419aa81dfc8c97dc9828fd487ad63e95e07a6d3922a22c3056a1e0ee9:a:eval-4be0a6d419aa81dfc8c97dc9828fd487ad63e95e07a6d3922a22c3056a1e0ee9-a:93786bc6bebd0a2ad52289f292d5b5aeabd2e8940645b2bfbd8bbb9225896252:notes:a4f89edba77063898aa6b313ff8599eb0e6485ab37522b8ea7374e0ea2760c36",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 795,
+          "chordCount": 114,
+          "chordProvenance": {
+            "generated": 114
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 795,
+          "durationBeats": 172,
+          "sourceRestBeats": 8.625,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 795,
+          "coveredBeats": 163.375,
+          "coveredFraction": 0.9498546511627907,
+          "minMidi": 34,
+          "maxMidi": 92,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 24
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 20
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0.625
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 114,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 123,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 492,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 91.25,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 2,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 7,
+              "endBeat": 7.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 8,
+              "endBeat": 8.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 27.875,
+              "endBeat": 28.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 32,
+              "endBeat": 32.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 33.75,
+              "endBeat": 34,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 50,
+              "endBeat": 50.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 60,
+              "endBeat": 60.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 63,
+              "endBeat": 63.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 76,
+              "endBeat": 78,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 78,
+              "endBeat": 78.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 81,
+              "endBeat": 81.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 92,
+              "endBeat": 94,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 94,
+              "endBeat": 94.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 100,
+              "endBeat": 100.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 103,
+              "endBeat": 103.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 108,
+              "endBeat": 108.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 124,
+              "endBeat": 126,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 126,
+              "endBeat": 126.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 129,
+              "endBeat": 129.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 140,
+              "endBeat": 142,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 142,
+              "endBeat": 142.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 148,
+              "endBeat": 148.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 151,
+              "endBeat": 151.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 162,
+              "endBeat": 162.5,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 492,
+          "coveredBeats": 91.25,
+          "coveredFraction": 0.5305232558139535,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 4,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 4,
+          "listener": {
+            "oneBeatChordShare": 0.3595505617977528,
+            "deadAirOnsets": 1,
+            "intentionalSilenceOnsets": 20,
+            "longestWaitForStrikeBeats": 5.875,
+            "strikes": 123,
+            "strikesOnSourceOnsets": 123,
+            "strikesUnderOneBeatApart": 14,
+            "tuneNotesOverBacking": 210,
+            "strongBeatTuneChordToneShare": 1,
+            "tuneSemitoneClashShare": 0.14285714285714285
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    },
+    {
+      "name": "150.mid",
+      "sourceSha256": "2277f93660fd744726462cf845b05e8171ecc740fea06c57dd37ef02fbe44f76",
+      "tempoBpm": 120,
+      "endBeat": 280,
+      "uncertainFraction": 0,
+      "legacyHarmony": {
+        "beats": 280,
+        "root": 0.9392857142857143,
+        "majMin": 0.8892857142857142,
+        "sevenths": 0.9007352941176471,
+        "segmentation": 0.8678571428571429
+      },
+      "sourceGroundedHarmony": {
+        "beats": 280,
+        "root": 0.9272321428571428,
+        "majMin": 0.8674107142857143,
+        "sevenths": 0.8708639705882353,
+        "segmentation": 0.8339285714285715
+      },
+      "metrics": {
+        "sourceFingerprint": "variant:eval-2277f93660fd744726462cf845b05e8171ecc740fea06c57dd37ef02fbe44f76:a:eval-2277f93660fd744726462cf845b05e8171ecc740fea06c57dd37ef02fbe44f76-a:89877f041a2bdd72d9cccf8cd6af1b85975ffea79ec0c9bb9b885a45ff36940a:notes:417ef903ecad7bf9124cb9e577f034296544cb3ad884ef6a707a53492d1439c4",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1286,
+          "chordCount": 126,
+          "chordProvenance": {
+            "generated": 126
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1286,
+          "durationBeats": 280,
+          "sourceRestBeats": 2.75,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1286,
+          "coveredBeats": 277.25,
+          "coveredFraction": 0.9901785714285715,
+          "minMidi": 38,
+          "maxMidi": 83,
+          "maximumHeldOverlap": 8,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 16
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 21
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0.875
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 126,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 239,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 960,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 197,
+          "unsupportedSpans": [
+            {
+              "startBeat": 15.625,
+              "endBeat": 16,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 23.625,
+              "endBeat": 24,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 135.625,
+              "endBeat": 136,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 279.125,
+              "endBeat": 280,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 960,
+          "coveredBeats": 197,
+          "coveredFraction": 0.7035714285714286,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 10
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0.875,
+          "listener": {
+            "oneBeatChordShare": 0.2786885245901639,
+            "deadAirOnsets": 0,
+            "intentionalSilenceOnsets": 0,
+            "longestWaitForStrikeBeats": 3.75,
+            "strikes": 239,
+            "strikesOnSourceOnsets": 239,
+            "strikesUnderOneBeatApart": 24,
+            "tuneNotesOverBacking": 467,
+            "strongBeatTuneChordToneShare": 0.8571428571428571,
+            "tuneSemitoneClashShare": 0.1670235546038544
+          },
+          "gate": {
+            "passed": true,
+            "reasons": []
+          }
+        }
+      }
+    }
+  ],
+  "localDiagnosticSongs": [
+    {
+      "id": "beethoven-moonlight-sonata",
+      "sourceSha256": "77392cb2ddecf02bd142120bbe6465636d29732ce77e54dd565fb8fde9ddd852",
+      "strikes": 70,
+      "uncertainFraction": 0.42028985507246375,
+      "metrics": {
+        "sourceFingerprint": "variant:unseen-beethoven-moonlight-sonata:a:unseen-beethoven-moonlight-sonata-a:77392cb2ddecf02bd142120bbe6465636d29732ce77e54dd565fb8fde9ddd852:notes:fdd5fa8192a901313ca32451b95d3efb70ba2f2854a4402fc1ce84280160bcd1",
+        "source": {
+          "tempoBpm": 45,
+          "noteCount": 866,
+          "chordCount": 76,
+          "chordProvenance": {
+            "generated": 76
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 866,
+          "durationBeats": 276,
+          "sourceRestBeats": 0,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 866,
+          "coveredBeats": 276,
+          "coveredFraction": 1,
+          "minMidi": 29,
+          "maxMidi": 87,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 24
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 16
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 76,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 70,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 280,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 126.125,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 16,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 32,
+              "endBeat": 40,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 46,
+              "endBeat": 48,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 52,
+              "endBeat": 60,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 64,
+              "endBeat": 68,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 72,
+              "endBeat": 74,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 84,
+              "endBeat": 88,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 110,
+              "endBeat": 132,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 134,
+              "endBeat": 136,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 138,
+              "endBeat": 164,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 180,
+              "endBeat": 184,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 200,
+              "endBeat": 204,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 208,
+              "endBeat": 212,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 216,
+              "endBeat": 218,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 232,
+              "endBeat": 236,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 262,
+              "endBeat": 264,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 268,
+              "endBeat": 270,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 280,
+          "coveredBeats": 126.125,
+          "coveredFraction": 0.4569746376811594,
+          "minMidi": 36,
+          "maxMidi": 78,
+          "maximumHeldOverlap": 4,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 11
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 9,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 0,
+          "listener": {
+            "oneBeatChordShare": 0.05084745762711865,
+            "deadAirOnsets": 13,
+            "intentionalSilenceOnsets": 236,
+            "longestWaitForStrikeBeats": 9.625,
+            "strikes": 70,
+            "strikesOnSourceOnsets": 70,
+            "strikesUnderOneBeatApart": 0,
+            "tuneNotesOverBacking": 298,
+            "strongBeatTuneChordToneShare": 0.8554216867469879,
+            "tuneSemitoneClashShare": 0.053691275167785234
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "dead air at 13 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "ed-sheeran-happier",
+      "sourceSha256": "36f1fd6e2d0457ac91d1a195862e650565b4696aa9224654782bf374840c2806",
+      "strikes": 233,
+      "uncertainFraction": 0.16273584905660377,
+      "metrics": {
+        "sourceFingerprint": "variant:unseen-ed-sheeran-happier:a:unseen-ed-sheeran-happier-a:36f1fd6e2d0457ac91d1a195862e650565b4696aa9224654782bf374840c2806:notes:1f5b272318996b47ea126f9cd4ff5225462bf5ab381b5eabfaee6f617415d5ec",
+        "source": {
+          "tempoBpm": 120,
+          "noteCount": 1394,
+          "chordCount": 213,
+          "chordProvenance": {
+            "generated": 213
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 1394,
+          "durationBeats": 424,
+          "sourceRestBeats": 15,
+          "pickupOrOffset": false,
+          "unusualMeter": false,
+          "meterEventCount": 1,
+          "attacks": 1394,
+          "coveredBeats": 409,
+          "coveredFraction": 0.964622641509434,
+          "minMidi": 24,
+          "maxMidi": 96,
+          "maximumHeldOverlap": 8,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 28
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 17
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.75
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 213,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 233,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 940,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 178.125,
+          "unsupportedSpans": [
+            {
+              "startBeat": 5,
+              "endBeat": 5.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 10.25,
+              "endBeat": 10.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 15.75,
+              "endBeat": 15.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 20.875,
+              "endBeat": 21,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 40,
+              "endBeat": 42,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 50,
+              "endBeat": 52,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 53.75,
+              "endBeat": 53.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 72,
+              "endBeat": 74,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 75.75,
+              "endBeat": 75.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 77.75,
+              "endBeat": 77.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 109.75,
+              "endBeat": 109.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 117.75,
+              "endBeat": 117.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 119.75,
+              "endBeat": 119.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 121.75,
+              "endBeat": 121.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 131.75,
+              "endBeat": 131.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 139.75,
+              "endBeat": 139.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 141.75,
+              "endBeat": 141.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 143.75,
+              "endBeat": 143.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 147.75,
+              "endBeat": 147.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 159.75,
+              "endBeat": 159.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 191.75,
+              "endBeat": 191.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 223.75,
+              "endBeat": 223.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 235.75,
+              "endBeat": 235.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 239.75,
+              "endBeat": 239.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 242,
+              "endBeat": 244,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 245,
+              "endBeat": 245.125,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 247.75,
+              "endBeat": 247.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 252,
+              "endBeat": 254,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 259.75,
+              "endBeat": 259.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 264,
+              "endBeat": 266,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 267.75,
+              "endBeat": 267.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 271.75,
+              "endBeat": 271.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 277.75,
+              "endBeat": 277.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 281.75,
+              "endBeat": 281.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 285.75,
+              "endBeat": 285.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 287.75,
+              "endBeat": 287.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 291.75,
+              "endBeat": 291.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 297.75,
+              "endBeat": 297.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 309.75,
+              "endBeat": 309.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 315.75,
+              "endBeat": 315.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 319.75,
+              "endBeat": 319.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 321.75,
+              "endBeat": 321.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 323.75,
+              "endBeat": 323.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 327.75,
+              "endBeat": 327.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 329.75,
+              "endBeat": 329.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 337.75,
+              "endBeat": 337.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 339.75,
+              "endBeat": 339.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 345.75,
+              "endBeat": 345.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 349.75,
+              "endBeat": 349.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 351.75,
+              "endBeat": 351.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 353.75,
+              "endBeat": 353.875,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 364,
+              "endBeat": 421,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 421,
+              "endBeat": 424,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 940,
+          "coveredBeats": 178.125,
+          "coveredFraction": 0.4201061320754717,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 9
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 3
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 64,
+          "listener": {
+            "oneBeatChordShare": 0.275,
+            "deadAirOnsets": 6,
+            "intentionalSilenceOnsets": 50,
+            "longestWaitForStrikeBeats": 5.75,
+            "strikes": 233,
+            "strikesOnSourceOnsets": 233,
+            "strikesUnderOneBeatApart": 47,
+            "tuneNotesOverBacking": 177,
+            "strongBeatTuneChordToneShare": 1,
+            "tuneSemitoneClashShare": 0.005649717514124294
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "dead air at 6 onsets"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "queen-somebody-to-love",
+      "sourceSha256": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+      "strikes": 366,
+      "uncertainFraction": 0.029629636213993234,
+      "metrics": {
+        "sourceFingerprint": "variant:unseen-queen-somebody-to-love:a:unseen-queen-somebody-to-love-a:4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e:notes:4260479ad75e50aea6e4e5a3c84c04d845aca28b1553f639ad1ef404c3ef9571",
+        "source": {
+          "tempoBpm": 108,
+          "noteCount": 2369,
+          "chordCount": 351,
+          "chordProvenance": {
+            "generated": 351
+          },
+          "generatedOnly": true,
+          "roleNoteCount": 0,
+          "vocalNoteCount": 0,
+          "laneNoteCount": 0,
+          "originNoteCount": 2369,
+          "durationBeats": 539.99988,
+          "sourceRestBeats": 72.87487999999996,
+          "pickupOrOffset": false,
+          "unusualMeter": true,
+          "meterEventCount": 2,
+          "attacks": 2369,
+          "coveredBeats": 467.125,
+          "coveredFraction": 0.8650464885288494,
+          "minMidi": 28,
+          "maxMidi": 96,
+          "maximumHeldOverlap": 7,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 28
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 12,
+              "maxRepresentativeLeapSemitones": 29
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 2.499879999999962
+        },
+        "player": {
+          "chordSource": "auto",
+          "chordSourceLabel": "Generated fallback",
+          "chartCoverage": "full-song",
+          "fallback": true,
+          "fallbackReason": "chart artifact unavailable; derived from a/notes.json",
+          "timelineChords": 351,
+          "reviewedSourceBacking": false
+        },
+        "backing": {
+          "input": "player",
+          "chordEvents": 366,
+          "noteStreamAttacks": 0,
+          "chordVoicingAttacks": 1484,
+          "duplicateOnsetAttacks": 0,
+          "chordVoicingCoveredBeats": 308.62211999999965,
+          "unsupportedSpans": [
+            {
+              "startBeat": 0,
+              "endBeat": 5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 5,
+              "endBeat": 6,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 56.99988,
+              "endBeat": 57,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 59.875,
+              "endBeat": 60,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 85.375,
+              "endBeat": 85.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 94.99987999999999,
+              "endBeat": 95,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 152.99988,
+              "endBeat": 153,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 230.875,
+              "endBeat": 230.99988,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 233.875,
+              "endBeat": 234,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 306.5,
+              "endBeat": 330.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 331.99987999999996,
+              "endBeat": 332,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 332.125,
+              "endBeat": 332.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 332.625,
+              "endBeat": 332.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 333.625,
+              "endBeat": 334,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 334.99987999999996,
+              "endBeat": 335,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 335.125,
+              "endBeat": 335.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 335.625,
+              "endBeat": 335.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 336.625,
+              "endBeat": 337,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 337.99987999999996,
+              "endBeat": 338,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 338.125,
+              "endBeat": 338.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 338.625,
+              "endBeat": 338.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 339.625,
+              "endBeat": 340,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 340.99987999999996,
+              "endBeat": 341,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 341.125,
+              "endBeat": 341.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 341.625,
+              "endBeat": 342,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 344.99987999999996,
+              "endBeat": 345,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 345.99987999999996,
+              "endBeat": 346,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 346.875,
+              "endBeat": 347,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 347.125,
+              "endBeat": 347.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 347.99987999999996,
+              "endBeat": 348,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 349.375,
+              "endBeat": 349.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 349.99987999999996,
+              "endBeat": 350,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 350.99987999999996,
+              "endBeat": 351,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 351.625,
+              "endBeat": 352,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 352.875,
+              "endBeat": 353,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 353.125,
+              "endBeat": 353.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 353.99987999999996,
+              "endBeat": 354,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 355.375,
+              "endBeat": 355.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 355.99987999999996,
+              "endBeat": 356,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 356.99987999999996,
+              "endBeat": 357,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 357.99987999999996,
+              "endBeat": 358,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 358.875,
+              "endBeat": 359,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 359.125,
+              "endBeat": 359.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 359.99987999999996,
+              "endBeat": 360,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 361.375,
+              "endBeat": 361.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 361.75,
+              "endBeat": 361.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 362.99987999999996,
+              "endBeat": 363,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 363.99987999999996,
+              "endBeat": 364,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 364.25,
+              "endBeat": 364.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 364.875,
+              "endBeat": 365,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 365.99987999999996,
+              "endBeat": 366,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 367.375,
+              "endBeat": 367.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 367.75,
+              "endBeat": 367.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 368.99987999999996,
+              "endBeat": 369,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 369.99987999999996,
+              "endBeat": 370,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 370.25,
+              "endBeat": 370.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 370.875,
+              "endBeat": 371,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 371.99987999999996,
+              "endBeat": 372,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 373.375,
+              "endBeat": 373.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 373.75,
+              "endBeat": 373.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 374.99987999999996,
+              "endBeat": 375,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 375.25,
+              "endBeat": 375.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 375.99987999999996,
+              "endBeat": 376,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 376.25,
+              "endBeat": 376.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 376.875,
+              "endBeat": 377,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 377.99987999999996,
+              "endBeat": 378,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 380.99987999999996,
+              "endBeat": 381,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 383.99987999999996,
+              "endBeat": 384,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 386.99987999999996,
+              "endBeat": 387,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 388.375,
+              "endBeat": 388.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 389.375,
+              "endBeat": 389.5,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 391.99987999999996,
+              "endBeat": 392,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 392.99987999999996,
+              "endBeat": 393,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 404.99987999999996,
+              "endBeat": 418.99987999999996,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 418.99987999999996,
+              "endBeat": 435,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 536.875,
+              "endBeat": 536.99988,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 536.99988,
+              "endBeat": 537.99988,
+              "reason": "explicit no-chord"
+            },
+            {
+              "startBeat": 537.99988,
+              "endBeat": 539.99988,
+              "reason": "explicit no-chord"
+            }
+          ],
+          "attacks": 1484,
+          "coveredBeats": 308.62211999999965,
+          "coveredFraction": 0.5715225714494597,
+          "minMidi": 36,
+          "maxMidi": 79,
+          "maximumHeldOverlap": 5,
+          "onsetGeometryByHand": {
+            "L": {
+              "maxSimultaneousSpanSemitones": 0,
+              "maxRepresentativeLeapSemitones": 9
+            },
+            "R": {
+              "maxSimultaneousSpanSemitones": 10,
+              "maxRepresentativeLeapSemitones": 4
+            }
+          },
+          "unassignedHandAttacks": 0,
+          "endingGapBeats": 3.124879999999962,
+          "listener": {
+            "oneBeatChordShare": 0.4945054945054945,
+            "deadAirOnsets": 35,
+            "intentionalSilenceOnsets": 3,
+            "longestWaitForStrikeBeats": 15.125,
+            "strikes": 366,
+            "strikesOnSourceOnsets": 366,
+            "strikesUnderOneBeatApart": 98,
+            "tuneNotesOverBacking": 412,
+            "strongBeatTuneChordToneShare": 0.9128440366972477,
+            "tuneSemitoneClashShare": 0.06796116504854369
+          },
+          "gate": {
+            "passed": false,
+            "reasons": [
+              "49% of chords last one beat or less",
+              "dead air at 35 onsets"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -27,6 +27,8 @@ export function SoundControls({
   chordSource = "auto",
   chordSources,
   chordSourceStatus = null,
+  chordUnavailableReason = null,
+  sourceBacking = false,
   onChordSourceChange,
   melodyArrangement,
   activeMelodyPhrase,
@@ -49,6 +51,8 @@ export function SoundControls({
   chordSource?: ChordSourceId;
   chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
+  chordUnavailableReason?: string | null;
+  sourceBacking?: boolean;
   onChordSourceChange?: (source: ChordSourceId) => void;
   melodyArrangement?: Pick<MelodyAccompanimentResolution, "provenance" | "events"> | null;
   activeMelodyPhrase?: MelodyAccompanimentResolution["phrases"][number] | null;
@@ -86,24 +90,31 @@ export function SoundControls({
             {(["piano", "chord"] as const).map((b) => (
               <button
                 key={b}
+                disabled={b === "chord" && Boolean(chordUnavailableReason)}
                 onClick={() => onChange({ backgroundMode: b })}
                 role="radio"
                 aria-checked={settings.backgroundMode === b}
-                className={`flex-1 px-3 py-2 rounded-xl text-sm border ${settings.backgroundMode === b ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
+                className={`flex-1 px-3 py-2 rounded-xl text-sm border disabled:cursor-not-allowed disabled:opacity-50 ${settings.backgroundMode === b ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300"}`}
               >
                 {b === "piano" ? "Original arrangement" : "Chord mode"}
               </button>
             ))}
           </div>
+          {chordUnavailableReason && <p role="status" className="mt-1 text-xs text-amber-800">Chord mode unavailable: {chordUnavailableReason}</p>}
           <p className="text-xs text-zinc-500 mt-1">
             {settings.backgroundMode === "piano"
               ? "Original arrangement is retained"
+              : sourceBacking && settings.accompanimentStyle === "bass-chords"
+                ? "The Advanced piano figure plays with fewer repeated bass notes. No separate vocal melody is added."
               : settings.accompanimentStyle === "bass-chords"
                 ? "Backing only: generated bass and chords play where the chart is supported; source melody is omitted and unsupported spans are silent."
                 : "A selected melody is retained while sparse harmonic support is generated"}
           </p>
           {settings.backgroundMode === "chord" && (
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              {sourceBacking ? (
+                <p className="text-xs text-zinc-600">Practise the piano notes shown in Fall Down or Note letters, or sing over the backing.</p>
+              ) : <>
               <span className="text-xs font-medium text-zinc-700">Accompaniment style</span>
               <div className="grid grid-cols-2 gap-2 mt-2" role="radiogroup" aria-label="Accompaniment style">
                 {(["melody-accompaniment", "bass-chords"] as const).map((style) => (
@@ -113,7 +124,7 @@ export function SoundControls({
                     onClick={() => onChange({ accompanimentStyle: style })}
                     role="radio"
                     aria-checked={settings.accompanimentStyle === style}
-                    className={`px-2 py-2 rounded-lg text-xs border ${settings.accompanimentStyle === style ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
+                    className={`px-2 py-2 rounded-lg text-xs border disabled:cursor-not-allowed disabled:opacity-50 ${settings.accompanimentStyle === style ? "bg-zinc-700 text-white border-zinc-700" : "border-zinc-300 bg-white"}`}
                   >
                     {style === "bass-chords" ? "Bass + chords" : "Melody + accompaniment"}
                   </button>
@@ -360,6 +371,7 @@ export function SoundControls({
             )}
             </div>
           </details>
+          </>}
         </div>
           )}
         </div>

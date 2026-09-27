@@ -24,6 +24,7 @@ interface ManifestEntry {
   mood?: string;
   key?: string;
   tempo?: number;
+  preserveSourceBeats?: boolean;
   sourceUrl?: string;
   contentType?: "standard" | "youtube" | "upload";
   acquiredVia?: string | null;
@@ -78,6 +79,7 @@ for (const f of files) {
     mood: entry?.mood ?? row?.mood ?? "peaceful",
     key: entry?.key ?? row?.key,
     tempo: entry?.tempo ?? row?.tempo,
+    preserveSourceBeats: entry?.preserveSourceBeats,
     contentType,
     acquiredVia,
     sourceYoutubeUrl: manifestYoutube ? entry?.sourceUrl : row?.sourceYoutubeUrl ?? null,

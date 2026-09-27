@@ -5,9 +5,10 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ChordLabel } from "@keyspilli/midi";
-import { createLegacyBootstrapManifest, arrangementManifestPath, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
+import { createLegacyBootstrapManifest, arrangementManifestPath, deleteSongsByBase, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
 import { writeMidi, writeMusicXml } from "@keyspilli/midi";
 import type { SongData } from "@keyspilli/player-core";
+import { replayChordsBacking } from "../components/player/chords-backing";
 import { buildAutoChordSource, getArtifactFile, getSongDetail, getSongDetailShell, loadSongArtifact, mergeChartTimeline, projectChordSources } from "./catalog-api";
 
 const dataRoot = mkdtempSync(join(tmpdir(), "keyspilli-catalog-api-"));
@@ -26,6 +27,18 @@ const provenance = {
   kind: "chart" as const,
   sourceRef: "ultimate-guitar:test",
 };
+
+it("loads a prepared MIDI-derived arrangement only for its pinned source and never recomputes it", () => {
+  const data = { notes: [], chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }], tempoBpm: 100, timeSig: [4, 4], key: "C", sourceFingerprint: "fixture-v1" } as SongData;
+  const timeline = { schemaVersion: 1 as const, baseId: "fixture", title: "Fixture", artist: "Test", timeSig: [4, 4] as [number, number], durationBeats: 4,
+    chords: [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 60, 64, 67], sourceKind: "inferred" as const, inferred: true }],
+    provenance: { sourceId: "prepared", provider: "keyspilli", kind: "midi-derived" as const, sourceRef: "prepared:fixture-v1" } };
+  const projected = projectChordSources(data, timeline);
+  expect(replayChordsBacking(projected).resolution.chords.map(c => c.name)).toEqual(["C"]);
+  expect(projected.chordSources?.auto?.label).toBe("Prepared backing");
+  const changed = projectChordSources({ ...data, sourceFingerprint: "fixture-v2" }, timeline);
+  expect(replayChordsBacking(changed).resolution.chords).toEqual([]);
+});
 
 const song = (tempo = 120): SongRow => ({
   id: "catalog-api-song-a",
@@ -139,9 +152,130 @@ async function writeExportFixture(options: {
 }
 
 beforeEach(async () => {
+  deleteSongsByBase("catalog-api-song");
   await rm(join(dataRoot, "artifacts", "catalog-api-song"), { recursive: true, force: true });
   await writeNotes();
   upsertSong(song());
+});
+
+it("times Help Chords to the official recording while retaining Original's source clock", async () => {
+  const baseId = "the-beatles-help";
+  const id = `${baseId}-a`;
+  const dir = join(dataRoot, "artifacts", baseId, "a");
+  upsertSong({ ...song(173), id, baseId, key: "A", title: "Help", artist: "The Beatles" });
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [4, 36, 100, 156, 158.5, 160, 162.5, 164, 166, 168, 170, 172, 228, 292, 356]
+      .map((start) => ({ midi: 45, start, dur: 1, vel: 110, hand: "L" })),
+    chords: [],
+    measures: Array.from({ length: 109 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+    key: "A", tempoBpm: 173, timeSig: [4, 4],
+    sourceFingerprint: "variant:the-beatles-help:a:the-beatles-help-a:278f693cc9859cedee170d7709c49b5e7a1c98de632ea3ed34092c7bff05279a:notes:5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55",
+  }));
+  try {
+    const detail = await getSongDetail(id);
+    expect(detail?.data?.tempoBpm).toBe(173);
+    expect(detail?.chordData?.tempoBpm).toBe(190);
+    const replay = replayChordsBacking(detail!.chordData!);
+    expect(replay.selected.source?.id).toBe("ug");
+    expect(replay.resolution.chords.find(({ beat }) => beat === 156)?.beat).toBe(156);
+    expect(replay.resolution.chords.find(({ beat }) => beat === 356)?.beat).toBe(356);
+    expect(156 * 60 / detail!.chordData!.tempoBpm).toBeCloseTo(49.26, 2);
+    expect(356 * 60 / detail!.chordData!.tempoBpm).toBeCloseTo(112.42, 2);
+  } finally {
+    deleteSongsByBase(baseId);
+    await rm(join(dataRoot, "artifacts", baseId), { recursive: true, force: true });
+  }
+});
+
+it("plays Dreamer from the official-timed chart without the sour video-extracted pitches", async () => {
+  const baseId = "ozzy-osbourne-dreamer";
+  const id = `${baseId}-a`;
+  const dir = join(dataRoot, "artifacts", baseId, "a");
+  upsertSong({ ...song(80), id, baseId, key: "Db", title: "Dreamer", artist: "Ozzy Osbourne" });
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [59, 60, 62, 63].map((midi) => ({ midi, start: 36.25, dur: 0.5, vel: 80, hand: "R", sourceLane: "blue keys" })),
+    chords: [], measures: Array.from({ length: 91 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+    key: "Db", tempoBpm: 80, timeSig: [4, 4],
+  }));
+  try {
+    const detail = await getSongDetail(id);
+    expect(detail?.data?.notes.map((note) => note.midi)).toEqual([59, 60, 62, 63]);
+    expect(detail?.chordData?.notes).toEqual([]);
+    const backing = replayChordsBacking(detail!.chordData!);
+    expect(backing.selected.source?.id).toBe("ug");
+    expect(backing.resolution.notes).toEqual([]);
+    expect(backing.resolution.chords).toHaveLength(89);
+    expect(backing.resolution.chords[0]?.beat).toBe(7.7);
+    expect(backing.resolution.chords.find(({ name }) => name === "Ebm")?.beat).toBe(36.95);
+    expect(backing.resolution.chords.find(({ name }) => name === "Ebm")?.notes).toEqual([39, 70, 75, 78]);
+  } finally {
+    deleteSongsByBase(baseId);
+    await rm(join(dataRoot, "artifacts", baseId), { recursive: true, force: true });
+  }
+});
+
+it("loads one Advanced Chords source while retaining the selected Original level", async () => {
+  const beginner = { ...song(), id: "catalog-api-song-b", level: "b", difficulty: "beginner", difficultyScore: 2 };
+  upsertSong(beginner);
+  await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+    notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [{ beat: 0, name: "C", notes: [48, 52, 55], durationBeats: 4 }],
+    measures: [{ index: 0, startBeat: 0, endBeat: 4 }, { index: 1, startBeat: 4, endBeat: 8 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+  await mkdir(join(dataRoot, "artifacts", "catalog-api-song", "b"), { recursive: true });
+  await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "b", "notes.json"), JSON.stringify({
+    notes: [{ midi: 72, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [],
+    measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+
+  const advanced = await getSongDetail(song().id);
+  const selected = await getSongDetail(beginner.id);
+  expect(selected?.data?.notes[0]?.midi).toBe(72);
+  expect(selected?.data?.chords).toEqual([]);
+  expect(selected?.data?.chordSources?.auto.chords ?? []).toEqual([]);
+  expect(selected?.chordData?.notes[0]?.midi).toBe(60);
+  expect(advanced?.chordData).toBeNull();
+  expect(selected?.chordData?.chords).toEqual(advanced?.data?.chords);
+  expect(selected?.chordUnavailableReason).toBeNull();
+});
+
+it("marks Chords unavailable when a selected level has different timing", async () => {
+  const beginner = { ...song(90), id: "catalog-api-song-b", level: "b", difficulty: "beginner", difficultyScore: 2 };
+  upsertSong(beginner);
+  const dir = join(dataRoot, "artifacts", "catalog-api-song", "b");
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [{ midi: 72, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    key: "C", tempoBpm: 90, timeSig: [4, 4],
+  }));
+  const selected = await getSongDetail(beginner.id);
+  expect(selected?.data?.notes[0]?.midi).toBe(72);
+  expect(selected?.chordData).toBeNull();
+  expect(selected?.chordUnavailableReason).toContain("different timing");
+});
+
+it("marks Chords unavailable when a shared bar boundary moves", async () => {
+  const beginner = { ...song(), id: "catalog-api-song-b", level: "b", difficulty: "beginner", difficultyScore: 2 };
+  upsertSong(beginner);
+  await writeFile(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"), JSON.stringify({
+    notes: [{ midi: 60, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+  const dir = join(dataRoot, "artifacts", "catalog-api-song", "b");
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [{ midi: 72, start: 0, dur: 1, vel: 80, hand: "R" }],
+    chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 2 }, { index: 1, startBeat: 2, endBeat: 4 }],
+    key: "C", tempoBpm: 120, timeSig: [4, 4],
+  }));
+  expect((await getSongDetail(beginner.id))?.chordUnavailableReason).toContain("different timing");
 });
 
 describe("catalog artifact manifest read boundary", () => {
@@ -424,21 +558,32 @@ describe("catalog artifact manifest read boundary", () => {
     expect((await loadSongArtifact(song(120))).data).not.toHaveProperty("sourceTiming");
   });
 
-  it("projects legacy MIDI-derived chords with generated provenance and duration metadata", async () => {
+  it("replaces unsupported Advanced generated labels with an explained silent span", async () => {
     await writeLegacyGeneratedChordNotes();
 
     const detail = await getSongDetail(song().id);
     expect(detail?.artifact.status).toBe("legacy");
     expect(detail?.data?.chords).toEqual([{
       beat: 0,
-      durationBeats: 2,
-      name: "C",
-      notes: [48, 52, 55],
+      durationBeats: 4,
+      name: "N.C.",
+      notes: [],
+      reviewReason: "Harmony or accompaniment role is uncertain; this span is left silent.",
       sourceKind: "generated",
       inferred: true,
-      inferenceType: "nearest-symbol",
+      inferenceType: "harmony-window",
     }]);
+    expect(detail?.data?.chordSources?.auto.chords.map((chord) => chord.inferenceType)).toEqual(["harmony-window"]);
     expect(detail?.data).not.toHaveProperty("ugChordTimeline");
+  });
+
+  it("keeps stored labels on learner levels and authored labels on Advanced", async () => {
+    await writeLegacyGeneratedChordNotes();
+    const data = (await loadSongArtifact(song())).data!;
+    const stored = [{ beat: 0, durationBeats: 2, name: "C", notes: [48, 52, 55], sourceKind: "generated", inferred: true, inferenceType: "nearest-symbol" }];
+    expect(projectChordSources(data, null, "b").chords).toEqual(stored);
+    const authored = { ...data, chords: [{ beat: 0, name: "Am", notes: [57, 60, 64], sourceKind: "authored" as const }] };
+    expect(projectChordSources(authored, null, "a").chords).toEqual([{ ...authored.chords[0], durationBeats: 4 }]);
   });
 
   it("ships one generated chord timeline copy with an explicit compact reference", async () => {

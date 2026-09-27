@@ -323,14 +323,10 @@
         - keyspilli-ops-check-deep.timer
       tags: [monitoring]
 
-    - name: Free disk by pruning unused Keyspilli Docker images
-      # `docker_prune(images: true)` only removes dangling layers. Immutable
-      # GHCR tags from previous deploys (and a failed pull) remain tagged but
-      # unused, eventually filling the small VPS disk before Compose can be
-      # rendered. Running the all-images prune while the current containers
-      # are still up keeps their image IDs available for rollback, and the
-      # next task re-tags those IDs explicitly.
-      ansible.builtin.command: docker image prune --all --force --filter label=org.opencontainers.image.source=https://github.com/Reedtrullz/Keyspilli
+    - name: Free dangling Keyspilli layers while preserving tagged rollback images
+      # Tagged images are recovery points even when no container uses them.
+      # Reclaim those only through a separately verified retention operation.
+      ansible.builtin.command: docker image prune --force --filter label=org.opencontainers.image.source=https://github.com/Reedtrullz/Keyspilli
       register: pruned
       changed_when: "'Total reclaimed space: 0B' not in (pruned.stdout | default(''))"
       tags: [deploy]

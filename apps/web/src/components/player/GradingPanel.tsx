@@ -5,9 +5,9 @@ import type { PracticeSetup } from "./PracticeSetupDialog";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-export function GradingPanel({ waitMode, waitNote, result, countIn, input, onExit, onRepeat, onDismiss }: {
+export function GradingPanel({ waitMode, waitNotes, result, countIn, input, onExit, onRepeat, onDismiss }: {
   waitMode: boolean;
-  waitNote: TimedNote | null | undefined;
+  waitNotes: TimedNote[];
   result: GradeResult | null;
   countIn: number | null;
   input: PracticeSetup["input"];
@@ -23,7 +23,7 @@ export function GradingPanel({ waitMode, waitNote, result, countIn, input, onExi
       {result && <><button onClick={onRepeat} className="ml-auto min-h-11 rounded-full bg-zinc-900 px-3 text-white">Repeat passage</button><button onClick={onDismiss} className="min-h-11 rounded-full border border-zinc-300 px-3">Dismiss result</button></>}
     </div>
     {countIn !== null && <p role="status" className="mt-2">Start in {countIn} {countIn === 1 ? "beat" : "beats"}…</p>}
-    {!result && countIn === null && waitMode && waitNote && <p role="status" className="mt-2">Play: <strong>{NOTE_NAMES[waitNote.midi % 12]}{Math.floor(waitNote.midi / 12) - 1}</strong> ({waitNote.hand === "L" ? "left hand" : "right hand"})</p>}
+    {!result && countIn === null && waitMode && waitNotes.length > 0 && <p role="status" className="mt-2">Play: {waitNotes.map((note, index) => <span key={`${note.midi}-${index}`}>{index > 0 && " · "}<strong>{NOTE_NAMES[note.midi % 12]}{Math.floor(note.midi / 12) - 1}</strong> ({note.hand === "L" ? "left hand" : "right hand"})</span>)}</p>}
     {!result && <p className="text-xs text-zinc-600 mt-2">Finish practice to change setup.</p>}
     {result && <div role="status" className="mt-2"><strong>{result.accuracyPct}%</strong> · {result.summary}<p className="text-xs text-zinc-600 mt-1">{result.hit} hit · {result.missed} missed · {result.wrong} wrong · {result.late} late</p></div>}
   </div>;

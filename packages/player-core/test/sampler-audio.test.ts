@@ -50,6 +50,20 @@ describe("SamplerAudioEngine", () => {
     vi.unstubAllGlobals();
   });
 
+  it("preserves short passing-chord and long held-chord releases at the audio boundary", async () => {
+    const start = vi.fn();
+    pianoFactory.mockReturnValue({ ready: Promise.resolve(), setCC: vi.fn(), start, stop: vi.fn(), dispose: vi.fn() });
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine();
+    engine.ensure();
+    await Promise.resolve();
+    engine.playChord([60, 64, 67], 0, 0.125);
+    engine.playChord([60], 1, 12);
+    engine.playChord([60], 0, NaN);
+    expect(start.mock.calls.map(([event]) => event.duration)).toEqual([0.125, 0.125, 0.125, 12]);
+    engine.dispose();
+  });
+
   it("shares one in-flight sample load across fallback note-ons", async () => {
     let resolveReady!: () => void;
     const ready = new Promise<void>((resolve) => { resolveReady = resolve; });

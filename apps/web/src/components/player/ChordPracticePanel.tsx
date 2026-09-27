@@ -91,6 +91,7 @@ export function ChordPracticePanel({
   presenceVisible = true,
   scope = "arrangement",
   inputStatus = "Computer keyboard available",
+  notice = "",
 }: {
   targets: ChordPracticeTarget[];
   snapshot: ChordPracticeSnapshot;
@@ -103,6 +104,7 @@ export function ChordPracticePanel({
   presenceVisible?: boolean;
   scope?: "current" | "passage" | "arrangement";
   inputStatus?: string;
+  notice?: string;
 }) {
   const target = snapshot.target;
   const { requestClose, visible, closing } = useDialogMotion(onExit);
@@ -125,6 +127,7 @@ export function ChordPracticePanel({
           <p className="text-xs text-zinc-600 mt-1">Input: {inputStatus}</p>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">Find the chord tones</h2>
           <p className="text-sm text-zinc-600 mt-1">The shown voicing is a reference shape. Any octave is accepted, and note order does not matter.</p>
+          {notice && <p className="text-sm text-indigo-800 mt-1" role="status">{notice}</p>}
         </div>
         <button onClick={requestClose} className="min-h-11 px-3 rounded-xl border border-zinc-300 bg-white text-sm">Close</button>
       </div>

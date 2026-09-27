@@ -185,9 +185,10 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     const hand = inferTrackHand(namesInTrack);
     const identitySource = inferTrackIdentitySource(namesInTrack);
     const sourceLane = namesInTrack.length === 1 ? tutorialSourceLane(namesInTrack[0]!) : undefined;
-    trackNotes.push(hand || identitySource || sourceLane
-      ? notes.map((n) => ({ ...n, ...(hand ? { hand } : {}), ...(identitySource ? { identitySource } : {}), ...(sourceLane ? { sourceLane } : {}) }))
-      : notes);
+    trackNotes.push(notes.map((n, index) => ({ ...n,
+      sourceOrigins: [{ id: `midi:${t}:${index}`, track: t }],
+      ...(hand ? { hand } : {}), ...(identitySource ? { identitySource } : {}), ...(sourceLane ? { sourceLane } : {}),
+    })));
   }
 
   const valid = trackNotes
