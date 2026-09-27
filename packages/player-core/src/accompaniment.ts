@@ -18,6 +18,7 @@ export type AccompanimentFallbackReason =
   | "no source notes"
   | "unsupported chord"
   | "explicit no-chord"
+  | "uncertain harmony"
   | "no chord coverage"
   | "accompaniment ownership unavailable"
   | "no owned source notes to replace"
@@ -501,7 +502,10 @@ function sourceRhythmStrikes(
       for (const n of members) byPc.set(n.midi % 12, Math.max(byPc.get(n.midi % 12) ?? 0, n.start + n.dur));
       const releases = [...byPc.values()].sort((a, b) => b - a);
       const stack = releases.length >= 2;
-      const bass = members.some(n => n.hand === "L" && n.midi % 12 === bassPc);
+      const localLeft = support.filter(n => n.hand === "L" && chordPcs.has(n.midi % 12)
+        && n.start >= Math.max(start, attack.start - 2) && n.start < Math.min(end, attack.start + 2));
+      const brokenChord = new Set(localLeft.map(n => n.midi % 12)).size >= 2;
+      const bass = members.some(n => n.hand === "L" && (n.midi % 12 === bassPc || brokenChord));
       if (!stack && !bass) continue;
       const previous = result.at(-1);
       if (previous && (attack.start - previous.beat < spacing - EPSILON
@@ -782,6 +786,7 @@ function subtractCoveredIntervals(
 }
 
 function fallbackReason(event: ChordEvent): AccompanimentFallbackReason {
+  if (event.chord.reviewReason) return "uncertain harmony";
   if (!event.harmonicSupportAllowed) return "unverified chord source";
   if (isNoChord(event.chord.name)) return "explicit no-chord";
   return "unsupported chord";

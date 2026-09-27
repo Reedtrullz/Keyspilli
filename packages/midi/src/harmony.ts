@@ -150,7 +150,11 @@ export function inferHarmonyTimeline(
   // Explicit vocal provenance is stronger than register/hand guesses.
   const source = notes.filter(note => note.dur > 0 && (!strict || (note.identitySource !== "vocals" && !note.lyrics)));
   const sourceAttacks = strict ? groupAttackClusters(source) : [];
-  const hasPolyphonicAttack = sourceAttacks.some(a => new Set(a.notes.map(n => n.midi % 12)).size >= 2);
+  // Pedalled/broken chords can overlap without sharing an attack. Hand
+  // assignment alone still cannot establish harmony in a monophonic line.
+  const hasPolyphony = sourceAttacks.some(a => new Set(source
+    .filter(n => n.start <= a.start + 1e-7 && n.start + n.dur > a.start + 1e-7)
+    .map(n => n.midi % 12)).size >= 2);
   let segments = harmonySegments(measures, tuning.changeGrid);
   if (strict && segments.length) {
     const start = segments[0]!.startBeat, end = segments.at(-1)!.endBeat;
@@ -186,13 +190,23 @@ export function inferHarmonyTimeline(
     let allowed: Set<number> | undefined;
     if (strict) {
       const raw = source.filter(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
+      // Short articulation gaps do not imply a new harmony. The backing's
+      // source-rhythm resolver still releases the notes through these gaps.
+      const previousEnd = raw.length ? segment.startBeat : source.reduce((end, n) =>
+        n.start + n.dur <= segment.startBeat + 1e-7 ? Math.max(end, n.start + n.dur) : end, -Infinity);
+      const nextStart = raw.length ? segment.endBeat : source.reduce((start, n) =>
+        n.start >= segment.endBeat - 1e-7 ? Math.min(start, n.start) : start, Infinity);
+      const beforeGap = new Set(source.filter(n => n.start < previousEnd && n.start + n.dur >= previousEnd - 1e-7).map(n => n.midi % 12));
+      const afterGap = new Set(source.filter(n => Math.abs(n.start - nextStart) < 1e-7).map(n => n.midi % 12));
+      const articulationGap = nextStart - previousEnd <= 0.5 + 1e-7 && beforeGap.size >= 2
+        && beforeGap.size === afterGap.size && [...beforeGap].every(pc => afterGap.has(pc));
       const window = windows.find(w => w.startBeat <= segment.startBeat && segment.startBeat < w.endBeat);
       const context = window ? source.filter(n => n.start < window.endBeat && n.start + n.dur > window.startBeat) : raw;
       const attacks = groupAttackClusters(context);
       const hasStack = attacks.some(a => new Set(a.notes.map(n => n.midi % 12)).size >= 2);
       const left = context.filter(n => n.hand === "L");
       // ponytail: local stacks and LH arpeggios establish support; unlabelled solo lines stay unresolved.
-      const hasArpeggio = hasPolyphonicAttack && left.length >= 2 && new Set(left.map(n => n.midi % 12)).size >= 2;
+      const hasArpeggio = hasPolyphony && left.length >= 2 && new Set(left.map(n => n.midi % 12)).size >= 2;
       const roleSupported = hasStack || hasArpeggio;
       const attack = sourceAttacks.find(a => Math.abs(a.start - segment.startBeat) < 1e-7);
       const played = evidence(attack?.notes ?? [], segment.startBeat, segment.endBeat);
@@ -203,7 +217,7 @@ export function inferHarmonyTimeline(
       const direct = complete.length > 0 && (complete.length === 1 || complete[0]!.score - complete[1]!.score >= 0.08);
       // Keep the contextual triad path for arpeggios and decorated melody. Only
       // a complete played stack can introduce a seventh/suspension or inversion.
-      allowed = new Set(!raw.length || !roleSupported ? [] : direct ? [complete[0]!.k]
+      allowed = new Set((!raw.length && !articulationGap) || !roleSupported ? [] : direct ? [complete[0]!.k]
         : candidates.flatMap((c, k) => c.name.match(/^[A-G][#b]?m?$/) ? [k] : []));
       if (direct) observed = played;
       const anySource = notes.some(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);

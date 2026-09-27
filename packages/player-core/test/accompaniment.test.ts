@@ -259,3 +259,17 @@ it("does not fill generated harmony with bar-line attacks or carry it through re
   expect(result.notes).toEqual([]);
   expect(result.guidanceNotes.every(n => n.midi !== 84)).toBe(true);
 });
+
+it("backs a rootless left-hand arpeggio without turning its upper melody into strikes", () => {
+  const notes = [note(52, 0, 1, "L"), note(55, 1, 1, "L"), note(52, 2, 1, "L"), note(55, 3, 1, "L"), note(84, 0.5, 3, "R")];
+  const result = resolveAccompaniment(notes, [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 60, 64, 67], sourceKind: "generated" }], "bass-chords", {
+    durationBeats: 4, sourceRhythmMeasures: [{ startBeat: 0, endBeat: 4 }],
+  });
+  expect(result.chords.map(c => c.beat)).toEqual([0, 1, 2, 3]);
+  expect(result.notes).toEqual([]);
+});
+
+it("does not describe unresolved harmony as an intentional rest", () => {
+  const result = resolve([note(72, 0)], [{ beat: 0, durationBeats: 4, name: "N.C.", notes: [], reviewReason: "Insufficient harmony evidence" }], "bass-chords", undefined, 4);
+  expect(result.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 4, reason: "uncertain harmony" }]);
+});

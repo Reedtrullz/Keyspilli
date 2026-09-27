@@ -83,3 +83,17 @@ it("abstains on a solo line instead of inventing a major third, and distinguishe
   expect(inferHarmonyTimeline(notes.map(n => ({ ...n, hand: "L" })), bars(2), { key: "C", backingOnly: true })
     .every(c => c.notes.length === 0)).toBe(true);
 });
+
+it("recognizes overlapping broken chords without simultaneous attacks", () => {
+  const notes = arpeggio(0, [48, 52, 55, 60], 0.5).map(n => ({ ...n, dur: 1.5 }));
+  const timeline = inferHarmonyTimeline(notes, bars(1), { key: "C", backingOnly: true });
+  expect(timeline.some(c => c.name === "C" && c.notes.length > 0)).toBe(true);
+  expect(timeline.filter(c => c.beat < 2).every(c => !c.reviewReason)).toBe(true);
+});
+
+it("keeps one harmony across short articulation gaps without hiding the final rest", () => {
+  const notes = Array.from({ length: 4 }, (_, i) => [48, 52, 55].map(midi => ({ midi, start: i, dur: 0.75, vel: 70, hand: "L" as const }))).flat();
+  const timeline = inferHarmonyTimeline(notes, bars(1), { key: "C", backingOnly: true });
+  expect(timeline.filter(c => c.notes.length).map(c => [c.beat, c.name, c.durationBeats])).toEqual([[0, "C", 3.75]]);
+  expect(timeline.at(-1)).toMatchObject({ beat: 3.75, name: "N.C." });
+});

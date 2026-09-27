@@ -28,6 +28,18 @@ const provenance = {
   sourceRef: "ultimate-guitar:test",
 };
 
+it("loads a prepared MIDI-derived arrangement only for its pinned source and never recomputes it", () => {
+  const data = { notes: [], chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }], tempoBpm: 100, timeSig: [4, 4], key: "C", sourceFingerprint: "fixture-v1" } as SongData;
+  const timeline = { schemaVersion: 1 as const, baseId: "fixture", title: "Fixture", artist: "Test", timeSig: [4, 4] as [number, number], durationBeats: 4,
+    chords: [{ beat: 0, durationBeats: 4, name: "C", notes: [48, 60, 64, 67], sourceKind: "inferred" as const, inferred: true }],
+    provenance: { sourceId: "prepared", provider: "keyspilli", kind: "midi-derived" as const, sourceRef: "prepared:fixture-v1" } };
+  const projected = projectChordSources(data, timeline);
+  expect(replayChordsBacking(projected).resolution.chords.map(c => c.name)).toEqual(["C"]);
+  expect(projected.chordSources?.auto?.label).toBe("Prepared backing");
+  const changed = projectChordSources({ ...data, sourceFingerprint: "fixture-v2" }, timeline);
+  expect(replayChordsBacking(changed).resolution.chords).toEqual([]);
+});
+
 const song = (tempo = 120): SongRow => ({
   id: "catalog-api-song-a",
   baseId: "catalog-api-song",

@@ -228,7 +228,8 @@ export function buildAutoChordSource(
   const autoFallback = merged.provenance.fallback === true;
   return {
     id: "auto",
-    label: autoFallback ? (ugSource ? "UG + generated fallback" : "Generated fallback") : ugSource ? "UG timeline" : "Generated fallback",
+    label: timeline.provenance.sourceRef.startsWith("prepared:") ? "Prepared backing"
+      : autoFallback ? (ugSource ? "UG + generated fallback" : "Generated fallback") : ugSource ? "UG timeline" : "Generated fallback",
     chords: merged.chords,
     provenance: ugSource?.provenance ?? merged.provenance.sourceRef ?? null,
     provenanceInfo: merged.provenance,
@@ -260,11 +261,17 @@ function prepareGeneratedChordData(data: SongData, level: string): SongData {
 export function projectChordSources(data: SongData, loadedTimeline: ChordTimelineArtifact | null, level = "a"): SongData {
   const prepared = prepareGeneratedChordData(data, level);
   if (!loadedTimeline) return prepared;
+  // Prepared arrangements are tied to exact source bytes and timing. Never
+  // reuse one after a different upload/re-ingest, or silently regenerate it.
+  const preparedFor = loadedTimeline.provenance.sourceRef.startsWith("prepared:")
+    ? loadedTimeline.provenance.sourceRef.slice("prepared:".length) : null;
+  if (preparedFor !== null && preparedFor !== data.sourceFingerprint) return prepared;
   const durationBeats = arrangementDurationBeats(prepared);
   const generated = prepared.chords;
   // The midi-derived "chart" is this artifact's stored labels read back from
   // disk; it must carry the same harmony as the generated source.
   const timeline: ChordTimelineArtifact = loadedTimeline.provenance.kind === "midi-derived"
+    && preparedFor === null
     && generated.some((chord) => chord.inferenceType === "harmony-window")
     ? { ...loadedTimeline, chords: generated.map((chord) => ({ ...chord, durationBeats: chord.durationBeats ?? 0, sourceKind: "generated" as const })) }
     : loadedTimeline;
