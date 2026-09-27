@@ -146,6 +146,36 @@ beforeEach(async () => {
   upsertSong(song());
 });
 
+it("times Help Chords to the official recording while retaining Original's source clock", async () => {
+  const baseId = "the-beatles-help";
+  const id = `${baseId}-a`;
+  const dir = join(dataRoot, "artifacts", baseId, "a");
+  upsertSong({ ...song(173), id, baseId, key: "A", title: "Help", artist: "The Beatles" });
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "notes.json"), JSON.stringify({
+    notes: [4, 36, 100, 156, 158.5, 160, 162.5, 164, 166, 168, 170, 172, 228, 292, 356]
+      .map((start) => ({ midi: 45, start, dur: 1, vel: 110, hand: "L" })),
+    chords: [],
+    measures: Array.from({ length: 109 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+    key: "A", tempoBpm: 173, timeSig: [4, 4],
+    sourceFingerprint: "variant:the-beatles-help:a:the-beatles-help-a:278f693cc9859cedee170d7709c49b5e7a1c98de632ea3ed34092c7bff05279a:notes:5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55",
+  }));
+  try {
+    const detail = await getSongDetail(id);
+    expect(detail?.data?.tempoBpm).toBe(173);
+    expect(detail?.chordData?.tempoBpm).toBe(190);
+    const replay = replayChordsBacking(detail!.chordData!);
+    expect(replay.selected.source?.id).toBe("ug");
+    expect(replay.resolution.chords.find(({ beat }) => beat === 156)?.beat).toBe(156);
+    expect(replay.resolution.chords.find(({ beat }) => beat === 356)?.beat).toBe(356);
+    expect(156 * 60 / detail!.chordData!.tempoBpm).toBeCloseTo(49.26, 2);
+    expect(356 * 60 / detail!.chordData!.tempoBpm).toBeCloseTo(112.42, 2);
+  } finally {
+    deleteSongsByBase(baseId);
+    await rm(join(dataRoot, "artifacts", baseId), { recursive: true, force: true });
+  }
+});
+
 it("plays Dreamer from the official-timed chart without the sour video-extracted pitches", async () => {
   const baseId = "ozzy-osbourne-dreamer";
   const id = `${baseId}-a`;

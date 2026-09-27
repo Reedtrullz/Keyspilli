@@ -184,7 +184,7 @@ describe("catalog chord source plumbing", () => {
     ["the-beatles-help", "A", 436, [4, 4], [[4, "Bm"], [10, "Bm"], [10.5, "G"], [18, "G/F#"], [60, "D"], [62, "G"]]],
     ["status-quo-in-the-army-now", "Em", 428, [4, 4], [[12, "Dm"], [52, "Gm"], [192, "Em"], [208, "Am"], [212, "Bm"]]],
     ["ozzy-osbourne-dreamer", "Db", 364, [4, 4], [[5.5, "Db"], [34.75, "Ebm"], [84.5, "Bbm"], [176.125, "Ebm"], [344.25, "Db"]]],
-    ["rousseau-john-legend-all-of-me-piano-cover-mslwrq3x", "Fm", 664, [4, 4], [[0, "Fm"], [4.5, "Db"], [6.25, "Db"], [8.875, "Ab"], [10.625, "Ab"], [13.375, "Eb"], [37.125, "N.C."], [44.875, "Fm"], [52.125, "Dbmaj7"], [180.5, "Fm9"], [188.25, "Bbm/Db"], [196.25, "Db/Eb"], [404.125, "Fmadd9"], [604.875, "N.C."]]],
+    ["rousseau-john-legend-all-of-me-piano-cover-mslwrq3x", "Fm", 576, [4, 4], [[0, "Fm"], [4, "Db"], [8, "Ab"], [12, "Eb"], [32, "Fm"], [36, "Dbmaj7"], [44, "Eb/G"], [48, "Fm"], [52, "Db"], [560, "Fmadd9"], [572, "Ebsus2"]]],
     ["journey-dont-stop-believin", "C#", 520, [4, 4], [[4, "C#"], [6.5, "G#/D#"], [10.5, "A#m"], [15.5, "F#"]]],
     ["mary-hopkin-those-were-the-days", "Am", 344, [2, 4], [[8, "Am"], [16, "A7"], [20, "Dm"], [32, "B7"], [52, "G7"]]],
     ["katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0", "Eb", 332, [4, 4], [[1.875, "Eb"], [3.875, "Ebmaj7/G"], [5.875, "Cm"], [7.875, "Bb"], [81.875, "Ab"], [177.875, "Eb"]]],
