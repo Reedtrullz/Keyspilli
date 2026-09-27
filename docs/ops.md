@@ -2,9 +2,9 @@
 
 ## Deploy (Ansible → RackNerd VPS)
 
-Keyspilli follows the cross-project deploy pattern (see `/Users/reidar/Projectos/DEPLOYMENT.md`):
-CI publishes immutable `ghcr.io/reedtrullz/keyspilli:sha-<12>` (web) and
-`ghcr.io/reedtrullz/keyspilli-worker:sha-<12>` (worker) images; the deploy job
+The [CI workflow](../.github/workflows/ci.yml) publishes immutable
+`ghcr.io/reedtrullz/keyspilli:<12-character-commit>` (web) and
+`ghcr.io/reedtrullz/keyspilli-worker:<12-character-commit>` (worker) images; the deploy job
 (or a manual run from this machine) applies `deploy/playbook.yml`, which
 verifies the images/version, starts the compose stack on the VPS, checks
 `/api/health` locally and publicly, manages the host Caddy block, and rolls
@@ -12,7 +12,13 @@ back to the previous images on failure. Production Caddy protects the entire
 domain with operator Basic Auth; the application bearer token remains a
 separate machine-mutation credential.
 
-Manual deploy (equivalent to the CI job):
+Pushes to `main` run checks, build both images, and deploy automatically. Manual
+workflow dispatch additionally rebuilds the production catalog; do not use it
+just to retry a documentation release. CI builds the tutorial worker from
+`services/transcribe/Dockerfile.tutorial --target worker`; the root Compose
+file is a separate development topology with the legacy audio worker.
+
+Manual deploy (equivalent to the CI deploy job, after images exist):
 
 ```bash
 APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
@@ -24,7 +30,7 @@ APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
 Preconditions (matching the other projects):
 
 - Control node: `brew install ansible` + `ansible-galaxy collection install -r deploy/requirements.yml`.
-- SSH key at `~/.ssh/id_rsa_racknerd`; inventory points at `198.23.137.16`, user `deploy`.
+- The inventory defaults to `~/.ssh/id_rsa_racknerd` for CI, host `198.23.137.16`, user `deploy`. Local operators should use their configured deploy key; override `ansible_ssh_private_key_file` when needed. The local `Racknerd-Deploy` SSH alias uses a different key. Never copy private key material into the repository.
 - VPS: Docker, Docker Compose v2, Caddy; GHCR pull access (`docker login ghcr.io` if the images are private).
 - Domain: the inventory defaults to `keys.reidar.tech` — add a Caddy
   block for any other domain to `deploy/playbook.yml` vars or the inventory.
@@ -103,9 +109,9 @@ that file into the web service. The rendered Compose manifest contains only
 the path, never the credential. A deploy with no provider settings writes an
 empty file and leaves discovery disabled.
 
-The published Search price is $5/1,000 requests, so the frozen four-query
-policy costs about $0.02 per song request before a retry (up to $0.04 in the
-worst retry case). Brave's [rate-limit guidance](https://api-dashboard.search.brave.com/documentation/guides/rate-limiting)
+The September 2026 implementation estimate used $5/1,000 requests: about
+$0.02 per four-query request before retry, or $0.04 with all queries retried.
+Check the provider dashboard for current pricing before budgeting. Brave's [rate-limit guidance](https://api-dashboard.search.brave.com/documentation/guides/rate-limiting)
 and response headers remain authoritative. Search metadata has no implied
 license; the owner must inspect the source and provide a permitted file.
 
@@ -309,8 +315,10 @@ report the expected song count.
 
 ## Health / version contract
 
-`/api/health` returns `{status: "healthy", version, commit, image}`. The
-playbook refuses to deploy unless the container reports the exact git SHA.
+`/api/health` reports `status`, `version`, `commit`, `image`, capabilities and
+the visible arrangement-row count in `songs`. A database failure returns
+HTTP 503 with `status: "degraded"`. The playbook requires a healthy response
+with the exact Git SHA and expected tutorial capability.
 
 Every release that changes a browser mutation must also run real Chromium
 through the reverse proxy and exact production image, then perform an actual
@@ -427,20 +435,34 @@ direct symbolic upload remains available when Brave is absent or unavailable.
 If the bounded search has no eligible result, the product reports that no usable
 source lead was found; it does not start audio transcription.
 
-`POST /api/youtube/import` is a retired learner endpoint. It returns HTTP 410
-with `DIRECT_AUDIO_AMT_DISABLED` and never inserts a conversion job. `/youtube`
-is a compatibility page that sends old bookmarks to `/uploads`.
+### Private piano-tutorial beta
 
-`GET /api/health` reports the release identity, DB status, song count, and only
-these non-secret capabilities: symbolic upload availability, whether source
-discovery is configured, and `directAudioAmt: false`. It does not contact Brave.
+With `KEYSPILLI_TUTORIAL_BETA=1`, a nonempty `KEYSPILLI_DATA_DIR`, and
+`NODE_ENV=production` or `development`, `/uploads` and `/youtube` expose the
+piano-tutorial flow. The development-only `KEYSPILLI_TUTORIAL_PREVIEW=1` is
+also supported. `POST /api/youtube/import` validates the URL and mutation
+authorization before queuing a tutorial job; the compatible worker must share
+the data directory. This extracts supported visible piano keys, not arbitrary
+recording-to-piano audio transcription. The production playbook currently
+defaults `keyspilli_tutorial_beta` to `true`.
+
+Without the opt-in, the import endpoint returns HTTP 410 with
+`DIRECT_AUDIO_AMT_DISABLED`, and `/youtube` shows a link to symbolic upload.
+See [development import options](development.md#import-options) for the worker
+image and local setup.
+
+`GET /api/health` reports release identity, DB status and `songs` (the count of
+visible arrangement rows, not unique titles), plus `symbolicUpload`,
+`tutorialImportsEnabled`, `sourceDiscoveryConfigured`, and `directAudioAmt`.
+The latter remains `false` even when tutorials are enabled. Health does not
+contact the discovery provider or establish musical quality.
 Check local disk separately with `df -h /System/Volumes/Data`; 30 GiB is the hard
 engineering floor and 34 GiB the preferred floor.
 
 ## Legacy operator-only YouTube conversion notes
 
-- The former learner-facing `POST /api/youtube/import` endpoint is disabled as
-  described above. It must not be used to enqueue maintenance work.
+- `POST /api/youtube/import` is only the opt-in tutorial path described above,
+  not an endpoint for legacy full-mix/stem maintenance.
 - `POST /api/youtube` remains the bearer-protected maintainer endpoint for
   metadata overrides and re-transcription. Never expose `KEYSPILLI_API_TOKEN`
   through `NEXT_PUBLIC_*` variables or embed it in the page bundle.

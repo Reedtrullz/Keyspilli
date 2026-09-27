@@ -2,6 +2,8 @@
 
 This log records human listening separately from structural and runtime checks.
 
+**Status note — 27 September 2026:** the dated entries below retain their original review context, including then-open PRs and local preview URLs. The implementation was consolidated through [PR #110](https://github.com/Reedtrullz/Keyspilli/pull/110), merged and deployed as `a423f382593182345cf95b3dea34dd8def2c3d2c`. PR #109 was closed during consolidation. Those historical “unmerged/undeployed” statements are not the current integration status. Integration does not broaden any listening verdict or establish the mode-wide musical gate. [Contributor snapshots](../CONTRIBUTING.md#musical-files-and-review-evidence) preserve available review files.
+
 ## 2026-09-23 — The Winner Takes It All, Advanced-derived Chords pilot
 
 - Candidate: `codex/chords-winner-pilot` at `ba86f544a105aeca8f08a4854a27248a7dd8db06`, exact-source `reviewedSourceBacking()`; source MusicXML SHA-256 `54fdc6dfba535308b19583a24ca6cb284813bb2ae84e42abe4cac8b062a57eb2`, Advanced notes SHA-256 `9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664`.
