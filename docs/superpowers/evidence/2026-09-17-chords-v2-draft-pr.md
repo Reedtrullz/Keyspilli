@@ -56,7 +56,7 @@ The current policy treats an unverified generated label as provenance-only when 
 
 ## Current Oops development audio
 
-The T1 frozen development fixture captured the full `[64,108]` development phrase at 95 BPM with the browser AudioEngine synth. Direct listening is in the bounded [current-candidate Oops packet](./2026-09-17-chords-v2-current-candidate-packet/): [Original](./2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-original.webm) and [Current Automatic](./2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-current-automatic.webm). The packet manifest records the recoverable source fingerprint, Player selection path, policy commits, decoded PCM completeness, ffprobe durations, event counts, and SHA-256 values.
+The T1 frozen development fixture captured the full `[64,108]` development phrase at 95 BPM with the browser AudioEngine synth. Direct listening is in the bounded [current-candidate Oops packet](./2026-09-17-chords-v2-current-candidate-packet/): [Original](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-original.webm) and [Current Automatic](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-current-automatic.webm). The packet manifest records the recoverable source fingerprint, Player selection path, policy commits, decoded PCM completeness, ffprobe durations, event counts, and SHA-256 values.
 
 | Capture | Events | ffprobe duration | WebM SHA-256 |
 | --- | ---: | ---: | --- |

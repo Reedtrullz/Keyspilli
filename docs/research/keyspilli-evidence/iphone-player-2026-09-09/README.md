@@ -13,7 +13,7 @@ The Audio Session API documents Web Audio's default as ambient: [MDN Audio Sessi
 
 ## Evidence
 
-Production-build captures: [portrait, 428 × 700](portrait.png) and [landscape, 926 × 320](landscape.png), including browser-chrome-reduced viewport heights. Both retain the full keyboard without enabling Focus. These are automated desktop browser captures, not device screenshots.
+Production-build captures: [portrait, 428 × 700](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/research/keyspilli-evidence/iphone-player-2026-09-09/portrait.png) and [landscape, 926 × 320](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/research/keyspilli-evidence/iphone-player-2026-09-09/landscape.png), including browser-chrome-reduced viewport heights. Both retain the full keyboard without enabling Focus. These are automated desktop browser captures, not device screenshots.
 
 Local checks: 145 player-core tests and 179 web tests passed; workspace typecheck and production build passed. Browser checks cover default portrait/landscape keyboard visibility, stage height, width overflow, and piano/organ playback-session requests, alongside existing player/application regression tests. Exact CI results are tracked on the PR.
 

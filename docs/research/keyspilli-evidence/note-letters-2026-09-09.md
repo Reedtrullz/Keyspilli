@@ -8,9 +8,9 @@ Validation: 175 web unit tests; production build including type validation; 45 p
 
 Screenshots captured with reduced motion and reopened for inspection:
 
-![Phone](note-letters-2026-09-09/note-letters-after-390.png)
+![Phone](https://raw.githubusercontent.com/Reedtrullz/Keyspilli/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/research/keyspilli-evidence/note-letters-2026-09-09/note-letters-after-390.png)
 
-![Desktop](note-letters-2026-09-09/note-letters-after-1280.png)
+![Desktop](https://raw.githubusercontent.com/Reedtrullz/Keyspilli/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/research/keyspilli-evidence/note-letters-2026-09-09/note-letters-after-1280.png)
 
 Local preview: http://127.0.0.1:3000/player/f-f-chopin-nocturne-a/beginner . No production deployment, real hardware, acoustic, or complete accessibility certification claimed for this follow-up.
 
@@ -20,7 +20,7 @@ Added current-bar and next-four-bars loop shortcuts, a full-width loop editor, a
 
 Verified:175 web tests; production build/type validation;46 player/navigation browser checks. The new phone-width regression failed before implementation and now covers presets, final-bar clipping, stable loop-marker proportions after a speed change, and no horizontal page overflow. Desktop screenshot captured and reopened. The preceding note-letter commit's CI34284140678 passed; this follow-up is locally verified, not deployed.
 
-![Loop editor](note-letters-2026-09-09/loop-editor-after.png)
+![Loop editor](https://raw.githubusercontent.com/Reedtrullz/Keyspilli/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/research/keyspilli-evidence/note-letters-2026-09-09/loop-editor-after.png)
 
 ## Chord guide clarification and timing fix
 
@@ -28,7 +28,7 @@ Renamed Chord Keys to Chord guide, preserving the existing preference key. Repla
 
 Canvas active-chord selection now honors durationBeats exactly like ChordStrip, clearing cached voicing markers through explicit gaps. Legacy events still last until the next event. Actual draw-call regression covers white/black markers, exact duration end, next-event restoration and disabled guide; it failed before the change.176 web tests, production build/type validation and47 browser checks passed. Browser coverage verifies explanation and persisted toggle. Focus-mode screenshot at Chopin Advanced bar4 captured and reopened. No production deployment in this follow-up.
 
-![Chord guide](note-letters-2026-09-09/chord-guide-after.png)
+![Chord guide](https://raw.githubusercontent.com/Reedtrullz/Keyspilli/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/research/keyspilli-evidence/note-letters-2026-09-09/chord-guide-after.png)
 
 ## Compact toolbar and viewport allocation
 
@@ -36,4 +36,4 @@ Moved View/Adjust/Focus into the playback toolbar; song actions sit beside title
 
 After the one-time speed notice is dismissed, measured canvas:461.7px in a900px-high desktop viewport (51%);931.7px in1370px (68%), ending28px above the viewport bottom.4-bar Advanced Chopin screenshots at1440/1740/390px saved;1440/390 reopened for visual review. The desktop allocation tests failed before the change. Final production build/type validation and50 player/navigation browser checks passed, including four Focus viewports, phone bounds, normal viewport sizing and toolbar alignment. No deployment.
 
-![Compact desktop player](note-letters-2026-09-09/player-viewport-1440.png)
+![Compact desktop player](https://raw.githubusercontent.com/Reedtrullz/Keyspilli/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/research/keyspilli-evidence/note-letters-2026-09-09/player-viewport-1440.png)

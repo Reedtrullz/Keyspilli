@@ -78,9 +78,9 @@ The before clip is the earlier actual Player capture of the previous default
 automatic Melody + accompaniment path. It is historical comparison evidence,
 not an Original-arrangement control and not a same-head pair.
 
-- [Before — previous Melody + accompaniment default](./audio-review/blackbird-14-26.5-before-melody-accompaniment.webm)
-- [After — backing-only default](./audio-review/blackbird-14-26.5-after-backing-only-default.webm)
-- [After — accompaniment audition, current passage](./audio-review/blackbird-current-passage-accompaniment-preview.webm)
+- [Before — previous Melody + accompaniment default](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/blackbird-14-26.5-before-melody-accompaniment.webm)
+- [After — backing-only default](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/blackbird-14-26.5-after-backing-only-default.webm)
+- [After — accompaniment audition, current passage](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/blackbird-current-passage-accompaniment-preview.webm)
 
 The before clip is copied from the prior packet’s Player capture at candidate
 commit `36bed6e1b9ea66aceb6fb3291131dd2d33c2e07e`; it is comparison evidence,
@@ -91,9 +91,9 @@ scoped change:
 
 | Input | Window | Original | Fresh default backing |
 |---|---|---|---|
-| Blackbird | beats 14–26.5 @ 120 BPM | [audio](./audio-review/current-blackbird-original.webm) | [audio](./audio-review/current-blackbird-backing-only.webm) |
-| Oops | beats 48–64 @ 95 BPM | [audio](./audio-review/current-oops-original.webm) | [audio](./audio-review/current-oops-backing-only.webm) |
-| Queen | beats 6–18 @ 108 BPM | [audio](./audio-review/current-queen-original.webm) | [audio](./audio-review/current-queen-backing-only.webm) |
+| Blackbird | beats 14–26.5 @ 120 BPM | [audio](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/current-blackbird-original.webm) | [audio](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/current-blackbird-backing-only.webm) |
+| Oops | beats 48–64 @ 95 BPM | [audio](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/current-oops-original.webm) | [audio](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/current-oops-backing-only.webm) |
+| Queen | beats 6–18 @ 108 BPM | [audio](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/current-queen-original.webm) | [audio](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/current-queen-backing-only.webm) |
 
 The machine-readable comparison is
 [current-player-canonical-comparisons.json](./current-player-canonical-comparisons.json).
