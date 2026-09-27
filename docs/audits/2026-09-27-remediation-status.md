@@ -16,6 +16,12 @@ Implementation branch: `codex/audit-remediation`, based on audited `origin/main`
 | #134 PDF export isolation | Implemented locally | Two-export abort and timeout fixtures retain shared Chromium; late page closes; pre-launch abort tested | Production Chromium not exercised |
 | #135 notation cache identity | Implemented locally | Worker protocol A→oversized B→A and failed B replay confirm cached/uncached A pages | Real WASM workload beyond browser warm-up check unverified |
 | #119 notation deadline | Implemented locally | Worker timeout settles all pending requests and invalidates old sessions; Playwright warm-up rejection reaches error state without page error | Full cross-browser check pending |
-| #114–#123 except #118/#120, #128–#136 except #132/#134/#135/#136, remaining #119 items | Pending | See implementation plan and audit reports in this checkout | Engineering fixes and independent checks |
+| #121 sampler chord fallback | Implemented locally | Chord-only pending sample fixture attacks through one initialized oscillator fallback with current gains/pedal | Independent listening needed |
+| #122 hand gain routing | Implemented locally | Separate sampled RH/LH output buses survive live gain changes; synth/organ routing fixtures pass | Independent listening needed |
+| #128 microphone feedback | Implemented locally | Finite feedback event, no held voice after final accepted note; pitch-edge/silence tests pass | Microphone hardware check pending |
+| #129 sampled clicks | Implemented locally | Scheduled click tracked and stopped/disconnected by cancelAll | Audible pause/seek check pending |
+| #130 oscillator input | Implemented locally | Held input avoids scheduled cutoff; all oscillators stop on noteOff/cancelAll/dispose; repeated pitch fixture passes | Keyboard hardware check pending |
+| #131 sampler pedal fallback | Implemented locally | Fallback creation copies current sustain state | Independent listening needed |
+| #114–#123 except #118/#120/#121/#122, #128–#136 except #128–#132/#134–#136, remaining #119 items | Pending | See implementation plan and audit reports in this checkout | Engineering fixes and independent checks |
 
 Musical acceptance, live backup measurements, merge and deployment are separate owner gates. Tests and synthetic fixtures do not establish them.

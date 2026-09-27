@@ -7,6 +7,7 @@ import { dedupeChords, secPerBeat, type TimedNote } from "../src/timeline.js";
 
 class FakeAudio implements AudioLike {
   noteOns: { midi: number; when: number; fromInput?: boolean }[] = [];
+  events: TimedNote[] = [];
   noteOffs: number[] = [];
   ensured = 0;
   cancelled = 0;
@@ -19,6 +20,7 @@ class FakeAudio implements AudioLike {
     return {};
   }
   noteOn(n: TimedNote, when = 0): void {
+    this.events.push(n);
     this.noteOns.push({ midi: n.midi, when, fromInput: n.fromInput });
   }
   noteOff(midi: number): void {
@@ -165,6 +167,21 @@ describe("PlaybackEngine", () => {
     expect(eng.waitNote?.midi).toBe(62);
   });
 
+  it("uses finite microphone feedback and starts no voice after final grading completion", () => {
+    const { eng, audio } = engine();
+    eng.startGrading(true, { startSec: 0, endSec: 1.5 });
+    eng.handleMicNote(70); // wrong pitch still gets brief feedback
+    eng.handleMicNote(70); // a repeated detection never owns a held key
+    eng.handleMicNote(60);
+    eng.handleMicNote(62);
+    const beforeFinal = audio.events.length;
+    eng.handleMicNote(64);
+    expect(eng.grader).toBeNull();
+    expect(audio.events).toHaveLength(beforeFinal);
+    expect(audio.events.filter(note => note.vel === 90).every(note => note.durSec === 0.35 && note.fromInput !== true)).toBe(true);
+    expect(audio.cancelled).toBeGreaterThan(0);
+  });
+
   it("cancels scheduled audio when metronome or pedal settings change", () => {
     const { eng, audio } = engine({ metronome: true });
     eng.start();
@@ -289,7 +306,7 @@ describe("PlaybackEngine", () => {
     const play = (midi: number) => input === "keyboard" ? eng.handleNoteOn(midi) : eng.handleMicNote(midi);
     play(70);
     expect(eng.time).toBe(0.5);
-    expect(audio.noteOns.filter(n => n.fromInput).length).toBe(input === "microphone" ? 1 : 0);
+    expect(audio.noteOns.filter(n => n.fromInput).length).toBe(0);
     play(62);
     expect(eng.time).toBe(1);
     play(64);
@@ -570,9 +587,9 @@ describe("PlaybackEngine", () => {
     eng.start();
     eng.tick(0.01);
     expect(audio.noteOns.some(n => n.midi === 60 && n.fromInput !== true)).toBe(true);
-    // handleMicNote should also set fromInput.
+    // Microphone feedback is a bounded note, never a held physical key.
     eng.handleMicNote(62);
-    expect(audio.noteOns.some(n => n.midi === 62 && n.fromInput === true)).toBe(true);
+    expect(audio.events.some(n => n.midi === 62 && n.vel === 90 && n.fromInput !== true && n.durSec === 0.35)).toBe(true);
   });
 
   it("hidden-tab skip cancels audio and does not replay missed notes", () => {

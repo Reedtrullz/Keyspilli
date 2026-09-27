@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { microphonePitchEdge } from "./microphone-pitch";
 import {
   AudioEngine,
   OrganAudioEngine,
@@ -1183,9 +1184,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         analyser.getFloatTimeDomainData(buffer);
         const midi = detectPitch(buffer, ctx!.sampleRate);
         const now = performance.now();
-        if (midi === null) lastMidi = null;
-        else if (midi !== lastMidi && now - lastFire > 120) {
-          lastMidi = midi;
+        const edge = microphonePitchEdge(midi, lastMidi, now - lastFire);
+        lastMidi = edge.lastMidi;
+        if (edge.fire && midi !== null) {
           lastFire = now;
           if (gradingRef.current && countInRef.current === null && practiceSetupRef.current.input === "microphone") {
             engineRef.current?.handleMicNote(midi);

@@ -373,6 +373,17 @@ describe("OrganAudioEngine", () => {
     engine.setGains(0.7, 0.3);
     expect(ctx.gains[0]!.gain.targets.at(-1)).toEqual([0.7, 10, 0.02]);
     expect(ctx.gains[1]!.gain.targets.at(-1)).toEqual([0.3, 10, 0.02]);
+    engine.noteOn({ midi: 60, startSec: 0, durSec: 0.4, vel: 100, hand: "R", fromInput: true });
+    engine.noteOn({ midi: 48, startSec: 0, durSec: 0.4, vel: 100, hand: "L" });
+    const voices = ctx.oscillators.slice(2);
+    engine.setGains(1, 0);
+    expect(ctx.gains[0]!.gain.value).toBe(1);
+    expect(ctx.gains[1]!.gain.value).toBe(0);
+    engine.setGains(0, 1);
+    expect(ctx.gains[0]!.gain.value).toBe(0);
+    expect(ctx.gains[1]!.gain.value).toBe(1);
+    expect(voices[0]!.stops).toHaveLength(0);
+    expect(voices[1]!.stops).toHaveLength(1);
   });
 
   it("keeps rotary infrastructure on cancelAll and stops it on dispose", () => {

@@ -299,8 +299,11 @@ export class PlaybackEngine {
 
   /** Mic-detected note: always sounds, but still feeds the grader. */
   handleMicNote(midi: number): void {
+    const grading = this.grader;
     this.gradeInput(midi);
-    this.audio.noteOn({ midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R", fromInput: true });
+    // The final accepted note may finish grading and cancel audio. Do not
+    // start a new feedback voice after that cancellation.
+    if (!grading || this.grader) this.audio.noteOn({ midi, startSec: 0, durSec: 0.35, vel: 90, hand: "R" });
     // Microphone input does not update pressedKeys in the React owner; emit a
     // snapshot so wait-note progress and other grading UI re-render immediately.
     this.emit();
