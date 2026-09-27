@@ -4,8 +4,8 @@ This bounded packet is current Player evidence for the frozen Oops development p
 
 Listen:
 
-- [Original](./oops-development-64-108-original.webm)
-- [Current Automatic](./oops-development-64-108-current-automatic.webm)
+- [Original](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-original.webm)
+- [Current Automatic](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/oops-development-64-108-current-automatic.webm)
 
 Player path: resolveChordSources -> selectChordSource("auto") -> melodyHarmonicSupportPolicy(auto) -> buildMelodyAccompaniment. The selected generated source is variant:a:notes.json; the current Automatic policy is authored-only. The policy implementation is 7775d5b383289a28212dc9c2a8ec2e1f3b752d81. The status-accounting correction is f0cb469464385addaced7e451c9e38aca82175f5 and does not change this audio.
 

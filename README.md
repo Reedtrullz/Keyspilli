@@ -1,8 +1,8 @@
 # Keyspilli
 
 Personal browser-based piano-learning app (private, single-user). Color-coded
-interactive player with 4 view modes, a ~167-song catalogue (444 difficulty
-variants), symbolic source discovery, MIDI/MusicXML/MXL lesson creation, live
+interactive player with 4 view modes, a local song catalogue with difficulty
+variants, symbolic source discovery, MIDI/MusicXML/MXL lesson creation, live
 practice grading, and free PDF/MIDI/MusicXML export.
 
 ## Quick start
@@ -15,10 +15,14 @@ npm run dev        # http://localhost:3000
 
 ## Legacy audio worker (operator/research only)
 
-The learner product does not create lessons directly from YouTube or other
-audio. Its supported creation path is `/uploads`: optional metadata-only source
-discovery followed by a user-supplied MIDI, MusicXML, or MXL file. The public
-`POST /api/youtube/import` endpoint is disabled and does not enqueue work.
+The default lesson creation path is `/uploads`: optional metadata-only source
+discovery followed by a user-supplied MIDI, MusicXML, or MXL file. The private
+tutorial beta also supports YouTube piano tutorials when `KEYSPILLI_TUTORIAL_BETA=1`,
+`KEYSPILLI_DATA_DIR` is set, and the app runs in production or development.
+Without that opt-in, `POST /api/youtube/import` returns 410. The development-only
+`KEYSPILLI_TUTORIAL_PREVIEW=1` flag enables the same tutorial surface locally.
+These tutorial routes do not make unrestricted audio transcription a trusted
+source of lesson notes.
 
 The worker below remains for historical catalog maintenance and explicit
 operator research only. It is not a production source authority or automatic
@@ -76,9 +80,11 @@ Requires the Python venv (`services/transcribe/.venv`, created via the
 transcribe Dockerfile or manually: python3.12 -m venv + pip install
 "setuptools<81" "numpy<2" "scipy<1.13" basic-pitch yt-dlp).
 
-## Docs
+## Docs and contributor files
 
-- Master plan: `docs/superpowers/plans/2026-08-09-keyspilli-mvp.md`
-- Reference analysis: `supersimplepiano-analysis.md`
-- Ops (deploy/backup): `docs/ops.md`
-- Private-alpha feedback: `docs/private-alpha-feedback-guide.md`
+- [Documentation index](docs/README.md)
+- [Ops: deployment and backups](docs/ops.md)
+- [Chords contributor dataset](https://github.com/Reedtrullz/Keyspilli/releases/tag/archive/chords-review-2026-09-27)
+- [Historical research and review evidence](docs/archive/README.md)
+- [Original product reference analysis](docs/research/supersimplepiano-analysis.md)
+- [Private-alpha feedback](docs/private-alpha-feedback-guide.md)

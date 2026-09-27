@@ -231,9 +231,9 @@ notes for the terminal pad.
 
 | Label | Full song | Diagnostic `[18,30)` |
 |---|---|---|
-| Original | [`original-full.ogg`](audio-candidate-2026-09-19/original-full.ogg) | [`original-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/original-diagnostic-18-30-beats.ogg) |
-| Current replay | [`replay-full.ogg`](audio-candidate-2026-09-19/replay-full.ogg) | [`replay-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/replay-diagnostic-18-30-beats.ogg) |
-| Protected candidate | [`candidate-full.ogg`](audio-candidate-2026-09-19/candidate-full.ogg) | [`candidate-diagnostic-18-30-beats.ogg`](audio-candidate-2026-09-19/candidate-diagnostic-18-30-beats.ogg) |
+| Original | [`original-full.ogg`](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19/original-full.ogg) | [`original-diagnostic-18-30-beats.ogg`](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19/original-diagnostic-18-30-beats.ogg) |
+| Current replay | [`replay-full.ogg`](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19/replay-full.ogg) | [`replay-diagnostic-18-30-beats.ogg`](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19/replay-diagnostic-18-30-beats.ogg) |
+| Protected candidate | [`candidate-full.ogg`](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19/candidate-full.ogg) | [`candidate-diagnostic-18-30-beats.ogg`](https://github.com/Reedtrullz/Keyspilli/blob/a423f382593182345cf95b3dea34dd8def2c3d2c/docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19/candidate-diagnostic-18-30-beats.ogg) |
 
 The symbolic/audio render manifest is
 [`manifest.json`](audio-candidate-2026-09-19/manifest.json). The renders do
