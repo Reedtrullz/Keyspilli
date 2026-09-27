@@ -92,6 +92,9 @@ for (const { representative: song } of inventory) {
       playerData = projectChordSources(input, timeline);
     }
     const replay = replayChordsBacking(playerData), snapshot = snapshotChordsBacking(playerData, replay);
+    if (preserved.has(song.baseId)) assert(sourceMap.entries.find(e => e.baseId === song.baseId)?.sources
+      .some(s => s.artifactPath && s.sourceRef === replay.selected.source?.provenanceInfo?.sourceRef),
+    "mapped backing was not selected; reconcile chart/source versions before preserving it");
     const notes = resolveTimedNotes({ ...playerData, notes: snapshot.notes }, 1, 0);
     const captured: Note[] = [];
     let engine: PlaybackEngine, noteEvents = 0, chordEvents = 0;

@@ -8,6 +8,7 @@ Local coverage: 437/437 songs, with 419 newly prepared learner backings and 18 e
 - Live grouped API pages: 200 + 200 + 37 = 437 unique base IDs. The consistent private SQLite snapshot contains 2,706 rows / 451 bases, integrity `ok`; hidden/orphan bases are not silently counted as visible songs.
 - The deployed map contains one chart. The working branch contains 18 mapped backings, including pending accepted work. “Preserved” alone is not an acceptance verdict.
 - Final source-pin verification exposed older live sources for Fix You (136 BPM, 1,948 notes versus accepted 68 BPM, 1,587 notes) and I Will Survive (115 versus accepted 117 BPM). The live copies and DB were backed up under `output/all-song-chords/live-before-accepted-overlay`. The already accepted complete publications were reconciled into the private staging snapshot; `accepted-overlay.json` records their hashes. This is not a newly authored Original edit or a production mutation.
+- The same source-selection check caught Aerosmith: its pending curated source/chart is 61 BPM while the live source was 120 BPM. Its matching existing publication was also restored into private staging, with the live copy retained. This is a curated candidate, not a golden acceptance. The batch now rejects a preserved map whose source reference is not actually selected by Player; a negative check against the older live source proves that guard.
 - All other Original artifacts remain the live snapshot's bytes. Neither golden acceptance hashes nor charts were repinned.
 
 ## Result and verification
@@ -21,7 +22,7 @@ Local coverage: 437/437 songs, with 419 newly prepared learner backings and 18 e
 | MIDI and MusicXML pitch/start/duration round trips | 437/437, at 480/960 ticks respectively |
 | Fresh-process delivered-map loader and Player replay | 437/437 exact serialized snapshots |
 | Golden observations against the existing checkpoint | 12/12 unchanged; 9 MATCH, 3 historical DRIFT |
-| Structural proxy pass / flagged | 352 / 85 |
+| Structural proxy pass / flagged | 353 / 84 |
 | Source-onset dead-air count | 4,743 baseline → 9 |
 | Duplicate backing onset attacks | 0 |
 | Median sounding coverage | 50.1% baseline → 99.6%; coverage is not a musical-quality target |
@@ -74,4 +75,4 @@ KEYSPILLI_CHORD_SOURCE_MAP="$PWD/output/all-song-chords/prepared/chord-sources.j
   output/all-song-chords/live-visible.json output/all-song-chords/prepared --verify
 ```
 
-The prepared directory contains `ledger.json`, `summary.json`, `verified-import.json`, `chord-sources.json`, per-song receipts/exports/timelines, audio receipts and a local Player preview at `http://127.0.0.1:3113/`. The map's artifact paths are repository-relative. Activation must include the matching private source publications for the two accepted overlays and the capable loader; uploading each Chords MIDI separately would create duplicate songs, not attach a mode. No deploy or release is claimed. The 85 proxy flags and unavailable listening evidence keep the requested universal musical-quality outcome unverified.
+The prepared directory contains `ledger.json`, `summary.json`, `verified-import.json`, `chord-sources.json`, per-song receipts/exports/timelines, audio receipts and a local Player preview at `http://127.0.0.1:3113/`. The map's artifact paths are repository-relative. Activation must include the matching private source publications for the two accepted overlays and the Aerosmith curated overlay and the capable loader; uploading each Chords MIDI separately would create duplicate songs, not attach a mode. No deploy or release is claimed. The 84 proxy flags and unavailable listening evidence keep the requested universal musical-quality outcome unverified.
