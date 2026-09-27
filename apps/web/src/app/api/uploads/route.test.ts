@@ -14,6 +14,17 @@ describe("upload route", () => {
     ingestSource.mockReset();
   });
 
+  it("returns unsupported musical input as an actionable 422", async () => {
+    ingestSource.mockResolvedValueOnce({ baseId: "", songIds: [], error: "parse failed: unsupported MIDI format 2" });
+    const response = await POST(new NextRequest("https://keys.reidar.tech/api/uploads", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: new Uint8Array([1, 2, 3]),
+    }));
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ error: "parse failed: unsupported MIDI format 2" });
+  });
+
   it("returns the physical Easy id for completion links while preserving all generated ids", async () => {
     ingestSource.mockResolvedValueOnce({
       baseId: "upload",

@@ -3,7 +3,7 @@ import { validateSourceArrangement, type SourceArrangement } from "./source-arra
 import { createHash } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { unzipSync } from "fflate";
+import { inflateRawSync } from "node:zlib";
 import {
   parseMidi,
   parseMusicXmlNotes,
@@ -170,47 +170,75 @@ export function inferIngestFormat(buf: Uint8Array): "midi" | "musicxml" | "mxl" 
 const MAX_MXL_ENTRIES = 200;
 const MAX_MXL_UNCOMPRESSED = 64 * 1024 * 1024;
 
-/**
- * Reject zip bombs before fflate inflates anything: read the EOCD and central
- * directory directly and enforce entry-count and total uncompressed-size
- * limits. The upload route accepts ~10MB, so an unbounded unzipSync is an
- * amplification vector.
- */
-function assertMxlZipSafe(buf: Uint8Array): void {
+/** Read the same validated central-directory entries that extraction uses. */
+function mxlEntries(buf: Uint8Array): { entries: Array<{ name: string; offset: number; compressed: number; size: number; method: number; flags: number }>; cdOffset: number } {
   if (buf.length < 22) throw new Error("invalid .mxl zip (truncated)");
   const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   let eocd = -1;
   const scanStart = Math.max(0, buf.length - 22 - 0xffff);
   for (let i = buf.length - 22; i >= scanStart; i--) {
-    if (dv.getUint32(i, true) === 0x06054b50) {
+    if (dv.getUint32(i, true) === 0x06054b50 && i + 22 + dv.getUint16(i + 20, true) === buf.length) {
       eocd = i;
       break;
     }
   }
   if (eocd === -1) throw new Error("invalid .mxl zip (no end-of-central-directory)");
+  if (eocd >= 20 && dv.getUint32(eocd - 20, true) === 0x07064b50) throw new Error(".mxl zip64 not supported");
+  const entriesOnDisk = dv.getUint16(eocd + 8, true);
   const totalEntries = dv.getUint16(eocd + 10, true);
   const cdSize = dv.getUint32(eocd + 12, true);
   const cdOffset = dv.getUint32(eocd + 16, true);
-  if (totalEntries === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
+  if (totalEntries === 0xffff || entriesOnDisk === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff) {
     throw new Error(".mxl zip64 not supported");
+  }
+  if (dv.getUint16(eocd + 4, true) !== 0 || dv.getUint16(eocd + 6, true) !== 0 || entriesOnDisk !== totalEntries) {
+    throw new Error("invalid .mxl zip spanning or entry count");
   }
   if (totalEntries > MAX_MXL_ENTRIES) {
     throw new Error(`.mxl zip has too many entries (${totalEntries} > ${MAX_MXL_ENTRIES})`);
   }
-  if (cdOffset + cdSize > buf.length) throw new Error("invalid .mxl zip central directory");
+  if (cdOffset + cdSize !== eocd) throw new Error("invalid .mxl zip central directory");
   const cdEnd = cdOffset + cdSize;
   let offset = cdOffset;
   let totalUncompressed = 0;
+  const entries: Array<{ name: string; offset: number; compressed: number; size: number; method: number; flags: number }> = [];
+  const names = new Set<string>();
   for (let i = 0; i < totalEntries; i++) {
     if (offset + 46 > cdEnd || dv.getUint32(offset, true) !== 0x02014b50) {
       throw new Error("invalid .mxl zip central directory");
     }
-    totalUncompressed += dv.getUint32(offset + 24, true);
+    const flags = dv.getUint16(offset + 8, true);
+    const method = dv.getUint16(offset + 10, true);
+    const compressed = dv.getUint32(offset + 20, true);
+    const size = dv.getUint32(offset + 24, true);
+    const nameLength = dv.getUint16(offset + 28, true);
+    const extraLength = dv.getUint16(offset + 30, true);
+    const commentLength = dv.getUint16(offset + 32, true);
+    const disk = dv.getUint16(offset + 34, true);
+    const localOffset = dv.getUint32(offset + 42, true);
+    const next = offset + 46 + nameLength + extraLength + commentLength;
+    if (next > cdEnd || disk !== 0 || localOffset === 0xffffffff || (flags & 1) || ![0, 8].includes(method)) {
+      throw new Error("invalid or unsupported .mxl zip central directory");
+    }
+    for (let extra = offset + 46 + nameLength; extra < offset + 46 + nameLength + extraLength;) {
+      if (extra + 4 > next) throw new Error("invalid .mxl zip central directory");
+      const length = dv.getUint16(extra + 2, true);
+      if (dv.getUint16(extra, true) === 1) throw new Error(".mxl zip64 not supported");
+      extra += 4 + length;
+      if (extra > offset + 46 + nameLength + extraLength) throw new Error("invalid .mxl zip central directory");
+    }
+    const name = new TextDecoder("utf-8", { fatal: true }).decode(buf.subarray(offset + 46, offset + 46 + nameLength));
+    if (names.has(name)) throw new Error("invalid .mxl zip duplicate entry");
+    names.add(name);
+    totalUncompressed += size;
     if (totalUncompressed > MAX_MXL_UNCOMPRESSED) {
       throw new Error(`.mxl zip expands beyond ${MAX_MXL_UNCOMPRESSED / (1024 * 1024)}MB`);
     }
-    offset += 46 + dv.getUint16(offset + 28, true) + dv.getUint16(offset + 30, true) + dv.getUint16(offset + 32, true);
+    entries.push({ name, offset: localOffset, compressed, size, method, flags });
+    offset = next;
   }
+  if (offset !== cdEnd) throw new Error("invalid .mxl zip central directory");
+  return { entries, cdOffset };
 }
 
 /**
@@ -220,8 +248,42 @@ function assertMxlZipSafe(buf: Uint8Array): void {
  * and are not scores).
  */
 function mxlScoreXml(buf: Uint8Array): string {
-  assertMxlZipSafe(buf);
-  const files = unzipSync(buf);
+  const { entries, cdOffset } = mxlEntries(buf);
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  const files: Record<string, Uint8Array> = Object.create(null);
+  let extracted = 0;
+  for (const entry of entries) {
+    const at = entry.offset;
+    if (at + 30 > cdOffset || dv.getUint32(at, true) !== 0x04034b50 || dv.getUint16(at + 6, true) !== entry.flags || dv.getUint16(at + 8, true) !== entry.method ||
+      (!(entry.flags & 8) && (dv.getUint32(at + 18, true) !== entry.compressed || dv.getUint32(at + 22, true) !== entry.size))) {
+      throw new Error("invalid .mxl zip local header");
+    }
+    const localNameLength = dv.getUint16(at + 26, true);
+    const localExtraLength = dv.getUint16(at + 28, true);
+    const start = at + 30 + localNameLength + localExtraLength;
+    if (start > cdOffset) throw new Error("invalid .mxl zip local header");
+    for (let extra = at + 30 + localNameLength; extra < start;) {
+      if (extra + 4 > start) throw new Error("invalid .mxl zip local header");
+      const length = dv.getUint16(extra + 2, true);
+      if (dv.getUint16(extra, true) === 1) throw new Error(".mxl zip64 not supported");
+      extra += 4 + length;
+      if (extra > start) throw new Error("invalid .mxl zip local header");
+    }
+    const localName = new TextDecoder("utf-8", { fatal: true }).decode(buf.subarray(at + 30, at + 30 + localNameLength));
+    if (localName !== entry.name || start + entry.compressed > cdOffset) throw new Error("invalid .mxl zip local header");
+    const compressed = buf.subarray(start, start + entry.compressed);
+    let output: Uint8Array;
+    try {
+      output = entry.method === 0 ? compressed : inflateRawSync(compressed, { maxOutputLength: MAX_MXL_UNCOMPRESSED - extracted + 1 });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ERR_BUFFER_TOO_LARGE") throw new Error(".mxl zip expands beyond 64MB");
+      throw new Error("invalid .mxl zip compressed entry");
+    }
+    extracted += output.length;
+    if (extracted > MAX_MXL_UNCOMPRESSED) throw new Error(".mxl zip expands beyond 64MB");
+    if (output.length !== entry.size || (entry.method === 0 && entry.compressed !== entry.size)) throw new Error("invalid .mxl zip entry size");
+    files[entry.name] = output;
+  }
   const names = Object.keys(files);
   let scoreName: string | undefined;
   const container = files["META-INF/container.xml"];
