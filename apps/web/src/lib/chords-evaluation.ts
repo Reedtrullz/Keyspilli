@@ -16,6 +16,24 @@ export type AdvancedLoader = (song: AdvancedRow) => Promise<AdvancedLoad>;
 
 type Attack = { midi: number; start: number; dur: number; hand?: "L" | "R" };
 
+/** Observation only: never replaces an owner's accepted digest. Both streams sound in Chords. */
+export function snapshotChordsBacking(data: SongData, replay: ChordsBackingReplay, endBeatExclusive = replay.arrangementEnd) {
+  if (!Number.isFinite(endBeatExclusive) || endBeatExclusive <= 0 || endBeatExclusive > replay.arrangementEnd) {
+    throw new Error("invalid backing excerpt boundary");
+  }
+  return {
+    schemaVersion: 1,
+    tempoBpm: data.tempoBpm,
+    timeSig: [...data.timeSig],
+    endBeatExclusive,
+    notes: replay.resolution.notes.filter((note) => note.start < endBeatExclusive)
+      .map((note) => ({ ...note, dur: Math.min(note.dur, endBeatExclusive - note.start) })),
+    chords: replay.resolution.chords.filter((chord) => chord.beat < endBeatExclusive)
+      .map((chord) => ({ ...chord, notes: [...chord.notes], suggestedHands: [...chord.suggestedHands],
+        durationBeats: chord.durationBeats == null ? undefined : Math.min(chord.durationBeats, endBeatExclusive - chord.beat) })),
+  };
+}
+
 function unionLength(spans: Array<[number, number]>): number {
   let end = -Infinity, total = 0;
   for (const [start, stop] of [...spans].sort((a, b) => a[0] - b[0])) {
@@ -149,6 +167,7 @@ export function evaluateChordsBacking(data: SongData, candidate?: ChordsCandidat
   return {
     sourceFingerprint: data.sourceFingerprint ?? null,
     source: {
+      tempoBpm: data.tempoBpm,
       noteCount: notes.length,
       chordCount: data.chords.length,
       chordProvenance: Object.fromEntries([...new Set(kinds)].sort().map((kind) => [kind, kinds.filter((k) => k === kind).length])),

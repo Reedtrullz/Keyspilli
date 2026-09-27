@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveAccompaniment, type SongData } from "@keyspilli/player-core";
 import { replayChordsBacking } from "../components/player/chords-backing";
-import { evaluateChordsBacking, evaluateVisibleChords, gateChordsBacking, type AdvancedRow } from "./chords-evaluation";
+import { evaluateChordsBacking, evaluateVisibleChords, gateChordsBacking, snapshotChordsBacking, type AdvancedRow } from "./chords-evaluation";
 
 function song(overrides: Partial<SongData> = {}): SongData {
   return {
@@ -23,6 +23,26 @@ function song(overrides: Partial<SongData> = {}): SongData {
 const row = (baseId: string): AdvancedRow => ({ id: `${baseId}-a`, baseId, level: "a", tempo: 100, acquiredVia: "midi-pack" });
 
 describe("Chords backing replay", () => {
+  it("snapshots the clock and both sounding streams, clipping only the accepted excerpt", () => {
+    const data = song();
+    const replay = replayChordsBacking(data);
+    replay.resolution.notes = [
+      { midi: 48, start: 1, dur: 4, vel: 70, hand: "L" },
+      { midi: 60, start: 4, dur: 2, vel: 90, hand: "R" },
+    ];
+    const full = snapshotChordsBacking(data, replay);
+    expect(full.notes).toHaveLength(2);
+    expect(snapshotChordsBacking({ ...data, tempoBpm: 190 }, replay)).not.toEqual(full);
+    const excerpt = snapshotChordsBacking(data, replay, 4);
+    expect(excerpt.notes).toEqual([{ midi: 48, start: 1, dur: 3, vel: 70, hand: "L" }]);
+    expect(excerpt.chords.every((chord) => chord.beat < 4 && chord.beat + chord.durationBeats! <= 4)).toBe(true);
+    replay.resolution.notes[1]!.midi = 65;
+    expect(snapshotChordsBacking(data, replay, 4)).toEqual(excerpt);
+    expect(snapshotChordsBacking(data, replay)).not.toEqual(full);
+    expect(replay.resolution.notes[0]!.dur).toBe(4);
+    for (const end of [0, -1, NaN, Infinity, 9]) expect(() => snapshotChordsBacking(data, replay, end)).toThrow();
+  });
+
   it("resolves the Player's Auto timeline into the bass-chords backing", () => {
     const data = song();
     const replay = replayChordsBacking(data);

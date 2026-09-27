@@ -69,13 +69,27 @@ It lists each failing song with its reasons. Each check stands in for something 
 
 The report counts source onsets inside explicit N.C. spans separately as `intentionalSilenceOnsets`. The tune is approximated by the highest right-hand note, so these checks are weaker evidence than the benchmark. Use them to find songs worth a listen, and the benchmark to decide whether a setting is better.
 
-For the five current owner-accepted reference songs, the local replay audit checks pinned Advanced notes, authored timeline, selected source, and realized backing digest:
+For the current owner-accepted reference set (12 entries, including Fix You's bounded opening), the local replay audit checks pinned Advanced notes, authored timeline, selected source, and realized backing digest:
 
 ```bash
 KEYSPILLI_DATA_DIR=/path/to/data npx tsx apps/web/scripts/audit-golden-chords.mts --require-match
 ```
 
 An unaccepted phrasing candidate reports `DRIFT` for each changed song until the owner has listened and accepted its new backing. Do not replace accepted digests solely to make this audit pass.
+
+For a private, reproducible listening comparison, add `--output-dir output/golden-audit/current`.
+The optional JSON files contain source-derived notes and must remain ignored/private. Each stdout
+row also reports the clock, note count, excerpt end and `observedPlaybackSha256`: a separate
+symbolic snapshot of the clock and both playback streams, including clipped note/chord tails.
+It is not a waveform hash or an accepted digest. Legacy full-song acceptance hashes omit the
+clock and source-note stream, so `MATCH` alone cannot certify that those fields stayed unchanged.
+Compare the observed hashes across runs without changing the accepted corpus.
+
+Both audit scripts now load `getSongDetail` and replay `chordData ?? data`; this matters for
+All of Me's 126 BPM / 576-beat Chords arrangement and Help's 190 BPM clock. Use an isolated
+database/artifact snapshot because the standard detail loader initializes the catalog connection.
+Missing artifacts remain unavailable, and Fix You's full-song evaluator result must not be
+substituted for its bounded golden excerpt. See the [27 September evidence ledger](research/keyspilli-evidence/chords-golden-audit-2026-09-27.md).
 
 ## Current results
 

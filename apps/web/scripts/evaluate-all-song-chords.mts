@@ -1,7 +1,7 @@
 /**
  * Read-only Chords backing report for every visible song, replaying the
- * Player's own load and backing path. Opens the catalogue database read-only;
- * point KEYSPILLI_DATA_DIR at a frozen snapshot to evaluate production input.
+ * Player's own load and backing path. The standard detail loader initializes
+ * the catalogue connection; point KEYSPILLI_DATA_DIR at an isolated snapshot.
  *
  *   npx tsx apps/web/scripts/evaluate-all-song-chords.mts [--rows] [--gate]
  *
@@ -12,7 +12,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { artifactsDir, blockedLearnerBases, dataDir, dbPath, disabledManifestBases } from "@keyspilli/catalog";
-import { loadSongArtifact, withChordSources } from "../src/lib/catalog-api";
+import { getSongDetail } from "../src/lib/catalog-api";
 import { evaluateVisibleChords, type AdvancedLoader, type AdvancedRow } from "../src/lib/chords-evaluation";
 
 const db = new Database(dbPath(), { readonly: true, fileMustExist: true });
@@ -34,10 +34,11 @@ const artifactBases = readdirSync(join(dataDir(), "artifacts"), { withFileTypes:
 const load: AdvancedLoader = async (song) => {
   const path = join(artifactsDir(song.baseId, song.level), "notes.json");
   const notesSha256 = existsSync(path) ? createHash("sha256").update(readFileSync(path)).digest("hex") : null;
-  const loaded = await loadSongArtifact(song);
-  return loaded.data
-    ? { data: await withChordSources(loaded.data, song.baseId, song.level), errors: [], notesSha256 }
-    : { data: null, errors: loaded.artifact.errors, notesSha256 };
+  const detail = await getSongDetail(song.id);
+  return detail?.data && !detail.chordUnavailableReason
+    ? { data: detail.chordData ?? detail.data, errors: [], notesSha256 }
+    : { data: null, errors: detail?.chordUnavailableReason ? [detail.chordUnavailableReason]
+      : detail?.artifact.errors ?? ["catalog row missing"], notesSha256 };
 };
 
 const report = await evaluateVisibleChords(advanced, load, {

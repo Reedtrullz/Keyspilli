@@ -1,10 +1,18 @@
 /** Compare the Player's realized Chords backing with the owner-accepted corpus. */
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { artifactsDir, getSong, ROOT } from "@keyspilli/catalog";
 import { getSongDetail } from "../src/lib/catalog-api";
 import { replayChordsBacking } from "../src/components/player/chords-backing";
+import { snapshotChordsBacking } from "../src/lib/chords-evaluation";
+
+// Private source-derived events: keep this optional export in ignored local output.
+const outputIndex = process.argv.indexOf("--output-dir");
+const outputDir = outputIndex < 0 ? null : process.argv[outputIndex + 1];
+if (outputIndex >= 0 && (!outputDir || outputDir.startsWith("--"))) throw new Error("--output-dir requires a path");
+if (outputDir) mkdirSync(outputDir, { recursive: true });
+const checkedAt = new Date().toISOString();
 
 const hash = (value: Uint8Array | string) => createHash("sha256").update(value).digest("hex");
 const corpus = JSON.parse(readFileSync(resolve(ROOT, "catalog/chord-golden-corpus.json"), "utf8")) as {
@@ -25,6 +33,7 @@ for (const entry of corpus.entries) {
   if (!song) throw new Error(`${entry.baseId}: catalog row missing`);
   const detail = await getSongDetail(song.id);
   if (!detail?.data) throw new Error(`${entry.baseId}: Advanced artifact missing`);
+  if (detail.chordUnavailableReason) throw new Error(`${entry.baseId}: ${detail.chordUnavailableReason}`);
   const data = detail.chordData ?? detail.data;
   const replay = replayChordsBacking(data);
   if (replay.selected.source?.id !== "ug" || replay.selected.fallback) throw new Error(`${entry.baseId}: authored chart was not selected`);
@@ -43,8 +52,18 @@ for (const entry of corpus.entries) {
   const actual = hash(JSON.stringify(payload));
   const status = !entry.acceptedBackingSha256 ? "UNPINNED" : actual === entry.acceptedBackingSha256 ? "MATCH" : "DRIFT";
   if (status !== "MATCH") drift++;
-  console.log(JSON.stringify({ baseId: entry.baseId, status, accepted: entry.acceptedBackingSha256 ?? null, actual,
+  // Legacy acceptance hashes remain unchanged; they omit clocks and (for full songs) notes.
+  const snapshot = snapshotChordsBacking(data, replay, end);
+  const observation = { baseId: entry.baseId, status, accepted: entry.acceptedBackingSha256 ?? null, actual,
     strikes: acceptedChords.length,
-    ...(end === undefined ? {} : { notes: acceptedNotes.length, acceptedEndBeatExclusive: end }) }));
+    notes: snapshot.notes.length, tempoBpm: snapshot.tempoBpm, endBeatExclusive: snapshot.endBeatExclusive,
+    observedPlaybackSha256: hash(JSON.stringify(snapshot)),
+    ...(end === undefined ? {} : { acceptedEndBeatExclusive: end }) };
+  console.log(JSON.stringify(observation));
+  if (outputDir) writeFileSync(resolve(outputDir, `${entry.baseId}.json`), JSON.stringify({
+    checkedAt, ...observation, inputPins: entry, snapshot,
+    // Include the original payload for source/clock comparisons and exact Player replay.
+    advanced: detail.data, playerData: data, selected: replay.selected, resolution: replay.resolution,
+  }, null, 2) + "\n");
 }
 if (process.argv.includes("--require-match") && drift) process.exitCode = 1;
