@@ -8,7 +8,7 @@ Chords mode plays a bass note and a chord for every visible song, derived from i
 2. **Strikes and releases.** `resolveAccompaniment` strikes each chord where the arrangement's left hand strikes, or where its bass note changes when a source has no hands. A beginner is asked to strike at most once a beat. For an authored chart, isolated non-root bass notes and a softer upper root octave after a bass fifth do not automatically re-strike the whole chord; a chart change still starts on time. A held source chord stack can suppress a synthetic barline strike. When fewer than two distinct chord tones remain held, the sounding chord can end up to a quarter beat before the next strike. The displayed chord label keeps the chart's full span. Generated timelines retain their existing strike and duration rules.
 3. **Voicing.** The existing voicing keeps the right-hand triad within an octave around middle C and moves it as little as possible between chords, with the bass in the left hand.
 
-The Winner pilot (`reviewed-source-backing.ts`) still overrides this for production's exact Winner Advanced file.
+The exact-source override in `reviewed-source-backing.ts` currently selects the reviewed blue/green tutorial lanes for Fix You. Winner now uses chord-only chart backing; the earlier source-note pilot is historical.
 
 ## Lessons for later automatic Chords arrangements
 
@@ -91,7 +91,7 @@ database/artifact snapshot because the standard detail loader initializes the ca
 Missing artifacts remain unavailable, and Fix You's full-song evaluator result must not be
 substituted for its bounded golden excerpt. See the [27 September evidence ledger](research/keyspilli-evidence/chords-golden-audit-2026-09-27.md).
 
-## Current results
+## Historical benchmark results — 24 September 2026
 
 On 24 September 2026, with the defaults in the tuning file:
 
