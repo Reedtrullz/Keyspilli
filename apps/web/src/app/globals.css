@@ -48,6 +48,7 @@ body {
 /* Site chrome ----------------------------------------------------------- */
 
 .site-header {
+  view-transition-name: site-header;
   background: rgb(255 255 255 / 0.86);
   border-color: rgb(228 228 231 / 0.8);
   backdrop-filter: blur(16px) saturate(140%);
@@ -175,6 +176,13 @@ body {
 
 ::view-transition-new(root) {
   animation: route-view-enter var(--motion-duration-slow) var(--motion-ease-standard) both;
+}
+
+/* The header is shared by every route: keep it still while the page moves. */
+::view-transition-group(site-header),
+::view-transition-old(site-header),
+::view-transition-new(site-header) {
+  animation: none;
 }
 
 .motion-fade-in,
