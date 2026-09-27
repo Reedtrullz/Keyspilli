@@ -51,8 +51,8 @@ The 23 reproduced defects have local fixes and focused regressions. “Fixed” 
 | #122 | Sampler RH/LH gains route separately | Listening |
 | #123 | Short chord previews retain positive spans | Listening |
 | #124 | MXL extraction follows bounded validated entries | Broader archive corpus |
-| #125 | MusicXML comments cannot become notes | Broader notation corpus |
-| #126 | Unsupported repeats/navigation reject before publication | Other unverified constructs |
+| #125 | Unsupported repeats/navigation reject before publication | Other unverified constructs |
+| #126 | MusicXML comments cannot become notes | Broader notation corpus |
 | #127 | MIDI format 2/unknown reject | None for tested formats |
 | #128 | Mic feedback is finite and grading-safe | Hardware check |
 | #129 | Sampled clicks cancel/disconnect | Audible check |
