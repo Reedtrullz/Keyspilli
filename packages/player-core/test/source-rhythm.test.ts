@@ -22,7 +22,8 @@ describe("bass + chords in the source rhythm", () => {
     const generated = resolveAccompaniment(source, [
       { beat: 0, durationBeats: 3, name: "Bb", notes: [], sourceKind: "generated" },
     ], "bass-chords", { durationBeats: 3, sourceRhythmMeasures: bars(1) });
-    expect(generated.chords.map((chord) => chord.durationBeats)).toEqual([1, 1, 1]);
+    // Generated backing now follows the actual quarter-beat releases too.
+    expect(generated.chords.map((chord) => chord.durationBeats)).toEqual([0.25, 0.25, 0.25]);
   });
 
   it("skips a bass-only re-strike under a sustained source chord but keeps the next authored hit", () => {

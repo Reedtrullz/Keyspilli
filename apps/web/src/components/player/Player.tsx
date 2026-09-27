@@ -1698,6 +1698,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   const waitNotes = grading && waitMode ? engineRef.current?.waitNotes ?? [] : [];
   const activeModeLabel = MODES.find((m) => m.id === settings.mode)?.label ?? settings.mode;
+  const chordReviewReason = !sourceBackingNotes && settings.accompanimentStyle === "bass-chords"
+    ? selectedChordSource.source?.chords.find(chord => chord.reviewReason)?.reviewReason : undefined;
   const chordModeBadge = settings.backgroundMode !== "chord"
     ? null
     : sourceBackingNotes && settings.accompanimentStyle === "bass-chords"
@@ -1782,7 +1784,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     ? ({
       "no source notes": "no source notes are available here.",
       "unsupported chord": "this chord symbol is not supported.",
-      "explicit no-chord": "the chart marks this as no chord.",
+      "explicit no-chord": selectedChordSource.source?.chords.find(chord => chord.reviewReason
+        && currentBeat >= chord.beat && currentBeat < chord.beat + (chord.durationBeats ?? 0))?.reviewReason
+        ?? "this span is marked as no chord.",
       "no chord coverage": "the chord chart does not cover this passage.",
       "accompaniment ownership unavailable": "accompaniment could not be separated reliably.",
       "no owned source notes to replace": "no owned accompaniment notes are available here.",
@@ -1899,13 +1903,18 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{activeData.tempoBpm} BPM</span>
           {settings.backgroundMode === "chord" && (
             <span
-              className={`px-2 py-1 rounded-full font-medium ${!sourceBackingNotes && selectedChordSource.fallback ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}
+              className={`px-2 py-1 rounded-full font-medium ${!sourceBackingNotes && (selectedChordSource.fallback || chordReviewReason) ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}
               data-testid="chord-mode-status"
               role="status"
-              title={sourceBackingNotes ? "Excerpt-tested Advanced accompaniment source, with fewer repeated bass attacks" : selectedChordSource.fallbackReason ?? selectedChordSource.source?.provenance ?? undefined}
+              title={sourceBackingNotes ? "Excerpt-tested Advanced accompaniment source, with fewer repeated bass attacks" : chordReviewReason ?? selectedChordSource.fallbackReason ?? selectedChordSource.source?.provenance ?? undefined}
             >
-              {chordModeBadge}
+              {chordReviewReason ? "Chords · review needed" : chordModeBadge}
             </span>
+          )}
+          {settings.backgroundMode === "chord" && chordReviewReason && (
+            <p role="status" data-testid="chord-review-reason" className="w-full text-right text-amber-800">
+              {chordReviewReason}
+            </p>
           )}
           {settings.backgroundMode === "chord" && settings.accompanimentStyle === "melody-accompaniment" && (
             <>

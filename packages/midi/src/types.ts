@@ -40,6 +40,8 @@ export type ChordInferenceType =
   | "harmony-window";
 
 export interface ChordLabel {
+  /** Unresolved generated harmony is silent, with this user-facing explanation. */
+  reviewReason?: string;
   /** beat position */
   beat: number;
   name: string;

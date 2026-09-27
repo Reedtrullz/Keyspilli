@@ -546,7 +546,7 @@ describe("catalog artifact manifest read boundary", () => {
     expect((await loadSongArtifact(song(120))).data).not.toHaveProperty("sourceTiming");
   });
 
-  it("replaces Advanced generated labels with whole-arrangement harmony", async () => {
+  it("replaces unsupported Advanced generated labels with an explained silent span", async () => {
     await writeLegacyGeneratedChordNotes();
 
     const detail = await getSongDetail(song().id);
@@ -554,8 +554,9 @@ describe("catalog artifact manifest read boundary", () => {
     expect(detail?.data?.chords).toEqual([{
       beat: 0,
       durationBeats: 4,
-      name: "C",
-      notes: [48, 60, 64, 67],
+      name: "N.C.",
+      notes: [],
+      reviewReason: "Harmony or accompaniment role is uncertain; this span is left silent.",
       sourceKind: "generated",
       inferred: true,
       inferenceType: "harmony-window",

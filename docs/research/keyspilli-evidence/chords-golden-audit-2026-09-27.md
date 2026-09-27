@@ -1,6 +1,6 @@
 # Golden Chords audit — 27 September 2026
 
-**Status: structural audit and drift reconstruction complete; full musical audit incomplete. Upload automation has not started.** This is an evidence ledger, not a listening verdict, owner approval, or release. The handoff explicitly requires a completed source/Player/listening pass before changing upload automation; that gate has not been met.
+**Status: structural audit and drift reconstruction complete; existing owner acceptance retained.** After this checkpoint, Reidar clarified that two days of owner listening already stand and no additional manual review will be done. Automation engineering proceeded; see the [upload automation follow-up](chords-upload-automation-2026-09-27.md). No new owner acceptance, agent listening or keyboard certification is invented.
 
 ## Identity and scope
 
@@ -14,7 +14,7 @@
 
 All selected UG pages were retrieved through the Agent Reach/Jina reader on 27 September. The direct web reader failed for all 12; Imagine's first Jina response was an advertising redirect, and a fresh query retrieved the correct page. Retrieval hashes/timestamps and that failed first response are recorded in the JSON ledger. A fetched chart establishes harmonic reference content; it does not establish recording alignment or listening.
 
-**Evidence columns are independent.** “Pins” means source bytes and authored timeline identity. “Replay” means the historical accepted digest. “Diagnostic” is the existing heuristic applied to the current reference scope, not a musical or physical-keyboard verdict. No new agent listening verdict or independent keyboard verdict was obtained for any row. The nine matches retain their prior indexed owner acceptance; the three drifted candidates still await owner listening.
+**Evidence columns are independent.** “Pins” means source bytes and authored timeline identity. “Replay” means the historical accepted digest. “Diagnostic” is the existing heuristic applied to the current reference scope, not a musical or physical-keyboard verdict. No new agent listening verdict or independent keyboard verdict was obtained for any row. The nine matches retain their prior indexed owner acceptance; the three drifted candidates remain unrepinned, with their accepted reconstructions retained. No repeat owner listening is requested.
 
 | Song / selected chart | Source/key check | Chords clock and scope | Pins / replay / diagnostic | Issue or remaining review |
 | --- | --- | --- | --- | --- |
@@ -60,7 +60,7 @@ Replayed the resolver from `9de3df545d9abb2d8a6c5c0691fdde9d6f6f06cb` (parent of
 | My Way | 197 → 179 | 26 / 8 | 129 | 0 |
 | Imagine | 166 → 157 | 9 / 0 | 134 | 0 |
 
-`1e6d1337` changed shared `sourceRhythmStrikes`: it rejects some isolated non-root/held-stack re-strikes, suppresses some held-stack barline fills, and permits quarter-beat release gaps. Filtering can also change which subsequent onset satisfies spacing, explaining added attacks as well as removals. The current and accepted pitch arrays agree at retained beats; deleted/added beats still change audible phrasing. This is a technical characterization, not a preference for the candidate. Owner listening remains pending for all three.
+`1e6d1337` changed shared `sourceRhythmStrikes`: it rejects some isolated non-root/held-stack re-strikes, suppresses some held-stack barline fills, and permits quarter-beat release gaps. Filtering can also change which subsequent onset satisfies spacing, explaining added attacks as well as removals. The current and accepted pitch arrays agree at retained beats; deleted/added beats still change audible phrasing. This is a technical characterization, not a preference for the candidate. All three accepted reconstructions are retained; the later candidates remain unrepinned. No additional owner listening is requested.
 
 ## Audit corrections implemented
 
@@ -103,4 +103,4 @@ Local-only reconstruction and transport scripts are `output/golden-audit/compare
 
 Read-only tracing confirms the existing extension points: MIDI/MusicXML/MXL upload → `ingestSource` → `buildVariants`; the worker's transcription/tutorial/native-MIDI routes also call `ingestSource`. `buildVariants` already integrates variable source tempos onto its scalar playback grid. At load time `prepareGeneratedChordData` calls `inferHarmonyTimeline` for Advanced generated labels, then source selection and `replayChordsBacking`/`resolveAccompaniment` construct Chords. No second variant system is needed.
 
-**Still undone:** matched recording/cover onset and chroma comparisons across all sections; an actual listening pass of final previews; source identity resolution for the eight seed-only arrangements; any musically justified corrections found by those checks; revised-owner verdicts on the three drifts; independent keyboard review. Consequently upload-generation changes, honest review-needed UI, unseen-song calibration, per-input ingest-to-Player checks and automation idempotency tests have not been implemented or claimed. Owner and keyboard approval can remain pending during later automation work, but they do not waive the handoff's separate source/listening prerequisite. No merge, deploy or production mutation occurred.
+**Limits of this audit checkpoint:** matched recording/cover onset and chroma comparisons across all sections, agent hearing of final previews, exact seed performance identities, and independent keyboard assessment were not established. These are not being handed back to the owner as another listening task. The [follow-up implementation and test ledger](chords-upload-automation-2026-09-27.md) records subsequent automatic fallback, uncertainty UI, unseen-song evaluation and ingest-to-Player/idempotency work, including its failed musical release threshold. Acceptance pins remain unchanged. No merge, deploy or production mutation occurred.

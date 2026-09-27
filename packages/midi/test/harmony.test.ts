@@ -55,3 +55,31 @@ describe("inferHarmonyTimeline", () => {
     expect(labels(gSharpMinor, bars(1), "E")).toEqual([[0, "G#m"]]);
   });
 });
+
+// Original, deliberately small counterexamples; not golden-corpus calibration songs.
+it("grounds backing harmony in played stacks, including off-grid inversions, sevenths and rests", () => {
+  const stack = (start: number, pitches: number[], dur = 0.75): Note[] =>
+    pitches.map(midi => ({ midi, start, dur, vel: 75, hand: start < 2 ? "L" : "R" }));
+  const notes = [
+    ...stack(0.5, [48, 52, 55]),
+    ...stack(2.25, [52, 55, 60]),
+    ...stack(3.5, [43, 47, 50, 53], 0.5),
+    { midi: 81, start: 0, dur: 4, vel: 100, identitySource: "vocals" as const },
+  ];
+  const timeline = inferHarmonyTimeline(notes, bars(2), { key: "C", backingOnly: true });
+  expect(timeline.filter(c => c.notes.length).map(c => [c.beat, c.name, c.durationBeats]))
+    .toEqual([[0.5, "C", 0.75], [2.25, "C/E", 0.75], [3.5, "G7", 0.5]]);
+  expect(timeline.find(c => c.beat === 4)).toMatchObject({ name: "N.C.", notes: [] });
+  expect(inferHarmonyTimeline([...notes].reverse(), bars(2), { key: "C", backingOnly: true })).toEqual(timeline);
+});
+
+it("abstains on a solo line instead of inventing a major third, and distinguishes it from silence", () => {
+  const notes = arpeggio(0, [72, 74, 76, 79]).map(n => ({ ...n, hand: "R" as const }));
+  const timeline = inferHarmonyTimeline(notes, bars(2), { key: "C", backingOnly: true });
+  expect(timeline.every(c => c.notes.length === 0)).toBe(true);
+  expect(timeline[0]?.reviewReason).toMatch(/harmon|accompaniment/i);
+  expect(timeline.find(c => c.beat === 4)?.reviewReason).toBeUndefined();
+  // Ingest may assign a solo line to LH by register; that is not role proof.
+  expect(inferHarmonyTimeline(notes.map(n => ({ ...n, hand: "L" })), bars(2), { key: "C", backingOnly: true })
+    .every(c => c.notes.length === 0)).toBe(true);
+});

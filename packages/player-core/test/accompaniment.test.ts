@@ -245,3 +245,17 @@ describe("resolveAccompaniment", () => {
     expect(noSource.fallbackSpans).toContainEqual({ startBeat: 2, endBeat: 4, reason: "no chord coverage" });
   });
 });
+
+it("does not fill generated harmony with bar-line attacks or carry it through released source rests", () => {
+  const notes = [
+    ...[48, 52, 55].map(midi => note(midi, 0.5, 0.75, "L")),
+    ...[60, 64, 67].map(midi => note(midi, 6.25, 0.5, "R")),
+    note(84, 2, 0.5, "R"),
+  ];
+  const result = resolveAccompaniment(notes, [{ beat: 0, durationBeats: 12, name: "C", notes: [48, 60, 64, 67], sourceKind: "generated" }], "bass-chords", {
+    durationBeats: 12, sourceRhythmMeasures: [0, 4, 8].map(startBeat => ({ startBeat, endBeat: startBeat + 4 })),
+  });
+  expect(result.chords.map(c => [c.beat, c.durationBeats])).toEqual([[0.5, 0.75], [6.25, 0.5]]);
+  expect(result.notes).toEqual([]);
+  expect(result.guidanceNotes.every(n => n.midi !== 84)).toBe(true);
+});

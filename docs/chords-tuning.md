@@ -102,3 +102,10 @@ On 24 September 2026, with the defaults in the tuning file:
   - None is silent, and 28 have some dead air.
   - The median song fits the tune on 76% of strong beats and clashes on 12% of tune notes.
   - Its median flicker share is 8%.
+
+
+## 27 September upload fallback follow-up
+
+Advanced generated Chords now uses source-backed timing and local accompaniment evidence, preserves supported played extensions/inversions, and emits silent `reviewReason` spans for ambiguous roles. This does not alter curated goldens or imply approval. Existing owner acceptance stands; no repeat owner listening is requested.
+
+See [the implementation/evaluation ledger](research/keyspilli-evidence/chords-upload-automation-2026-09-27.md) and run `apps/web/scripts/evaluate-upload-chords.mts` for the actual ingest-to-Player path. The fresh 20-song result is 82.1% major/minor and 84.6% root: **below the existing release thresholds**. The older 181-song figures above belong to the earlier labeler; they do not certify this source-backed candidate.

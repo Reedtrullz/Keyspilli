@@ -104,14 +104,14 @@ export function playerChordSources(data: SongData, arrangementEnd: number): Chor
   const resolved = resolveChordSources(data);
   return {
     ...resolved,
-    // Keep the established inferred-chord naming/cleanup path unchanged;
-    // only source timelines bypass relabeling so their provenance is visible.
-    // Normalize through the generated source first. This stamps legacy
-    // generated events with sourceKind=generated while preserving explicit
-    // authored/inferred/unknown metadata on newer artifacts.
+    // Legacy onset clusters still need cleanup. Whole-arrangement harmony
+    // already has explicit spans and uncertainty; preserve its short changes.
     generated: {
       ...resolved.generated,
-      chords: completeChordDurations(dedupeChords(resolved.generated.chords, { durationBeats: arrangementEnd }), arrangementEnd),
+      chords: completeChordDurations(
+        resolved.generated.chords.every(chord => chord.inferenceType === "harmony-window")
+          ? resolved.generated.chords
+          : dedupeChords(resolved.generated.chords, { durationBeats: arrangementEnd }), arrangementEnd),
     },
   };
 }

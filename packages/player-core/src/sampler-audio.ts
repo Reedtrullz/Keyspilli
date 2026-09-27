@@ -171,11 +171,12 @@ export class SamplerAudioEngine implements AudioLike {
   }
 
   playChord(midiNotes: number[], when: number, durationSec: number): void {
+    if (!Number.isFinite(durationSec) || durationSec <= 0) return;
     if (this.piano && this.pianoReady) {
       const ctx = this.ensure();
       const t = ctx.currentTime + when;
       for (const midi of [...new Set(midiNotes)]) {
-        this.piano.start({ note: midi, time: t, duration: Math.max(0.2, Math.min(8, durationSec)) });
+        this.piano.start({ note: midi, time: t, duration: durationSec });
       }
       return;
     }

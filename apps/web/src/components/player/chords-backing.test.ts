@@ -299,3 +299,23 @@ it("keeps the authored chord's full display span when its played stack re-strike
   expect(replay.resolution.chords.map((chord) => chord.beat)).toEqual([0, 1.5, 3]);
   expect(replay.resolution.displayChords[0]).toMatchObject({ beat: 0, durationBeats: 4, notes: [51, 58, 63] });
 });
+
+it("keeps short inferred changes and uncertainty on every generated source selection", () => {
+  const data: SongData = { key: "C", tempoBpm: 120, timeSig: [4, 4], chords: [],
+    measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+    notes: [[0.5, 48, 52, 55], [1, 43, 47, 50]].flatMap(([start, ...pitches]) =>
+      pitches.map(midi => ({ midi, start: start!, dur: 0.5, vel: 80, hand: "L" as const }))),
+  };
+  for (const preference of ["auto", "generated"] as const) {
+    const projected = projectChordSources(data, null);
+    const replay = replayChordsBacking(projected, preference);
+    expect(replay.resolution.chords.map(c => [c.beat, c.name, c.durationBeats])).toEqual([[0.5, "C", 0.5], [1, "G", 0.5]]);
+    expect(replay.resolution.notes).toEqual([]);
+    expect(replay.resolution.chords.every(c => c.notes.every(midi => midi <= 79))).toBe(true);
+  }
+  const uncertain = projectChordSources({ ...data, notes: [{ midi: 72, start: 0, dur: 4, vel: 80, hand: "R" }] }, null);
+  const replay = replayChordsBacking(uncertain, "generated");
+  expect(replay.selected.source?.chords[0]?.reviewReason).toMatch(/uncertain/);
+  expect(replay.resolution.chords).toEqual([]);
+  expect(replay.resolution.notes).toEqual([]);
+});

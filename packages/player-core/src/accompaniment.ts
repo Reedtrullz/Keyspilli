@@ -2,6 +2,7 @@ import {
   CHORDS_TUNING,
   chordIntervals,
   chordToNotes,
+  groupAttackClusters,
   splitPianoRoles,
   tryParseChordSymbol,
   type ChordLabel,
@@ -471,7 +472,8 @@ function sourceChordStack(notes: readonly Note[], chordPcs: ReadonlySet<number>)
  * `maxSilentBars` between strikes the chord is struck again on the next
  * downbeat, or as soon after it as spacing allows. Authored charts use the
  * source's chord attacks and note releases to avoid unnecessary full-chord
- * re-strikes and leave short gaps when the pianist releases early.
+ * re-strikes and leave short gaps when the pianist releases early. Generated
+ * backing uses only supported source attacks/releases, without bar-line fill.
  */
 function sourceRhythmStrikes(
   chord: AccompanimentChord,
@@ -487,6 +489,29 @@ function sourceRhythmStrikes(
     ? Math.max(tuning.minSpacingBeats, chord.strikeSpacingBeats!)
     : tuning.minSpacingBeats;
   const chordPcs = new Set(chord.notes.map((midi) => midi % 12));
+  if (chord.sourceKind === "generated") {
+    const symbol = tryParseChordSymbol(chord.name);
+    const bassPc = symbol?.bassPc ?? symbol?.rootPc;
+    const result: AccompanimentChord[] = [];
+    const support = [...sourceByOnset.values()].flat().filter(n => n.identitySource !== "vocals" && !n.lyrics);
+    for (const attack of groupAttackClusters(support)) {
+      if (attack.start < start - EPSILON || attack.start >= end - EPSILON) continue;
+      const members = attack.notes.filter(n => chordPcs.has(n.midi % 12));
+      const byPc = new Map<number, number>();
+      for (const n of members) byPc.set(n.midi % 12, Math.max(byPc.get(n.midi % 12) ?? 0, n.start + n.dur));
+      const releases = [...byPc.values()].sort((a, b) => b - a);
+      const stack = releases.length >= 2;
+      const bass = members.some(n => n.hand === "L" && n.midi % 12 === bassPc);
+      if (!stack && !bass) continue;
+      const previous = result.at(-1);
+      if (previous && (attack.start - previous.beat < spacing - EPSILON
+        || (!stack && previous.beat + previous.durationBeats! > attack.start + EPSILON))) continue;
+      const release = releases[stack ? 1 : 0]!;
+      if (previous) previous.durationBeats = Math.min(previous.durationBeats!, attack.start - previous.beat);
+      result.push({ ...chord, beat: attack.start, durationBeats: Math.min(end - attack.start, release - attack.start, chord.maxStrikeDurationBeats ?? Infinity) });
+    }
+    return result;
+  }
   const strikes = [start];
   const symbol = chord.sourceKind === "authored" && hasLeftHand ? tryParseChordSymbol(chord.name) : null;
   const bassPc = symbol?.bassPc ?? symbol?.rootPc;
@@ -607,8 +632,9 @@ function voicingScore(candidate: readonly number[], previous: readonly number[] 
   return movement * 100 + centreDistance;
 }
 
-function chooseUpperVoicing(shape: readonly number[], previous: readonly number[] | null): number[] | null {
+function chooseUpperVoicing(shape: readonly number[], previous: readonly number[] | null, ceiling = 96): number[] | null {
   return candidateUpperVoicings(shape)
+    .filter(notes => notes.every(midi => midi <= ceiling))
     .sort((a, b) => voicingScore(a, previous) - voicingScore(b, previous))[0] ?? null;
 }
 
@@ -618,7 +644,7 @@ function generatedChordNotes(
   previousUpper: readonly number[] | null,
 ): number[] | null {
   if (isNoChord(chord.name) || !tryParseChordSymbol(chord.name)) return null;
-  const upper = chooseUpperVoicing(compactUpperShape(chord) ?? [], previousUpper);
+  const upper = chooseUpperVoicing(compactUpperShape(chord) ?? [], previousUpper, chord.sourceKind === "generated" ? 79 : 96);
   if (!upper) return null;
   if (style !== "bass-chords") return upper;
   try {
@@ -1169,7 +1195,7 @@ export function resolveAccompaniment(
   const onsets = style === "bass-chords" && options.sourceRhythmMeasures ? accompanimentOnsets(sourceNotes, strikeTuning.minSpacingBeats) : null;
   const hasAuthored = effectiveChords.some((chord) => chord.sourceKind === "authored");
   const sourceByOnset = new Map<number, Note[]>();
-  if (onsets && hasAuthored) for (const note of sourceNotes) sourceByOnset.set(note.start, [...(sourceByOnset.get(note.start) ?? []), note]);
+  if (onsets) for (const note of sourceNotes) sourceByOnset.set(note.start, [...(sourceByOnset.get(note.start) ?? []), note]);
   const hasLeftHand = hasAuthored && sourceNotes.some((note) => note.hand === "L");
   const struckChords = onsets
     ? effectiveChords.flatMap((chord) => sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning, sourceByOnset, hasLeftHand))

@@ -1,3 +1,4 @@
+import { groupAttackClusters } from "./piano-accompaniment.js";
 import { chordToNotes } from "./chords.js";
 import { CHORDS_TUNING, type HarmonyTuning } from "./chords-tuning.js";
 import type { ChordLabel, Note } from "./types.js";
@@ -11,10 +12,10 @@ import type { ChordLabel, Note } from "./types.js";
  * against all notes sounding in each half bar (whole bar for odd meters),
  * weighted by duration plus the lowest sounding note, then picks the
  * best-scoring path with a penalty per change. Every note is evidence,
- * including the sung line, because a backing that fights the melody is
- * wrong. Only chord names leave this function, so no source note is copied
- * into the backing. Segments with nothing sounding, and a short pickup bar,
- * become N.C.
+ * including unclassified melody, so the harmony can account for its thirds.
+ * Backing-only mode excludes explicitly vocal notes, preserves played stack
+ * boundaries, and leaves unsupported accompaniment spans silent with a reason.
+ * It emits labels/voicings only; no source melody is copied into the backing.
  */
 
 interface Template { name: string; root: number; pcs: ReadonlySet<number>; size: number; cost: number }
@@ -141,34 +142,87 @@ function score(template: Template, observed: ReturnType<typeof evidence>, tuning
 export function inferHarmonyTimeline(
   notes: readonly Note[],
   measures: readonly HarmonySegment[],
-  options: { key?: string; tuning?: HarmonyTuning } = {},
+  options: { key?: string; tuning?: HarmonyTuning; backingOnly?: boolean } = {},
 ): ChordLabel[] {
-  const tuning = options.tuning ?? CHORDS_TUNING.harmony;
-  const segments = harmonySegments(measures, tuning.changeGrid);
+  const strict = options.backingOnly === true;
+  const baseTuning = options.tuning ?? CHORDS_TUNING.harmony;
+  const tuning = strict ? { ...baseTuning, qualityCost: { "": 0, m: 0, "7": 0.08, m7: 0.08, maj7: 0.08, sus4: 0.08, dim: 0.08 } } : baseTuning;
+  // Explicit vocal provenance is stronger than register/hand guesses.
+  const source = notes.filter(note => note.dur > 0 && (!strict || (note.identitySource !== "vocals" && !note.lyrics)));
+  const sourceAttacks = strict ? groupAttackClusters(source) : [];
+  const hasPolyphonicAttack = sourceAttacks.some(a => new Set(a.notes.map(n => n.midi % 12)).size >= 2);
+  let segments = harmonySegments(measures, tuning.changeGrid);
+  if (strict && segments.length) {
+    const start = segments[0]!.startBeat, end = segments.at(-1)!.endBeat;
+    const boundaries = new Set(segments.flatMap(s => [s.startBeat, s.endBeat]));
+    // Reuse the detector's onset tolerance. Stacks may move between hands.
+    for (const attack of sourceAttacks) {
+      const pcs = new Map<number, number>();
+      for (const n of attack.notes) pcs.set(n.midi % 12, Math.max(pcs.get(n.midi % 12) ?? 0, n.start + n.dur));
+      const releases = [...pcs.values()].sort((a, b) => b - a);
+      if (releases.length < 2) continue;
+      for (const beat of [attack.start, releases[1]!]) if (beat > start && beat < end) boundaries.add(beat);
+    }
+    const ordered = [...boundaries].sort((a, b) => a - b);
+    segments = ordered.slice(0, -1).map((startBeat, i) => ({ startBeat, endBeat: ordered[i + 1]! }));
+  }
   if (!segments.length) return [];
   // A pickup bar shorter than the bar after it is melody alone.
   const [first, second] = measures;
   const pickupEnd = first && second && first.endBeat - first.startBeat < second.endBeat - second.startBeat ? first.endBeat : -Infinity;
-  const sorted = withPedal(notes.filter((note) => note.dur > 0), measures, tuning.pedal)
+  const sorted = withPedal(source, measures, tuning.pedal)
     .sort((a, b) => a.start - b.start);
   const candidates = templates(options.key, tuning);
   const rest = candidates.length;
   let previous = new Array<number>(rest + 1).fill(0);
   const back: number[][] = [];
+  const reasons: Array<string | undefined> = [];
+  const bassPcs: Array<number | undefined> = [];
+  const windows = harmonySegments(measures, "half-bar");
   for (const segment of segments) {
     // Notes that could overlap this segment; `sorted` is by start.
     const local = sorted.filter((note) => note.start < segment.endBeat && note.start + note.dur > segment.startBeat);
-    const observed = evidence(local, segment.startBeat, segment.endBeat);
+    let observed = evidence(local, segment.startBeat, segment.endBeat);
+    let allowed: Set<number> | undefined;
+    if (strict) {
+      const raw = source.filter(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
+      const window = windows.find(w => w.startBeat <= segment.startBeat && segment.startBeat < w.endBeat);
+      const context = window ? source.filter(n => n.start < window.endBeat && n.start + n.dur > window.startBeat) : raw;
+      const attacks = groupAttackClusters(context);
+      const hasStack = attacks.some(a => new Set(a.notes.map(n => n.midi % 12)).size >= 2);
+      const left = context.filter(n => n.hand === "L");
+      // ponytail: local stacks and LH arpeggios establish support; unlabelled solo lines stay unresolved.
+      const hasArpeggio = hasPolyphonicAttack && left.length >= 2 && new Set(left.map(n => n.midi % 12)).size >= 2;
+      const roleSupported = hasStack || hasArpeggio;
+      const attack = sourceAttacks.find(a => Math.abs(a.start - segment.startBeat) < 1e-7);
+      const played = evidence(attack?.notes ?? [], segment.startBeat, segment.endBeat);
+      const pcs = new Set(played.weights.flatMap((weight, pc) => weight > played.total * 0.05 ? [pc] : []));
+      const complete = candidates.flatMap((candidate, k) => [...candidate.pcs].every(pc => pcs.has(pc))
+        && candidate.pcs.size === pcs.size ? [{ k, score: score(candidate, played, tuning) }] : [])
+        .sort((a, b) => b.score - a.score || a.k - b.k);
+      const direct = complete.length > 0 && (complete.length === 1 || complete[0]!.score - complete[1]!.score >= 0.08);
+      // Keep the contextual triad path for arpeggios and decorated melody. Only
+      // a complete played stack can introduce a seventh/suspension or inversion.
+      allowed = new Set(!raw.length || !roleSupported ? [] : direct ? [complete[0]!.k]
+        : candidates.flatMap((c, k) => c.name.match(/^[A-G][#b]?m?$/) ? [k] : []));
+      if (direct) observed = played;
+      const anySource = notes.some(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
+      reasons.push(!allowed.size && anySource ? "Harmony or accompaniment role is uncertain; this span is left silent." : undefined);
+      const lowest = (attack?.notes ?? []).reduce((min, n) => Math.min(min, n.midi), Infinity);
+      bassPcs.push(direct && Number.isFinite(lowest) ? lowest % 12 : undefined);
+    }
     let best = 0;
     for (let k = 1; k <= rest; k++) if (previous[k]! > previous[best]!) best = k;
     const current = new Array<number>(rest + 1);
     const from = new Array<number>(rest + 1);
     for (let k = 0; k <= rest; k++) {
-      const silent = observed.total === 0 || segment.endBeat <= pickupEnd;
-      const gain = silent ? (k === rest ? 0.5 : -1) : k === rest ? -1 : score(candidates[k]!, observed, tuning);
+      const silent = observed.total === 0 || (!strict && segment.endBeat <= pickupEnd);
+      const gain = strict
+        ? k === rest ? (allowed!.size ? -Infinity : 0) : allowed!.has(k) ? score(candidates[k]!, observed, tuning) : -Infinity
+        : silent ? (k === rest ? 0.5 : -1) : k === rest ? -1 : score(candidates[k]!, observed, tuning);
       const stay = previous[k]!;
       const change = previous[best]! - tuning.changePenalty;
-      current[k] = Math.max(stay, change) + gain;
+      current[k] = Math.max(stay, change) + gain * (strict ? segment.endBeat - segment.startBeat : 1);
       from[k] = stay >= change ? k : best;
     }
     back.push(from);
@@ -184,9 +238,15 @@ export function inferHarmonyTimeline(
   const out: ChordLabel[] = [];
   path.forEach((k, i) => {
     const segment = segments[i]!;
-    const name = k === rest ? "N.C." : candidates[k]!.name;
+    let name = k === rest ? "N.C." : candidates[k]!.name;
+    const bass = bassPcs[i];
+    if (strict && k !== rest && bass !== undefined && bass !== candidates[k]!.root && candidates[k]!.pcs.has(bass)) {
+      name += "/" + (FLAT_KEYS.has(options.key ?? "") ? FLAT : MIXED)[bass];
+    }
+    const reviewReason = reasons[i];
     const last = out[out.length - 1];
-    if (last && last.name === name && last.beat + last.durationBeats! === segment.startBeat) {
+    if (strict && bass === undefined && last?.name.startsWith(name + "/")) name = last.name;
+    if (last && last.name === name && last.reviewReason === reviewReason && last.beat + last.durationBeats! === segment.startBeat) {
       last.durationBeats! += segment.endBeat - segment.startBeat;
       return;
     }
@@ -195,6 +255,7 @@ export function inferHarmonyTimeline(
       durationBeats: segment.endBeat - segment.startBeat,
       name,
       notes: k === rest ? [] : chordToNotes(name, { octave: 4, bassOctave: 3, includeBass: true, maxNotes: 4 }),
+      ...(reviewReason ? { reviewReason } : {}),
       sourceKind: "generated",
       inferred: true,
       inferenceType: "harmony-window",

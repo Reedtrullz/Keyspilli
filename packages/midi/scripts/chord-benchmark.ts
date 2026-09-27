@@ -2,7 +2,7 @@
  * Score Chords-mode harmony labels against expert reference chords.
  *
  *   git clone --depth 1 https://github.com/AndyWeasley2004/POP909-CL-Dataset output/pop909-cl
- *   npx tsx packages/midi/scripts/chord-benchmark.ts output/pop909-cl/POP909_processed [--split dev|holdout|all] [--limit N] [--tuning tuning.json] [--gate] [--rows]
+ *   npx tsx packages/midi/scripts/chord-benchmark.ts output/pop909-cl/POP909_processed [--split dev|holdout|all] [--limit N] [--tuning tuning.json] [--backing-only] [--gate] [--rows]
  *
  * POP909-CL (MIT) stores each song's piano score on one track and its
  * expert-reviewed chords as block chords on the last track. The score goes
@@ -31,7 +31,7 @@ const flag = (name: string) => {
 };
 const dir = args.find((arg, index) => !arg.startsWith("--") && !args[index - 1]?.startsWith("--"));
 if (!dir) {
-  console.error("usage: chord-benchmark.ts <POP909_processed dir> [--split dev|holdout|all] [--limit N] [--tuning file.json] [--gate] [--rows]");
+  console.error("usage: chord-benchmark.ts <POP909_processed dir> [--split dev|holdout|all] [--limit N] [--tuning file.json] [--backing-only] [--gate] [--rows]");
   process.exit(2);
 }
 const split = flag("--split") ?? "all";
@@ -64,7 +64,7 @@ for (const file of files) {
       Math.max(...reference.map((chord) => chord.endBeat)),
       Math.max(...advanced.measures.map((measure) => measure.endBeat)),
     );
-    const harmony = inferHarmonyTimeline(advanced.notes, advanced.measures, { key: advanced.key, tuning });
+    const harmony = inferHarmonyTimeline(advanced.notes, advanced.measures, { key: advanced.key, tuning, backingOnly: args.includes("--backing-only") });
     rows.push({
       song,
       split: songSplit,
@@ -87,7 +87,7 @@ const summarize = (subset: Row[], pick: (row: Row) => ChordScore) => ({
   sevenths: mean(subset.map((row) => pick(row).sevenths)),
   segmentation: mean(subset.map((row) => pick(row).segmentation)),
 });
-const report: Record<string, unknown> = { songs: rows.length, failures: failures.length };
+const report: Record<string, unknown> = { mode: args.includes("--backing-only") ? "backing-only" : "legacy-harmony", songs: rows.length, failures: failures.length };
 for (const part of ["dev", "holdout"] as const) {
   const subset = rows.filter((row) => row.split === part);
   if (!subset.length) continue;

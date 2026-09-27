@@ -62,6 +62,7 @@ function preserveChordMetadata(value: unknown): Omit<PlayerChord, "beat" | "name
     metadata.inferenceType = obj.inferenceType as NonNullable<PlayerChord["inferenceType"]>;
   }
 
+  if (typeof obj.reviewReason === "string") metadata.reviewReason = obj.reviewReason;
   const durationBeats = finite(obj.durationBeats);
   const duration = finite(obj.duration);
   const strikeSpacingBeats = finite(obj.strikeSpacingBeats);
@@ -247,7 +248,7 @@ function prepareGeneratedChordData(data: SongData, level: string): SongData {
   // Chords always plays Advanced. Its stored per-onset labels are replaced by
   // whole-arrangement harmony unless the artifact carries non-generated labels.
   const chords = level === "a" && data.chords.every((chord) => (chord.sourceKind ?? "generated") === "generated")
-    ? inferHarmonyTimeline(data.notes, data.measures, { key: data.key })
+    ? inferHarmonyTimeline(data.notes, data.measures, { key: data.key, backingOnly: true })
     : data.chords;
   return {
     ...data,

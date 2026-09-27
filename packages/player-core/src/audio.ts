@@ -264,10 +264,11 @@ export class AudioEngine {
    * cancelAll(); this method does not promise per-voice identity.
    */
   playChord(midiNotes: number[], when: number, durationSec: number): void {
+    if (!Number.isFinite(durationSec) || durationSec <= 0) return;
     const ctx = this.ensure();
     if (!this.pianoGainNode) return;
     const t = ctx.currentTime + when;
-    const duration = Math.max(0.2, Math.min(8, durationSec));
+    const duration = durationSec;
     // Keep exact octave doublings but avoid creating duplicate oscillators for
     // the same MIDI number. Sorting makes direct and engine callers agree on
     // a deterministic handoff without changing the voicing itself.
