@@ -16,6 +16,7 @@ import {
   midiSupported,
   PlaybackEngine,
   loadJson,
+  loadStringList,
   loadSettings,
   loadSongPrefs,
   measureIndex,
@@ -306,7 +307,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     const songPrefs = loadSongPrefs(initial.song.id);
     if (songPrefs.speed !== undefined) s.speed = songPrefs.speed;
     if (songPrefs.transpose !== undefined) s.transpose = songPrefs.transpose;
-    if (songPrefs.mode !== undefined) s.mode = songPrefs.mode as ViewMode;
+    if (songPrefs.mode !== undefined) s.mode = songPrefs.mode;
     if (songPrefs.hand !== undefined) s.hand = songPrefs.hand;
     if (mode) s.mode = mode;
     setSettings(s);
@@ -406,8 +407,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   );
 
   useEffect(() => {
-    setFavorites(loadJson("keyspilli.favorites", [] as string[]));
-    setLearned(loadJson("keyspilli.learned", [] as string[]));
+    setFavorites(loadStringList("keyspilli.favorites"));
+    setLearned(loadStringList("keyspilli.learned"));
     const value = loadJson("keyspilli.chordSource", "auto" as ChordSourceId);
     if (value === "ug" || value === "generated" || value === "auto") setChordSourcePreference(value);
   }, []);

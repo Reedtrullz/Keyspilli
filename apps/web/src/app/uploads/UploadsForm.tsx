@@ -27,6 +27,7 @@ type HandoffView = {
 };
 
 type UploadResult = { baseId: string; songIds: string[]; easySongId?: string | null };
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 async function responseBody(response: Response): Promise<Record<string, unknown>> {
   return response.json().catch(() => ({})) as Promise<Record<string, unknown>>;
@@ -60,7 +61,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   const [selectedHandoff, setSelectedHandoff] = useState<HandoffView | null>(null);
   const [targetConfirmed, setTargetConfirmed] = useState(false);
   const [candidateError, setCandidateError] = useState("");
-  const [status, setStatus] = useState<"ready" | "uploading" | "done" | "error">("ready");
+  const [status, setStatus] = useState<"ready" | "uploading" | "done" | "error" | "reconciliation">("ready");
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,7 +69,9 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   const fileExitRef = useRef<HTMLDivElement>(null);
   const discoveryGeneration = useRef(0);
   const searchAbortRef = useRef<AbortController | null>(null);
-  const errorPresence = usePresence(status === "error");
+  const uploadAbortRef = useRef<AbortController | null>(null);
+  const uploadingRef = useRef(false);
+  const errorPresence = usePresence(status === "error" || status === "reconciliation");
   const donePresence = usePresence(status === "done" && Boolean(result));
   const fileSwitch = useAnimatedSwitch(file);
   const targetId = `target-${(artist || "unknown-artist").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(title || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`.replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
@@ -161,10 +164,11 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   }, [fileSwitch.previous]);
 
   useEffect(() => {
-    return () => { discoveryGeneration.current++; searchAbortRef.current?.abort(); };
+    return () => { discoveryGeneration.current++; searchAbortRef.current?.abort(); uploadAbortRef.current?.abort(); };
   }, []);
 
   function selectFile(next: File | null): void {
+    if (uploadingRef.current) return;
     setFile(next);
     setStatus("ready");
     setResult(null);
@@ -200,26 +204,55 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   );
 
   async function upload() {
-    if (!file) return;
+    if (!file || uploadingRef.current) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError("File too large (max 10 MB). Choose a smaller MIDI, MusicXML or MXL file.");
+      setStatus("error");
+      return;
+    }
+    uploadingRef.current = true;
+    discoveryGeneration.current++;
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    uploadAbortRef.current = controller;
+    const chosenHandoff = selectedHandoff;
+    const confirmed = targetConfirmed;
+    const chosenTitle = title.trim();
+    const chosenArtist = artist.trim();
     setStatus("uploading");
     setError("");
     try {
       const params = new URLSearchParams();
-      if (title.trim()) params.set("title", title.trim());
-      if (artist.trim()) params.set("artist", artist.trim());
-      if (selectedHandoff) {
-        if (!selectedHandoff.userAffirmedTarget || !targetConfirmed) throw new Error("Confirm the selected source lead before uploading.");
-        params.set("handoffId", selectedHandoff.handoffId);
+      if (chosenTitle) params.set("title", chosenTitle);
+      if (chosenArtist) params.set("artist", chosenArtist);
+      if (chosenHandoff) {
+        if (!chosenHandoff.userAffirmedTarget || !confirmed) throw new Error("Confirm the selected source lead before uploading.");
+        params.set("handoffId", chosenHandoff.handoffId);
         params.set("userAffirmedTarget", "true");
       }
-      const response = await fetch(`/api/uploads?${params}`, { method: "POST", body: await file.arrayBuffer() });
+      const response = await fetch(`/api/uploads?${params}`, { method: "POST", body: await file.arrayBuffer(), signal: controller.signal });
       const data = await responseBody(response);
-      if (!response.ok) throw new Error(String(data.error ?? "Upload failed."));
+      if (controller.signal.aborted) return;
+      if (!response.ok) {
+        if (data.reconciliationRequired || data.code === "ARTIFACT_RECONCILIATION_REQUIRED") {
+          setError("Upload needs catalog reconciliation. Check its saved state before trying again.");
+          setStatus("reconciliation");
+          return;
+        }
+        if (data.code === "UPLOAD_BUSY") throw new Error("Another upload is in progress. Try again shortly.");
+        throw new Error(String(data.error ?? "Upload failed."));
+      }
       setResult(data as unknown as UploadResult);
       setStatus("done");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Upload failed.");
+      if (controller.signal.aborted) return;
+      setError(cause instanceof Error && cause.name === "AbortError"
+        ? "The request stopped, but server publication may still finish. Check the catalog before retrying."
+        : cause instanceof Error ? cause.message : "Upload failed.");
       setStatus("error");
+    } finally {
+      uploadingRef.current = false;
+      if (uploadAbortRef.current === controller) uploadAbortRef.current = null;
     }
   }
 
@@ -242,6 +275,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         Create a lesson from an authorized MIDI, MusicXML, or MXL file. Keyspilli validates the uploaded bytes and uses the file&apos;s own timing. Max 10 MB.
       </p>
 
+      <fieldset disabled={status === "uploading"}>
       <section className="rounded-2xl border border-zinc-200 p-5 mb-5" aria-labelledby="song-details-heading">
         <h2 id="song-details-heading" className="font-semibold">1. Song details</h2>
         <p className="text-sm text-zinc-500 mt-1 mb-3">Optional for direct upload; required only when searching for a source lead.</p>
@@ -300,6 +334,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         <h2 id="file-heading" className="font-semibold mb-3">3. Choose a symbolic file</h2>
         <div className="dropzone rounded-2xl border-2 border-dashed border-zinc-300 p-8 text-center motion-scale-in" onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
           event.preventDefault();
+          if (uploadingRef.current) return;
           selectFile(event.dataTransfer.files?.[0] ?? null);
         }}>
           <div className="motion-state-stack dropzone-content-stack">
@@ -309,9 +344,10 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         </div>
         {formatWarning && <p className="text-sm text-amber-800 mt-2" role="status">This lead expected a {formatLabel(selectedHandoff.expectedFormat)}, but the selected filename looks different. The actual file contents decide whether upload succeeds.</p>}
       </section>
+      </fieldset>
 
       {(errorPresence.mounted || donePresence.mounted) && <div className="upload-status-slot mb-4">
-        {errorPresence.mounted && <p className="motion-presence text-red-600 text-sm" data-state={errorPresence.visible ? "open" : "closed"} aria-hidden={status !== "error"} role="alert">{error}</p>}
+        {errorPresence.mounted && <p className="motion-presence text-red-600 text-sm" data-state={errorPresence.visible ? "open" : "closed"} aria-hidden={status !== "error" && status !== "reconciliation"} role="alert">{error}</p>}
         {donePresence.mounted && result && <div className="motion-presence rounded-xl bg-green-50 p-4 text-sm" data-state={donePresence.visible ? "open" : "closed"} aria-hidden={status !== "done"} role="status">
           Lesson created with four public levels.
           <div className="mt-2 flex flex-wrap gap-3">
@@ -321,7 +357,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         </div>}
       </div>}
 
-      <button type="button" onClick={upload} disabled={!file || status === "uploading" || status === "done"} className="pressable w-full py-3 rounded-xl bg-zinc-900 text-white font-medium disabled:opacity-40">
+      <button type="button" onClick={upload} disabled={!file || status === "uploading" || status === "done" || status === "reconciliation"} className="pressable w-full py-3 rounded-xl bg-zinc-900 text-white font-medium disabled:opacity-40">
         {status === "uploading" ? "Validating and generating…" : "Upload & create lesson"}
       </button>
     </div>

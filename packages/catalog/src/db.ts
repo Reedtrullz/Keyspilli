@@ -351,7 +351,9 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
     params.q = `%${f.q}%`;
   }
   const order =
-    f.sort === "title"
+    f.sort === "newest"
+      ? "created_at DESC, base_id"
+      : f.sort === "title"
       ? "title COLLATE NOCASE"
       : f.sort === "artist"
         ? "artist COLLATE NOCASE"
@@ -448,7 +450,9 @@ function matchesSongFilters(row: SongRow, f: SongFilters): boolean {
 
 function groupedOrder(f: SongFilters): (a: GroupedSong, b: GroupedSong) => number {
   const order =
-    f.sort === "title"
+    f.sort === "newest"
+      ? (a: GroupedSong, b: GroupedSong) => b.lastCreatedAt.localeCompare(a.lastCreatedAt) || a.representative.baseId.localeCompare(b.representative.baseId)
+      : f.sort === "title"
       ? (a: GroupedSong, b: GroupedSong) => a.representative.title.localeCompare(b.representative.title)
       : f.sort === "artist"
         ? (a: GroupedSong, b: GroupedSong) => a.representative.artist.localeCompare(b.representative.artist)

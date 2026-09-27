@@ -44,7 +44,7 @@ export interface SongFilters {
   category?: string;
   artist?: string;
   q?: string;
-  sort?: "popular" | "title" | "artist" | "difficulty";
+  sort?: "popular" | "newest" | "title" | "artist" | "difficulty";
   limit?: number;
   offset?: number;
 }

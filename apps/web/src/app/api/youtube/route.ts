@@ -58,7 +58,9 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-real-ip") || "unknown";
   const rateLimitResponse = checkRateLimit(ip);
   if (rateLimitResponse) return rateLimitResponse;
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsed: unknown = await req.json().catch(() => null);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return NextResponse.json({ error: "JSON object required" }, { status: 400 });
+  const body = parsed as Record<string, unknown>;
   const url = typeof body.url === "string" ? body.url.trim() : "";
   let parsedUrl: URL | undefined;
   try {

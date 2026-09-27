@@ -134,6 +134,11 @@ export function loadJson<T>(key: string, fallback: T): T {
   }
 }
 
+export function loadStringList(key: string): string[] {
+  const value = loadJson<unknown>(key, []);
+  return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : [];
+}
+
 export function saveJson(key: string, v: unknown): void {
   try {
     storage()?.setItem(key, JSON.stringify(v));
@@ -148,7 +153,7 @@ const SONG_KEY_PREFIX = "keyspilli.song-prefs.v1:";
 export interface SongPrefs {
   speed?: number;
   transpose?: number;
-  mode?: string;
+  mode?: PlayerSettings["mode"];
   hand?: "L" | "R" | "both";
 }
 
@@ -166,7 +171,7 @@ export function loadSongPrefs(songId: string): SongPrefs {
       const n = Number(raw.transpose);
       if (Number.isFinite(n)) out.transpose = clampNum(Math.trunc(n), TRANSPOSE_MIN, TRANSPOSE_MAX, 0);
     }
-    if (typeof raw.mode === "string") out.mode = raw.mode;
+    if (VIEW_MODES.includes(raw.mode as (typeof VIEW_MODES)[number])) out.mode = raw.mode as PlayerSettings["mode"];
     if (HANDS.includes(raw.hand as (typeof HANDS)[number])) out.hand = raw.hand as SongPrefs["hand"];
     return out;
   } catch {

@@ -87,6 +87,57 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   await expect(page.getByText(/Sheet Music stays in the original key/)).toHaveCount(0);
 });
 
+test("upload rejects oversize files, freezes details while busy, and retries", async ({ page }) => {
+  await page.goto("/uploads");
+  await page.getByLabel("Title (optional)").fill("Busy Retry Song");
+  const picker = page.locator('input[type="file"]');
+  await picker.setInputFiles({ name: "large.musicxml", mimeType: "application/xml", buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
+  let uploads = 0;
+  await page.route("**/api/uploads?**", async (route) => {
+    uploads++;
+    await route.continue();
+  });
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("File too large");
+  expect(uploads).toBe(0);
+
+  await page.getByRole("button", { name: "Remove" }).click();
+  await picker.setInputFiles({ name: "retry.musicxml", mimeType: "application/xml", buffer: Buffer.from(MUSIC_XML.replace("<score-partwise", "<!-- retry fixture -->\n<score-partwise")) });
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  await page.unroute("**/api/uploads?**");
+  await page.route("**/api/uploads?**", async (route) => {
+    uploads++;
+    await pending;
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "UPLOAD_BUSY", error: "upload busy" }) });
+  });
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.getByRole("button", { name: "Validating and generating…" })).toBeDisabled();
+  await expect(page.getByLabel("Title (optional)")).toBeDisabled();
+  expect(uploads).toBe(1);
+  release();
+  await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("Another upload is in progress");
+  await page.unroute("**/api/uploads?**");
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.getByRole("link", { name: /Open in the player/ })).toBeVisible();
+  await page.getByRole("link", { name: /Open in the player/ }).click();
+  await expect(page).toHaveURL(/\/player\//);
+});
+
+test("upload reconciliation requires a catalog check before retry", async ({ page }) => {
+  await page.goto("/uploads");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "reconcile.musicxml", mimeType: "application/xml", buffer: Buffer.from(MUSIC_XML),
+  });
+  await page.route("**/api/uploads?**", (route) => route.fulfill({
+    status: 503, contentType: "application/json",
+    body: JSON.stringify({ code: "ARTIFACT_RECONCILIATION_REQUIRED", reconciliationRequired: true }),
+  }));
+  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("needs catalog reconciliation");
+  await expect(page.getByRole("button", { name: "Upload & create lesson" })).toBeDisabled();
+});
+
 test("scratch upload reports malformed symbolic content without publishing", async ({ page, request }) => {
   await page.goto("/uploads");
   await page.locator('input[type="file"]').setInputFiles({
