@@ -1,5 +1,6 @@
 import { statSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { chordPitchClasses, tryParseChordSymbol } from "@keyspilli/midi";
 import {
@@ -12,6 +13,7 @@ import {
   sourcePriority,
 } from "./chord-sources.js";
 import { ROOT, dataDir } from "./paths.js";
+import { parseArrangementManifest } from "./artifact-manifest.js";
 
 export const CHORD_TIMELINE_SCHEMA_VERSION = 1 as const;
 const EPSILON = 1e-7;
@@ -561,6 +563,50 @@ export function validateChordTimeline(value: unknown): string[] {
 
 export function parseChordTimeline(value: unknown, defaults?: { source?: ChordSourceRef }): ChordTimelineArtifact {
   return normalizeChordTimeline(value, defaults);
+}
+
+/** Carry accepted backing across a locked publication only when its source and music still match. */
+export async function stagePreparedBacking(baseId: string, stageRoot: string, artifactsRoot = join(dataDir(), "artifacts")): Promise<void> {
+  const oldRoot = join(artifactsRoot, baseId);
+  const oldBytes = await readFile(join(oldRoot, "chord-timeline.json"), "utf8").catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  });
+  if (oldBytes === null) return;
+  const review = (reason: string): never => { throw new Error(`SOURCE_REVIEW_REQUIRED: ${reason}; prepared backing retained in old artifact`); };
+  try {
+    const timeline = parseChordTimeline(JSON.parse(oldBytes));
+    if (timeline.baseId !== baseId || !timeline.provenance.sourceRef.startsWith("prepared:")) review("invalid prepared backing identity");
+    const oldManifest = parseArrangementManifest(JSON.parse(await readFile(join(oldRoot, "manifest.json"), "utf8")));
+    const newManifest = parseArrangementManifest(JSON.parse(await readFile(join(stageRoot, "manifest.json"), "utf8")));
+    if (!oldManifest.sourceArtifactHash || oldManifest.sourceArtifactHash !== newManifest.sourceArtifactHash) review("musical source changed");
+    const oldNotes = await readFile(join(oldRoot, "a", "notes.json"), "utf8");
+    const newNotes = await readFile(join(stageRoot, "a", "notes.json"), "utf8");
+    const fingerprint = (bytes: string) => `variant:${baseId}:a:${baseId}-a:${oldManifest.sourceArtifactHash}:notes:${createHash("sha256").update(bytes).digest("hex")}`;
+    const oldRef = timeline.provenance.sourceRef.slice("prepared:".length);
+    const suffix = oldRef.slice(fingerprint(oldNotes).length);
+    const timing = oldManifest.sourceTiming?.[`${baseId}-a`];
+    const timingPayload = timing ? {
+      timeSig: [...timing.timeSig], measureStartBeat: timing.measureStartBeat, provenance: timing.provenance,
+      ...(timing.timeSigEvents ? { timeSigEvents: timing.timeSigEvents.map((event) => ({ beat: event.beat, timeSig: [...event.timeSig] })) } : {}),
+    } : null;
+    const expectedSuffix = timingPayload ? `:timing:${createHash("sha256").update(JSON.stringify(timingPayload)).digest("hex")}` : "";
+    if (!oldRef.startsWith(fingerprint(oldNotes)) || suffix !== expectedSuffix) review("prepared backing fingerprint is stale");
+    if (JSON.stringify(oldManifest.sourceTiming ?? null) !== JSON.stringify(newManifest.sourceTiming ?? null)) review("source timing changed");
+    if (suffix && oldNotes !== newNotes) review("timed prepared backing needs review after regeneration");
+    const music = (bytes: string) => {
+      const { provenance: _provenance, warnings: _warnings, ...musical } = JSON.parse(bytes) as Record<string, unknown>;
+      return JSON.stringify(musical);
+    };
+    if (music(oldNotes) !== music(newNotes)) review("generated musical content changed");
+    const nextRef = `prepared:${fingerprint(newNotes)}${suffix}`;
+    const bytes = nextRef === timeline.provenance.sourceRef ? oldBytes
+      : JSON.stringify({ ...timeline, provenance: { ...timeline.provenance, sourceRef: nextRef } });
+    await writeFile(join(stageRoot, "chord-timeline.json"), bytes);
+  } catch (error) {
+    if ((error as Error).message.startsWith("SOURCE_REVIEW_REQUIRED:")) throw error;
+    review("cannot validate prepared backing");
+  }
 }
 
 function sourceForEntry(entry: ChordSourceEntry | undefined, sourceId: string | undefined): ChordSourceRef | undefined {

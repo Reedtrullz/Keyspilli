@@ -36,6 +36,7 @@ import { canonicalizeSourceProvenance } from "./provenance.js";
 import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION, TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS } from "./transcribe.js";
 import { ArtifactReconciliationError, publishBaseArtifact } from "./publish.js";
 import { validateSourceCandidateHandoffLink, type SourceCandidateHandoffLink } from "./source-candidate-handoff.js";
+import { stagePreparedBacking } from "./chord-timeline.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -618,6 +619,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       // The manifest is deliberately written last inside the stage. The
       // shared publisher validates it again immediately before swapping.
       await writeArrangementManifestFile(join(stageRoot, "manifest.json"), manifest);
+      await stagePreparedBacking(baseId, stageRoot, artifactsRoot);
       return { baseId, songIds: prepared.map((item) => item.row.id) };
     }, {
       artifactsRoot,

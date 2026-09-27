@@ -8,6 +8,7 @@ Implementation branch: `codex/audit-remediation`, based on audited `origin/main`
 | #124 MXL workload | Implemented locally | Matched EOCD counts and central directory; bounded actual extraction via Node zlib; 28 ingest tests passed | Broader adversarial archive review in Task 12 |
 | #125–#126 MusicXML semantics | Implemented locally | Comments excluded, malformed XML rejected, unsupported repeats/endings/navigation rejected; MIDI suite 428 tests passed | Additional MusicXML constructs remain unverified |
 | #127 MIDI format | Implemented locally | Format 2/unknown and multi-track format 0 rejected; valid format 0/1 tests passed | None for this format boundary |
-| #113–#123, #128–#136, remaining #119 items | Pending | See implementation plan and audit reports in this checkout | Engineering fixes and independent checks |
+| #113 prepared backing | Implemented locally | Metadata title edit retained exact bytes and loader selection; unchanged-source re-ingest repinned under lock; changed source/content blocked with `SOURCE_REVIEW_REQUIRED`; concurrent and rollback fixtures passed | Independent musical review remains required for changed content |
+| #114–#123, #128–#136, remaining #119 items | Pending | See implementation plan and audit reports in this checkout | Engineering fixes and independent checks |
 
 Musical acceptance, live backup measurements, merge and deployment are separate owner gates. Tests and synthetic fixtures do not establish them.

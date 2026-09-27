@@ -242,3 +242,58 @@ describe("applySongMetadata tempo roles", () => {
     expect((next as typeof next & { key: string }).key).toBe("F#m");
   });
 });
+
+it("retains approved prepared backing bytes and selection after a title edit", async () => {
+  const id = "prepared-metadata-fixture";
+  const notes = Array.from({ length: 16 }, (_, i) => ({ midi: 60 + i % 5, start: i, dur: 1, vel: 80, hand: "R" as const }));
+  const sourceBuf = midi.writeMidi(notes, { tempoBpm: 120 });
+  const result = await catalog.ingestSource({ baseId: id, buf: sourceBuf, title: "Before", artist: "Tester", contentType: "standard" });
+  expect(result.error).toBeUndefined();
+  const api = await import("./catalog-api");
+  const row = catalog.getSongsByBase(id).find((item) => item.level === "a")!;
+  const before = (await api.loadSongArtifact(row)).data!;
+  expect(before.sourceFingerprint).toBeTruthy();
+  const sidecar = join(root, "artifacts", id, "chord-timeline.json");
+  const bytes = JSON.stringify({ schemaVersion: 1, baseId: id, title: "Before", artist: "Tester", timeSig: [4, 4], durationBeats: 16,
+    chords: [{ beat: 0, durationBeats: 16, name: "F#m", notes: [42, 45, 49], sourceKind: "inferred" }],
+    provenance: { sourceId: "prepared", provider: "keyspilli", kind: "midi-derived", sourceRef: `prepared:${before.sourceFingerprint}` } });
+  await writeFile(sidecar, bytes);
+
+  await update.applySongMetadata(id, { title: "After" });
+
+  expect(await readFile(sidecar, "utf8")).toBe(bytes);
+  const after = (await api.loadSongArtifact(catalog.getSongsByBase(id).find((item) => item.level === "a")!)).data!;
+  const projected = await api.withChordSources(after, id, "a");
+  expect(projected.chordProvenance?.sourceRef).toBe(`prepared:${after.sourceFingerprint}`);
+
+  const replay = await catalog.ingestSource({ baseId: id, buf: sourceBuf, title: "Again", artist: "Tester", contentType: "standard" });
+  expect(replay.error).toBeUndefined();
+  const reloaded = (await api.loadSongArtifact(catalog.getSongsByBase(id).find((item) => item.level === "a")!)).data!;
+  const replayed = await api.withChordSources(reloaded, id, "a");
+  expect(await readFile(sidecar, "utf8")).toContain(`prepared:${reloaded.sourceFingerprint}`);
+  expect(replayed.chordProvenance?.sourceRef).toBe(`prepared:${reloaded.sourceFingerprint}`);
+
+  const accepted = await readFile(sidecar, "utf8");
+  const changed = midi.writeMidi(notes.map((note, i) => i === 0 ? { ...note, midi: 72 } : note), { tempoBpm: 120 });
+  const incompatible = await catalog.ingestSource({ baseId: id, buf: changed, title: "Different source", artist: "Tester", contentType: "standard" });
+  expect(incompatible.error).toMatch(/SOURCE_REVIEW_REQUIRED/);
+  expect(await readFile(sidecar, "utf8")).toBe(accepted);
+  expect(catalog.getSongsByBase(id).every((item) => item.title === "Again")).toBe(true);
+  await expect(update.applySongMetadata(id, { key: "D" })).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/SOURCE_REVIEW_REQUIRED/) });
+  expect(await readFile(sidecar, "utf8")).toBe(accepted);
+
+  const interrupted = await catalog.ingestSource({ baseId: id, buf: sourceBuf, title: "Interrupted", artist: "Tester", contentType: "standard" },
+    { beforeReplace: () => { throw new Error("injected failure"); } });
+  expect(interrupted.error).toContain("injected failure");
+  expect(await readFile(sidecar, "utf8")).toBe(accepted);
+
+  let competing: Promise<unknown> | undefined;
+  const winner = await catalog.ingestSource({ baseId: id, buf: sourceBuf, title: "Raced", artist: "Tester", contentType: "standard" },
+    { beforeReplace: () => { competing = update.applySongMetadata(id, { title: "Metadata" }).catch((error) => error); } });
+  expect(winner.error).toBeUndefined();
+  await competing;
+  const finalRow = catalog.getSongsByBase(id).find((item) => item.level === "a")!;
+  const finalData = (await api.loadSongArtifact(finalRow)).data!;
+  const finalProjection = await api.withChordSources(finalData, id, "a");
+  expect(finalProjection.chordProvenance?.sourceRef).toBe(`prepared:${finalData.sourceFingerprint}`);
+});
