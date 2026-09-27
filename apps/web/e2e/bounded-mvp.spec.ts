@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openPlayerTool } from "./player-tools";
 
 test.describe.configure({ mode: "serial" });
 
@@ -85,6 +86,29 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   await page.evaluate((songId) => localStorage.setItem(`keyspilli.song-prefs.v1:${songId}`, JSON.stringify({ transpose: 0 })), veryEasyId!);
   await page.reload();
   await expect(page.getByText(/Sheet Music stays in the original key/)).toHaveCount(0);
+});
+
+test("synthetic player seeks, loops, and keeps transpose within saved bounds", async ({ page, request }) => {
+  const songs = (await (await request.get(UPLOAD_QUERY)).json()).songs as Array<{ id: string; difficulty: string }>;
+  const easyId = songs.find((song) => song.difficulty === "easy")?.id;
+  expect(easyId).toBeTruthy();
+  await page.goto(`/player/${easyId}`);
+  const seek = page.getByRole("slider", { name: "Seek" });
+  await expect(seek).toBeEnabled();
+  await seek.fill("1");
+  await expect(seek).toHaveValue("1");
+  await page.locator(".player-loop-controls summary").click();
+  await page.getByRole("button", { name: "Enable loop" }).click();
+  await expect(page.getByRole("button", { name: "Clear loop" })).toBeVisible();
+  await openPlayerTool(page, "Display");
+  const display = page.getByRole("dialog", { name: "Display settings" });
+  const up = display.getByRole("button", { name: "Transpose up" });
+  for (let i = 0; i < 24; i++) await up.click();
+  await expect(up).toBeDisabled();
+  await expect(display.getByLabel("Transpose", { exact: true })).toContainText("(+24)");
+  await page.reload();
+  await openPlayerTool(page, "Display");
+  await expect(page.getByRole("dialog", { name: "Display settings" }).getByRole("button", { name: "Transpose up" })).toBeDisabled();
 });
 
 test("upload rejects oversize files, freezes details while busy, and retries", async ({ page }) => {

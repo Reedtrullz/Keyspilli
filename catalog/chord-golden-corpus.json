@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "purpose": "Owner-accepted working Chords backing references, including bounded excerpts; further polish is expected. This is not the ten-song musical release gate.",
+  "purpose": "Owner-accepted working Chords backing references, including bounded excerpts. Full playback digests are candidate observations until acceptedPlaybackSha256 is independently reviewed and pinned. This is not the ten-song musical release gate.",
   "baselineCommit": "2faf8b9ab33f73c78ad9e23792de7cce530906b8",
   "entries": [
     {

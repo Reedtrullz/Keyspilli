@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import { resolveAccompaniment, type SongData } from "@keyspilli/player-core";
 import { replayChordsBacking } from "../components/player/chords-backing";
 import { evaluateChordsBacking, evaluateVisibleChords, gateChordsBacking, snapshotChordsBacking, type AdvancedRow } from "./chords-evaluation";
@@ -41,6 +42,18 @@ describe("Chords backing replay", () => {
     expect(snapshotChordsBacking(data, replay)).not.toEqual(full);
     expect(replay.resolution.notes[0]!.dur).toBe(4);
     for (const end of [0, -1, NaN, Infinity, 9]) expect(() => snapshotChordsBacking(data, replay, end)).toThrow();
+  });
+
+  it("changes the full playback digest when a generated note changes but legacy chords do not", () => {
+    const data = song();
+    const replay = replayChordsBacking(data);
+    replay.resolution.notes = [{ midi: 48, start: 0, dur: 1, vel: 80, hand: "L" }];
+    const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+    const legacy = digest(replay.resolution.chords.map((chord) => [chord.beat, chord.name, chord.notes]));
+    const before = digest(snapshotChordsBacking(data, replay));
+    replay.resolution.notes[0]!.midi = 49;
+    expect(digest(replay.resolution.chords.map((chord) => [chord.beat, chord.name, chord.notes]))).toBe(legacy);
+    expect(digest(snapshotChordsBacking(data, replay))).not.toBe(before);
   });
 
   it("resolves the Player's Auto timeline into the bass-chords backing", () => {

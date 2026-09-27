@@ -16,13 +16,17 @@ const checkedAt = new Date().toISOString();
 
 const hash = (value: Uint8Array | string) => createHash("sha256").update(value).digest("hex");
 const corpus = JSON.parse(readFileSync(resolve(ROOT, "catalog/chord-golden-corpus.json"), "utf8")) as {
-  entries: Array<{ baseId: string; level: string; sourceId: string; advancedNotesSha256: string; timelineSha256: string; acceptedBackingSha256?: string; acceptedEndBeatExclusive?: number }>;
+  entries: Array<{ baseId: string; level: string; sourceId: string; advancedNotesSha256: string; timelineSha256: string; acceptedBackingSha256?: string; acceptedPlaybackSha256?: string; acceptedEndBeatExclusive?: number }>;
 };
 const sources = JSON.parse(readFileSync(resolve(ROOT, "catalog/chord-sources.json"), "utf8")) as {
   entries: Array<{ baseId: string; sources: Array<{ id: string; artifactPath?: string }> }>;
 };
 let drift = 0;
+let playbackDrift = 0;
 for (const entry of corpus.entries) {
+  if (entry.acceptedPlaybackSha256 !== undefined && !/^[a-f0-9]{64}$/.test(entry.acceptedPlaybackSha256)) {
+    throw new Error(`${entry.baseId}: invalid acceptedPlaybackSha256`);
+  }
   const source = sources.entries.find((item) => item.baseId === entry.baseId)?.sources.find((item) => item.id === entry.sourceId);
   if (!source?.artifactPath) throw new Error(`${entry.baseId}: source map does not resolve ${entry.sourceId}`);
   if (hash(readFileSync(resolve(ROOT, source.artifactPath))) !== entry.timelineSha256) throw new Error(`${entry.baseId}: timeline hash changed`);
@@ -54,10 +58,14 @@ for (const entry of corpus.entries) {
   if (status !== "MATCH") drift++;
   // Legacy acceptance hashes remain unchanged; they omit clocks and (for full songs) notes.
   const snapshot = snapshotChordsBacking(data, replay, end);
+  const observedPlaybackSha256 = hash(JSON.stringify(snapshot));
+  const playbackStatus = !entry.acceptedPlaybackSha256 ? "UNPINNED"
+    : observedPlaybackSha256 === entry.acceptedPlaybackSha256 ? "MATCH" : "DRIFT";
+  if (playbackStatus !== "MATCH") playbackDrift++;
   const observation = { baseId: entry.baseId, status, accepted: entry.acceptedBackingSha256 ?? null, actual,
     strikes: acceptedChords.length,
     notes: snapshot.notes.length, tempoBpm: snapshot.tempoBpm, endBeatExclusive: snapshot.endBeatExclusive,
-    observedPlaybackSha256: hash(JSON.stringify(snapshot)),
+    observedPlaybackSha256, acceptedPlaybackSha256: entry.acceptedPlaybackSha256 ?? null, playbackStatus,
     ...(end === undefined ? {} : { acceptedEndBeatExclusive: end }) };
   console.log(JSON.stringify(observation));
   if (outputDir) writeFileSync(resolve(outputDir, `${entry.baseId}.json`), JSON.stringify({
@@ -67,3 +75,4 @@ for (const entry of corpus.entries) {
   }, null, 2) + "\n");
 }
 if (process.argv.includes("--require-match") && drift) process.exitCode = 1;
+if (process.argv.includes("--require-playback-match") && playbackDrift) process.exitCode = 1;

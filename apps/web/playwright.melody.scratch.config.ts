@@ -1,12 +1,15 @@
 import { defineConfig } from "@playwright/test";
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const sourceRoot = "/Users/reidar/Projectos/Keyspilli/data";
-const reservedFixtureRoot = "/Users/reidar/.codex/worktrees/musically-useful-chords-mode/docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures";
+const sourceRoot = process.env.KEYSPILLI_E2E_SOURCE_ROOT;
+const reservedFixtureRoot = process.env.KEYSPILLI_E2E_RESERVED_FIXTURE_ROOT;
+if (!sourceRoot || !reservedFixtureRoot || !existsSync(sourceRoot) || !existsSync(reservedFixtureRoot)) {
+  throw new Error("Private melody fixtures are opt-in: set KEYSPILLI_E2E_SOURCE_ROOT and KEYSPILLI_E2E_RESERVED_FIXTURE_ROOT to existing fixture directories.");
+}
 const scratchDataDir = mkdtempSync(join(tmpdir(), "keyspilli-web-e2e-"));
 const reservedSourceHashes: Record<string, { notes: string; sourceArtifact: string }> = {
   "w-h-doane-near-the-cross": {
@@ -29,6 +32,7 @@ const reservedSourceHashes: Record<string, { notes: string; sourceArtifact: stri
 for (const [baseId, expected] of Object.entries(reservedSourceHashes)) {
   const notesPath = join(reservedFixtureRoot, baseId, "a", "notes.json");
   const manifestPath = join(reservedFixtureRoot, baseId, "manifest.json");
+  if (!existsSync(notesPath) || !existsSync(manifestPath)) throw new Error(`Missing reserved fixture ${baseId} under KEYSPILLI_E2E_RESERVED_FIXTURE_ROOT`);
   const notesHash = createHash("sha256").update(readFileSync(notesPath)).digest("hex");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { sourceArtifactHash?: string };
   if (notesHash !== expected.notes || manifest.sourceArtifactHash !== expected.sourceArtifact) {
@@ -123,6 +127,7 @@ const songs = fixtures.map((fixture) => {
   const manifestPath = fixture.sourceRoot
     ? join(fixtureRoot, fixture.baseId, "manifest.json")
     : join(fixtureRoot, "artifacts", fixture.baseId, "manifest.json");
+  if (!existsSync(sourceVariantDir) || !existsSync(manifestPath)) throw new Error(`Missing private fixture ${fixture.baseId} under ${fixture.sourceRoot ? "KEYSPILLI_E2E_RESERVED_FIXTURE_ROOT" : "KEYSPILLI_E2E_SOURCE_ROOT"}`);
   cpSync(sourceVariantDir, join(scratchDataDir, "artifacts", fixture.baseId, "a"), { recursive: true });
   const scratchManifestPath = join(scratchDataDir, "artifacts", fixture.baseId, "manifest.json");
   cpSync(manifestPath, scratchManifestPath);

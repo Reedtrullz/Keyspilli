@@ -29,8 +29,9 @@ export function DownloadDialog({
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
     dialog.showModal();
-    return () => dialog.close();
+    return () => { dialog.close(); previousFocus?.focus(); };
   }, []);
 
   useEffect(() => {
