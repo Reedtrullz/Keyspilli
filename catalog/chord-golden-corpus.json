@@ -93,6 +93,15 @@
       "timelineSha256": "e13eb191dcdcbf615a4e81c56061a633742042b48bddb1bf7a7ddacc0c21db21",
       "acceptedBackingSha256": "5c1e5478045f1e595b1d693d092ca092d31c60fd850dbb0fa178338ca86bab64",
       "acceptedAt": "2026-09-27"
+    },
+    {
+      "baseId": "the-beatles-help",
+      "level": "a",
+      "sourceId": "ug-help",
+      "advancedNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55",
+      "timelineSha256": "d6f0dd1eaa35b15e653e5a059d700644f2a99da7f94200b6ac0c87ec21350ae7",
+      "acceptedBackingSha256": "30e839d9f77a887f853cff96b54259125099aa34fc16c35bc633e64462195331",
+      "acceptedAt": "2026-09-27"
     }
   ]
 }
