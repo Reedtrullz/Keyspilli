@@ -12,6 +12,10 @@ Implementation branch: `codex/audit-remediation`, based on audited `origin/main`
 | #120 publication cancellation | Implemented locally | Job link and six rows commit in one DB transaction under artifact lock; cancellation before/after fence and journal replay fixtures passed; queued-only deletion | Live worker concurrency remains unverified |
 | #132 retry states | Implemented locally | SQL retry transition excludes active, complete, review and reconciliation states; route tests passed | None for tested states |
 | #136 handoff confirmation | Implemented locally | Atomic read/affirm transition preserves accepted upload hash and binding across delayed and duplicate confirmation | None for tested states |
-| #114–#123 except #120, #128–#136 except #132/#136, remaining #119 items | Pending | See implementation plan and audit reports in this checkout | Engineering fixes and independent checks |
+| #118 source-search timeout | Implemented locally | 100 ms stalled-header and stalled-body fixtures both abort/retry; normal provider tests pass | Live provider behavior unverified |
+| #134 PDF export isolation | Implemented locally | Two-export abort and timeout fixtures retain shared Chromium; late page closes; pre-launch abort tested | Production Chromium not exercised |
+| #135 notation cache identity | Implemented locally | Worker protocol A→oversized B→A and failed B replay confirm cached/uncached A pages | Real WASM workload beyond browser warm-up check unverified |
+| #119 notation deadline | Implemented locally | Worker timeout settles all pending requests and invalidates old sessions; Playwright warm-up rejection reaches error state without page error | Full cross-browser check pending |
+| #114–#123 except #118/#120, #128–#136 except #132/#134/#135/#136, remaining #119 items | Pending | See implementation plan and audit reports in this checkout | Engineering fixes and independent checks |
 
 Musical acceptance, live backup measurements, merge and deployment are separate owner gates. Tests and synthetic fixtures do not establish them.

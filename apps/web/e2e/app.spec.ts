@@ -156,6 +156,30 @@ test("Your Song Sheet Music virtualizes SVG pages and renders the last page on s
   expect(await page.evaluate(() => (window as unknown as { __sheetError?: string }).__sheetError)).toBeFalsy();
 });
 
+test("sheet warm-up rejection reaches the visible error state", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", error => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    window.Worker = class extends NativeWorker {
+      postMessage(message: unknown, transfer: Transferable[]): void;
+      postMessage(message: unknown, options?: StructuredSerializeOptions): void;
+      postMessage(message: unknown, options?: Transferable[] | StructuredSerializeOptions): void {
+        const request = message as { id?: number; type?: string; page?: number };
+        if (request.type === "renderPage" && request.page === 2) {
+          queueMicrotask(() => this.onmessage?.(new MessageEvent("message", { data: { id: request.id, type: "error", error: "warm-up failed" } })));
+          return;
+        }
+        super.postMessage(message, options as StructuredSerializeOptions);
+      }
+    };
+  });
+  await page.goto(`/player/${UG_SONG}/sheet`);
+  await expect(page.locator(".sheet-svg__error")).toContainText("warm-up failed", { timeout: 10_000 });
+  expect(await page.evaluate(() => (window as unknown as { __sheetReady?: boolean }).__sheetReady)).toBe(false);
+  expect(pageErrors).toEqual([]);
+});
+
 test("direct sheet routes start with a metadata shell and load player data on mode switch", async ({ page }) => {
   let detailRequests = 0;
   page.on("request", (request) => {

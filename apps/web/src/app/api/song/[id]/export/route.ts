@@ -146,10 +146,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         cancelled = true;
         reject(new PdfRenderError("PDF render deadline or cancellation"));
         if (page) void page.close().catch(() => undefined);
-        else if (browser) {
-          browserPromise = null;
-          void browser.close().catch(() => undefined);
-        }
       };
     });
     const timer = setTimeout(cancel, 90_000);

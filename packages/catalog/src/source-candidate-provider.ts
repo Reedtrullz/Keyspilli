@@ -136,30 +136,33 @@ async function braveQuery(
   endpoint.searchParams.set("search_lang", "en");
 
   for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
-    let response: Response;
+    let response: Response | undefined;
+    let body: unknown;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), options.timeoutMs);
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), options.timeoutMs);
-      try {
-        response = await options.fetchImpl(endpoint, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Accept-Encoding": "gzip",
-            "X-Subscription-Token": options.apiKey,
-          },
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timer);
-      }
+      response = await options.fetchImpl(endpoint, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Accept-Encoding": "gzip",
+          "X-Subscription-Token": options.apiKey,
+        },
+        signal: controller.signal,
+      });
+      if (response.ok) body = await response.json();
     } catch (error) {
+      if (response && !controller.signal.aborted) throw new Error("Brave response JSON is malformed");
       if (attempt < RETRIES) {
+        clearTimeout(timer);
         await options.sleep(options.retryDelayMs * (attempt + 1));
         continue;
       }
       throw new Error(`Brave request failed: ${error instanceof Error ? error.name : "network error"}`);
+    } finally {
+      clearTimeout(timer);
     }
+    if (!response) throw new Error("Brave request failed");
     if (transientStatus(response.status) && attempt < RETRIES) {
       await options.sleep(options.retryDelayMs * (attempt + 1));
       continue;
@@ -167,12 +170,6 @@ async function braveQuery(
     if (!response.ok) {
       if (response.status === 429) throw new SourceCandidateProviderError("SOURCE_SEARCH_RATE_LIMITED");
       throw new Error(`Brave request failed with status ${response.status}`);
-    }
-    let body: unknown;
-    try {
-      body = await response.json();
-    } catch {
-      throw new Error("Brave response JSON is malformed");
     }
     return responseResults(body);
   }
