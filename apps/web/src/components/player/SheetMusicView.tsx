@@ -311,7 +311,6 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
         </select></label>
         <button className="min-h-11 rounded border border-zinc-300 bg-white px-3" onClick={() => setZoom(100)}>Fit width</button>
         <span>Page {activePage} of {pageCount}</span>
-        <span className="text-xs text-zinc-600">Original score · audio transpose does not change notation</span>
       </div>}
       {mountedPages.map((page) => {
         const svg = pages[page];

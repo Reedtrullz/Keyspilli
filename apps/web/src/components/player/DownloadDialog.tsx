@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 export function DownloadDialog({
   songId,
   hasSheetXml,
   backgroundMode = "piano",
+  transpose = 0,
   onClose,
 }: {
   songId: string;
   hasSheetXml: boolean;
   backgroundMode?: "piano" | "chord";
+  transpose?: number;
   onClose: () => void;
 }) {
   const items = [
@@ -20,76 +22,33 @@ export function DownloadDialog({
     { label: "MusicXML", desc: "Edit in MuseScore or any notation app", href: `/api/song/${songId}/export?type=musicxml`, enabled: true },
   ];
 
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const { requestClose, visible, closing } = useDialogMotion(onClose);
   const motion = dialogMotionClasses(visible, closing);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (closing) dialog.setAttribute("inert", "");
-    else dialog.removeAttribute("inert");
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+
+  useEffect(() => {
+    if (closing) dialogRef.current?.setAttribute("inert", "");
   }, [closing]);
 
-  // Escape to close.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !closing) {
-        e.stopPropagation();
-        requestClose();
-      }
-    };
-    window.addEventListener("keydown", onKey, true);
-    const el = dialogRef.current;
-    if (!el || closing) return () => window.removeEventListener("keydown", onKey, true);
-    const onFocusIn = (e: FocusEvent) => {
-      if (!el.contains(e.target as Node)) {
-        el.focus();
-      }
-    };
-    document.addEventListener("focusin", onFocusIn);
-    return () => {
-      window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("focusin", onFocusIn);
-    };
-  }, [closing, requestClose]);
-
-  function handleDialogKeyDown(e: React.KeyboardEvent) {
-    if (e.key !== "Tab") return;
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])"
-    );
-    if (!focusable || focusable.length === 0) return;
-    const first = focusable[0]!;
-    const last = focusable[focusable.length - 1]!;
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  }
-
   return (
-    <div
-      className={`fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 ${motion.overlay}`}
+    <dialog
+      className={`fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl backdrop:bg-black/40 ${motion.panel}`}
       ref={dialogRef}
-      tabIndex={-1}
-      role="dialog"
       aria-hidden={closing}
-      aria-modal="true"
       aria-label="Download sheet music or MIDI"
-      onKeyDown={handleDialogKeyDown}
+      onCancel={(event) => { event.preventDefault(); requestClose(); }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) requestClose();
       }}
     >
-      <div className={`bg-white rounded-2xl w-full max-w-md p-5 shadow-xl ${motion.panel}`}>
+      <div>
         <div className="flex justify-between items-center mb-1">
           <h2 className="font-semibold">Download</h2>
           <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
@@ -100,6 +59,9 @@ export function DownloadDialog({
             Downloads use the stored Original arrangement. Chord mode changes playback and guidance only.
           </p>
         )}
+        {transpose !== 0 && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
+          Downloads stay in the original key; playback is transposed {transpose > 0 ? `+${transpose}` : transpose} semitones.
+        </p>}
         <div className="space-y-2">
           {items.map((it) => (
             <a
@@ -120,6 +82,6 @@ export function DownloadDialog({
           Done
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -64,6 +64,27 @@ test("scratch upload creates an Easy player with public levels and exports", asy
     expect(bytes.byteLength, `${type} export bytes`).toBeGreaterThan(32);
     if (type.startsWith("pdf")) expect(bytes.subarray(0, 4).toString()).toBe("%PDF");
   }
+
+  await page.evaluate((songId) => localStorage.setItem(`keyspilli.song-prefs.v1:${songId}`, JSON.stringify({ transpose: 2 })), veryEasyId!);
+  await page.goto(`/player/${veryEasyId}/sheet`);
+  await expect(page.getByText(/Sheet Music stays in the original key/)).toBeVisible();
+  const trigger = page.getByRole("button", { name: /Download sheet music and MIDI/ });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Download sheet music or MIDI" });
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate((element) => (element as HTMLDialogElement).open)).toBe(true);
+  await expect(dialog.getByText(/Downloads stay in the original key/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).focus();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("link", { name: /Simplify PDF/ })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await page.evaluate((songId) => localStorage.setItem(`keyspilli.song-prefs.v1:${songId}`, JSON.stringify({ transpose: 0 })), veryEasyId!);
+  await page.reload();
+  await expect(page.getByText(/Sheet Music stays in the original key/)).toHaveCount(0);
 });
 
 test("scratch upload reports malformed symbolic content without publishing", async ({ page, request }) => {

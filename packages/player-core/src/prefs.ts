@@ -12,6 +12,8 @@ const SOUND_SOURCES = ["synth", "sampled", "organ"] as const;
 const ORGAN_ROTARY_SPEEDS = ["slow", "fast"] as const;
 const ORGAN_STYLES = ["rock", "cathedral"] as const;
 const ORGAN_REGISTRATIONS = ["warm", "clear", "full"] as const;
+export const TRANSPOSE_MIN = -24;
+export const TRANSPOSE_MAX = 24;
 
 export const DEFAULT_SETTINGS: PlayerSettings = {
   voiceGain: 1,
@@ -102,7 +104,7 @@ export function loadSettings(): PlayerSettings {
       sustainPedal: pickBool(raw.sustainPedal, DEFAULT_SETTINGS.sustainPedal),
       hand: pickEnum(raw.hand, HANDS, DEFAULT_SETTINGS.hand),
       speed: clampNum(raw.speed, 0.25, 4, DEFAULT_SETTINGS.speed),
-      transpose: clampNum(Math.trunc(Number(raw.transpose)), -24, 24, DEFAULT_SETTINGS.transpose),
+      transpose: clampNum(Math.trunc(Number(raw.transpose)), TRANSPOSE_MIN, TRANSPOSE_MAX, DEFAULT_SETTINGS.transpose),
       mode: pickEnum(raw.mode, VIEW_MODES, DEFAULT_SETTINGS.mode),
       showAllKeys: pickBool(raw.showAllKeys, DEFAULT_SETTINGS.showAllKeys),
       keyboardLabels: pickEnum(raw.keyboardLabels, ["notes", "octaves", "off"] as const, DEFAULT_SETTINGS.keyboardLabels),
@@ -162,7 +164,7 @@ export function loadSongPrefs(songId: string): SongPrefs {
     }
     if (raw.transpose !== undefined) {
       const n = Number(raw.transpose);
-      if (Number.isFinite(n)) out.transpose = clampNum(Math.trunc(n), -24, 24, 0);
+      if (Number.isFinite(n)) out.transpose = clampNum(Math.trunc(n), TRANSPOSE_MIN, TRANSPOSE_MAX, 0);
     }
     if (typeof raw.mode === "string") out.mode = raw.mode;
     if (HANDS.includes(raw.hand as (typeof HANDS)[number])) out.hand = raw.hand as SongPrefs["hand"];

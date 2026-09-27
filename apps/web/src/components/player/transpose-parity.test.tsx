@@ -4,6 +4,9 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS, resolveTimedNotes, type SongData } from "@keyspilli/player-core";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
+import { ChordStrip } from "./ChordStrip";
+import { DownloadDialog } from "./DownloadDialog";
+import { projectActionableChordShapes } from "./chord-practice";
 
 const TRANSPOSE = 2;
 
@@ -51,6 +54,28 @@ describe("transpose visual/audio parity", () => {
     const expected = midis.map((midi) => 28 + ((hi - midi) / (hi - lo || 1)) * (240 - 80));
     expect(ys).toHaveLength(expected.length);
     expected.forEach((y, i) => expect(ys[i]).toBeCloseTo(y, 5));
+  });
+
+  it("transposes chord names and slash bass once in every live view", () => {
+    const chords = [{ beat: 0, name: "C/E", notes: [52, 55, 60], durationBeats: 4 }];
+    const projected = projectActionableChordShapes(chords, chords, 2);
+    expect(projected).toMatchObject([{ name: "D/F#", notes: [54, 57, 62] }]);
+    expect(chords[0]!.name).toBe("C/E");
+    expect(renderToStaticMarkup(createElement(ChordStrip, { chords: projected, currentBeat: 0 }))).toContain("D/F#");
+    const letters = renderToStaticMarkup(createElement(BeginnerView, { data, time: 0, settings, chords }));
+    expect(letters).toContain("D/F#");
+    expect(letters).toContain("D4");
+    const lead = renderToStaticMarkup(createElement(LeadSheetView, { data, time: 0, settings, chords }));
+    expect(lead).toContain("D/F#");
+    expect(lead).toContain("D4");
+  });
+
+  it("explains original-key downloads only when playback is transposed", () => {
+    const render = (transpose: number) => renderToStaticMarkup(createElement(DownloadDialog, {
+      songId: "song", hasSheetXml: true, transpose, onClose: () => {},
+    }));
+    expect(render(2)).toContain("original key");
+    expect(render(0)).not.toContain("original key");
   });
 });
 

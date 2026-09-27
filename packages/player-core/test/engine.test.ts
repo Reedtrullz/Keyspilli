@@ -556,6 +556,17 @@ describe("PlaybackEngine", () => {
     expect(eng.previewPlan(0.05, 0.1).chords[0]?.durationSec).toBeCloseTo(0.05);
   });
 
+  it("does not send out-of-MIDI-range transposed pitches to audio or previews", () => {
+    const audio = new FakeAudio();
+    const eng = new PlaybackEngine(audio, [{ midi: -1, startSec: 0, durSec: 0.5, vel: 80 }], 1, SONG,
+      { ...DEFAULT_SETTINGS, backgroundMode: "chord", transpose: -24 },
+      [{ beat: 0, durationBeats: 1, name: "C", notes: [0, 60] }]);
+    eng.start();
+    expect(audio.noteOns).toHaveLength(0);
+    expect(audio.playedChords[0]?.midiNotes).toEqual([36]);
+    expect(eng.previewPlan(0, 0.5).notes).toHaveLength(0);
+  });
+
   it("converts a deduped next-onset span at the active tempo", () => {
     const chords = dedupeChords([
       { beat: 0, name: "C", notes: [48, 52, 55], sourceKind: "generated" as const },

@@ -347,6 +347,7 @@ export class PlaybackEngine {
     if (end <= start + 1e-6) return { notes: [], chords: [] };
 
     const notes = this.notes.flatMap((note) => {
+      if (!Number.isInteger(note.midi) || note.midi < 0 || note.midi > 127) return [];
       const noteEnd = note.startSec + note.durSec;
       const visibleStart = Math.max(start, note.startSec);
       const visibleEnd = Math.min(end, noteEnd);
@@ -401,6 +402,7 @@ export class PlaybackEngine {
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
+      if (!Number.isInteger(n.midi) || n.midi < 0 || n.midi > 127) continue;
       const durSec = Math.min(n.durSec, endpoint - n.startSec);
       if (durSec > 0) this.audio.noteOn(durSec === n.durSec ? n : { ...n, durSec }, Math.max(0, n.startSec - this.time));
     }
@@ -483,7 +485,8 @@ export class PlaybackEngine {
 
   private chordMidiNotes(chord: ChordPlaybackLabel): number[] {
     if (!this.isPlayable(chord)) return [];
-    const transposed = chord.notes.map((midi) => midi + this.settings.transpose);
+    const transposed = chord.notes.map((midi) => midi + this.settings.transpose)
+      .filter((midi) => Number.isInteger(midi) && midi >= 0 && midi <= 127);
     return [...new Set(transposed)].sort((a, b) => a - b);
   }
 

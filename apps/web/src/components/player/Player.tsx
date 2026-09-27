@@ -31,6 +31,8 @@ import {
   saveSongPrefs,
   secPerBeat,
   DEFAULT_SETTINGS,
+  TRANSPOSE_MIN,
+  TRANSPOSE_MAX,
   type LoopRegion,
   type MelodyPhraseOverride,
   type MelodyAccompanimentResolution,
@@ -51,7 +53,7 @@ import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/mid
 import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
-import { buildChordPracticeTargets, projectActionableChordShapes, selectPracticeChords } from "./chord-practice";
+import { buildChordPracticeTargets, displayChordName, projectActionableChordShapes, selectPracticeChords } from "./chord-practice";
 import {
   buildMelodyArrangementOptions,
   auditionNotesForRole,
@@ -386,7 +388,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const keyboardInputRef = useRef<KeyboardInput | null>(null);
   const midiInputRef = useRef<MidiInput | null>(null);
 
-  const songKeyLabel = activeData.key;
+  const songKeyLabel = displayChordName(activeData.key, settings.transpose);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [learned, setLearned] = useState<string[]>([]);
   const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>("auto");
@@ -807,7 +809,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const visualChords = useMemo(
     () => settings.backgroundMode === "chord"
       ? projectActionableChordShapes(displayChords, actionableChords, settings.transpose)
-      : displayChords.map((c) => ({ ...c, notes: c.notes.map((midi) => midi + settings.transpose) })),
+      : displayChords.map((c) => ({ ...c, name: displayChordName(c.name, settings.transpose), notes: c.notes.map((midi) => midi + settings.transpose) })),
     [actionableChords, displayChords, settings.backgroundMode, settings.transpose],
   );
 
@@ -1366,7 +1368,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           : [];
         return {
           notes: resolveTimedNotes({ ...activeData, notes: auditionNotes }, settings.speed, settings.transpose)
-            .filter((note) => noteMatchesHand(note, settings.hand))
+            .filter((note) => noteMatchesHand(note, settings.hand) && Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127)
             .flatMap((note) => {
               const noteEnd = note.startSec + note.durSec;
               const visibleStart = Math.max(boundedStartSec, note.startSec);
@@ -1405,6 +1407,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (p.backgroundMode === "chord" && initial.chordUnavailableReason) return;
     if (p.accompanimentStyle === "melody-accompaniment" && sourceBackingNotes) return;
     const next = { ...settings, ...p };
+    if (p.transpose !== undefined) next.transpose = Number.isFinite(p.transpose)
+      ? Math.max(TRANSPOSE_MIN, Math.min(TRANSPOSE_MAX, Math.trunc(p.transpose))) : settings.transpose;
     if (next.backgroundMode === "chord" && sourceBackingNotes) next.accompanimentStyle = "bass-chords";
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
@@ -1869,6 +1873,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       {viewMode === "leadsheet" && <LeadSheetView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
       {viewMode === "sheet" && (
         <div>
+          {settings.transpose !== 0 && (
+            <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
+              Sheet Music stays in the original key; playback is transposed {settings.transpose > 0 ? `+${settings.transpose}` : settings.transpose} semitones.
+            </p>
+          )}
           {settings.backgroundMode === "chord" && (
             <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
               Sheet Music shows the stored Original arrangement while Chord mode is selected. Use Fall Down or Note letters for the active guidance.
@@ -2119,11 +2128,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             Full width
           </button>
           <div className="player-advanced-inline flex items-center gap-1" aria-label="Transpose">
-            <button disabled={grading} onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose down">−</button>
+            <button disabled={grading || settings.transpose <= TRANSPOSE_MIN} onClick={() => updateSettings({ transpose: settings.transpose - 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose down">−</button>
             <span className="px-2 text-xs font-medium">
               Key {songKeyLabel} {settings.transpose ? `(${settings.transpose > 0 ? "+" : ""}${settings.transpose})` : ""}
             </span>
-            <button disabled={grading} onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose up">+</button>
+            <button disabled={grading || settings.transpose >= TRANSPOSE_MAX} onClick={() => updateSettings({ transpose: settings.transpose + 1 })} className="pressable min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Transpose up">+</button>
             {settings.transpose !== 0 && (
               <button disabled={grading} onClick={() => updateSettings({ transpose: 0 })} className="pressable min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs text-zinc-500" aria-label="Reset transpose">
                 Reset
@@ -2330,7 +2339,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} onClose={() => {
+      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}
@@ -2366,6 +2375,10 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuPresence = usePresence(showModeMenu);
   const [showDownload, setShowDownload] = useState(false);
+  const [savedTranspose, setSavedTranspose] = useState(0);
+  useEffect(() => {
+    setSavedTranspose(loadSongPrefs(initial.song.id).transpose ?? loadSettings().transpose);
+  }, [initial.song.id]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modeMenuIdx, setModeMenuIdx] = useState(-1);
@@ -2651,6 +2664,9 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
           )}
         </div>
         <div className="player-stage relative" role="region" aria-label="Player stage — Sheet Music">
+          {savedTranspose !== 0 && <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
+            Sheet Music stays in the original key; playback is transposed {savedTranspose > 0 ? `+${savedTranspose}` : savedTranspose} semitones.
+          </p>}
           <SheetMusicView songId={initial.song.id} />
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">Sheet Music view active</p>
         </div>
@@ -2673,7 +2689,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
         </section>
       )}
 
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} onClose={() => {
+      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} transpose={savedTranspose} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}

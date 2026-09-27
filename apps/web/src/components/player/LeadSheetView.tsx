@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { measureIndex, pitchColor, playbackMeasures, secPerBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
+import { displayChordName } from "./chord-practice";
 
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -45,8 +46,8 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
       const duration = chord.durationBeats;
       const end = Math.min(chord.beat + (duration ?? 0), ordered[index + 1]?.beat ?? Infinity);
       return Number.isFinite(duration) && duration! > 0 && end > m.startBeat;
-    }).map((chord) => ({ chord, provenance: chordProvenance(chord) }));
-  }, [chords, m.startBeat, m.endBeat]);
+    }).map((chord) => ({ chord: { ...chord, name: displayChordName(chord.name, settings.transpose) }, provenance: chordProvenance(chord) }));
+  }, [chords, m.startBeat, m.endBeat, settings.transpose]);
 
   return (
     <div className="overflow-x-auto">

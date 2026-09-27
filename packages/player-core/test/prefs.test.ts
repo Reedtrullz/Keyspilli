@@ -47,6 +47,8 @@ describe("loadSettings", () => {
     const s = loadSettings();
     expect(s.voiceGain).toBe(2);
     expect(s.transpose).toBe(-24);
+    store.set(KEY, JSON.stringify({ transpose: 100 }));
+    expect(loadSettings().transpose).toBe(24);
   });
 
   it("uses defaults for NaN-like values", () => {
