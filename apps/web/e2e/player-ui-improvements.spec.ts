@@ -176,6 +176,19 @@ test("lead annotations wrap without semantic text collisions at phone width", as
   await page.screenshot({ path: "output/playwright/lead-390.png" });
 });
 
+test("controls and dense lead annotations reflow at 200% zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const path of [song, `${song}/leadsheet`]) {
+    await page.goto(path);
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+    await page.evaluate(() => { document.body.style.zoom = "2"; });
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Set up practice" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  }
+});
+
 test("reading window affects only Display and preserves transport and key range", async ({ page }) => {
   await page.goto(song);
   await expect(page.getByRole("button", { name: "Piano keyboard", exact: true })).toBeVisible();

@@ -37,7 +37,7 @@ export function PracticeSetupDialog({ describeSetup, onChordPractice, initialSet
   const unavailable = setup.input === "midi" ? !midiConnected : setup.input === "microphone" && !micReady;
   return (
     <dialog ref={dialog} aria-label="Set up practice" onCancel={(event) => { event.preventDefault(); requestClose(); }}
-      className={`fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl backdrop:bg-black/40 ${motion.panel}`}>
+      className={`fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl backdrop:bg-black/40 ${motion.panel}`}>
       <h2 id="practice-setup-title" className="text-lg font-semibold mb-4">Set up practice</h2>
       <fieldset disabled={closing} className="space-y-4">
         <label className="block text-sm">Input
