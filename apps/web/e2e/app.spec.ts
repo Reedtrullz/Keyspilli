@@ -1,4 +1,4 @@
-import { openAdvancedArrangementControls, openPlayerTool } from "./player-tools";
+import { openAdvancedArrangementControls, openPlayerTool, seekToBar } from "./player-tools";
 import { expect, test } from "@playwright/test";
 import { seedMidiDir } from "../../../packages/catalog/src/paths";
 import { join } from "node:path";
@@ -358,9 +358,7 @@ test("Chords opens a short Wait exercise from the selected bar", async ({ page }
   const sound = page.getByRole("dialog", { name: "Sound settings" });
   await sound.getByRole("radio", { name: "Chord mode" }).click();
   await sound.getByRole("button", { name: "Close tools" }).click();
-  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-  await bar.fill("3");
-  await bar.press("Enter");
+  await seekToBar(page, 3);
   const startTime = await page.getByRole("slider", { name: "Seek" }).inputValue();
 
   await page.getByRole("button", { name: "Practice", exact: true }).click();

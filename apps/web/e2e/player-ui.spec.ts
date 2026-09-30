@@ -1,4 +1,4 @@
-import { openPlayerTool } from "./player-tools";
+import { openPlayerTool, seekToBar } from "./player-tools";
 import { expect, test } from "@playwright/test";
 
 const SONG = "f-f-chopin-nocturne-m";
@@ -26,7 +26,7 @@ test("transport UI advances during playback without pause", async ({ page }) => 
   const after = await timer.textContent();
   expect(after).not.toBe(before);
 
-  const seekValue = Number(await page.getByLabel("Seek").inputValue());
+  const seekValue = Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue());
   expect(seekValue).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "Pause", exact: true }).click();
@@ -138,7 +138,7 @@ test("switching sound modes preserves active transport", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.waitForTimeout(500);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   let previous = Number(await seek.inputValue());
 
   for (const sound of ["Organ", "Synth Piano", "Organ"]) {
@@ -161,7 +161,7 @@ test("switching Organ styles preserves active transport", async ({ page }) => {
   await page.getByRole("button", { name: "Close tools", exact: true }).click();
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.waitForTimeout(500);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   let previous = Number(await seek.inputValue());
 
   for (const style of ["Cathedral", "Rock", "Cathedral"]) {
@@ -186,7 +186,7 @@ test("practice setup preserves the selected position", async ({ page }) => {
   const client = await page.context().newCDPSession(page);
   await client.send("Emulation.setCPUThrottlingRate", { rate: 6 });
   await page.goto(`/player/${SONG}`);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("20");
   await page.getByRole("button", { name: "Practice", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Set up practice" })).toBeVisible();
@@ -196,13 +196,13 @@ test("practice setup preserves the selected position", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
 });
 
-test("bar jump is keyboard operable", async ({ page }) => {
+test("seek slider is keyboard operable without a separate bar jump", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-  await bar.fill("3");
-  await bar.press("Enter");
-  await expect(bar).toHaveValue("3");
-  expect(Number(await page.getByLabel("Seek").inputValue())).toBeGreaterThan(0);
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
+  await seek.focus();
+  await seek.press("ArrowRight");
+  await expect(page.getByRole("spinbutton", { name: "Bar", exact: true })).toHaveCount(0);
+  expect(Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue())).toBeGreaterThan(0);
 });
 
 
@@ -225,7 +225,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768
 
 test("a scoped attempt retains its result and repeats the same passage", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("20");
   await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page.getByLabel("Behavior", { exact: true }).selectOption("wait");
@@ -261,7 +261,7 @@ test("microphone stays opt-in and permission denial allows keyboard recovery", a
 
 test("count-in cancellation cannot start a delayed attempt", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("20");
   await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page.getByLabel("Count-in", { exact: true }).selectOption("4");
@@ -281,18 +281,18 @@ test("loop bar bounds define a single scored passage", async ({ page }) => {
   await page.getByLabel("Loop start bar", { exact: true }).fill("2");
   await page.getByLabel("Loop start bar", { exact: true }).press("Enter");
   await page.getByLabel("Loop end bar", { exact: true }).fill("2");
-  await page.getByLabel("Loop end bar", { exact: true }).press("Enter");
+  await page.getByRole("button", { name: "Apply loop", exact: true }).click();
   await expect(page.locator(".player-loop-controls summary")).toContainText("Bars 2–2");
   await page.getByLabel("Loop end bar", { exact: true }).fill("1");
   await page.getByLabel("Loop end bar", { exact: true }).press("Enter");
-  expect(await page.getByLabel("Loop end bar", { exact: true }).evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(false);
+  await expect(page.getByRole("button", { name: "Apply loop", exact: true })).toBeDisabled();
   await page.getByLabel("Loop end bar", { exact: true }).fill("2");
-  await page.getByLabel("Loop end bar", { exact: true }).press("Enter");
+  await page.getByRole("button", { name: "Apply loop", exact: true }).click();
   await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page.getByLabel("Passage", { exact: true }).selectOption("loop");
   await page.getByLabel("Behavior", { exact: true }).selectOption("wait");
   await page.getByRole("button", { name: "Start practice", exact: true }).click();
-  await expect(page.getByRole("spinbutton", { name: "Bar", exact: true })).toHaveValue("2");
+  await expect(page.getByRole("slider", { name: "Seek", exact: true })).toHaveAttribute("aria-valuetext", /^Bar 2 of /);
   await page.getByRole("button", { name: "Finish practice", exact: true }).click();
   await expect(page.getByRole("button", { name: "Repeat passage" })).toBeVisible();
 });
@@ -312,7 +312,7 @@ test("computer keys reach chord-practice targets", async ({ page }) => {
 
 test("sound preview pauses without moving the song position", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("20");
   await openPlayerTool(page, "Sound");
   await page.getByRole("button", { name: "Preview sound" }).click();
@@ -344,14 +344,14 @@ test("practice remains keyboard accessible with reduced motion and 200% CSS zoom
 for (const playing of [false, true]) {
   test(`speed preserves the musical position while ${playing ? "playing" : "paused"}`, async ({ page }) => {
     await page.goto(`/player/${SONG}`);
-    await page.getByLabel("Seek").fill("20");
+    await page.getByRole("slider", { name: "Seek", exact: true }).fill("20");
     if (playing) await page.getByRole("button", { name: "Play", exact: true }).click();
-    const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-    const originalBar = await bar.inputValue();
+    const seek = page.getByRole("slider", { name: "Seek", exact: true });
+    const originalBar = (await seek.getAttribute("aria-valuetext"))!.match(/^Bar \d+ of \d+/)![0];
     for (const [label, speed] of [["50%", 0.5], ["75%", 0.75], ["100%", 1]] as const) {
       await page.getByRole("button", { name: label, exact: true }).click();
-      await expect(bar).toHaveValue(originalBar);
-      const musicalSeconds = Number(await page.getByLabel("Seek").inputValue()) * speed;
+      await expect(seek).toHaveAttribute("aria-valuetext", new RegExp(`^${originalBar}`));
+      const musicalSeconds = Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue()) * speed;
       expect(musicalSeconds).toBeGreaterThanOrEqual(19.99);
       expect(musicalSeconds).toBeLessThan(22);
       await expect(page.getByRole("button", { name: playing ? "Pause" : "Play", exact: true })).toBeVisible();
@@ -396,11 +396,8 @@ for (const width of [390, 1280]) {
 test("loop shortcuts retain their musical range and respect the last bar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`/player/${SONG}`);
-  await expect(page.getByLabel("Seek")).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Previous measure" })).toBeDisabled();
-  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-  await bar.fill("3");
-  await bar.press("Enter");
+  await expect(page.getByRole("slider", { name: "Seek", exact: true })).toBeEnabled();
+  await seekToBar(page, 3);
   await page.locator(".player-loop-controls summary").click();
   await page.getByRole("button", { name: "Loop current bar", exact: true }).click();
   await expect(page.getByLabel("Loop range: bars 3–3")).toBeVisible();
@@ -411,14 +408,11 @@ test("loop shortcuts retain their musical range and respect the last bar", async
   await page.getByRole("button", { name: "Loop next 4 bars", exact: true }).click();
   await expect(page.getByLabel("Loop range: bars 3–6")).toBeVisible();
   await page.getByRole("button", { name: "Clear loop", exact: true }).click();
-  const max = (await bar.getAttribute("max"))!;
-  await bar.fill(max);
-  await bar.press("Enter");
-  await expect(page.getByRole("button", { name: "Next measure" })).toBeDisabled();
+  const max = await seekToBar(page, "last");
   await page.getByRole("button", { name: "Loop next 4 bars", exact: true }).click();
   await expect(page.getByLabel(`Loop range: bars ${max}–${max}`)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await expect(page.getByLabel("Seek")).toHaveAttribute("aria-valuetext", new RegExp(`Bar ${max} of ${max}`));
+  await expect(page.getByRole("slider", { name: "Seek", exact: true })).toHaveAttribute("aria-valuetext", new RegExp(`Bar ${max} of ${max}`));
 });
 
 test("chord guide explains its markers and preserves the existing preference", async ({ page }) => {
@@ -438,24 +432,13 @@ test("chord guide explains its markers and preserves the existing preference", a
   await expect(page.locator(".falling-canvas")).toContainText("Chord guide");
 });
 
-test("chords form one horizontal sequence on phones", async ({ page }) => {
+test("falling view omits the redundant chord sequence on phones", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`/player/${SONG}`);
-  const row = page.getByRole("region", { name: "Chord sequence" });
-  await expect(row).toBeVisible();
-  const current = page.getByRole("status", { name: "Current and next chord" });
-  const future = page.getByLabel("Upcoming chords");
-  const first = await current.boundingBox();
-  const next = await future.boundingBox();
-  expect(Math.abs(first!.y - next!.y)).toBeLessThan(2);
-  expect(next!.x).toBeGreaterThanOrEqual(first!.x + first!.width - 1);
-  expect(await row.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
+  await expect(page.getByLabel("Falling notes player", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Chord sequence" })).toHaveCount(0);
+  await expect(page.locator(".chord-progression-details")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await row.focus();
-  await page.keyboard.press("End");
-  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-  await bar.fill("4"); await bar.press("Enter");
-  await expect.poll(() => row.evaluate((node) => node.scrollLeft)).toBe(0);
 });
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 1740, height: 1370 }]) {
@@ -509,12 +492,10 @@ test("Fit passage keeps keyboard labels fixed across bars and speed changes", as
   };
   await expect.poll(labels).toMatch(/^\[\[/);
   const before = await labels();
-  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-  for (const value of ["4", (await bar.getAttribute("max"))!]) {
-    await bar.fill(value);
-    await bar.press("Enter");
+  for (const value of [4, "last"] as const) {
+    await seekToBar(page, value);
     await expect.poll(labels).toBe(before);
   }
-  await page.getByRole("button", { name: "50%", exact: true }).click();
+  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Decrease speed", exact: true }).click();
   await expect.poll(labels).toBe(before);
 });

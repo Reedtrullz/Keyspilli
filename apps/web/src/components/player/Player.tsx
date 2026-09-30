@@ -52,7 +52,6 @@ import type { SourceArrangement } from "@keyspilli/catalog/src/source-arrangemen
 import type { SongRow } from "@keyspilli/catalog";
 import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { FallingCanvas } from "./FallingCanvas";
-import { ChordStrip } from "./ChordStrip";
 import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, displayChordName, projectActionableChordShapes, selectPracticeChords } from "./chord-practice";
 import {
@@ -65,7 +64,7 @@ import {
 } from "./melody-arrangement-runtime";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
-import { SheetMusicView } from "./SheetMusicView";
+import { SheetMusicView, type SheetReaderPosition } from "./SheetMusicView";
 import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction, type MelodyPreviewStatus } from "./SoundControls";
 import { reviewedSourceBacking } from "./reviewed-source-backing";
 import { bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
@@ -78,6 +77,8 @@ import { GradingPanel } from "./GradingPanel";
 import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
+import { loopFromBars, practiceContext, resolvePracticeRange } from "./player-ui-context";
+import { APP_THEME_EVENT, applyAppTheme } from "../app-theme";
 import {
   melodyHarmonicSupportPolicy,
   selectChordSource,
@@ -273,7 +274,7 @@ function melodyArrangementRequestKey(
   });
 }
 
-function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice" }) {
+function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice"; sheetPosition?: SheetReaderPosition }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => ({
     ...DEFAULT_SETTINGS,
     ...(mode ? { mode } : {}),
@@ -312,6 +313,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (mode) s.mode = mode;
     setSettings(s);
   }, [initial.chordData, initial.song.id, mode, sourceBackingNotes]);
+  useEffect(() => {
+    const syncTheme = () => setSettings(current => ({ ...current, stageTheme: document.documentElement.dataset.theme === "charcoal" ? "charcoal" : "light" }));
+    window.addEventListener(APP_THEME_EVENT, syncTheme);
+    return () => window.removeEventListener(APP_THEME_EVENT, syncTheme);
+  }, []);
   const downloadTriggerRef = useRef<HTMLButtonElement>(null);
   const practiceTriggerRef = useRef<HTMLButtonElement>(null);
   const modeMenuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -320,12 +326,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   useEffect(() => {
     if (focusTarget !== "practice") return undefined;
-    const frame = window.requestAnimationFrame(() => practiceTriggerRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => practiceTriggerRef.current?.focus({ preventScroll: true }));
     return () => window.cancelAnimationFrame(frame);
   }, [focusTarget]);
   // Store loop anchors in musical time (beats); seconds are derived from the
   // current speed so tempo changes automatically reproject the region.
   const [loopBeats, setLoopBeats] = useState<{ startBeat: number; endBeat: number } | null>(null);
+  const [loopDraft, setLoopDraft] = useState<{ start: string; end: string } | null>(null);
+  const [seekPreview, setSeekPreview] = useState<number | null>(null);
+  const [readingWindow, setReadingWindow] = useState<2 | 3.2 | 5>(3.2);
+  const [showLyrics, setShowLyrics] = useState(true);
   const loop = useMemo<LoopRegion | null>(() => {
     if (!loopBeats) return null;
     const spb = secPerBeat(activeData.tempoBpm, settings.speed);
@@ -390,6 +400,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const midiInputRef = useRef<MidiInput | null>(null);
 
   const songKeyLabel = displayChordName(activeData.key, settings.transpose);
+  const provisionalTempo = initial.sourceArrangement?.sourceKind === "tutorial-preview";
+  const contextLabel = practiceContext(activeData.key, activeData.tempoBpm, settings, provisionalTempo);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [learned, setLearned] = useState<string[]>([]);
   const [chordSourcePreference, setChordSourcePreference] = useState<ChordSourceId>("auto");
@@ -752,11 +764,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
   // Preview notes are scheduled directly on the audio graph, outside the
   // transport timeline. Tear that graph down whenever its source, routing,
-  // external seek, or owning tool changes; cleanup also covers navigation/unmount.
-  useEffect(() => {
-    if (openTool !== "sound") finishSoundPreview("complete");
-  }, [finishSoundPreview, openTool]);
-
+  // external seek changes; cleanup also covers navigation/unmount. Closing
+  // Tools does not end an audition: the stage status owns its Stop command.
   useEffect(() => {
     return cancelSoundPreview;
   }, [cancelSoundPreview, chordSourcePreference, initial.song.id, loop, melodyArrangement,
@@ -1238,6 +1247,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (gradingRef.current) return;
     if (loop) {
       setLoopBeats(null);
+      setLoopDraft(null);
       return;
     }
     loopCurrentBars(4);
@@ -1247,7 +1257,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (gradingRef.current) return;
     const start = navigationMeasures[currentMeasure];
     const end = navigationMeasures[Math.min(navigationMeasures.length - 1, currentMeasure + count - 1)];
-    if (start && end) setLoopBeats({ startBeat: start.startBeat, endBeat: end.endBeat });
+    if (start && end) { setLoopBeats({ startBeat: start.startBeat, endBeat: end.endBeat }); setLoopDraft(null); }
   }
 
   function seekToSection(s: SongSection) {
@@ -1257,31 +1267,19 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function loopSection(s: SongSection) {
     if (gradingRef.current) return;
     setLoopBeats({ startBeat: s.startBeat, endBeat: s.endBeat });
-  }
-
-  function seekToMeasure(i: number) {
-    const m = navigationMeasures[i];
-    if (m) seek(m.startBeat * secPerBeat(activeData.tempoBpm, settings.speed));
-  }
-
-  function commitBar(input: HTMLInputElement) {
-    const value = input.valueAsNumber;
-    if (Number.isInteger(value)) seekToMeasure(Math.max(0, Math.min(navigationMeasures.length - 1, value - 1)));
-    input.value = String(Number.isInteger(value) ? Math.max(1, Math.min(navigationMeasures.length, value)) : currentMeasure + 1);
+    setLoopDraft(null);
   }
 
   const loopStartBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat > loopBeats.startBeat)) + 1 : currentMeasure + 1;
   const loopEndBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat >= loopBeats.endBeat)) + 1 : Math.min(navigationMeasures.length, currentMeasure + 4);
-  function commitLoopBar(input: HTMLInputElement, anchor: "start" | "end") {
-    if (gradingRef.current) return;
-    const value = input.valueAsNumber;
-    const start = anchor === "start" ? value : loopStartBar;
-    const end = anchor === "end" ? value : loopEndBar;
-    if (!Number.isInteger(value) || start < 1 || end > navigationMeasures.length || start > end) {
-      input.setCustomValidity("Choose whole bars with the end at or after the start."); input.reportValidity(); return;
-    }
-    input.setCustomValidity("");
-    setLoopBeats({ startBeat: navigationMeasures[start - 1]!.startBeat, endBeat: navigationMeasures[end - 1]!.endBeat });
+  const draftLoopBeats = loopDraft ? loopFromBars(Number(loopDraft.start), Number(loopDraft.end), navigationMeasures) : null;
+  function editLoopBar(anchor: "start" | "end", value: string) {
+    setLoopDraft(previous => ({ start: previous?.start ?? String(loopStartBar), end: previous?.end ?? String(loopEndBar), [anchor]: value }));
+  }
+  function applyLoopDraft() {
+    if (gradingRef.current || !draftLoopBeats) return;
+    setLoopBeats(draftLoopBeats);
+    setLoopDraft(null);
   }
 
   function toggleFavorite() {
@@ -1416,6 +1414,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (engineRef.current) engineRef.current.audio.sustainPedal = next.sustainPedal;
     if (p.accompanimentStyle !== undefined) saveAccompanimentStyleIntent(p.accompanimentStyle);
     saveSettings(next);
+    if (p.stageTheme !== undefined) applyAppTheme(next.stageTheme);
     // Persist practice-relevant settings per song so switching songs restores them.
     saveSongPrefs(initial.song.id, {
       speed: next.speed,
@@ -1578,14 +1577,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   function beginPractice(setup: PracticeSetup, repeatRange?: LoopRegion) {
     const eng = engineRef.current;
     if (!eng || gradingRef.current || (setup.input === "microphone" && !micReady) || (setup.input === "midi" && !midiConnected)) return;
-    const firstBar = navigationMeasures[currentMeasure];
-    const lastBar = navigationMeasures[Math.min(navigationMeasures.length - 1, currentMeasure + 3)];
-    const barsRange = firstBar && lastBar ? {
-      startSec: firstBar.startBeat * secPerBeat(activeData.tempoBpm, settings.speed),
-      endSec: lastBar.endBeat * secPerBeat(activeData.tempoBpm, settings.speed),
-    } : null;
     const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
-      (setup.scope === "loop" ? loop : setup.scope === "bars" ? barsRange : { startSec: setup.scope === "beginning" ? 0 : eng.time, endSec: duration });
+      resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, eng.time, duration, activeData.tempoBpm, settings.speed, loop);
     if (!range) { setPracticeError(setup.scope === "loop" ? "Select a loop before practicing it." : "No measured passage is available here."); return; }
     cancelSoundPreview();
     try { eng.startGrading(setup.wait, range); }
@@ -1819,6 +1812,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     return time >= s.startBeat * spb && time < s.endBeat * spb;
   });
   const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+  function describePracticeSetup(setup: PracticeSetup) {
+    const range = (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
+      resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, engineRef.current?.time ?? time, duration, activeData.tempoBpm, settings.speed, loop);
+    if (!range) return "No passage selected";
+    const spb = secPerBeat(activeData.tempoBpm, settings.speed);
+    const first = Math.max(0, navigationMeasures.findIndex(m => m.endBeat > range.startSec / spb));
+    const last = Math.max(first, navigationMeasures.findIndex(m => m.endBeat >= range.endSec / spb - 1e-6));
+    return `Bars ${first + 1}–${last + 1} · ${settings.hand === "both" ? "Both hands" : settings.hand === "L" ? "Left hand" : "Right hand"} · ${contextLabel}`;
+  }
+  const previewMeasure = seekPreview === null ? null : measureIndex(seekPreview, activeData.tempoBpm, settings.speed, activeData.timeSig, navigationMeasures.length, navigationMeasures);
+  const previewSection = seekPreview === null ? null : sections.find(section => seekPreview / secPerBeat(activeData.tempoBpm, settings.speed) >= section.startBeat && seekPreview / secPerBeat(activeData.tempoBpm, settings.speed) < section.endBeat);
   const renderSectionContent = (collapsed: boolean) => collapsed ? (
     <span className="text-xs text-zinc-500 truncate">{activeSection?.label ?? "Sections hidden"}</span>
   ) : (
@@ -1851,9 +1855,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   );
   const renderModeView = (viewMode: ViewMode) => (
     <>
-      {viewMode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
       {viewMode === "falling" && (
-        <FallingCanvas timeSig={activeData.timeSig} measures={navigationMeasures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
+        <FallingCanvas readingWindow={readingWindow} showLyrics={showLyrics} timeSig={activeData.timeSig} measures={navigationMeasures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
                 onKeyDown={(pointerId, midi) => handleNote(midi, true, "keyboard", `pointer:${pointerId}`)}
                 onKeyUp={pointerId => heldInputRef.current?.release(`pointer:${pointerId}`)} inputOctave={inputOctave} midiConnected={midiConnected} onResetOctave={() => keyboardInputRef.current?.setOctave(2)}
           notes={guidanceNotes}
@@ -1870,7 +1873,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           waitNotes={waitNotes}
         />
       )}
-      {viewMode === "beginner" && <BeginnerView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
+      {viewMode === "beginner" && <BeginnerView data={guidanceData} time={time} settings={settings} chords={displayChords} provisionalTempo={provisionalTempo} />}
       {viewMode === "leadsheet" && <LeadSheetView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
       {viewMode === "sheet" && (
         <div>
@@ -1884,7 +1887,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               Sheet Music shows the stored Original arrangement while Chord mode is selected. Use Fall Down or Note letters for the active guidance.
             </p>
           )}
-          <SheetMusicView songId={initial.song.id} />
+          <SheetMusicView songId={initial.song.id} initialPosition={sheetPosition} />
         </div>
       )}
     </>
@@ -1894,15 +1897,15 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
       <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <div className="min-w-0">
+        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←</Link>
+        <div className="player-song-identity min-w-0">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <p className="player-context" aria-label="Practice key and tempo">{contextLabel}</p>
           <SourceArrangementNotice source={initial.sourceArrangement} />
         </div>
         <div className={`player-song-metadata ml-auto flex min-w-0 max-w-full flex-wrap items-start justify-end gap-2 text-xs ${settings.backgroundMode === "chord" ? "player-song-metadata--mobile" : ""}`}>
-          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{activeData.key}</span>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{settings.backgroundMode === "chord" ? "Song-wide backing" : levelLabel(initial.song.difficulty)}</span>
-          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{activeData.tempoBpm} BPM</span>
           {settings.backgroundMode === "chord" && (
             <span
               className={`px-2 py-1 rounded-full font-medium ${!sourceBackingNotes && (selectedChordSource.fallback || chordReviewReason) ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}
@@ -1928,12 +1931,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               >
                 {melodyArrangementStatusText}
               </span>
-              {melodyArrangementFailed && (
-                <div className="basis-full flex items-center gap-2 text-xs text-amber-800" data-testid="melody-accompaniment-error" role="alert">
-                  <span>{workerError ? `${workerError}${workerError.includes("Original playback") ? "" : " Original playback is retained."}` : "Original playback remains available."}</span>
-                  <button type="button" className="min-h-8 rounded-md border border-amber-300 bg-white px-2" onClick={() => setWorkerRetry(value => value + 1)}>Retry arrangement</button>
-                </div>
-              )}
               <details className="basis-full min-w-0 text-xs text-zinc-600" data-testid="melody-phrase-summary">
                 <summary className="cursor-pointer rounded-full px-2 py-1 hover:bg-zinc-100">
                   Phrases: {phraseCounts.changed} changed · {phraseCounts.unchanged} unchanged{phraseCounts.review ? ` · ${phraseCounts.review} need review` : ""}
@@ -1956,9 +1953,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         {settings.mode === "falling" && <button className="player-mobile-range min-h-11 px-2 rounded-full border text-xs" disabled={grading} onClick={() => updateSettings({ showAllKeys: !settings.showAllKeys })}>{settings.showAllKeys ? "Fit keys" : "88 keys"}</button>}
         <details className="player-song-actions text-xs" open={!isNarrowViewport}>
           <summary className="player-song-menu min-h-11 rounded-full border border-zinc-300 px-3 cursor-pointer">Song</summary>
-          <div className="player-song-action-buttons flex flex-wrap gap-2">            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Download sheet music and MIDI">
-              Download
-            </button>
+          <div className="player-song-action-buttons flex flex-wrap gap-2">
             <button
               onClick={toggleFavorite}
               aria-pressed={favorites.includes(initial.song.id)}
@@ -1976,6 +1971,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               {learned.includes(initial.song.id) ? "✓ Learned" : "Learned?"}
             </button></div></details>
       </div>
+
+      {settings.backgroundMode === "chord" && settings.accompanimentStyle === "melody-accompaniment" && melodyArrangementFailed && (
+        <div className="flex flex-wrap items-center gap-2 py-2 text-sm text-amber-800" data-testid="melody-accompaniment-error" role="alert">
+          <span>{workerError ? `${workerError}${workerError.includes("Original playback") ? "" : " Original playback is retained."}` : "Original playback remains available."}</span>
+          <button type="button" className="min-h-11 rounded-md border border-amber-300 bg-white px-3" onClick={() => setWorkerRetry(value => value + 1)}>Retry arrangement</button>
+        </div>
+      )}
 
       {tempoNoticePresence.mounted && (
         <div
@@ -2014,12 +2016,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </div>
       )}
 
-      {focusMode && <SourceArrangementNotice source={initial.sourceArrangement} />}
-
       <div className="player-surface rounded-2xl border border-zinc-200 bg-white mb-4">
+        <div className="player-toolbar">
         <div className="player-control-strip flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
           <button onClick={togglePlay} disabled={chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
-            {playing ? "❚❚" : "▶"}
+            <span aria-hidden="true">{playing ? "❚❚" : "▶"}</span>
           </button>
           <button
             ref={practiceTriggerRef}
@@ -2052,6 +2053,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             <button disabled={grading || settings.speed >= 2} onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
             <div className="player-speed-presets flex gap-1">{[0.5, 0.75, 1].map((speed) => <button key={speed} disabled={grading} aria-pressed={settings.speed === speed} className={`min-h-11 px-2 rounded-lg text-xs ${settings.speed === speed ? "bg-zinc-100 font-semibold" : "text-zinc-600 hover:bg-zinc-100"}`} onClick={() => updateSettings({ speed })}>{speed * 100}%</button>)}</div>
           </div>
+
+        </div>
+        <div className="player-secondary-controls">
 
       <div className="player-options flex flex-wrap items-center gap-2 mb-4">
         <div className="player-primary-controls flex flex-wrap items-center gap-2">
@@ -2102,6 +2106,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           </div>
 
+          <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-3 py-2 rounded-md border border-zinc-300 text-sm hover:bg-zinc-100" aria-label="Download sheet music and MIDI">Download</button>
           <PlayerTools soundLabel={`${settings.soundSource === "organ" ? "Organ" : settings.soundSource === "sampled" ? "Piano" : "Synth"}${settings.soundSource !== "organ" && settings.sustainPedal ? " · sustain" : ""}`} open={openTool} onOpen={tool => { setShowModeMenu(false); setOpenTool(tool); }}>
             {tool => tool === "display" ? <div className="flex flex-wrap gap-2">
           <button
@@ -2145,9 +2150,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             Chord guide dots show the current chord’s voicing in its assigned octaves, not notes to press now. Check the chord label for inferred harmony. Colored strips at the top of keys show upcoming notes.
           </p>}
 
+              {settings.mode === "falling" && <>
+              <label className="w-full text-sm">Reading window<select aria-label="Reading window" value={readingWindow} onChange={event => setReadingWindow(Number(event.target.value) as 2 | 3.2 | 5)}><option value={2}>2 seconds</option><option value={3.2}>3.2 seconds</option><option value={5}>5 seconds</option></select></label>
+              <label className="flex items-center gap-2 min-h-11 text-sm"><input type="checkbox" checked={showLyrics} onChange={event => setShowLyrics(event.target.checked)} />Lyrics</label>
               <label className="w-full text-sm">Key labels<select aria-label="Key labels" value={settings.keyboardLabels} onChange={event => updateSettings({ keyboardLabels: event.target.value as PlayerSettings["keyboardLabels"] })}><option value="notes">Note names</option><option value="octaves">Octaves only</option><option value="off">Off</option></select></label>
-              <label className="w-full text-sm">Stage appearance<select aria-label="Stage appearance" value={settings.stageTheme} onChange={event => updateSettings({ stageTheme: event.target.value as PlayerSettings["stageTheme"] })}><option value="light">Light</option><option value="charcoal">Charcoal</option></select></label>
               <label className="flex items-center gap-2 min-h-11 text-sm"><input type="checkbox" checked={settings.showKeyBindings} onChange={event => updateSettings({ showKeyBindings: event.target.checked })} />Computer-key hints</label>
+              </>}
+              <label className="w-full text-sm">App appearance<select aria-label="App appearance" value={settings.stageTheme} onChange={event => updateSettings({ stageTheme: event.target.value as PlayerSettings["stageTheme"] })}><option value="light">Light</option><option value="charcoal">Charcoal</option></select></label>
+              {settings.mode === "sheet" && <button className="min-h-11 px-3 border border-zinc-300 rounded-md text-sm" onClick={() => {
+                setOpenTool(null);
+                window.requestAnimationFrame(() => document.querySelector<HTMLSelectElement>('.player-mode-layer-enter [aria-label="Score zoom"]')?.focus());
+              }}>Score zoom &amp; fit width</button>}
             </div> : tool === "sound" ? <fieldset disabled={grading}>
                         <button
             onClick={() => updateSettings({ metronome: !settings.metronome })}
@@ -2186,13 +2199,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
 
         </div>
 
-        <div className="player-timeline">          <div className="player-measure-controls flex items-center gap-1">
-            <button disabled={grading || currentMeasure === 0} onClick={() => seekToMeasure(Math.max(0, currentMeasure - 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Previous measure">‹</button>
-            <label className="flex items-center gap-1 text-xs">Bar <input key={currentMeasure} type="number" aria-label="Bar" min={1} max={navigationMeasures.length} step={1} defaultValue={currentMeasure + 1} disabled={grading}
-              onBlur={(event) => commitBar(event.currentTarget)} onKeyDown={(event) => { if (event.key === "Enter") commitBar(event.currentTarget); }} /></label>
-            <span className="text-xs text-zinc-500">/ {navigationMeasures.length}</span>
-            <button disabled={grading || currentMeasure >= navigationMeasures.length - 1} onClick={() => seekToMeasure(Math.min(navigationMeasures.length - 1, currentMeasure + 1))} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Next measure">›</button>
-          </div>
+        </div>
+        <div className="player-navigation">
+        <div className="player-timeline">
           <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
             <span>{fmtTime(time)}</span>
             <span className="text-zinc-300">/</span>
@@ -2206,23 +2215,35 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               <button disabled={grading} onClick={() => loopCurrentBars(1)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop current bar</button>
               <button disabled={grading} onClick={() => loopCurrentBars(4)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Loop next 4 bars</button>
             </div>
-            <label>Start bar <input key={`start-${loopStartBar}`} type="number" aria-label="Loop start bar" min={1} max={navigationMeasures.length} defaultValue={loopStartBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "start")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "start"); }} /></label>
-            <label>End bar <input key={`end-${loopEndBar}`} type="number" aria-label="Loop end bar" min={1} max={navigationMeasures.length} defaultValue={loopEndBar} disabled={grading} onBlur={(e) => commitLoopBar(e.currentTarget, "end")} onKeyDown={(e) => { if (e.key === "Enter") commitLoopBar(e.currentTarget, "end"); }} /></label>
+            <label>Start bar <input type="number" aria-label="Loop start bar" min={1} max={navigationMeasures.length} value={loopDraft?.start ?? loopStartBar} disabled={grading} onChange={e => editLoopBar("start", e.target.value)} /></label>
+            <label>End bar <input type="number" aria-label="Loop end bar" min={1} max={navigationMeasures.length} value={loopDraft?.end ?? loopEndBar} disabled={grading} onChange={e => editLoopBar("end", e.target.value)} /></label>
+            <button disabled={grading || !draftLoopBeats} onClick={applyLoopDraft} className="min-h-11 rounded-lg border border-zinc-300 px-3">Apply loop</button>
+            <button disabled={grading || !loopDraft} onClick={() => setLoopDraft(null)} className="min-h-11 rounded-lg border border-zinc-300 px-3">Cancel loop edits</button>
+            {loopDraft && !draftLoopBeats && <p className="w-full text-sm text-amber-800" role="status">Choose whole bars from 1 to {navigationMeasures.length}, with the end at or after the start.</p>}
             <button disabled={grading} onClick={toggleLoop} className="min-h-11 rounded-lg border border-zinc-300 px-3">{loop ? "Clear loop" : "Enable loop"}</button>
           </div>
         </details></div>
         <div className="player-seek-track px-4 pb-3 border-b border-zinc-100">
-          {loop && <div className="player-loop-track">
-            <div role="img" aria-label={`Loop range: bars ${loopStartBar}–${loopEndBar}`} className="player-loop-range"
+          <output className="player-seek-preview" aria-label="Seek destination" aria-live="off">{previewMeasure === null ? `Bar ${currentMeasure + 1}${activeSection ? ` · ${activeSection.label}` : ""}` : `Bar ${previewMeasure + 1}${previewSection ? ` · ${previewSection.label}` : ""} · ${fmtTime(seekPreview!)}`}</output>
+          <div className="player-seek-rail">
+          {(loop || draftLoopBeats) && <div className="player-loop-track">
+            {loop && <div role="img" aria-label={`Loop range: bars ${loopStartBar}–${loopEndBar}`} className="player-loop-range"
               style={{ left: `${loop.startSec / Math.max(1, duration) * 100}%`, width: `${(loop.endSec - loop.startSec) / Math.max(1, duration) * 100}%` }} />
+            }
+            {draftLoopBeats && loopDraft && <div role="img" aria-label={`Draft loop range: bars ${loopDraft.start}–${loopDraft.end}`} className="player-loop-range player-loop-draft"
+              style={{ left: `${draftLoopBeats.startBeat * secPerBeat(activeData.tempoBpm, settings.speed) / Math.max(1, duration) * 100}%`, width: `${(draftLoopBeats.endBeat - draftLoopBeats.startBeat) * secPerBeat(activeData.tempoBpm, settings.speed) / Math.max(1, duration) * 100}%` }} />}
           </div>}
+          {sections.length > 1 && <div className="player-section-marks" aria-label="Timeline sections">{sections.slice(0, 12).map(section => <button key={section.id} type="button" disabled={grading} title={section.label} aria-label={`Seek to ${section.label}`} onClick={() => seekToSection(section)} style={{ left: `${Math.min(99, Math.max(1, section.startBeat * secPerBeat(activeData.tempoBpm, settings.speed) / Math.max(1, duration) * 100))}%` }} />)}</div>}
           <input
             type="range"
             min={0}
             max={Math.max(1, duration)}
             step={0.01}
             value={Math.min(time, duration)}
-            onChange={(e) => seek(Number(e.target.value))}
+            onChange={(e) => { const value = Number(e.target.value); setSeekPreview(value); seek(value); }}
+            onFocus={() => setSeekPreview(time)} onBlur={() => setSeekPreview(null)}
+            onPointerMove={event => { if (grading) return; const rect = event.currentTarget.getBoundingClientRect(); setSeekPreview(Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)) * duration); }}
+            onPointerLeave={event => { if (document.activeElement !== event.currentTarget) setSeekPreview(null); }}
             className="block w-full h-2 rounded-lg appearance-none cursor-pointer accent-zinc-900"
             style={{
               background: `linear-gradient(to right, #18181b 0%, #18181b ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 100%)`,
@@ -2231,9 +2252,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             aria-label="Seek"
             aria-valuetext={`Bar ${currentMeasure + 1} of ${navigationMeasures.length}, ${fmtTime(time)} of ${fmtTime(duration)}`}
           />
+          </div>
         </div>
         {sections.length > 1 && (
-          <div role="navigation" aria-label="Song sections" className="px-4 py-2 border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto">
+          <div role="navigation" aria-label="Song sections" className="player-section-navigation px-4 py-2 border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto">
             <button
               onClick={toggleSectionsCollapsed}
               aria-expanded={!sectionsCollapsed}
@@ -2255,9 +2277,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           </div>
         )}
 
+        </div>
         {(grading || gradeResult) && <GradingPanel waitMode={waitMode} waitNotes={waitNotes} result={gradeResult}
           countIn={countIn} input={practiceSetup.input} onExit={finishGrading} onRepeat={repeatPractice}
           onDismiss={() => { setGradeResult(null); if (engineRef.current) engineRef.current.gradeResult = null; }} />}
+
+        <div className="player-stage-status" aria-label="Playback status">
+          <span role={soundPreviewStatus && !grading ? "status" : undefined}>
+            {countIn !== null ? `Count-in · ${countIn} beats remaining` : grading ? `${waitMode ? "Waiting for notes" : "Play-along practice"} · ${practiceSetup.input}` : soundPreviewStatus ? `Preview · ${soundPreviewStatus.role === "full" ? "Arrangement" : soundPreviewStatus.role} · ${soundPreviewStatus.rangeLabel} · ${soundPreviewStatus.phase === "playing" ? "Playing" : soundPreviewStatus.phase === "complete" ? "Complete" : "Stopped"}` : gradeResult ? "Practice result" : playing ? "Playing" : "Ready"}
+          </span>
+          {!openTool && !grading && soundPreviewStatus?.phase === "playing" && <button onClick={stopSoundPreview}>Stop preview</button>}
+        </div>
 
         <div
           className={`player-stage relative ${playing && !grading ? "cursor-pointer" : ""}`}
@@ -2275,6 +2305,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           role="region"
           aria-label={`Player stage — ${activeModeLabel}`}
         >
+          {!chordPracticeActive && settings.mode === "leadsheet" && settings.hand === "L" && <div className="player-selection-notice" aria-label="View selection notice">
+            <p>Lead Sheet displays right-hand attacks. Left hand is selected.</p>
+            <button disabled={grading} onClick={() => updateSettings({ hand: "both" })}>Show both hands</button>
+            <button onClick={() => updateSettings({ mode: "beginner" })}>Use Note letters</button>
+          </div>}
+          {!chordPracticeActive && guidanceNotes.length === 0 && displayChords.length === 0 && settings.mode !== "sheet" && <div className="player-selection-notice" aria-label="Arrangement availability">
+            <p>{settings.backgroundMode === "chord" ? "No playable guidance is available for this backing selection." : "No note targets are available for the selected hand."}</p>
+            <button disabled={grading} onClick={() => updateSettings({ hand: "both" })}>Show both hands</button>
+            {settings.backgroundMode === "chord" && <button disabled={grading} onClick={() => updateSettings({ backgroundMode: "piano" })}>Use Original arrangement</button>}
+          </div>}
           {chordPracticePresence.mounted ? (
             <ChordPracticePanel
               scope="passage"
@@ -2336,7 +2376,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         </section>
       )}
 
-      {showPracticeSetup && <PracticeSetupDialog onChordPractice={chordPracticeTargets.length ? () => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); } : undefined} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
+      {showPracticeSetup && <PracticeSetupDialog describeSetup={describePracticeSetup} onChordPractice={chordPracticeTargets.length ? () => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); } : undefined} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
         midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
@@ -2377,8 +2417,11 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
   const modeMenuPresence = usePresence(showModeMenu);
   const [showDownload, setShowDownload] = useState(false);
   const [savedTranspose, setSavedTranspose] = useState(0);
+  const [savedSpeed, setSavedSpeed] = useState(1);
+  const sheetPositionRef = useRef<SheetReaderPosition | undefined>(undefined);
   useEffect(() => {
     setSavedTranspose(loadSongPrefs(initial.song.id).transpose ?? loadSettings().transpose);
+    setSavedSpeed(loadSongPrefs(initial.song.id).speed ?? loadSettings().speed);
   }, [initial.song.id]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -2522,6 +2565,11 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
       if (!response.ok || !value || !value.song || !value.data || !Array.isArray(value.variants)) {
         throw new Error("The player arrangement could not be loaded.");
       }
+      const score = document.querySelector<HTMLElement>(".sheet-svg");
+      const page = Number(score?.dataset.activePage ?? 1);
+      const pageNode = score?.querySelector<HTMLElement>(`[data-page="${page}"]`);
+      const zoom = document.querySelector<HTMLSelectElement>('[aria-label="Score zoom"]');
+      if (score && pageNode && zoom) sheetPositionRef.current = { zoom: Number(zoom.value), page, offset: pageNode.getBoundingClientRect().top, scrollLeft: score.scrollLeft };
       setDetail(value as PlayerDetail);
       if (nextMode !== "sheet") {
         window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}/${nextMode}`);
@@ -2543,20 +2591,20 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
 
   const shell = (
     <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
-      <div className="mb-3 flex items-center gap-2 flex-wrap">
-        <div>
+      <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
+        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←</Link>
+        <div className="player-song-identity">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <p className="player-context">{practiceContext(initial.song.key, initial.song.tempo, { transpose: savedTranspose, speed: savedSpeed }, initial.sourceArrangement?.sourceKind === "tutorial-preview")}</p>
           <SourceArrangementNotice source={initial.sourceArrangement} />
         </div>
-        <div className="ml-auto flex gap-2 text-xs">
-          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
+        <div className="player-song-metadata ml-auto flex gap-2 text-xs">
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{levelLabel(initial.song.difficulty)}</span>
-          <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.tempo} BPM</span>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="player-secondary-controls flex flex-wrap items-center gap-2 mb-4">
         <div className="relative" ref={modeMenuRef}>
           <button
             ref={modeMenuTriggerRef}
@@ -2618,10 +2666,10 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
         <button
           ref={downloadTriggerRef}
           onClick={() => setShowDownload(true)}
-          className="min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700"
+          className="min-h-11 px-3 py-2 rounded-md border border-zinc-300 text-sm hover:bg-zinc-100"
           aria-label="Download sheet music and MIDI"
         >
-          Download Sheet &amp; MIDI
+          Download
         </button>
         <button
           ref={loadControlsTriggerRef}
@@ -2712,7 +2760,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
           </div>
         )}
         <div className="player-shell-swap-enter">
-          <FullPlayer initial={detail} mode={requestedMode} focusTarget={detailSwitch.previous === false ? "practice" : undefined} />
+          <FullPlayer initial={detail} mode={requestedMode} sheetPosition={sheetPositionRef.current} focusTarget={detailSwitch.previous === false ? "practice" : undefined} />
         </div>
       </div>
     );

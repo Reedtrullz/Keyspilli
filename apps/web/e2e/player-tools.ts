@@ -1,4 +1,19 @@
 import { type Page } from "@playwright/test";
+import { playbackMeasures, type SongData } from "@keyspilli/player-core";
+
+export async function seekToBar(page: Page, bar: number | "last") {
+  const id = new URL(page.url()).pathname.split("/")[2]!;
+  const response = await page.request.get(`/api/songs/${id}`);
+  if (!response.ok()) throw new Error("Could not load test arrangement measures");
+  const { data } = await response.json() as { data: SongData };
+  const measures = playbackMeasures(data);
+  const index = bar === "last" ? measures.length - 1 : bar - 1;
+  const context = await page.getByLabel("Practice key and tempo", { exact: true }).textContent();
+  const bpm = Number(context?.match(/([\d.]+) practice BPM/)?.[1]);
+  if (!measures[index] || !bpm) throw new Error("No measured test passage or effective tempo");
+  await page.getByRole("slider", { name: "Seek", exact: true }).fill(String(measures[index]!.startBeat * 60 / bpm));
+  return index + 1;
+}
 export async function openPlayerTool(page: Page, name: "Display" | "Sound" | "Input") {
   const panel = page.locator("#player-tool-panel");
   if (await panel.isVisible()) { await panel.getByRole("button", { name, exact: true }).click(); return; }

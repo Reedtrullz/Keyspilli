@@ -157,6 +157,8 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
   const stripRef = useRef<HTMLDivElement>(null);
   const sequenceRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [following, setFollowing] = useState(true);
+  useEffect(() => setFollowing(true), [chords]);
   const [showShapes, setShowShapes] = useState(false);
   const previousActiveIdxRef = useRef<number | null>(null);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -276,25 +278,27 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
   // Keep the active chord visible even when the user scrolled elsewhere.
   useEffect(() => {
     const root = stripRef.current;
-    if (!expanded || !root) return;
+    if (!expanded || !root || !following) return;
     const index = activeIdx >= 0 ? activeIdx : nextIdx;
     if (index >= chords.length) return;
     root.scrollTo({
       left: Math.max(0, index * CHORD_SLOT_WIDTH - (root.clientWidth - CHORD_ITEM_WIDTH) / 2),
       behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
-  }, [activeIdx, nextIdx, expanded, chords.length]);
+  }, [activeIdx, nextIdx, expanded, chords.length, following]);
 
   useEffect(() => {
-    if (sequenceRef.current) sequenceRef.current.scrollLeft = 0;
-  }, [activeIdx, nextIdx]);
+    if (following && sequenceRef.current) sequenceRef.current.scrollLeft = 0;
+  }, [activeIdx, nextIdx, following]);
 
   if (chords.length === 0) return null;
 
   return (
     <>
       {showShapes && <MiniKeyboardDefs />}
-      <div ref={sequenceRef} className="chord-sequence" role="region" aria-label="Chord sequence" tabIndex={0}>
+      <div ref={sequenceRef} className="chord-sequence" role="region" aria-label="Chord sequence" tabIndex={0}
+        onWheel={() => setFollowing(false)} onTouchMove={() => setFollowing(false)} onPointerDown={() => setFollowing(false)}
+        onKeyDown={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) setFollowing(false); }}>
       <div className="chord-strip-summary" role="status" aria-live="polite" aria-atomic="true" aria-label="Current and next chord">
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Now</span>
         <span className="text-sm font-semibold text-blue-700 truncate" title={currentChord ? chordProvenance(currentChord).label : "No chord"}>
@@ -322,8 +326,10 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
         </div>
       )}
       </div>
+      {!following && !expanded && <button className="player-follow-button mx-3" onClick={() => setFollowing(true)}>Resume following</button>}
       <details className="chord-progression-details" onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary className="cursor-pointer px-3 py-2 text-xs text-zinc-600">Full chord progression</summary>
+        <button className="player-follow-button mx-3" aria-pressed={following} onClick={() => setFollowing(!following)}>{following ? "Pause following" : "Resume following"}</button>
         <label className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-700">
           <input type="checkbox" checked={showShapes} onChange={(event) => setShowShapes(event.target.checked)} />
           Show chord shapes
@@ -331,6 +337,8 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
       <div
         ref={stripRef}
         onScroll={handleScroll}
+        onWheel={() => setFollowing(false)} onTouchMove={() => setFollowing(false)} onPointerDown={() => setFollowing(false)}
+        tabIndex={0} onKeyDown={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) setFollowing(false); }}
         className="chord-strip relative overflow-x-auto px-3 py-2 border-b border-zinc-100 bg-white"
         role="list"
         aria-label="Chord progression. Amber dotted chords are inferred; gray dotted chords have unknown provenance."

@@ -111,6 +111,7 @@ jobs:
         run: |
           npx playwright test
           npx playwright test --config=playwright.scratch.config.ts
+          npx playwright test --config=playwright.player-ui.config.ts
         working-directory: apps/web
 
   build-and-push:

@@ -84,6 +84,8 @@ export function SoundControls({
 
   return (
     <>
+      <section aria-label="Arrangement settings" className="player-settings-section">
+        <h2 className="text-sm font-semibold mb-3">Arrangement</h2>
         <div className="mb-4">
           <h3 className="text-sm font-medium mb-2">Background sound</h3>
           <div className="flex gap-2" role="radiogroup" aria-label="Background sound">
@@ -376,8 +378,11 @@ export function SoundControls({
           )}
         </div>
 
+      </section>
+      <section aria-label="Instrument and mix settings" className="player-settings-section">
+        <h2 className="text-sm font-semibold mb-3">Instrument &amp; mix</h2>
         <div className="mb-4">
-          <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <h3 className="text-sm font-medium">Sound</h3>
             {onPreview && (
               <div className="flex items-center gap-2">
@@ -395,7 +400,7 @@ export function SoundControls({
               data-preview-start-sec={previewStatus.startSec}
               data-preview-end-sec={previewStatus.endSec}
             >
-              <span role="status" aria-live="polite">
+              <span role="status" aria-live="off">
                 {previewStatus.phase === "playing"
                   ? `Playing ${previewLabel(previewStatus.role, settings.backgroundMode)} · ${previewStatus.rangeLabel}`
                   : previewStatus.phase === "complete"
@@ -557,6 +562,7 @@ export function SoundControls({
           </label>
         )}
 
+      </section>
     </>
   );
 }

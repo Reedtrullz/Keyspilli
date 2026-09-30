@@ -342,7 +342,7 @@ async function installAudioProbe(page: Page): Promise<void> {
 }
 
 async function captureArrangement(page: Page, testInfo: { outputPath: (path: string) => string }, label: string, startSeconds: number, durationMs = 2_000): Promise<AudioCapture & { sha256: string }> {
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   const seekValue = Number(startSeconds.toFixed(2));
   await seek.fill(String(seekValue));
   await expect(seek).toHaveValue(String(seekValue));
@@ -651,7 +651,7 @@ test("backing-only default omits source melody and keeps backing audio", async (
   await openPlayerTool(page, "Sound");
   await openAdvancedArrangementControls(page);
   const auditionDialog = page.getByRole("dialog", { name: "Sound settings" });
-  await page.getByLabel("Seek").fill("7");
+  await page.getByRole("slider", { name: "Seek", exact: true }).fill("7");
   const capture = await capturePreviewRole(page, testInfo, auditionDialog, "Accompaniment", "blackbird-backing-only-default");
   audible(capture);
   const triangleStarts = capture.events
@@ -936,13 +936,10 @@ test("phrase-local source choices persist, reset one interval, and keep stale or
   const seekToPhrase = async () => {
     const summary = page.getByTestId("melody-phrase-summary");
     const currentPhrase = summary.getByText(/^Current phrase /);
-    await expect(page.getByLabel("Seek")).toBeEnabled({ timeout: 15_000 });
-    const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-    await bar.fill("1");
-    await bar.press("Enter");
-    await page.getByLabel("Seek").fill("0");
-    await expect(page.getByRole("spinbutton", { name: "Bar", exact: true })).toHaveValue("1");
-    await expect(page.getByLabel("Seek")).toHaveValue("0");
+    await expect(page.getByRole("slider", { name: "Seek", exact: true })).toBeEnabled({ timeout: 15_000 });
+    await page.getByRole("slider", { name: "Seek", exact: true }).fill("0");
+    await expect(page.getByRole("slider", { name: "Seek", exact: true })).toHaveAttribute("aria-valuetext", /^Bar 1 of /);
+    await expect(page.getByRole("slider", { name: "Seek", exact: true })).toHaveValue("0");
     await expect(currentPhrase).toBeAttached({ timeout: 15_000 });
   };
   const enterPhrase = async (melody?: "Automatic melody" | "Use right-hand part") => {
@@ -1010,8 +1007,8 @@ test("phrase-local source choices persist, reset one interval, and keep stale or
   };
   await page.evaluate(({ key, value }) => window.localStorage.setItem(key, JSON.stringify(value)), { key: SIDECAR_KEY, value: overlapping });
   await enterPhrase("Use right-hand part");
-  await page.getByLabel("Seek").fill("0.5");
-  await expect(page.getByLabel("Seek")).toHaveValue("0.5");
+  await page.getByRole("slider", { name: "Seek", exact: true }).fill("0.5");
+  await expect(page.getByRole("slider", { name: "Seek", exact: true })).toHaveValue("0.5");
   actions = await openPhraseActions();
   await expect(page.getByTestId("melody-phrase-review-reason")).toContainText("saved override overlaps this interval");
   for (const action of [
@@ -1207,7 +1204,7 @@ test("role audition renders four audible roles and preserves A/B position", asyn
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await bootAudio(page);
 
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("0");
   await openPlayerTool(page, "Sound");
   await openAdvancedArrangementControls(page);
@@ -1244,7 +1241,7 @@ test("arrangement preview cancels scheduled audio when its source changes", asyn
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await bootAudio(page);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("7");
   await openPlayerTool(page, "Sound");
   await openAdvancedArrangementControls(page);
@@ -1266,7 +1263,7 @@ test("moving transport does not cancel a new preview, while an external seek doe
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await bootAudio(page);
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("7");
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
@@ -1295,7 +1292,7 @@ test("arrangement preview exposes stop/repeat and preserves stopped or playing t
   await page.goto(`/player/${SONG_ID}`);
   await expect(page.getByLabel("Falling notes player")).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("7");
 
   await openPlayerTool(page, "Sound");
@@ -1434,7 +1431,7 @@ test("melody arrangement feeds practice at the selected position", async ({ page
   await selectArrangement(page, "Chord mode", "Automatic melody");
   await bootAudio(page);
   await page.getByRole("button", { name: "Right hand", exact: true }).click();
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("7");
   await page.getByRole("button", { name: "Practice", exact: true }).click();
   const setup = page.getByRole("dialog", { name: "Set up practice" });
@@ -1813,7 +1810,7 @@ test("derived guidance stays pitch-consistent in the visual view after transpose
   const view = page.getByLabel("Note letters view");
   await expect(view).toBeVisible();
   await selectArrangement(page, "Chord mode", "Automatic melody");
-  await page.getByLabel("Seek").fill("3");
+  await page.getByRole("slider", { name: "Seek", exact: true }).fill("3");
   const badges = view.locator("[data-midi]");
   await expect(badges.first()).toBeVisible();
   const automatic = (await badges.evaluateAll((nodes) => nodes.map((node) => Number(node.getAttribute("data-midi"))))).sort((a, b) => a - b);
@@ -2007,7 +2004,7 @@ test("real artifact keeps arrangement controls usable at 390px", async ({ page }
   await dialog.getByRole("button", { name: "Preview arrangement", exact: true }).click();
   await dialog.getByRole("button", { name: "Close tools", exact: true }).click();
 
-  const seek = page.getByLabel("Seek");
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
   await seek.fill("1");
   await expect(seek).toHaveValue("1");
   await page.getByRole("button", { name: "Left hand", exact: true }).click();

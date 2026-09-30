@@ -6,7 +6,7 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   // Real-artifact melody checks are opt-in; their local source fixtures are
   // intentionally unavailable to the default seeded CI catalog.
-  testIgnore: /(?:melody-accompaniment|bounded-mvp|mobile-scratch)\.spec\.ts$/,
+  testIgnore: /(?:melody-accompaniment|bounded-mvp|mobile-scratch|player-ui-improvements)\.spec\.ts$/,
   webServer: {
     command: "npm run start",
     url: "http://127.0.0.1:3000",

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { practiceContext } from "./player-ui-context";
 import { measureIndex, pitchColor, playbackMeasures, secPerBeat, timeSignatureAtBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
 import { displayChordName } from "./chord-practice";
@@ -8,10 +9,14 @@ import { displayChordName } from "./chord-practice";
 const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const pitchName = (midi: number) => `${LETTERS[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
 
-export function BeginnerView({ data, time, settings, chords }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[] }) {
+export function BeginnerView({ data, time, settings, chords, provisionalTempo = false }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[]; provisionalTempo?: boolean }) {
+  const [following, setFollowing] = useState(true);
+  const [reviewMeasure, setReviewMeasure] = useState(0);
   const beat = time / secPerBeat(data.tempoBpm, settings.speed);
   const measures = useMemo(() => playbackMeasures(data), [data]);
-  const currentMeasure = measureIndex(time, data.tempoBpm, settings.speed, data.timeSig, measures.length, measures);
+  const playbackMeasure = measureIndex(time, data.tempoBpm, settings.speed, data.timeSig, measures.length, measures);
+  const currentMeasure = following ? playbackMeasure : Math.min(reviewMeasure, measures.length - 1);
+  const pauseFollowing = () => { setReviewMeasure(currentMeasure); setFollowing(false); };
   const m = measures[currentMeasure] ?? measures[0]!;
   const scroller = useRef<HTMLDivElement>(null);
   const activeCell = useRef<HTMLTableCellElement>(null);
@@ -36,7 +41,7 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
   useEffect(() => {
     const panel = scroller.current;
     const cell = activeCell.current;
-    if (!panel) return;
+    if (!panel || !following) return;
     if (!cell) { panel.scrollLeft = 0; return; }
     const panelBox = panel.getBoundingClientRect();
     const cellBox = cell.getBoundingClientRect();
@@ -44,7 +49,8 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
     if (cellBox.left < panelBox.left + 80 || cellBox.right > panelBox.right) {
       panel.scrollLeft += cellBox.left - panelBox.left - 88;
     }
-  }, [activeIndex, currentMeasure]);
+  }, [activeIndex, currentMeasure, following]);
+  useEffect(() => setFollowing(true), [data]);
   const nextMeasure = measures[currentMeasure + 1];
   const nextNotes = useMemo(() => nextMeasure ? data.notes
     .filter((note) => note.start >= nextMeasure.startBeat && note.start < nextMeasure.endBeat)
@@ -55,10 +61,12 @@ export function BeginnerView({ data, time, settings, chords }: { data: SongData;
     <div className="note-letters-view p-4 sm:p-6" aria-label="Note letters view">
       <div className="flex flex-wrap justify-between gap-2 text-xs text-zinc-500 mb-3">
         <span>Bar {currentMeasure + 1} of {measures.length}</span>
-        <span>{data.key} · {data.tempoBpm} BPM</span>
+        <span>{practiceContext(data.key, data.tempoBpm, settings, provisionalTempo)}</span>
       </div>
-      <p className="text-sm text-zinc-600 mb-4">Scroll across the bar. Notes in the same column start together.</p>
-      <div ref={scroller} className="note-letters-scroll" tabIndex={0} role="region" aria-label="Notes in this bar, scroll horizontally">
+      <button className="player-follow-button" aria-pressed={following} onClick={() => following ? pauseFollowing() : setFollowing(true)}>{following ? "Pause following" : "Resume following"}</button>
+      <div ref={scroller} className="note-letters-scroll" tabIndex={0} role="region" aria-label="Notes in this bar, scroll horizontally"
+        onWheel={pauseFollowing} onTouchMove={pauseFollowing}
+        onPointerDown={pauseFollowing} onKeyDown={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) pauseFollowing(); }}>
         {columns.length ? <table className="note-letters-table">
           <caption className="sr-only">Note starts by beat and hand. Numbers after pitch letters indicate octave.</caption>
           <thead><tr><th scope="col">Beat</th>{columns.map((column, i) => <th

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { keyboardRects } from "@keyspilli/player-core";
-import { openPlayerTool } from "./player-tools";
+import { openPlayerTool, seekToBar } from "./player-tools";
 let pageErrors: string[] = [];
 test.afterEach(() => expect(pageErrors).toEqual([]));
 const song = "/player/f-f-chopin-nocturne-m";
@@ -61,7 +61,7 @@ test("display preferences persist; octave is session-only; MIDI requests are exp
   expect(await page.evaluate(() => (window as unknown as { midiRequests: number }).midiRequests)).toBe(0);
   await openPlayerTool(page, "Display");
   await page.getByLabel("Key labels", { exact: true }).selectOption("octaves");
-  await page.getByLabel("Stage appearance", { exact: true }).selectOption("charcoal");
+  await page.getByLabel("App appearance", { exact: true }).selectOption("charcoal");
   await page.getByLabel("Computer-key hints", { exact: true }).check();
   await openPlayerTool(page, "Input");
   await page.getByRole("button", { name: "Raise input octave" }).click();
@@ -75,7 +75,7 @@ test("display preferences persist; octave is session-only; MIDI requests are exp
   await expect(page.locator(".piano-input-status")).toContainText("C4–E5");
   await openPlayerTool(page, "Display");
   await expect(page.getByLabel("Key labels", { exact: true })).toHaveValue("octaves");
-  await expect(page.getByLabel("Stage appearance", { exact: true })).toHaveValue("charcoal");
+  await expect(page.getByLabel("App appearance", { exact: true })).toHaveValue("charcoal");
   await expect(page.getByLabel("Computer-key hints", { exact: true })).toBeChecked();
 });
 
@@ -141,11 +141,10 @@ test("bar progress follows seeking and speed; count-in uses the existing countdo
   await page.goto(song);
   const progress = page.locator(".piano-input-status progress");
   await expect(progress).toHaveAttribute("aria-label", "Bar 1 progress");
-  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-  await bar.fill("3"); await bar.press("Enter");
+  await seekToBar(page, 3);
   await expect(progress).toHaveAttribute("aria-label", "Bar 3 progress");
   const value = await progress.evaluate((node: HTMLProgressElement) => node.value);
-  await page.getByRole("button", { name: "50%", exact: true }).click();
+  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Decrease speed", exact: true }).click();
   await expect.poll(() => progress.evaluate((node: HTMLProgressElement) => node.value)).toBeCloseTo(value, 5);
   await page.getByRole("button", { name: "Practice", exact: true }).click();
   await page.getByLabel("Count-in", { exact: true }).selectOption("4");

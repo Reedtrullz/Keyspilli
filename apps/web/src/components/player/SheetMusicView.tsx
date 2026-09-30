@@ -8,9 +8,11 @@ import {
 } from "@keyspilli/engrave";
 
 export type SheetRenderMode = "virtual" | "all";
+export type SheetReaderPosition = { zoom: number; page: number; offset: number; scrollLeft: number };
 
 type SheetMusicViewProps = {
   songId: string;
+  initialPosition?: SheetReaderPosition;
   /**
    * `virtual` keeps only a small page window of SVG markup in the DOM (the
    * remaining page shells preserve the scroll range). Printable/export
@@ -55,8 +57,9 @@ function updateSheetState(values: Record<string, unknown>): void {
   Object.assign(window as unknown as Record<string, unknown>, values);
 }
 
-export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicViewProps) {
-  const [zoom, setZoom] = useState(100);
+export function SheetMusicView({ songId, renderMode = "virtual", initialPosition }: SheetMusicViewProps) {
+  const [zoom, setZoom] = useState(initialPosition?.zoom ?? 100);
+  const restoredPositionRef = useRef(false);
   const [pages, setPages] = useState<PageMap>({});
   const [pageCount, setPageCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
@@ -277,6 +280,22 @@ export function SheetMusicView({ songId, renderMode = "virtual" }: SheetMusicVie
     // full score DOM or SVG string set.
     return pageRange(1, pageCount);
   }, [pageCount]);
+
+  useEffect(() => {
+    if (!ready || !initialPosition || restoredPositionRef.current || renderMode !== "virtual") return;
+    const container = containerRef.current;
+    const page = container?.querySelector<HTMLElement>(`[data-page="${Math.max(1, Math.min(pageCount, initialPosition.page))}"]`);
+    if (!container || !page) return;
+    restoredPositionRef.current = true;
+    let cancelled = false;
+    const animations = document.getAnimations().filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity);
+    void Promise.allSettled(animations.map(animation => animation.finished)).then(() => {
+      if (cancelled) return;
+      container.scrollLeft = initialPosition.scrollLeft;
+      window.scrollTo({ top: window.scrollY + page.getBoundingClientRect().top - initialPosition.offset, behavior: "instant" });
+    });
+    return () => { cancelled = true; restoredPositionRef.current = false; };
+  }, [initialPosition, pageCount, ready, renderMode]);
 
   if (error) {
     return (

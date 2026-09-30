@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { usePresence } from "./player/player-motion";
+import { loadSettings } from "@keyspilli/player-core";
+import { APP_THEME_EVENT, applyAppTheme, setAppTheme, type AppTheme } from "./app-theme";
 
 const NAV = [
   ["/", "Home"],
@@ -14,6 +16,18 @@ const NAV = [
 
 export function SiteHeader() {
   const pathname = usePathname() ?? "/";
+  const [theme, setTheme] = useState<AppTheme>("light");
+  useEffect(() => {
+    const sync = () => setTheme(document.documentElement.dataset.theme === "charcoal" ? "charcoal" : "light");
+    const restore = () => applyAppTheme(loadSettings().stageTheme);
+    window.addEventListener(APP_THEME_EVENT, sync);
+    window.addEventListener("storage", restore);
+    restore();
+    return () => {
+      window.removeEventListener(APP_THEME_EVENT, sync);
+      window.removeEventListener("storage", restore);
+    };
+  }, []);
   const [moreOpen, setMoreOpen] = useState(false);
   const morePresence = usePresence(moreOpen);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
@@ -86,6 +100,11 @@ export function SiteHeader() {
             More
           </button>
         </nav>
+        <button type="button" className="site-theme-toggle" aria-label="Charcoal mode" aria-pressed={theme === "charcoal"}
+          title={theme === "charcoal" ? "Switch to Light" : "Switch to Charcoal"}
+          onClick={() => setAppTheme(theme === "charcoal" ? "light" : "charcoal")}>
+          <span aria-hidden="true">{theme === "charcoal" ? "☀" : "☾"}</span>
+        </button>
       </div>
       {morePresence.mounted && (
         <div
