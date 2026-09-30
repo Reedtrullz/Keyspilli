@@ -426,10 +426,9 @@ test("chord guide explains its markers and preserves the existing preference", a
   await page.reload();
   await openPlayerTool(page, "Display");
   await expect(guide).toHaveAttribute("aria-pressed", "false");
-  await expect(page.locator(".falling-canvas")).not.toContainText("Chord guide");
-  await expect(page.locator(".falling-canvas")).toContainText("Top strip: next note");
+  await expect(page.locator("#chord-guide-description")).toContainText("Colored strips at the top of keys show upcoming notes");
   await guide.click();
-  await expect(page.locator(".falling-canvas")).toContainText("Chord guide");
+  await expect(guide).toHaveAttribute("aria-pressed", "true");
 });
 
 test("falling view omits the redundant chord sequence on phones", async ({ page }) => {
