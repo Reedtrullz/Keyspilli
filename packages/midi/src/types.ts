@@ -38,6 +38,8 @@ export type ChordInferenceType =
   | "subbeat-extension"
   | "voicing"
   | "learner-harmonization"
+  /** Checked arrangement override whose absolute pitches must survive backing playback. */
+  | "arrangement-voicing"
   | "harmony-window";
 
 export interface ChordLabel {
