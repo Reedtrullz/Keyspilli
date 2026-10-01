@@ -40,7 +40,7 @@ export function PlayerTools({ open, onOpen, children, soundLabel }: {
         node.style.top = `${top / scale}px`;
         node.style.maxHeight = `${height / scale}px`;
         node.style.maxWidth = `${(window.innerWidth - 24) / scale}px`;
-        node.style.right = `${Math.max(12, window.innerWidth - box.right) / scale}px`;
+        node.style.right = `${Math.max(12, Math.min(window.innerWidth - node.getBoundingClientRect().width - 12, window.innerWidth - box.right)) / scale}px`;
       }
     };
     position();

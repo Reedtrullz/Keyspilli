@@ -10,7 +10,8 @@ export type PracticeSetup = {
   countInBeats: 0 | 4;
 };
 
-export function PracticeSetupDialog({ onChordPractice, initialSetup, hasLoop, midiConnected, micReady, micPending, micError, error, onEnableMic, onInputChange, onStart, onCancel }: {
+export function PracticeSetupDialog({ describeSetup, onChordPractice, initialSetup, hasLoop, midiConnected, micReady, micPending, micError, error, onEnableMic, onInputChange, onStart, onCancel }: {
+  describeSetup?: (setup: PracticeSetup) => string;
   onChordPractice?: () => void;
   initialSetup: PracticeSetup;
   hasLoop: boolean;
@@ -36,7 +37,7 @@ export function PracticeSetupDialog({ onChordPractice, initialSetup, hasLoop, mi
   const unavailable = setup.input === "midi" ? !midiConnected : setup.input === "microphone" && !micReady;
   return (
     <dialog ref={dialog} aria-label="Set up practice" onCancel={(event) => { event.preventDefault(); requestClose(); }}
-      className={`fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl backdrop:bg-black/40 ${motion.panel}`}>
+      className={`fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md max-h-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl backdrop:bg-black/40 ${motion.panel}`}>
       <h2 id="practice-setup-title" className="text-lg font-semibold mb-4">Set up practice</h2>
       <fieldset disabled={closing} className="space-y-4">
         <label className="block text-sm">Input
@@ -70,6 +71,9 @@ export function PracticeSetupDialog({ onChordPractice, initialSetup, hasLoop, mi
         </label>
         {onChordPractice && <button type="button" className="min-h-11 px-3 rounded-lg border border-indigo-300 text-indigo-800" onClick={onChordPractice}>Chord practice</button>}
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        {describeSetup && <p className="practice-setup-summary" aria-label="Practice setup summary">{describeSetup(setup)} · {setup.input === "keyboard" ? "Computer / on-screen keys" : setup.input === "midi" ? "MIDI" : "Microphone (beta)"} · {setup.wait ? "Wait for notes" : "Play along"}</p>}
+        {unavailable && <p className="text-sm text-amber-800">{setup.input === "midi" ? "Connect a MIDI keyboard or choose computer keys before starting." : "Enable the microphone or choose another input before starting."}</p>}
+        {setup.scope === "loop" && !hasLoop && <p className="text-sm text-amber-800">Select a loop before practicing it.</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={requestClose} className="min-h-11 rounded-full border border-zinc-300 px-4">Cancel</button>
           <button type="button" disabled={unavailable || (setup.scope === "loop" && !hasLoop)} onClick={() => onStart(setup)} className="min-h-11 rounded-full bg-zinc-900 text-white px-4 disabled:opacity-40">Start practice</button>

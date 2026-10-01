@@ -1,4 +1,4 @@
-import { openAdvancedArrangementControls, openPlayerTool } from "./player-tools";
+import { openAdvancedArrangementControls, openPlayerTool, seekToBar } from "./player-tools";
 import { expect, test } from "@playwright/test";
 import { seedMidiDir } from "../../../packages/catalog/src/paths";
 import { join } from "node:path";
@@ -226,7 +226,7 @@ test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await page.getByRole("button", { name: "Enable loop", exact: true }).click();
   await expect(page.getByRole("button", { name: "Clear loop", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Decrease speed" }).click();
-  await expect(page.getByText("90%")).toBeVisible();
+  await expect(page.getByText("90%", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Right hand", exact: true }).click();
   await page.getByRole("button", { name: "Both hands", exact: true }).click();
   // seek bar + spacebar play/pause
@@ -358,9 +358,7 @@ test("Chords opens a short Wait exercise from the selected bar", async ({ page }
   const sound = page.getByRole("dialog", { name: "Sound settings" });
   await sound.getByRole("radio", { name: "Chord mode" }).click();
   await sound.getByRole("button", { name: "Close tools" }).click();
-  const bar = page.getByRole("spinbutton", { name: "Bar", exact: true });
-  await bar.fill("3");
-  await bar.press("Enter");
+  await seekToBar(page, 3);
   const startTime = await page.getByRole("slider", { name: "Seek" }).inputValue();
 
   await page.getByRole("button", { name: "Practice", exact: true }).click();
@@ -370,7 +368,9 @@ test("Chords opens a short Wait exercise from the selected bar", async ({ page }
   await expect(setup.getByRole("option", { name: "Current 4 bars" })).toBeAttached();
   await setup.getByRole("button", { name: "Start practice" }).click();
   await expect(page.getByRole("region", { name: "Practice grading" })).toContainText("Wait for notes");
-  await expect(page.getByRole("slider", { name: "Seek" })).toHaveValue(startTime);
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
+  await expect(seek).toHaveAttribute("aria-valuetext", /^Bar 3 of /);
+  expect(Math.abs(Number(await seek.inputValue()) - Number(startTime))).toBeLessThanOrEqual(0.011);
   await page.getByRole("button", { name: "Finish practice" }).click();
   await page.locator(".player-loop-controls summary").click();
   await page.getByRole("button", { name: "Loop current bar" }).click();

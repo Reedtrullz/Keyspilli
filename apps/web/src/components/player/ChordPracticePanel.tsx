@@ -40,7 +40,7 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
     .filter((midi) => BLACK_PITCH_CLASSES.includes(pitchClass(midi)) && whiteIndex.has(midi - 1));
 
   return (
-    <div className="relative h-36 rounded-xl border border-zinc-300 bg-zinc-100 overflow-hidden" aria-label={`Reference keyboard for ${target.name}`}>
+    <div className="reference-keyboard relative h-36 rounded-xl border border-zinc-300 bg-zinc-100 overflow-hidden" aria-label={`Reference keyboard for ${target.name}`}>
       <div className="absolute inset-0 flex">
         {whites.map((midi) => {
           const active = targetSet.has(midi);
@@ -119,7 +119,7 @@ export function ChordPracticePanel({
   }, [closing, presenceVisible]);
 
   return (
-    <section ref={panelRef} className={`p-4 sm:p-6 bg-gradient-to-b from-indigo-50 to-white ${motion.panel}`} aria-label="Chord practice" aria-hidden={closing || !presenceVisible} data-testid="chord-practice-panel">
+    <section ref={panelRef} className={`p-4 sm:p-6 ${motion.panel}`} aria-label="Chord practice" aria-hidden={closing || !presenceVisible} data-testid="chord-practice-panel">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-1">
           <p className="text-xs uppercase tracking-wide font-semibold text-indigo-700">Chord practice</p>
@@ -139,9 +139,9 @@ export function ChordPracticePanel({
       )}
 
       {target && (
-        <div className="rounded-2xl border border-indigo-200 bg-white p-4 sm:p-5 shadow-sm">
+        <div className="chord-practice-target">
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900">{target.name}</span>
+            <span className="chord-practice-name">{target.name}</span>
             <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-800">{sourceLabel(target)}</span>
             <span className="ml-auto text-xs font-medium text-zinc-500">
               {snapshot.finished ? `${snapshot.total} chords complete` : `Chord ${Math.min(snapshot.currentIndex + 1, snapshot.total)} of ${snapshot.total}`}
@@ -167,9 +167,6 @@ export function ChordPracticePanel({
                 <span className="text-xs text-zinc-500">Play the blue notes on your MIDI keyboard or computer keys.</span>
               </>
             )}
-            {snapshot.finished && (
-              <button onClick={onStart} className="min-h-11 px-4 rounded-xl bg-indigo-700 text-white font-medium hover:bg-indigo-800">Try again</button>
-            )}
           </div>
           {active && !snapshot.finished && (
             <p className="mt-3 text-sm" role="status" aria-live="polite">
@@ -181,7 +178,7 @@ export function ChordPracticePanel({
         </div>
       )}
       {targets.length > 0 && snapshot.finished && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950" role="status">
+        <div className="chord-practice-completion" role="status">
           <h3 className="text-xl font-bold">Chord practice complete</h3>
           <p className="mt-2 text-sm">{snapshot.completed} completed · {snapshot.skipped} skipped · {snapshot.wrong} extra notes · {snapshot.completionPct ?? "—"}% completed.</p>
           <button onClick={onStart} className="mt-4 min-h-11 px-4 rounded-xl bg-indigo-700 text-white font-medium hover:bg-indigo-800">Try again</button>

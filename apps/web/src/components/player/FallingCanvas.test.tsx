@@ -6,13 +6,36 @@ const hooks = vi.hoisted(() => ({
   effects: [] as (() => void | (() => void))[],
   refs: 0,
   canvas: {} as Record<string, unknown>,
+  lyrics: { textContent: "" },
 }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
-  useRef: (value: unknown) => ({ current: hooks.refs++ === 0 ? hooks.canvas : value }),
+  useMemo: (factory: () => unknown) => factory(),
+  useRef: (value: unknown) => ({ current: hooks.refs++ === 0 ? hooks.canvas : hooks.refs === 2 ? hooks.lyrics : value }),
   useEffect: (effect: () => void | (() => void)) => hooks.effects.push(effect),
 }));
 afterEach(() => { vi.unstubAllGlobals(); hooks.effects = []; hooks.refs = 0; });
+
+it("groups simultaneous lyrics into the DOM lyric lane without painting over keys", () => {
+  const fillText = vi.fn();
+  const ctx = new Proxy({ fillText, measureText: (text: string) => ({ width: text.length * 7 }) }, {
+    get: (target, key) => key in target ? target[key as keyof typeof target] : vi.fn(),
+  });
+  hooks.canvas = { clientWidth: 390, clientHeight: 400, width: 0, height: 0, getContext: () => ctx };
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  vi.stubGlobal("requestAnimationFrame", vi.fn()); vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  vi.stubGlobal("window", { devicePixelRatio: 1, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  FallingCanvas({ notes: [
+    { midi: 60, startSec: 0, durSec: 1, vel: 80, lyrics: "Hello" },
+    { midi: 61, startSec: 0, durSec: 1, vel: 80, lyrics: "world" },
+  ], time: 0, playing: false, settings: DEFAULT_SETTINGS, pressedKeys: new Map(), chords: [],
+  tempoBpm: 120, lowMidi: 48, highMidi: 84, loop: null });
+  const cleanups = hooks.effects.map(effect => effect());
+  expect(hooks.lyrics.textContent).toBe("Hello · world");
+  expect(fillText.mock.calls.some(([text]) => text.includes("Hello"))).toBe(false);
+  for (const cleanup of cleanups) cleanup?.();
+});
 
 it("redraws a paused height-only resize in CSS pixels with a DPR backing store", () => {
   const fillText = vi.fn();

@@ -17,7 +17,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("keyspilli.prefs.v1")||"{}").stageTheme==="charcoal"?"charcoal":"light"}catch{document.documentElement.dataset.theme="light"}` }} /></head>
       <body className="min-h-screen flex flex-col">
         <SiteHeader />
         <NavigationMotion />

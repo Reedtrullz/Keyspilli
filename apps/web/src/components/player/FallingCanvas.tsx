@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   createFallingChordIndex,
   createFallingNoteIndex,
@@ -24,6 +24,8 @@ import {
 } from "@keyspilli/player-core";
 
 interface Props {
+  readingWindow?: 2 | 3.2 | 5;
+  showLyrics?: boolean;
   measures?: { startBeat: number; endBeat: number }[];
   countIn?: number | null;
   inputEnabled?: boolean;
@@ -67,8 +69,22 @@ export function beatGridPoints(
   return [...points].sort((a, b) => a - b);
 }
 
-export function FallingCanvas({ measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lyricLineRef = useRef<HTMLParagraphElement>(null);
+  const lyricEvents = useMemo(() => {
+    const groups = new Map<number, Set<string>>();
+    for (const note of notes) {
+      if (!note.lyrics?.trim()) continue;
+      if (!groups.has(note.startSec)) groups.set(note.startSec, new Set());
+      groups.get(note.startSec)!.add(note.lyrics.trim());
+    }
+    return [...groups].sort(([a], [b]) => a - b).map(([startSec, words]) => ({ startSec, text: [...words].join(" · ") }));
+  }, [notes]);
+  const lyricEventsRef = useRef(lyricEvents);
+  lyricEventsRef.current = lyricEvents;
+  const readingWindowRef = useRef(readingWindow);
+  readingWindowRef.current = readingWindow;
   const rhythmLabelRef = useRef<HTMLSpanElement>(null);
   const progressRef = useRef<HTMLProgressElement>(null);
   const rhythmRef = useRef({ measures, countIn });
@@ -125,7 +141,7 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
   // the refs directly and does not need an extra React-driven draw.
   useEffect(() => {
     if (!playingRef.current) drawRef.current?.();
-  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig, inputOctave, measures, countIn]);
+  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig, inputOctave, measures, countIn, readingWindow, showLyrics]);
 
   // Single rAF loop — draws once on mount and only schedules frames while
   // playing, reading state from refs.
@@ -189,7 +205,16 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
         if (rhythmLabelRef.current && rhythmLabelRef.current.textContent !== label.replace(" progress", "")) rhythmLabelRef.current.textContent = progress || rhythmRef.current.countIn !== null ? label.replace(" progress", "") : "";
         if (progressRef.current.getAttribute("aria-label") !== label) progressRef.current.setAttribute("aria-label", label);
       }
-      const lookahead = 3.2;
+      const lookahead = readingWindowRef.current;
+      const lyrics = lyricEventsRef.current;
+      let left = 0, right = lyrics.length;
+      while (left < right) {
+        const middle = (left + right) >>> 1;
+        if (lyrics[middle]!.startSec <= now) left = middle + 1; else right = middle;
+      }
+      const lyric = lyrics[Math.max(0, left - 1)];
+      const lyricText = lyric && Math.abs(lyric.startSec - now) <= lookahead ? lyric.text : "";
+      if (lyricLineRef.current && lyricLineRef.current.textContent !== lyricText) lyricLineRef.current.textContent = lyricText;
       const KB_H = Math.min(W < 640 ? 96 : 140, H * 0.52);
       const areaHeight = Math.max(1, H - KB_H - 10);
       const chordIndex = chordIndexRef.current!;
@@ -283,22 +308,6 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
         ctx.textBaseline = "middle";
         ctx.fillStyle = isActive ? (dark ? "#93c5fd" : "#2563eb") : (dark ? "#e4e4e7" : "#18181b");
         ctx.fillText(c.name, LEFT_MARGIN - 8, y, Math.max(1, LEFT_MARGIN - 12));
-      }
-
-      // --- Draw lyrics (right side) ---
-      const lyricMarginSec = 20 / pxPerSec;
-      const lyricRange = fallingNoteRange(noteIndex, now - lyricMarginSec, lookahead + 2 * lyricMarginSec, 0.05, noteRangeCache);
-      for (let noteIdx = lyricRange.start; noteIdx < lyricRange.end; noteIdx++) {
-        const n = currentNotes[noteIdx]!;
-        if (!n.lyrics) continue;
-        const bottom = areaHeight - (n.startSec - now) * pxPerSec;
-        if (bottom < -20 || bottom > areaHeight + 20) continue;
-        const y = Math.max(14, Math.min(areaHeight - 4, bottom - 4));
-        ctx.font = "13px system-ui, sans-serif";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = dark ? "#d4d4d8" : "#52525b";
-        ctx.fillText(n.lyrics, W - RIGHT_MARGIN + 10, y);
       }
 
       // --- Keyboard ---
@@ -577,7 +586,8 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
 
   return (
     <div className="falling-canvas relative">
-      <canvas ref={canvasRef} aria-label="Falling notes player" aria-description="The indigo landmark marks middle C. The keyboard range stays fixed throughout the arrangement." className="block w-full" style={{ height: "calc(100% - 24px)" }} />
+      {showLyrics && lyricEvents.length > 0 && <p ref={lyricLineRef} className="falling-lyrics" aria-label="Current lyrics" />}
+      <canvas ref={canvasRef} aria-label="Falling notes player" aria-description="The indigo landmark marks middle C. The keyboard range stays fixed throughout the arrangement." className="block w-full" style={{ height: showLyrics && lyricEvents.length ? "calc(100% - 24px - var(--lyric-lane-height, 56px))" : "calc(100% - 24px)" }} />
       <div ref={pianoRef} className="piano-pointer-surface absolute bottom-6 touch-none outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
         role="button" tabIndex={0} aria-label="Piano keyboard" aria-disabled={!inputEnabled}
         aria-description={inputEnabled ? "Play with touch, mouse or computer keys. Arrow keys select a note; Enter or Space holds it. The indigo mark is middle C." : "On-screen input is unavailable during setup, count-in, or a MIDI/microphone-only attempt."}
@@ -617,7 +627,6 @@ export function FallingCanvas({ measures = [], countIn = null, inputEnabled = tr
         <span ref={rhythmLabelRef} className="ml-auto shrink-0" />
         <progress ref={progressRef} max={1} value={0} aria-label="Bar progress" className="h-1 w-12 shrink-0 accent-indigo-600 motion-reduce:hidden" />
       </div>
-      <div className="absolute top-1 right-3 bg-white/90 px-1 text-[11px] text-zinc-700 pointer-events-none">LH: pale with indigo edge · RH: solid{settings.chordKeys && <span> · <span className="text-indigo-500" aria-hidden="true">●</span> Chord guide</span>} · Top strip: next note</div>
     </div>
   );
 }
