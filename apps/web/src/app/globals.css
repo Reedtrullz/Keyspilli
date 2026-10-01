@@ -1125,7 +1125,7 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
   .player-secondary-controls { padding: 4px 6px; }
   .player-secondary-controls .player-primary-controls { gap: 6px; }
   .player-stage-status { padding-inline: 8px; }
-  .player-workspace[data-falling="true"] .player-stage { min-height: 240px; height: max(240px, calc(100svh - 380px)); }
+  .player-workspace[data-falling="true"] .player-stage { min-height: 240px; height: max(240px, calc(100svh - 364px)); }
   .player-song-identity > .text-sm { font-size: 12px; }
 }
 @media (max-width: 359px) {
@@ -1156,7 +1156,8 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
   .player-workspace[data-falling="true"] .player-surface > * { grid-column: 1 / -1; }
   .player-workspace[data-falling="true"] .player-control-strip { grid-column: 1; }
   .player-workspace[data-falling="true"] .player-secondary-controls { grid-column: 2; align-content: center; }
-  .player-workspace[data-falling="true"] .player-stage { height: 220px; }
+  .player-workspace[data-falling="true"] .player-navigation { order: 2; }
+  .player-workspace[data-falling="true"] .player-stage { height: max(156px, calc(100svh - 160px)); min-height: 156px; }
   .player-focus .player-workspace[data-falling="true"] .player-surface { display: flex; }
   .player-focus :where(.player-timeline, .player-seek-track) { display: none; }
   .player-focus .player-workspace[data-falling="true"] .player-stage { height: auto; min-height: 180px; }

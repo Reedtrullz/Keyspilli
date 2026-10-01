@@ -55,7 +55,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
   }, [notes, measureChords, m.startBeat]);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" aria-label="Lead sheet view">
       <div className="p-6">
         <svg viewBox={`0 0 ${W} ${H}`} className="player-notation-svg w-full" role="img" aria-label="Lead sheet pitch positions. Notes, lyrics and chord provenance are listed by beat below.">
           <rect width={W} height={H} fill="#fff" rx="12" />

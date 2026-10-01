@@ -11,7 +11,7 @@ export async function seekToBar(page: Page, bar: number | "last") {
   const context = await page.getByLabel("Practice key and tempo", { exact: true }).textContent();
   const bpm = Number(context?.match(/([\d.]+) practice BPM/)?.[1]);
   if (!measures[index] || !bpm) throw new Error("No measured test passage or effective tempo");
-  await page.getByRole("slider", { name: "Seek", exact: true }).fill(String(measures[index]!.startBeat * 60 / bpm));
+  await page.getByRole("slider", { name: "Seek", exact: true }).fill((Math.ceil(measures[index]!.startBeat * 60 / bpm * 100) / 100).toFixed(2));
   return index + 1;
 }
 export async function openPlayerTool(page: Page, name: "Display" | "Sound" | "Input") {

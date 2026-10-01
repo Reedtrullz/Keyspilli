@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openPlayerTool } from "./player-tools";
 
 for (const viewport of [{ width: 428, height: 700 }, { width: 926, height: 320 }]) {
   test(`mobile piano fits without Focus at ${viewport.width}x${viewport.height}`, async ({ page }) => {
@@ -26,7 +27,6 @@ test("piano and organ request a playback audio session", async ({ page }) => {
   await page.getByRole("button", { name: "Play", exact: true }).click();
   expect(await page.evaluate(() => (navigator as Navigator & { audioSession: { type: string } }).audioSession.type)).toBe("playback");
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  const { openPlayerTool } = await import("./player-tools");
   await openPlayerTool(page, "Sound");
   await page.evaluate(() => { (navigator as Navigator & { audioSession: { type: string } }).audioSession.type = "auto"; });
   await page.getByRole("radio", { name: "Organ", exact: true }).click();

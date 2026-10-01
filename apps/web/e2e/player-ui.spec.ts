@@ -379,7 +379,7 @@ for (const width of [390, 1280]) {
       }
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.getByLabel('Seek').fill('4');
+    await page.getByRole('slider', { name: 'Seek', exact: true }).fill('4');
     if (width === 390) await expect.poll(() => panel.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
     const active = panel.locator('th[aria-current]');
     await expect(active).toHaveCount(1);
@@ -387,7 +387,7 @@ for (const width of [390, 1280]) {
     const activeBox = await active.boundingBox();
     expect(activeBox!.x).toBeGreaterThanOrEqual(panelBox!.x + 70);
     expect(activeBox!.x + activeBox!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width + 1);
-    await page.getByLabel('Seek').fill('0');
+    await page.getByRole('slider', { name: 'Seek', exact: true }).fill('0');
     await expect.poll(() => panel.evaluate((node) => node.scrollLeft)).toBe(0);
   });
 }
