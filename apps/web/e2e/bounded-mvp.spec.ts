@@ -155,7 +155,7 @@ test("upload rejects oversize files, freezes details while busy, and retries", a
   await page.getByRole("button", { name: "Upload & create lesson" }).click();
   await expect(page.getByRole("button", { name: "Validating and generating…" })).toBeDisabled();
   await expect(page.getByLabel("Title (optional)")).toBeDisabled();
-  expect(uploads).toBe(1);
+  await expect.poll(() => uploads).toBe(1);
   release();
   await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("Another upload is in progress");
   await page.unroute("**/api/uploads?**");
