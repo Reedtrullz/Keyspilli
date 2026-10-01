@@ -27,6 +27,18 @@ function resolve(
 }
 
 describe("resolveAccompaniment", () => {
+  it("preserves checked arrangement voicings and releases without changing ordinary inference", () => {
+    const chord: ChordLabel = { beat: 0, durationBeats: 4, name: "C/E", notes: [52,55,60], sourceKind: "inferred", inferenceType: "arrangement-voicing", strikeSpacingBeats: 2, maxStrikeDurationBeats: .5 };
+    const notes = [note(72,0),note(74,2)];
+    const options = { durationBeats: 4, sourceRhythmMeasures: [{startBeat:0,endBeat:4}] };
+    const explicit = resolveAccompaniment(notes,[chord],"bass-chords",options);
+    expect(explicit.chords.map(c=>[c.beat,c.durationBeats,c.notes])).toEqual([[0,.5,[52,55,60]],[2,.5,[52,55,60]]]);
+    expect(resolveAccompaniment(notes,[{...chord,name:"C"}],"bass-chords",options).chords[0]!.notes).toEqual(chord.notes);
+    expect(resolveAccompaniment(notes,[{...chord,notes:[48,52,55]}],"bass-chords",options).chords).toEqual([]);
+    expect(resolveAccompaniment(notes,[{...chord,inferenceType:"learner-harmonization"}],"bass-chords",options).chords[0]!.notes).not.toEqual(chord.notes);
+    expect(resolveAccompaniment(notes,[{...chord,notes:[52,55]}],"bass-chords",options).chords).toEqual([]);
+  });
+
   it("realizes a supported chart event without source-note ownership", () => {
     const result = resolve([], [{ beat: 0, durationBeats: 2, name: "C", notes: [] }], "bass-chords", undefined, 2);
 

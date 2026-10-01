@@ -1,6 +1,7 @@
 import {
   CHORDS_TUNING,
   chordIntervals,
+  chordPitchClasses,
   chordToNotes,
   groupAttackClusters,
   splitPianoRoles,
@@ -647,7 +648,15 @@ function generatedChordNotes(
   style: AccompanimentStyle,
   previousUpper: readonly number[] | null,
 ): number[] | null {
-  if (isNoChord(chord.name) || !tryParseChordSymbol(chord.name)) return null;
+  const symbol = tryParseChordSymbol(chord.name);
+  if (isNoChord(chord.name) || !symbol) return null;
+  if (style === "bass-chords" && chord.sourceKind === "inferred" && chord.inferenceType === "arrangement-voicing") {
+    const notes = [...new Set(chord.notes)].sort((a, b) => a - b);
+    const expected = new Set(chordPitchClasses(symbol));
+    return notes.length && notes.every(n => Number.isInteger(n) && n >= 21 && n <= 108 && expected.has(n % 12))
+      && [...expected].every(pc => notes.some(n => n % 12 === pc))
+      && (symbol.bassPc === undefined || notes[0]! % 12 === symbol.bassPc) ? notes : null;
+  }
   const upper = chooseUpperVoicing(compactUpperShape(chord) ?? [], previousUpper, chord.sourceKind === "generated" ? 79 : 96);
   if (!upper) return null;
   if (style !== "bass-chords") return upper;
