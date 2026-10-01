@@ -19,6 +19,22 @@ const IMAGINE = "john-lennon-imagine";
 const LET_IT_BE = "the-beatles-let-it-be";
 
 describe("catalog chord source plumbing", () => {
+  it("keeps MIDI-derived triplet/rubato timing and short rests while retaining chart grid normalization", () => {
+    const input={schemaVersion:1,baseId:'timing-test',title:'Test',artist:'Test',timeSig:[4,4],durationBeats:4.023,
+      chords:[{beat:1/3,durationBeats:1/3,name:'C',notes:[48,52,55],sourceKind:'inferred',inferred:true},
+        {beat:1,durationBeats:.02,name:'G',notes:[43,47,50],sourceKind:'inferred',inferred:true},
+        {beat:2.007,durationBeats:2.016,name:'F',notes:[41,45,48],sourceKind:'inferred',inferred:true}],
+      provenance:{sourceId:'prepared',provider:'keyspilli',kind:'midi-derived',sourceRef:'prepared:checked'}};
+    const timeline=normalizeChordTimeline(input);
+    for(const [i,expected] of [[1/3,1/3],[1,.02],[2.007,2.016]].entries()){
+      expect(timeline.chords[i]?.beat).toBeCloseTo(expected[0]!,12);
+      expect(timeline.chords[i]?.durationBeats).toBeCloseTo(expected[1]!,12);
+    }
+    expect(timeline.durationBeats).toBe(4.023);
+    expect(normalizeChordTimeline(JSON.parse(JSON.stringify(timeline)))).toEqual(timeline);
+    const chart=normalizeChordTimeline({...input,chords:[input.chords[0]],provenance:{...input.provenance,kind:'chart'}});
+    expect(chart.chords[0]?.beat).toBe(.3125);
+  });
   it("loads a persisted prepared backing and invalidates cache on publication, refusing wrong-song data", async () => {
     const runtimeDataDir = await mkdtemp(join(process.cwd(), ".prepared-test-"));
     try {

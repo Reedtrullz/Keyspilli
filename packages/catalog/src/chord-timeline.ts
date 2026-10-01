@@ -382,6 +382,9 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
   const legacyEventSourceKind = eventSourceKindForInput(input.provenance, defaults);
   const chartLike = defaults?.source?.kind === "chart"
     || (isRecord(input.provenance) && input.provenance.kind === "chart");
+  // MIDI-derived/checked events already carry their performance clock.
+  // Chart entry alone uses the historical grid; never erase short MIDI spans.
+  const normalizeBeat = chartLike ? roundBeat : (beat: number) => beat;
   if (input.schemaVersion !== undefined && input.schemaVersion !== CHORD_TIMELINE_SCHEMA_VERSION) {
     errors.push(`schemaVersion must be ${CHORD_TIMELINE_SCHEMA_VERSION}`);
   }
@@ -436,7 +439,7 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
     const parsedEnd = finite(end) && end > (beatRaw as number) ? end : undefined;
     validateChartVoicing(event.name.trim(), notes, `${path}`, chartLike, errors);
     parsed.push({
-      beat: roundBeat(beatRaw),
+      beat: normalizeBeat(beatRaw),
       durationBeats: parsedDuration ?? (parsedEnd !== undefined ? parsedEnd - (beatRaw as number) : 0),
       name: event.name.trim(),
       ...(notes === undefined ? {} : { notes }),
@@ -477,13 +480,13 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
     throw new Error("invalid chord timeline: durationBeats must be a finite non-negative number");
   }
   const fallbackSpan = timeSig[0] * (4 / timeSig[1]);
-  let durationBeats = finite(suppliedDuration) ? roundBeat(suppliedDuration) : 0;
+  let durationBeats = finite(suppliedDuration) ? normalizeBeat(suppliedDuration) : 0;
   if (finite(suppliedDuration) && atBeat.length && durationBeats < atBeat.at(-1)!.beat) {
     throw new Error("invalid chord timeline: durationBeats ends before the final chord");
   }
   if (!durationBeats) {
     durationBeats = atBeat.reduce((max, event) => Math.max(max, event.beat + (event.explicitDuration ?? fallbackSpan)), 0);
-    durationBeats = roundBeat(durationBeats);
+    durationBeats = normalizeBeat(durationBeats);
   }
   const projected: ChordTimelineEvent[] = [];
   for (let i = 0; i < atBeat.length; i++) {
@@ -494,7 +497,7 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
     if (endBeat <= event.beat + EPSILON) throw new Error(`invalid chord timeline: chords[${event.inputIndex}] has no positive span`);
     projected.push({
       beat: event.beat,
-      durationBeats: roundBeat(endBeat - event.beat),
+      durationBeats: normalizeBeat(endBeat - event.beat),
       name: event.name,
       ...(event.notes === undefined ? {} : { notes: event.notes }),
       sourceKind: event.sourceKind,
@@ -523,7 +526,7 @@ export function normalizeChordTimeline(value: unknown, defaults?: { source?: Cho
       && previous.maxStrikeDurationBeats === event.maxStrikeDurationBeats;
     // A separately authored event is an intentional new attack, even when its symbol repeats.
     if (samePayload && event.sourceKind !== "authored" && equalBeat(previous.beat + previous.durationBeats, event.beat)) {
-      previous.durationBeats = roundBeat(previous.durationBeats + event.durationBeats);
+      previous.durationBeats = normalizeBeat(previous.durationBeats + event.durationBeats);
       continue;
     }
     chords.push(event);
