@@ -351,9 +351,10 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
     setArrangementIntent("original");
     stopAudition();
     setFile(next);
-    setStatus("ready");
+    const oversized = next !== null && next.size > MAX_UPLOAD_BYTES;
+    setStatus(oversized ? "error" : "ready");
     setResult(null);
-    setError("");
+    setError(oversized ? "File too large (max 10 MB). Choose a smaller MIDI, MusicXML or MXL file." : "");
   }
 
   function chooseStarter(kind: "one-note" | "triad" | "four-note-phrase"): void {
@@ -592,7 +593,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         <h2 id="symbolic-review-heading" className="font-semibold">4. Review parts and publication intent</h2>
         <p className="text-sm text-zinc-500 mt-1 mb-3">Preflight reads the selected bytes and expires after ten minutes. Nothing enters the catalog until you confirm publication.</p>
         {!preflight ? (
-          <button type="button" onClick={reviewSymbolicFile} disabled={!file || preflightBusy || status === "uploading"} className="pressable px-4 py-2 rounded-lg border border-zinc-300 text-sm disabled:opacity-40">
+          <button type="button" onClick={reviewSymbolicFile} disabled={!file || file.size > MAX_UPLOAD_BYTES || preflightBusy || status === "uploading"} className="pressable px-4 py-2 rounded-lg border border-zinc-300 text-sm disabled:opacity-40">
             {preflightBusy ? "Reviewing file…" : "Review file parts"}
           </button>
         ) : <>

@@ -104,7 +104,7 @@ test("manual browsing stays put until Resume following", async ({ page }) => {
 test("sheet-only entry retains zoom and its reader position after failure, retry and controls load", async ({ page }) => {
   let requests = 0;
   await page.route("**/api/v1/sheet/*", route => route.fulfill({ contentType: "application/xml", body: sheetXml }));
-  await page.route("**/api/songs/ui-fixture-m", async route => {
+  await page.route(url => url.pathname === "/api/songs/ui-fixture-m", async route => {
     requests++;
     if (requests === 1) return route.fulfill({ status: 503, body: "unavailable" });
     await route.continue();

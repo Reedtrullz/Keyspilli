@@ -202,7 +202,7 @@ test("direct sheet routes start with a metadata shell and load player data on mo
 test("direct sheet RSC payload excludes the large player detail", async ({ page }) => {
   const detailRequests: string[] = [];
   page.on("request", (request) => {
-    if (request.method() === "GET" && request.url().endsWith(`/api/songs/${BRAHMS_SONG}`)) {
+    if (request.method() === "GET" && new URL(request.url()).pathname === `/api/songs/${BRAHMS_SONG}`) {
       detailRequests.push(request.url());
     }
   });

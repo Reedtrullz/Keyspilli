@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { openPlayerTool } from "./player-tools";
+import { reviewAuthoredFixture } from "./review-authored-fixture";
 
 test.describe.configure({ mode: "serial" });
 
@@ -37,9 +38,10 @@ test("scratch upload creates an Easy player with public levels and exports", asy
     mimeType: "application/vnd.recordare.musicxml+xml",
     buffer: Buffer.from(MUSIC_XML),
   });
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await reviewAuthoredFixture(page);
+  await page.getByRole("button", { name: "Confirm and publish lesson", exact: true }).click();
 
-  await expect(page.getByRole("status")).toContainText("four public levels");
+  await expect(page.getByRole("status")).toContainText("Lesson created with 6 available levels");
   const playerLink = page.getByRole("link", { name: /Open in the player/ });
   await expect(playerLink).toBeVisible();
   const easyHref = await playerLink.getAttribute("href");
@@ -82,7 +84,11 @@ test("scratch upload creates an Easy player with public levels and exports", asy
   await expect(dialog.getByText(/Downloads stay in the original key/)).toBeVisible();
   await dialog.getByRole("button", { name: "Close" }).focus();
   await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("combobox", { name: "Arrangement", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(dialog.getByRole("link", { name: /Simplify PDF/ })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialog.getByRole("combobox", { name: "Arrangement", exact: true })).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(dialog.getByRole("button", { name: "Close" })).toBeFocused();
   await page.keyboard.press("Escape");
@@ -138,12 +144,14 @@ test("upload rejects oversize files, freezes details while busy, and retries", a
     uploads++;
     await route.continue();
   });
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
   await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("File too large");
+  await expect(page.getByRole("button", { name: "Review file parts", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Confirm and publish lesson", exact: true })).toBeDisabled();
   expect(uploads).toBe(0);
 
   await page.getByRole("button", { name: "Remove" }).click();
   await picker.setInputFiles({ name: "retry.musicxml", mimeType: "application/xml", buffer: Buffer.from(MUSIC_XML.replace("<score-partwise", "<!-- retry fixture -->\n<score-partwise")) });
+  await reviewAuthoredFixture(page);
   let release!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });
   await page.unroute("**/api/uploads?**");
@@ -152,14 +160,14 @@ test("upload rejects oversize files, freezes details while busy, and retries", a
     await pending;
     await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "UPLOAD_BUSY", error: "upload busy" }) });
   });
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await page.getByRole("button", { name: "Confirm and publish lesson", exact: true }).click();
   await expect(page.getByRole("button", { name: "Validating and generating…" })).toBeDisabled();
   await expect(page.getByLabel("Title (optional)")).toBeDisabled();
   await expect.poll(() => uploads).toBe(1);
   release();
   await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("Another upload is in progress");
   await page.unroute("**/api/uploads?**");
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await page.getByRole("button", { name: "Confirm and publish lesson", exact: true }).click();
   await expect(page.getByRole("link", { name: /Open in the player/ })).toBeVisible();
   await page.getByRole("link", { name: /Open in the player/ }).click();
   await expect(page).toHaveURL(/\/player\//);
@@ -170,13 +178,14 @@ test("upload reconciliation requires a catalog check before retry", async ({ pag
   await page.locator('input[type="file"]').setInputFiles({
     name: "reconcile.musicxml", mimeType: "application/xml", buffer: Buffer.from(MUSIC_XML),
   });
+  await reviewAuthoredFixture(page);
   await page.route("**/api/uploads?**", (route) => route.fulfill({
     status: 503, contentType: "application/json",
     body: JSON.stringify({ code: "ARTIFACT_RECONCILIATION_REQUIRED", reconciliationRequired: true }),
   }));
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
+  await page.getByRole("button", { name: "Confirm and publish lesson", exact: true }).click();
   await expect(page.locator(".upload-status-slot [role=alert]")).toContainText("needs catalog reconciliation");
-  await expect(page.getByRole("button", { name: "Upload & create lesson" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Confirm and publish lesson", exact: true })).toBeDisabled();
 });
 
 test("scratch upload reports malformed symbolic content without publishing", async ({ page, request }) => {
@@ -186,15 +195,18 @@ test("scratch upload reports malformed symbolic content without publishing", asy
     mimeType: "application/vnd.recordare.musicxml+xml",
     buffer: Buffer.from("<html><body>not a score</body></html>"),
   });
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.locator('p[role="alert"]')).toContainText(/parse failed|too few notes|invalid/i);
+  await page.getByRole("button", { name: "Review file parts", exact: true }).click();
+  await expect(page.locator('p[role="alert"]')).toContainText(/parse failed|too few notes|invalid|not a MIDI file/i);
+  await expect(page.getByRole("button", { name: "Confirm and publish lesson", exact: true })).toBeDisabled();
   const catalog = await request.get(UPLOAD_QUERY);
   expect((await catalog.json()).songs).toHaveLength(6);
 });
 
 test("creation surfaces consistently lead to symbolic discovery and upload", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("main").getByRole("link", { name: "Add a song" })).toHaveAttribute("href", "/uploads");
+  const addLinks = page.getByRole("main").getByRole("link", { name: "Add a song", exact: true });
+  await expect(addLinks.first()).toBeVisible();
+  for (const link of await addLinks.all()) await expect(link).toHaveAttribute("href", "/uploads");
   await expect(page.getByText(/YouTube → sheet music/i)).toHaveCount(0);
 
   await page.goto("/youtube");
