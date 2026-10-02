@@ -4,9 +4,9 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
   workers: process.env.CI ? 2 : undefined,
-  // Real-artifact melody checks are opt-in; their local source fixtures are
-  // intentionally unavailable to the default seeded CI catalog.
-  testIgnore: /(?:melody-accompaniment|bounded-mvp|mobile-scratch|player-ui-improvements)\.spec\.ts$/,
+  // These cases use the public seed catalog. Scratch, roadmap and performance
+  // cases run through their own configurations and must not mutate this catalog.
+  testMatch: ["app.spec.ts", "mobile.spec.ts", "mobile-canvas.spec.ts", "player-instrument.spec.ts", "player-mobile.spec.ts", "player-ui.spec.ts", "private-alpha-usage.spec.ts"],
   webServer: {
     command: "npm run start",
     url: "http://127.0.0.1:3000",

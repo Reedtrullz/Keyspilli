@@ -137,6 +137,7 @@ jobs:
 
       - name: End-to-end tests
         run: |
+          node scripts/verify-e2e-routing.mjs
           npx playwright test
           npx playwright test --config=playwright.scratch.config.ts
           npx playwright test --config=playwright.player-ui.config.ts
