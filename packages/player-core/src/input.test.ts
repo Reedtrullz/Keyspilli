@@ -349,7 +349,10 @@ it("scopes MIDI devices/channels and releases their CC64 state before unplug cle
     expect(pedals).toEqual([true, false]); expect(midi.connectedCount).toBe(0); expect(pedalTiming[0]).toBeDefined(); expect(pedalTiming[1]).toBeUndefined();
     expect(await midi.connect()).toBe(false);
     midi.select(null, null); expect(midi.connectedCount).toBe(1);
+    expect(pedals).toEqual([true, false]);
     b.onmidimessage!({ data: new Uint8Array([0x91, 64, 0]) }); expect(notes).toEqual([62]);
     midi.disconnect();
+    midi.releaseAll();
+    expect(pedals).toEqual([true, false]);
   } finally { restore(); }
 });

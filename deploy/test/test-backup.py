@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import tarfile
@@ -319,6 +320,35 @@ def test_restore_rejects_archive_links() -> None:
         print("  PASS: restore rejects archive links outside the fresh destination")
 
 
+def test_restore_refuses_destination_created_during_startup() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        result, backups, _log = run_runner(root)
+        assert result.returncode == 0, result.stderr
+        destination = root / "restore"
+        real_mkdir = shutil.which("mkdir")
+        # Create another writer's destination after the shell's existence check.
+        mkdir = root / "mkdir"
+        mkdir.write_text(textwrap.dedent(f"""\
+            #!/usr/bin/env python3
+            import os, sys
+            from pathlib import Path
+            if sys.argv[-1] == {str(destination)!r}:
+                runtime = Path(sys.argv[-1]) / "runtime"
+                runtime.mkdir(parents=True)
+                (runtime / "db.sqlite").write_bytes(b"another writer's database")
+            os.execv({real_mkdir!r}, [{real_mkdir!r}, *sys.argv[1:]])
+        """))
+        mkdir.chmod(0o755)
+        drill = subprocess.run(["bash", str(RESTORE), str(manifests(backups)[0]), str(destination)],
+                               env={**os.environ, "PATH": f"{root}:{os.environ['PATH']}"},
+                               capture_output=True, text=True, timeout=30)
+        assert drill.returncode != 0
+        assert (destination / "runtime" / "db.sqlite").read_bytes() == b"another writer's database"
+        assert list(destination.iterdir()) == [destination / "runtime"]
+        print("  PASS: restore atomically refuses another writer's destination")
+
+
 if __name__ == "__main__":
     print("Running F08 backup tests...")
     test_runner_pauses_pair_and_restores_only_its_pauses()
@@ -331,4 +361,5 @@ if __name__ == "__main__":
     test_retention_rejects_traversal_manifest_paths()
     test_restore_drill_is_non_destructive()
     test_restore_rejects_archive_links()
+    test_restore_refuses_destination_created_during_startup()
     print("All F08 backup tests passed.")

@@ -936,6 +936,13 @@ metadata cannot claim a pinned application proof. Real backup execution needs
 owner-approved access and enough space for a fresh full copy; fixture checks
 are not a disaster-recovery certification.
 
+Export verification checks complete MIDI header/track framing, a MusicXML note
+and matching score closing tag, and PDF cross-reference offset/end markers.
+The report labels this `exportValidation: framing_only`; it does not parse all
+MIDI events, validate the MusicXML schema or inspect PDF page content. The fresh
+destination is created atomically, so a concurrent writer's directory is refused
+before backup files are copied.
+
 ### Publication reconciliation recovery
 
 If a post-swap error leaves a `.BASE.reconciliation.json` marker in
@@ -1017,6 +1024,14 @@ After a verified remote pair and owner-authorized release, set `keyspilli_offhos
 
 
 ## Input timing and hardware acceptance
+
+The owner setup is an M-Audio Keystation 88 with Chrome or Vivaldi, playing keys
+into Keyspilli's computer audio. Connect by USB, open the input tool, choose
+**Connect MIDI**, allow the browser's permission request and select the Keystation
+in **MIDI device**. Leave **MIDI channel** at **All channels** unless a specific
+channel is intended. External arrangement MIDI output (PR-82) is deferred for
+this setup. Exact keyboard generation, physical sustain/disconnect behavior and
+both browser trials remain unverified.
 
 The practice input tool keeps an unknown calibration separate from an entered zero. Keyboard/MIDI DOM timestamps use the document's monotonic clock; delayed events from a prior seek/count-in/playback epoch cannot grade the new passage. A selected MIDI device/channel and chosen sound have their own optional offset (−250…250 ms); positive subtracts delay once. Wait mode ignores compensation because it does not assess rhythmic arrival. On-screen and microphone timing are uncalibrated. Setup changes select a different binding, and media-device changes reset stored offsets and interrupt active practice.
 

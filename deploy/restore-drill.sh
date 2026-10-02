@@ -15,7 +15,8 @@ if [[ $# -eq 6 ]]; then
   [[ "$3" == --verify-app && "$4" =~ ^sha256:[a-f0-9]{64}$ && "$5" =~ ^[a-f0-9]{40}$ && "$6" =~ ^[A-Za-z0-9_-]{1,128}$ ]] \
     || { echo "restore drill: invalid pinned application verification arguments" >&2; exit 2; }
 fi
-mkdir -p "$destination"
+mkdir -p -- "$(dirname -- "$destination")"
+mkdir -- "$destination"
 
 python3 - "$manifest" "$destination" <<'PY'
 import hashlib

@@ -33,15 +33,34 @@ export async function verifyRestoredApp(revision, songId, epoch, request = fetch
   if (!page.toString().includes("<html")) throw new Error("restored player document unavailable");
   const midi = await get(`/api/song/${songId}/export?type=midi`);
   const xml = await get(`/api/song/${songId}/export?type=musicxml`);
-  if (midi.subarray(0, 4).toString() !== "MThd" || !/<score-(partwise|timewise)\b/.test(xml.toString())) {
+  if (midi.length < 14 || midi.subarray(0, 4).toString() !== "MThd" || midi.readUInt32BE(4) !== 6) {
+    throw new Error("restored symbolic export invalid");
+  }
+  const tracks = midi.readUInt16BE(10);
+  let end = 14;
+  if (!tracks || tracks > 512) throw new Error("restored symbolic export invalid");
+  for (let track = 0; track < tracks; track++) {
+    if (end + 8 > midi.length || midi.subarray(end, end + 4).toString() !== "MTrk") {
+      throw new Error("restored symbolic export invalid");
+    }
+    end += 8 + midi.readUInt32BE(end + 4);
+    if (end > midi.length) throw new Error("restored symbolic export invalid");
+  }
+  const score = xml.toString();
+  if (end !== midi.length || !/<score-(partwise|timewise)\b[\s\S]*<\/score-\1>\s*$/.test(score)
+      || !/<note\b/.test(score)) {
     throw new Error("restored symbolic export invalid");
   }
   for (const layout of ["simplify", "classic"]) {
     const pdf = await get(`/api/song/${songId}/export?type=pdf&layout=${layout}`, 32 * 1024 * 1024, 95_000);
-    if (pdf.subarray(0, 5).toString() !== "%PDF-") throw new Error("restored PDF invalid");
+    const trailer = pdf.subarray(-1024).toString().match(/startxref\s+(\d+)\s+%%EOF\s*$/);
+    if (pdf.subarray(0, 5).toString() !== "%PDF-" || !trailer || Number(trailer[1]) >= pdf.length) {
+      throw new Error("restored PDF invalid");
+    }
   }
+  // ponytail: framing checks catch incomplete exports; semantic playback/rendering needs separate acceptance.
   return { health: "passed", playerDocument: "passed", midi: "passed", musicxml: "passed", pdf: "passed",
-    worker: "not_started", network: "none", browserPlaybackAcceptance: "not_tested" };
+    exportValidation: "framing_only", worker: "not_started", network: "none", browserPlaybackAcceptance: "not_tested" };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
