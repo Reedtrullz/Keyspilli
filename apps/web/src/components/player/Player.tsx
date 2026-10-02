@@ -1055,6 +1055,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       audio.samplePolicy = samplePolicyRef.current;
       const refresh = () => { if (engineRef.current === engine) setSampleStatus({ readiness: audio.readiness, timbre: audio.playbackTimbre, latencyMs: audio.loadLatencyMs }); };
       audio.onReadinessChange = refresh; refresh();
+      audio.ensure();
     }
     setEngineReady(true);
     if (previous) {

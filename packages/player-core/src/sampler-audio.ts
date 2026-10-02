@@ -2,7 +2,29 @@ import { configurePlaybackSession } from "./audio-session.js";
 import type { TimedNote } from "./timeline.js";
 import type { AudioLike } from "./engine.js";
 import { AudioEngine } from "./audio.js";
-import { SplendidGrandPiano, type Smplr } from "smplr";
+import { SampleLoader, SplendidGrandPiano, type Smplr } from "smplr";
+
+// ponytail: one default piano set/sample rate; key by preset if other libraries are added.
+let pianoSamples: { sampleRate: number; promise: Promise<Map<string, AudioBuffer>>; expiry?: ReturnType<typeof setTimeout> } | null = null;
+
+function sharedPianoLoader(ctx: AudioContext): SampleLoader {
+  return {
+    load(preset) {
+      if (!pianoSamples || pianoSamples.sampleRate !== ctx.sampleRate) {
+        if (pianoSamples?.expiry) clearTimeout(pianoSamples.expiry);
+        const entry = { sampleRate: ctx.sampleRate, promise: null! as Promise<Map<string, AudioBuffer>>, expiry: undefined as ReturnType<typeof setTimeout> | undefined };
+        pianoSamples = entry;
+        entry.promise = SampleLoader(ctx).load(preset).then(buffers => {
+          if (preset.groups.some(group => group.regions.some(region => !buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
+          // Keep decoded data, never a disposed context/voice graph, for a short warm switch.
+          entry.expiry = setTimeout(() => { if (pianoSamples === entry) pianoSamples = null; }, 5 * 60_000);
+          return buffers;
+        }).catch(error => { if (pianoSamples === entry) pianoSamples = null; throw error; });
+      }
+      return pianoSamples.promise;
+    },
+  };
+}
 
 /**
  * Sampled-piano AudioLike implementation backed by smplr's
@@ -155,9 +177,10 @@ export class SamplerAudioEngine implements AudioLike {
     let piano: Smplr | null = null;
     let input: Smplr | null = null;
     try {
-      voice = SplendidGrandPiano(ctx, { destination: this.voiceGainNode });
-      piano = SplendidGrandPiano(ctx, { destination: this.pianoGainNode });
-      input = SplendidGrandPiano(ctx, { destination: this.voiceGainNode });
+      const loader = sharedPianoLoader(ctx);
+      voice = SplendidGrandPiano(ctx, { destination: this.voiceGainNode, loader });
+      piano = SplendidGrandPiano(ctx, { destination: this.pianoGainNode, loader });
+      input = SplendidGrandPiano(ctx, { destination: this.voiceGainNode, loader });
       await Promise.all([voice.ready, piano.ready, input.ready]);
       // Dispose an instrument that completed after this engine moved to a new
       // context. Without this guard, a late load could resurrect audio after

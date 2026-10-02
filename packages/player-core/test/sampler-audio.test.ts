@@ -2,14 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pianoFactory = vi.hoisted(() => vi.fn());
 
-vi.mock("smplr", () => ({
+vi.mock("smplr", async (importOriginal) => ({
+  ...await importOriginal<typeof import("smplr")>(),
   SplendidGrandPiano: pianoFactory,
 }));
 
 class FakeAudioContext {
   static last: FakeAudioContext;
+  static rate = 48000;
   state = "running";
   currentTime = 0;
+  sampleRate = FakeAudioContext.rate;
+  decodes = 0;
   destination = {} as AudioNode;
   oscillators: Array<{ stops: number[]; onended: (() => void) | null }> = [];
   gains: GainNode[] = [];
@@ -48,6 +52,11 @@ class FakeAudioContext {
     return Promise.resolve();
   }
 
+  async decodeAudioData() {
+    this.decodes++;
+    return { sampleRate: this.sampleRate } as AudioBuffer;
+  }
+
   close() {
     this.state = "closed";
     return Promise.resolve();
@@ -55,6 +64,48 @@ class FakeAudioContext {
 }
 
 describe("SamplerAudioEngine", () => {
+  it("fetches and decodes the piano once for independent voices and a warm replacement context", async () => {
+    const fetchSample = vi.fn(async () => new Response(new Uint8Array([1, 2])));
+    vi.stubGlobal("fetch", fetchSample);
+    const { SampleLoader, pianoToPreset } = await import("smplr");
+    const preset = pianoToPreset({ baseUrl: "https://samples.example/piano", formats: ["ogg"], detune: 0, decayTime: 0.5 });
+    pianoFactory.mockImplementation((ctx: AudioContext, options: { loader?: import("smplr").SampleLoader }) => ({
+      ready: (options.loader ?? SampleLoader(ctx)).load(preset),
+      setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn(),
+    }));
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const first = new SamplerAudioEngine(); first.ensure();
+    const firstContext = FakeAudioContext.last;
+    await vi.waitFor(() => expect(first.readiness).toBe("ready"));
+    expect(fetchSample).toHaveBeenCalledTimes(226);
+    expect(firstContext.decodes).toBe(226);
+    first.dispose();
+    const second = new SamplerAudioEngine(); second.ensure();
+    await vi.waitFor(() => expect(second.readiness).toBe("ready"));
+    expect(fetchSample).toHaveBeenCalledTimes(226);
+    expect(FakeAudioContext.last.decodes).toBe(0);
+    second.dispose();
+  });
+  it("rejects an incomplete set and retries missing samples rather than reporting Ready", async () => {
+    FakeAudioContext.rate = 44100;
+    let fail = true;
+    const fetchSample = vi.fn(async () => new Response(new Uint8Array([1, 2]), { status: fail ? 503 : 200 }));
+    vi.stubGlobal("fetch", fetchSample);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { SampleLoader, pianoToPreset } = await import("smplr");
+    const preset = pianoToPreset({ baseUrl: "https://samples.example/piano", formats: ["ogg"], detune: 0, decayTime: 0.5 });
+    pianoFactory.mockImplementation((ctx: AudioContext, options: { loader?: import("smplr").SampleLoader }) => ({
+      ready: (options.loader ?? SampleLoader(ctx)).load(preset),
+      setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn(),
+    }));
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine(); engine.ensure();
+    await vi.waitFor(() => expect(engine.readiness).toBe("failed"));
+    fail = false; expect(engine.retrySamples()).toBe(true);
+    await vi.waitFor(() => expect(engine.readiness).toBe("ready"));
+    expect(fetchSample).toHaveBeenCalledTimes(452);
+    engine.dispose();
+  });
   it("waits explicitly and bounds failed-load retries without replacing its context", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     pianoFactory.mockImplementation(() => ({ ready: Promise.reject(new Error("fixture")), setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn() }));
@@ -75,6 +126,7 @@ describe("SamplerAudioEngine", () => {
   });
   beforeEach(() => {
     pianoFactory.mockReset();
+    FakeAudioContext.rate = 48000;
     vi.stubGlobal("AudioContext", FakeAudioContext);
   });
 

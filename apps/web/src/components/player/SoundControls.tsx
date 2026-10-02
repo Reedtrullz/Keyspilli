@@ -440,7 +440,7 @@ export function SoundControls({
           </div>
           <p className="text-xs text-zinc-500 mt-1">
             {settings.soundSource === "sampled"
-              ? "Piano samples load from an external asset service on first play; your song and input are not sent."
+              ? "Piano samples load from an external asset service when selected; your song and input are not sent."
               : settings.soundSource === "organ"
                 ? settings.organStyle === "rock"
                   ? "Native tonewheel organ with rotary speaker"

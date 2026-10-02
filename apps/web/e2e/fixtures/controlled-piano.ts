@@ -1,4 +1,5 @@
 /** Synthetic PCM fixture, not a piano sample or a timbre-quality reference. */
+export const SampleLoader = () => ({ load: async () => new Map<string, AudioBuffer>() });
 export function SplendidGrandPiano(context: AudioContext, options: { destination: AudioNode }) {
   const buffer = context.createBuffer(1, context.sampleRate, context.sampleRate), data = buffer.getChannelData(0);
   for (let i=0;i<data.length;i++) data[i]=.3*Math.sin(2*Math.PI*440*i/context.sampleRate);
