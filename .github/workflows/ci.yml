@@ -144,6 +144,47 @@ jobs:
           npx playwright test --config=playwright.roadmap.config.ts
         working-directory: apps/web
 
+      - name: Verify public seed backup in the current isolated web image
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 12
+        env:
+          RESTORE_REVISION: ${{ github.sha }}
+        run: |
+          test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
+          docker build -f apps/web/Dockerfile --build-arg VERSION="$RESTORE_REVISION" -t keyspilli-restore:ci .
+          export KEYSPILLI_BACKUP_WEB_IMAGE_ID="$(docker image inspect keyspilli-restore:ci --format '{{.Id}}')"
+          export KEYSPILLI_BACKUP_WEB_REVISION="$RESTORE_REVISION"
+          export RESTORE_SONG_ID="$(node --import tsx --input-type=module -e '
+            import {listSongs, getDb} from "./packages/catalog/src/db.ts";
+            const song = listSongs({publicOnly: true, limit: 200}).filter(s => s.hasSheetXml === 1 && s.difficulty === "easy").sort((a,b) => a.duration-b.duration)[0];
+            if (!song) throw new Error("No public seed export fixture");
+            console.log(song.id); getDb().close();
+          ')"
+          python3 - <<'PY'
+          import json, os, shutil, subprocess, tempfile
+          from pathlib import Path
+          source = Path("data").resolve()
+          for name in ("manifest.json", "learner-review.json"):
+              shutil.copyfile(Path("catalog") / name, source / name)
+          with tempfile.TemporaryDirectory(prefix="keyspilli-ci-restore-") as directory:
+              root = Path(directory)
+              env = {**os.environ, "KEYSPILLI_DATA_DIR": str(source), "KEYSPILLI_BACKUP_DIR": str(root / "backups")}
+              subprocess.run(["bash", "deploy/backup.sh"], env=env, check=True, timeout=60)
+              manifests = list((root / "backups").glob("backup-manifest-*.json"))
+              assert len(manifests) == 1
+              subprocess.run(["bash", "deploy/restore-drill.sh", str(manifests[0]), str(root / "restored"),
+                              "--verify-app", env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["RESTORE_REVISION"],
+                              env["RESTORE_SONG_ID"]], check=True, timeout=300)
+              report = json.loads((root / "restored" / "restore-report.json").read_text())
+              assert report["applicationVerification"] == "passed"
+              assert report["restoredRevision"] == env["RESTORE_REVISION"]
+              assert report["webImageId"] == env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"]
+              for name in ("manifest.json", "learner-review.json"):
+                  assert (root / "restored" / "runtime" / name).read_bytes() == (source / name).read_bytes()
+          assert not subprocess.check_output(["docker", "ps", "-aq", "--filter", "name=^/keyspilli-restore-"], text=True).strip()
+          print("Current web image restored the public seed pair; policy bytes and owned-container cleanup verified")
+          PY
+
   build-and-push:
     name: Build and push images to GHCR
     permissions:
