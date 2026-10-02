@@ -1,22 +1,35 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { OwnerStateTools } from "../OwnerStateTools";
+import { PracticeSets } from "../PracticeSets";
 import { loadPracticeState, savePracticeState, passageAvailable, PRACTICE_STATE_EVENT, PRACTICE_STATE_KEY,
   type PracticeTarget, type SavedPassage } from "@keyspilli/player-core";
 
-export function PracticeWorkspace({ target, variantId, range, endBeat, positionBeat, disabled, onSelect, onResume }: {
+export function PracticeWorkspace({ target, variantId, range, endBeat, positionBeat, disabled, bpm, onSelect, onResume, onUseTempoPlan }: {
   target: PracticeTarget | null; variantId: string; range: { startBeat: number; endBeat: number } | null;
   endBeat: number; positionBeat: number; disabled: boolean;
+  bpm: number; onUseTempoPlan: (passage: SavedPassage) => void;
   onSelect: (passage: SavedPassage) => void; onResume: (beat: number) => void;
 }) {
   const [state, setState] = useState<ReturnType<typeof loadPracticeState>>({ version: 1, passages: [], attempts: [], resume: null });
   const [name, setName] = useState(""), [note, setNote] = useState(""), [notice, setNotice] = useState("");
+  const requestedPassage = useSearchParams().get("passage"), appliedPassage = useRef("");
+  const selectRef = useRef(onSelect); selectRef.current = onSelect;
   useEffect(() => {
     const refresh = () => setState(loadPracticeState());
     const storage = (event: StorageEvent) => { if (event.key === PRACTICE_STATE_KEY || event.key === null) refresh(); };
     refresh(); window.addEventListener(PRACTICE_STATE_EVENT, refresh); window.addEventListener("storage", storage);
     return () => { window.removeEventListener(PRACTICE_STATE_EVENT, refresh); window.removeEventListener("storage", storage); };
   }, []);
+  useEffect(() => {
+    if (!requestedPassage || !target || disabled) return;
+    const key = `${requestedPassage}:${target.fingerprint}`; if (appliedPassage.current === key) return;
+    const passage = state.passages.find(item => item.id === requestedPassage);
+    appliedPassage.current = key;
+    if (passage && passageAvailable(passage, target, endBeat)) selectRef.current(passage);
+    else setNotice("Requested passage is unavailable for this source or target. Its reference is retained.");
+  }, [requestedPassage, target, endBeat, disabled, state.passages]);
   const passages = state.passages.filter(item => item.target.variantId === variantId);
   const attempts = state.attempts.filter(item => item.target.variantId === variantId);
   const resume = state.resume;
@@ -56,6 +69,31 @@ export function PracticeWorkspace({ target, variantId, range, endBeat, positionB
           {!available && <p>Unavailable for this source, hand or arrangement. Its original bookmark is retained.</p>}
           <button disabled={disabled || !available} className="min-h-11 underline mr-4" onClick={() => onSelect(passage)}>Select {passage.name}</button>
           <button disabled={disabled} className="min-h-11 underline" onClick={() => { const current = loadPracticeState(); current.passages = current.passages.filter(item => item.id !== passage.id); if (current.resume?.passageId === passage.id) current.resume = null; commit(current); }}>Delete {passage.name}</button>
+          <details className="my-2" aria-label={`Tempo plan for ${passage.name}`}><summary className="min-h-11 cursor-pointer">Tempo plan</summary>
+            <p className="text-xs">Opt-in progression from completed keyboard/MIDI play-along runs meeting your onset-score threshold. Wait mode, microphone, cancelled and interrupted runs do not advance it. This is practice progress, not rhythmic or musical certification.</p>
+            {passage.tempoPlan && <div>
+              <p role="status">Plan: {passage.tempoPlan.status}{passage.tempoPlan.paused ? " · paused" : ""} · {passage.tempoPlan.currentBpm} BPM · {passage.tempoPlan.completedAtTempo}/{passage.repeatTarget} qualifying runs · target {passage.targetTempo} BPM.</p>
+              <button disabled={disabled || !available || passage.tempoPlan.paused || passage.tempoPlan.status === "complete"} className="min-h-11 underline mr-4" onClick={() => onUseTempoPlan(passage)}>Use plan tempo {passage.tempoPlan.currentBpm} BPM</button>
+              <button disabled={disabled} className="min-h-11 underline mr-4" onClick={() => { const current=loadPracticeState(), saved=current.passages.find(p => p.id===passage.id); if (saved?.tempoPlan) { saved.tempoPlan.paused=!saved.tempoPlan.paused; commit(current); } }}>{passage.tempoPlan.paused ? "Resume plan" : "Pause plan"}</button>
+              <button disabled={disabled} className="min-h-11 underline" onClick={() => { const current=loadPracticeState(), saved=current.passages.find(p => p.id===passage.id); if (saved) { delete saved.tempoPlan; commit(current); } }}>Remove tempo plan</button>
+            </div>}
+            <form className="flex flex-wrap gap-2" onSubmit={event => {
+              event.preventDefault(); if (disabled || !available) return;
+              const fields=new FormData(event.currentTarget), startBpm=Number(fields.get("startBpm")), targetTempo=Number(fields.get("targetTempo"));
+              if (startBpm/bpm < .25 || targetTempo/bpm > 4 || targetTempo < startBpm) { setNotice("Plan tempos must fit 25–400% playback and target must follow start."); return; }
+              const current=loadPracticeState(), saved=current.passages.find(p => p.id===passage.id); if (!saved) return;
+              saved.targetTempo=targetTempo; saved.repeatTarget=Number(fields.get("repeatTarget"));
+              saved.tempoPlan={ policyId:crypto.randomUUID(),startBpm,currentBpm:startBpm,stepBpm:Number(fields.get("stepBpm")),completedAtTempo:0,thresholdPct:Number(fields.get("thresholdPct")),paused:false,status:"active" };
+              commit(current);
+            }}>
+              <label>Starting BPM <input disabled={disabled || !available} className="block border rounded p-2 w-24" name="startBpm" aria-label={`Starting BPM for ${passage.name}`} type="number" step="any" required min={Math.max(20,bpm*.25)} max={Math.min(400,bpm*4)} defaultValue={passage.tempoPlan?.startBpm ?? Math.max(20,Math.round(bpm*.5))} /></label>
+              <label>Target BPM <input disabled={disabled || !available} className="block border rounded p-2 w-24" name="targetTempo" aria-label={`Target BPM for ${passage.name}`} type="number" step="any" required min={Math.max(20,bpm*.25)} max={Math.min(400,bpm*4)} defaultValue={passage.targetTempo ?? Math.min(400,bpm)} /></label>
+              <label>Step BPM <input disabled={disabled || !available} className="block border rounded p-2 w-24" name="stepBpm" type="number" required min="1" max="50" defaultValue={passage.tempoPlan?.stepBpm ?? 5} /></label>
+              <label>Runs per tempo <input disabled={disabled || !available} className="block border rounded p-2 w-24" name="repeatTarget" type="number" required min="1" max="100" defaultValue={passage.repeatTarget ?? 2} /></label>
+              <label>Minimum score % <input disabled={disabled || !available} className="block border rounded p-2 w-24" name="thresholdPct" type="number" required min="50" max="100" defaultValue={passage.tempoPlan?.thresholdPct ?? 90} /></label>
+              <button disabled={disabled || !available} className="min-h-11 underline">{passage.tempoPlan ? "Restart with this plan" : "Save tempo plan"}</button>
+            </form>
+          </details>
         </li>;
       })}</ul>
       <h3 className="font-semibold">Recent practice</h3>
@@ -65,6 +103,7 @@ export function PracticeWorkspace({ target, variantId, range, endBeat, positionB
         <time dateTime={run.startedAt}>{run.startedAt}</time> · {run.outcome}{run.finishedAt === null && " (unfinished)"}
         <p>{run.context.input} · {run.context.wait ? "Wait for notes" : "Play along"} · {Math.round(run.context.speed * 100)}% · transpose {run.context.transpose} · {run.context.hand}</p>
         <p className="text-xs text-zinc-600">Sound: {run.context.effectiveTimbre ?? "Unknown historical timbre"}. Timing calibration: {run.context.timingCalibrationMs == null ? "Unknown / uncalibrated" : `${run.context.timingCalibrationMs} ms owner offset`}. Physical hand is not measured.</p>
+        {run.context.tempoPlan && <p className="text-xs">Tempo plan attempt · {Math.round(run.context.bpm*run.context.speed)} BPM · {run.context.wait ? "Wait-mode excluded from progress" : "Completed play-along results checked against plan policy"}.</p>}
         {run.result?.diagnostics && <p>{run.result.diagnostics.events.filter(event => event.outcome !== "unmatched").length} saved problem locations · {run.result.diagnostics.omitted} events outside the saved view</p>}
         {run.result && <p>{run.result.accuracyPct}% · {run.result.hit} hit · {run.result.missed} missed · {run.result.wrong} wrong · {run.result.late} late</p>}
         {target && run.target.fingerprint !== target.fingerprint && <p>Different source or target; compare separately.</p>}
@@ -74,6 +113,7 @@ export function PracticeWorkspace({ target, variantId, range, endBeat, positionB
         <a className="min-h-11 underline flex items-center" download={`${variantId}-practice-history.json`} href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify({ version: 1, attempts }))}`}>Download practice history</a>
       </div>}
       <OwnerStateTools disabled={disabled} />
+      <PracticeSets target={target} endBeat={endBeat} disabled={disabled} />
     </div>
   </details>;
 }

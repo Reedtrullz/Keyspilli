@@ -3,6 +3,7 @@ import { listSongsGrouped, publicCatalogSummary, type GroupedSong } from "@keysp
 import { LEVEL_LABEL, LEVEL_SHORT } from "../components/level-labels";
 import { OwnerStateTools } from "../components/OwnerStateTools";
 import { HomePractice } from "../components/HomePractice";
+import { PracticeSets } from "../components/PracticeSets";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default function HomePage() {
   return (
     <div className="page-shell max-w-6xl mx-auto px-4 py-8">
       <HomePractice publicTotal={total} />
+      <PracticeSets />
       <section className="home-hero mb-8 text-center py-5 sm:py-6 motion-rise-in">
         <h2 className="page-title text-xl font-semibold tracking-tight mb-2">Explore your library</h2>
         <p className="text-zinc-600 mb-6">

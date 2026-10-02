@@ -1,10 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { zipSync } from "fflate";
-import { ingestSource } from "../src/ingest.js";
+import { getUploadPublicationReceipt, ingestSource } from "../src/ingest.js";
 import { getSongsByBase } from "../src/db.js";
 import { artifactsDir, uploadsDir } from "../src/paths.js";
 import { maxDurationBeatsForTempo, writeMidi } from "@keyspilli/midi";
@@ -60,6 +61,20 @@ function ingest(buf: Uint8Array, title = "MXL Song"): Promise<{ baseId: string; 
     contentType: "upload",
     acquiredVia: "upload",
   });
+}
+
+function artifactDigests(root: string): Record<string, string> {
+  const files: Record<string, string> = {};
+  const visit = (directory: string, prefix = "") => {
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path, relative);
+      else files[relative] = createHash("sha256").update(readFileSync(path)).digest("hex");
+    }
+  };
+  visit(root);
+  return files;
 }
 
 describe("ingestSource .mxl", () => {
@@ -903,6 +918,84 @@ describe("ingestSource .mxl", () => {
       const artifact = JSON.parse(readFileSync(join(artifactsDir(result.baseId, level), "notes.json"), "utf8"));
       expect(artifact.provenance.sourceArrangement).toEqual(sourceArrangement);
     }
+  });
+
+  it("replays an upload from its committed receipt and requires a current revision to replace it", async () => {
+    const buf = writeMidi(Array.from({ length: 32 }, (_, i) => ({ midi: 48 + i, start: i * 0.5, dur: 0.5, vel: 80 })), { tempoBpm: 120 });
+    const sourceHash = createHash("sha256").update(buf).digest("hex");
+    const baseId = `upload-${sourceHash}`;
+    const first = await ingestSource({ buf, baseId, title: "Saved title", artist: "Saved artist", contentType: "upload", arrangementProfile: "source" }, { uploadReplay: { mode: "reuse" } });
+    expect(first.error).toBeUndefined();
+    expect(first.uploadReceipt?.publicationRevision).toMatch(/^[a-f0-9-]{36}$/);
+
+    // The first response can be lost; the next request is reconstructed from committed state.
+    const committed = await getUploadPublicationReceipt(baseId, sourceHash);
+    expect(committed).toMatchObject({ title: "Saved title", artist: "Saved artist", sourceHash });
+    const beforeReplay = artifactDigests(join(tmp, "artifacts", baseId));
+    const rowsBeforeReplay = getSongsByBase(baseId);
+    const replay = await ingestSource({ buf, baseId, title: "Changed title", artist: "Changed artist", contentType: "upload", arrangementProfile: "learner" }, { uploadReplay: { mode: "reuse" } });
+    expect(replay).toMatchObject({ reused: true, uploadReceipt: committed });
+    expect(artifactDigests(join(tmp, "artifacts", baseId))).toEqual(beforeReplay);
+    expect(getSongsByBase(baseId)).toEqual(rowsBeforeReplay);
+
+    const failed = await ingestSource({ buf, baseId, title: "Failed replacement", artist: "Changed artist", contentType: "upload", chords: [{} as never] }, {
+      uploadReplay: { mode: "replace", expectedRevision: committed!.publicationRevision },
+    });
+    expect(failed.error).toContain("invalid chords");
+    expect(artifactDigests(join(tmp, "artifacts", baseId))).toEqual(beforeReplay);
+
+    const replaced = await ingestSource({ buf, baseId, title: "Accepted replacement", artist: "New artist", contentType: "upload" }, {
+      uploadReplay: { mode: "replace", expectedRevision: committed!.publicationRevision },
+    });
+    expect(replaced.error).toBeUndefined();
+    expect(replaced.uploadReceipt?.publicationRevision).not.toBe(committed!.publicationRevision);
+    expect(getSongsByBase(baseId)[0]?.title).toBe("Accepted replacement");
+    const afterReplace = artifactDigests(join(tmp, "artifacts", baseId));
+
+    const stale = await ingestSource({ buf, baseId, title: "Stale replacement", artist: "Changed artist", contentType: "upload" }, {
+      uploadReplay: { mode: "replace", expectedRevision: committed!.publicationRevision },
+    });
+    expect(stale.code).toBe("UPLOAD_REVISION_STALE");
+    expect(artifactDigests(join(tmp, "artifacts", baseId))).toEqual(afterReplace);
+
+    const currentRevision = replaced.uploadReceipt!.publicationRevision;
+    const markerPath = join(tmp, "artifacts", baseId, ".publication-id");
+    const underLockStale = await ingestSource({ buf, baseId, title: "Raced replacement", artist: "Changed artist", contentType: "upload" }, {
+      uploadReplay: { mode: "replace", expectedRevision: currentRevision },
+      beforeReplace: () => writeFileSync(markerPath, "newer-publication"),
+    });
+    expect(underLockStale.code).toBe("UPLOAD_REVISION_STALE");
+    writeFileSync(markerPath, currentRevision);
+    expect(artifactDigests(join(tmp, "artifacts", baseId))).toEqual(afterReplace);
+  });
+
+  it("refuses to replay a damaged upload publication", async () => {
+    const buf = writeMidi(Array.from({ length: 32 }, (_, i) => ({ midi: 48 + i, start: i * .5, dur: .5, vel: 80 })), { tempoBpm: 123 });
+    const sourceHash = createHash("sha256").update(buf).digest("hex");
+    const baseId = `upload-${sourceHash}`;
+    const input = { buf, baseId, title: "Damaged", artist: "Tester", contentType: "upload" as const };
+    expect((await ingestSource(input, { uploadReplay: { mode: "reuse" } })).error).toBeUndefined();
+    rmSync(join(tmp, "artifacts", baseId, "e", "variant.mid"));
+    const replay = await ingestSource(input, { uploadReplay: { mode: "reuse" } });
+    expect(replay.code).toBe("ARTIFACT_RECONCILIATION_REQUIRED");
+    expect(replay.reused).toBeUndefined();
+  });
+
+  it("keeps concurrent upload retries to one publication and lets a busy retry replay its receipt", async () => {
+    const buf = writeMidi(Array.from({ length: 32 }, (_, i) => ({ midi: 48 + i, start: i * 0.5, dur: 0.5, vel: 80 })), { tempoBpm: 121 });
+    const sourceHash = createHash("sha256").update(buf).digest("hex");
+    const baseId = `upload-${sourceHash}`;
+    const input = { buf, baseId, title: "Concurrent", artist: "Tester", contentType: "upload" as const };
+    const attempts = await Promise.all([
+      ingestSource(input, { uploadReplay: { mode: "reuse" } }),
+      ingestSource({ ...input, title: "Changed during retry" }, { uploadReplay: { mode: "reuse" } }),
+    ]);
+
+    expect(attempts.filter((result) => !result.error && !result.reused)).toHaveLength(1);
+    expect(attempts.filter((result) => result.code === "ARTIFACT_BUSY" || result.reused)).toHaveLength(1);
+    const receipt = await getUploadPublicationReceipt(baseId, sourceHash);
+    const retry = await ingestSource({ ...input, title: "Later retry" }, { uploadReplay: { mode: "reuse" } });
+    expect(retry).toMatchObject({ reused: true, uploadReceipt: receipt });
   });
 
 });

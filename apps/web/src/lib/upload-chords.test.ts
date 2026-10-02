@@ -101,7 +101,7 @@ it("takes MIDI, MusicXML, MXL and all three worker ingest contracts through real
     const manifest = await readArrangementManifest(first.baseId);
     const second = await run();
     const again = await getSongDetail(second.songIds.find(id => id.endsWith("-e"))!);
-    expect(second, c.name).toEqual(first);
+    expect(second, c.name).toEqual({ ...first, ...("reused" in first ? { reused: true } : {}) });
     expect(replayChordsBacking((again!.chordData ?? again!.data)!).resolution, c.name).toEqual(replay.resolution);
     expect(readFileSync(join(root, "artifacts", first.baseId, "a", "variant.mid")), c.name).toEqual(artifact);
     const after = await readArrangementManifest(first.baseId);

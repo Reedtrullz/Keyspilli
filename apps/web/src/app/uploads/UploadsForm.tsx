@@ -26,7 +26,7 @@ type HandoffView = {
   userAffirmedTarget: boolean;
 };
 
-type UploadResult = { baseId: string; songIds: string[]; easySongId?: string | null };
+type UploadResult = { baseId: string; sourceHash: string; publicationRevision: string; songIds: string[]; easySongId: string; title: string; artist: string; reused: boolean };
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 async function responseBody(response: Response): Promise<Record<string, unknown>> {
@@ -61,7 +61,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   const [selectedHandoff, setSelectedHandoff] = useState<HandoffView | null>(null);
   const [targetConfirmed, setTargetConfirmed] = useState(false);
   const [candidateError, setCandidateError] = useState("");
-  const [status, setStatus] = useState<"ready" | "uploading" | "done" | "error" | "reconciliation">("ready");
+  const [status, setStatus] = useState<"ready" | "uploading" | "existing" | "done" | "error" | "reconciliation">("ready");
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -72,7 +72,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   const uploadAbortRef = useRef<AbortController | null>(null);
   const uploadingRef = useRef(false);
   const errorPresence = usePresence(status === "error" || status === "reconciliation");
-  const donePresence = usePresence(status === "done" && Boolean(result));
+  const donePresence = usePresence((status === "done" || status === "existing") && Boolean(result));
   const fileSwitch = useAnimatedSwitch(file);
   const targetId = `target-${(artist || "unknown-artist").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(title || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`.replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
 
@@ -203,7 +203,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
     </div>
   );
 
-  async function upload() {
+  async function upload(mode?: "replace") {
     if (!file || uploadingRef.current) return;
     if (file.size > MAX_UPLOAD_BYTES) {
       setError("File too large (max 10 MB). Choose a smaller MIDI, MusicXML or MXL file.");
@@ -225,6 +225,10 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
       const params = new URLSearchParams();
       if (chosenTitle) params.set("title", chosenTitle);
       if (chosenArtist) params.set("artist", chosenArtist);
+      if (mode === "replace" && result) {
+        params.set("mode", "replace");
+        params.set("expectedRevision", result.publicationRevision);
+      }
       if (chosenHandoff) {
         if (!chosenHandoff.userAffirmedTarget || !confirmed) throw new Error("Confirm the selected source lead before uploading.");
         params.set("handoffId", chosenHandoff.handoffId);
@@ -233,6 +237,12 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
       const response = await fetch(`/api/uploads?${params}`, { method: "POST", body: await file.arrayBuffer(), signal: controller.signal });
       const data = await responseBody(response);
       if (controller.signal.aborted) return;
+      if (response.status === 409 && data.code === "UPLOAD_REVISION_STALE" && data.receipt && typeof data.receipt === "object") {
+        setResult({ ...(data.receipt as UploadResult), reused: true });
+        setError("The accepted lesson changed. Review the current version before replacing it.");
+        setStatus("existing");
+        return;
+      }
       if (!response.ok) {
         if (data.reconciliationRequired || data.code === "ARTIFACT_RECONCILIATION_REQUIRED") {
           setError("Upload needs catalog reconciliation. Check its saved state before trying again.");
@@ -243,7 +253,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         throw new Error(String(data.error ?? "Upload failed."));
       }
       setResult(data as unknown as UploadResult);
-      setStatus("done");
+      setStatus(data.reused === true ? "existing" : "done");
     } catch (cause) {
       if (controller.signal.aborted) return;
       setError(cause instanceof Error && cause.name === "AbortError"
@@ -348,16 +358,26 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
 
       {(errorPresence.mounted || donePresence.mounted) && <div className="upload-status-slot mb-4">
         {errorPresence.mounted && <p className="motion-presence text-red-600 text-sm" data-state={errorPresence.visible ? "open" : "closed"} aria-hidden={status !== "error" && status !== "reconciliation"} role="alert">{error}</p>}
-        {donePresence.mounted && result && <div className="motion-presence rounded-xl bg-green-50 p-4 text-sm" data-state={donePresence.visible ? "open" : "closed"} aria-hidden={status !== "done"} role="status">
-          Lesson created with four public levels.
-          <div className="mt-2 flex flex-wrap gap-3">
-            <Link href={`/player/${result.easySongId ?? result.songIds[0]}`} className="pressable text-indigo-700 font-medium underline">Open in the player →</Link>
-            <button type="button" onClick={reset} className="pressable text-zinc-700 underline">Add another song</button>
-          </div>
+        {donePresence.mounted && result && <div className="motion-presence rounded-xl bg-green-50 p-4 text-sm" data-state={donePresence.visible ? "open" : "closed"} aria-hidden={status !== "done" && status !== "existing"} role="status">
+          {status === "existing" ? <>
+            <p><span className="font-medium">{result.title}</span> by {result.artist} already has an accepted lesson. Your current details have not changed it.</p>
+            {error && <p className="mt-2 text-amber-800" role="alert">{error}</p>}
+            <div className="mt-2 flex flex-wrap gap-3">
+              <Link href={`/player/${result.easySongId}`} className="pressable text-indigo-700 font-medium underline">Open accepted lesson →</Link>
+              <button type="button" onClick={() => setStatus("done")} className="pressable text-zinc-700 underline">Reuse this lesson</button>
+              <button type="button" onClick={() => upload("replace")} className="pressable text-red-700 underline">Replace using the details above</button>
+            </div>
+          </> : <>
+            {result.reused ? "Using the accepted lesson." : "Lesson created with four public levels."}
+            <div className="mt-2 flex flex-wrap gap-3">
+              <Link href={`/player/${result.easySongId}`} className="pressable text-indigo-700 font-medium underline">Open in the player →</Link>
+              <button type="button" onClick={reset} className="pressable text-zinc-700 underline">Add another song</button>
+            </div>
+          </>}
         </div>}
       </div>}
 
-      <button type="button" onClick={upload} disabled={!file || status === "uploading" || status === "done" || status === "reconciliation"} className="pressable w-full py-3 rounded-xl bg-zinc-900 text-white font-medium disabled:opacity-40">
+      <button type="button" onClick={() => upload()} disabled={!file || status === "uploading" || status === "done" || status === "existing" || status === "reconciliation"} className="pressable w-full py-3 rounded-xl bg-zinc-900 text-white font-medium disabled:opacity-40">
         {status === "uploading" ? "Validating and generating…" : "Upload & create lesson"}
       </button>
     </div>

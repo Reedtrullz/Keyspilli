@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, loadSettings, loadSongPrefs, loadStringList, preferenceStorage, TIMING_CALIBRATION_KEY, type SongPrefs } from "./prefs.js";
 import { loadPracticeState, validPracticeState, PRACTICE_STATE_KEY, PRACTICE_STATE_EVENT, PRACTICE_STATE_MAX_BYTES, type PracticeState } from "./practice-store.js";
 import type { PlayerSettings } from "./types.js";
+import { loadPracticeSets, validPracticeSets, PRACTICE_SETS_KEY, PRACTICE_SETS_EVENT, type PracticeSetsState } from "./practice-sets.js";
 import type { MelodySelection, MelodyPhraseOverride, SourceBackingMode } from "./accompaniment.js";
 
 const SONG_PREFIX = "keyspilli.song-prefs.v1:", MELODY_PREFIX = "keyspilli.melody-accompaniment.v2:";
@@ -10,6 +11,7 @@ export interface OwnerMelodyChoice { sourceFingerprint: string; selection: Melod
 export interface OwnerState {
   version: 1; includeHistory: boolean; settings: PlayerSettings; favorites: string[]; learned: string[];
   songPrefs: Record<string, SongPrefs>; practice: PracticeState; musicalChoices: Record<string, OwnerMelodyChoice>;
+  practiceSets?: PracticeSetsState;
 }
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const keys = (v: Record<string, unknown>, allowed: readonly string[]) => Object.keys(v).every(key => allowed.includes(key));
@@ -49,10 +51,10 @@ function map(v: unknown, max: number, valid: (v: unknown) => boolean): boolean {
 }
 function list(v: unknown): v is string[] { return Array.isArray(v) && v.length <= 5000 && v.every(id) && new Set(v).size === v.length; }
 function valid(v: unknown): v is OwnerState {
-  return object(v) && keys(v, ["version", "includeHistory", "settings", "favorites", "learned", "songPrefs", "practice", "musicalChoices"])
+  return object(v) && keys(v, ["version", "includeHistory", "settings", "favorites", "learned", "songPrefs", "practice", "musicalChoices", "practiceSets"])
     && v.version === 1 && typeof v.includeHistory === "boolean" && settings(v.settings) && list(v.favorites) && list(v.learned)
     && map(v.songPrefs, 1000, songPrefs) && validPracticeState(v.practice) && new TextEncoder().encode(JSON.stringify(v.practice)).length <= PRACTICE_STATE_MAX_BYTES && (v.includeHistory || v.practice.attempts.length === 0)
-    && map(v.musicalChoices, 1000, musicalChoice);
+    && map(v.musicalChoices, 1000, musicalChoice) && (v.practiceSets === undefined || validPracticeSets(v.practiceSets));
 }
 export function parseOwnerState(raw: string): OwnerState {
   if (raw.length > OWNER_STATE_MAX_BYTES || new TextEncoder().encode(raw).length > OWNER_STATE_MAX_BYTES) throw Error("Owner state exceeds 2 MiB.");
@@ -81,7 +83,7 @@ export function exportOwnerState(includeHistory: boolean): OwnerState {
   }
   const practice = loadPracticeState();
   const state: OwnerState = { version: 1, includeHistory, settings: loadSettings(), favorites: loadStringList("keyspilli.favorites"), learned: loadStringList("keyspilli.learned"),
-    songPrefs: prefs, musicalChoices: choices, practice: { ...practice, attempts: includeHistory ? practice.attempts : [] } };
+    songPrefs: prefs, musicalChoices: choices, practice: { ...practice, attempts: includeHistory ? practice.attempts : [] }, practiceSets: loadPracticeSets() };
   return parseOwnerState(JSON.stringify(state));
 }
 export function restoredMelodyChoice(songId: string, fingerprint: string | null): OwnerMelodyChoice | null {
@@ -95,12 +97,21 @@ export function restoreOwnerState(incoming: OwnerState, mode: "merge" | "replace
     const storage = preferenceStorage(); if (!storage || storage.length > 5000) return false;
     const current = exportOwnerState(true), merge = mode === "merge";
     const combine = <T extends { id: string }>(a: T[], b: T[]) => [...b, ...a.filter(item => !b.some(next => next.id === item.id))];
+    const currentSets = current.practiceSets!, incomingSets = incoming.practiceSets;
     const next: OwnerState = { ...incoming, includeHistory: true,
       favorites: merge ? [...new Set([...current.favorites, ...incoming.favorites])] : incoming.favorites,
       learned: merge ? [...new Set([...current.learned, ...incoming.learned])] : incoming.learned,
       songPrefs: merge ? { ...current.songPrefs, ...Object.fromEntries(Object.entries(incoming.songPrefs).map(([id, prefs]) => [id, { ...current.songPrefs[id], ...prefs }])) } : incoming.songPrefs,
       musicalChoices: merge ? { ...current.musicalChoices, ...incoming.musicalChoices } : incoming.musicalChoices,
-      practice: { ...incoming.practice, passages: merge ? combine(current.practice.passages, incoming.practice.passages) : incoming.practice.passages,
+      practiceSets: !incomingSets ? currentSets : merge ? { version: 1, activeSetId: incomingSets.activeSetId ?? currentSets.activeSetId,
+        sets: combine(currentSets.sets, incomingSets.sets.map(set => ({ ...set, items: combine(currentSets.sets.find(old => old.id === set.id)?.items ?? [], set.items) }))) } : incomingSets,
+      practice: { ...incoming.practice, passages: merge ? combine(current.practice.passages, incoming.practice.passages.map(passage => {
+          const previous = current.practice.passages.find(old => old.id === passage.id);
+          if (!previous || previous.target.baseId !== passage.target.baseId || previous.target.variantId !== passage.target.variantId || previous.target.fingerprint !== passage.target.fingerprint || previous.startBeat !== passage.startBeat || previous.endBeat !== passage.endBeat) return passage;
+          const combined = { ...previous, ...passage };
+          if (!passage.tempoPlan && (combined.targetTempo !== previous.targetTempo || combined.repeatTarget !== previous.repeatTarget)) delete combined.tempoPlan;
+          return combined;
+        })) : incoming.practice.passages,
         attempts: incoming.includeHistory ? (merge ? combine(current.practice.attempts, incoming.practice.attempts).sort((a,b) => b.startedAt.localeCompare(a.startedAt)).slice(0,200) : incoming.practice.attempts) : current.practice.attempts,
         resume: merge ? incoming.practice.resume ?? current.practice.resume : incoming.practice.resume } };
     if (!valid(next)) return false;
@@ -108,6 +119,7 @@ export function restoreOwnerState(incoming: OwnerState, mode: "merge" | "replace
     const changes = new Map<string, string | null>([["keyspilli.prefs.v1", JSON.stringify(next.settings)], ["keyspilli.favorites", JSON.stringify(next.favorites)],
       ["keyspilli.learned", JSON.stringify(next.learned)], [PRACTICE_STATE_KEY, JSON.stringify(next.practice)], [RESTORED_MELODY, JSON.stringify(next.musicalChoices)],
       ["keyspilli.accompaniment-style-intent.v1", JSON.stringify({ style: next.settings.accompanimentStyle })], [TIMING_CALIBRATION_KEY, null]]);
+    changes.set(PRACTICE_SETS_KEY, JSON.stringify(next.practiceSets));
     if (!merge) for (const id of Object.keys(current.songPrefs)) changes.set(SONG_PREFIX + id, null);
     if (!merge) for (let i = 0; i < storage.length; i++) {
       const key = storage.key(i);
@@ -118,7 +130,7 @@ export function restoreOwnerState(incoming: OwnerState, mode: "merge" | "replace
     const before = new Map([...changes.keys()].map(key => [key, storage.getItem(key)]));
     try { for (const [key, value] of changes) value === null ? storage.removeItem(key) : storage.setItem(key, value); }
     catch { for (const [key, value] of before) { try { value === null ? storage.removeItem(key) : storage.setItem(key, value); } catch { /* report failed restore; no atomic localStorage transaction exists */ } } return false; }
-    if (typeof window !== "undefined") window.dispatchEvent(new Event(PRACTICE_STATE_EVENT));
+    if (typeof window !== "undefined") { window.dispatchEvent(new Event(PRACTICE_STATE_EVENT)); window.dispatchEvent(new Event(PRACTICE_SETS_EVENT)); }
     return true;
   } catch { return false; }
 }

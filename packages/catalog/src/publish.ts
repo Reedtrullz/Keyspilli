@@ -9,8 +9,10 @@ import type { ArrangementManifest } from "./artifact-manifest.js";
 
 const BASE_ID_RE = /^[a-z0-9][a-z0-9-]{0,119}$/;
 
-export interface PublishBaseArtifactOptions {
+export interface PublishBaseArtifactOptions<T = unknown> {
   artifactsRoot: string;
+  /** Return the committed value under the base lock instead of staging a replay. */
+  reuseExisting?: (finalRoot: string) => Promise<T | undefined> | T | undefined;
   /**
    * The complete base-level artifact contract.  Every normal publication is
    * a six-level arrangement, so these defaults are deliberately strict.  The
@@ -27,9 +29,9 @@ export interface PublishBaseArtifactOptions {
    */
   semanticValidation?: "strict";
   /** Synchronous ownership/cancellation check after staging validation, before replacement. */
-  beforeSwap?: () => void;
+  beforeSwap?: () => Promise<void> | void;
   /** Runs after the filesystem swap; a failure leaves the new tree published. */
-  afterSwap?: () => Promise<void> | void;
+  afterSwap?: (publicationId: string) => Promise<void> | void;
   /** Durable arguments for the operator reconciliation command. */
   recoveryData?: unknown;
 }
@@ -98,7 +100,7 @@ export async function withBaseArtifactLock<T>(
 export async function publishBaseArtifact<T>(
   baseId: string,
   writer: (stagingDir: string) => Promise<T> | T,
-  options: PublishBaseArtifactOptions,
+  options: PublishBaseArtifactOptions<T>,
 ): Promise<T> {
   const root = options.artifactsRoot;
   const finalRoot = join(root, baseId);
@@ -108,11 +110,11 @@ export async function publishBaseArtifact<T>(
   const requiredFiles = options.requiredFiles ?? REQUIRED_ARTIFACT_FILES;
 
   return withBaseArtifactLock(baseId, options, async () => {
-    const journal = join(root, `.${baseId}.reconciliation.json`);
-    if (existsSync(journal)) throw new ArtifactReconciliationError(baseId);
+    const { journal } = await recoverBaseArtifact(baseId, root);
+    const existing = await options.reuseExisting?.(finalRoot);
+    if (existing !== undefined) return existing;
     let journalWritten = false;
     try {
-      await recoverInterruptedPublish(finalRoot, newRoot, oldRoot);
       await rm(newRoot, { recursive: true, force: true });
       await mkdir(newRoot, { recursive: true });
       const result = await writer(newRoot);
@@ -133,7 +135,7 @@ export async function publishBaseArtifact<T>(
       }
 
       await rm(oldRoot, { recursive: true, force: true });
-      options.beforeSwap?.();
+      await options.beforeSwap?.();
       const token = randomUUID();
       await writeFile(join(newRoot, ".publication-id"), token, { flush: true });
       await writeFile(journal, JSON.stringify({ version: 1, operation: "publish", token, requiresCommit: Boolean(options.afterSwap), recoveryData: options.recoveryData }), { flag: "wx", flush: true });
@@ -145,7 +147,7 @@ export async function publishBaseArtifact<T>(
         if (!existsSync(finalRoot) && existsSync(oldRoot)) await rename(oldRoot, finalRoot).catch(() => undefined);
         throw error;
       }
-      await options.afterSwap?.();
+      await options.afterSwap?.(token);
       await rm(oldRoot, { recursive: true, force: true });
       await rm(journal);
       return result;
@@ -304,7 +306,7 @@ export async function deleteBaseArtifact(
   });
 }
 
-async function assertCompleteArtifactTree(
+export async function assertCompleteArtifactTree(
   stagedRoot: string,
   requiredLevels: readonly string[],
   requiredFiles: readonly string[],
@@ -341,6 +343,28 @@ async function recoverInterruptedPublish(finalRoot: string, newRoot: string, old
   if (!existsSync(finalRoot) && existsSync(oldRoot)) await rename(oldRoot, finalRoot);
   else if (existsSync(finalRoot) && existsSync(oldRoot)) await rm(oldRoot, { recursive: true, force: true });
   if (existsSync(newRoot)) await rm(newRoot, { recursive: true, force: true });
+}
+
+async function recoverBaseArtifact(baseId: string, root: string) {
+  const finalRoot = join(root, baseId);
+  const newRoot = join(root, `.${baseId}.new`);
+  const oldRoot = join(root, `.${baseId}.old`);
+  const journal = join(root, `.${baseId}.reconciliation.json`);
+  if (existsSync(journal)) throw new ArtifactReconciliationError(baseId);
+  await recoverInterruptedPublish(finalRoot, newRoot, oldRoot);
+  return { finalRoot, newRoot, oldRoot, journal };
+}
+
+/** Read a stable base artifact snapshot with the same lock and recovery guard as publication. */
+export async function inspectBaseArtifact<T>(
+  baseId: string,
+  options: ArtifactLockOptions,
+  inspect: (finalRoot: string) => Promise<T> | T,
+): Promise<T> {
+  return withBaseArtifactLock(baseId, options, async () => {
+    const { finalRoot } = await recoverBaseArtifact(baseId, options.artifactsRoot);
+    return inspect(finalRoot);
+  });
 }
 
 

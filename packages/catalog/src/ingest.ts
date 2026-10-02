@@ -1,6 +1,7 @@
 import { commitCatalogPublication, type CatalogPublication } from "./reconcile.js";
 import { validateSourceArrangement, type SourceArrangement } from "./source-arrangement.js";
 import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { inflateRawSync } from "node:zlib";
@@ -28,13 +29,14 @@ import {
   readArrangementManifest,
   transcriptionConfigForFingerprint,
   writeArrangementManifestFile,
+  parseArrangementManifest,
   type ArrangementManifest,
   type TempoSource,
   type TranscriptionProvenance,
 } from "./artifact-manifest.js";
 import { canonicalizeSourceProvenance } from "./provenance.js";
 import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION, TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS } from "./transcribe.js";
-import { ArtifactReconciliationError, publishBaseArtifact } from "./publish.js";
+import { ArtifactReconciliationError, assertCompleteArtifactTree, REQUIRED_ARTIFACT_FILES, inspectBaseArtifact, publishBaseArtifact } from "./publish.js";
 import { validateSourceCandidateHandoffLink, type SourceCandidateHandoffLink } from "./source-candidate-handoff.js";
 import { stagePreparedBacking } from "./chord-timeline.js";
 
@@ -126,6 +128,71 @@ export interface IngestInput {
 export interface IngestOptions {
   beforeReplace?: () => void;
   job?: { id: string; owner: string };
+  uploadReplay?: { mode: "reuse" } | { mode: "replace"; expectedRevision: string };
+}
+
+export interface UploadPublicationReceipt {
+  baseId: string;
+  sourceHash: string;
+  publicationRevision: string;
+  songIds: string[];
+  easySongId: string;
+  title: string;
+  artist: string;
+}
+
+export interface IngestResult {
+  baseId: string;
+  songIds: string[];
+  error?: string;
+  code?: "ARTIFACT_RECONCILIATION_REQUIRED" | "ARTIFACT_BUSY" | "UPLOAD_REVISION_STALE";
+  uploadReceipt?: UploadPublicationReceipt;
+  reused?: boolean;
+}
+
+class UploadRevisionConflictError extends Error {}
+
+async function uploadPublicationReceiptAtRoot(baseId: string, sourceHash: string, root: string): Promise<UploadPublicationReceipt | null> {
+  if (!existsSync(root)) {
+    if (getSongsByBase(baseId).length) throw new ArtifactReconciliationError(baseId, new Error("catalog rows exist without published artifacts"));
+    return null;
+  }
+  try {
+    const manifest = parseArrangementManifest(JSON.parse(readFileSync(join(root, "manifest.json"), "utf8")));
+    if (manifest.baseId !== baseId || manifest.sourceArtifactHash !== sourceHash || manifest.source?.kind !== "upload") {
+      throw new Error("published upload source does not match its content-addressed id");
+    }
+    const rows = getSongsByBase(baseId);
+    const levels = ["vb", "b", "ve", "e", "m", "a"];
+    if (rows.length !== levels.length || rows.some((row) => row.contentType !== "upload") || levels.some((level) => !rows.some((row) => row.id === `${baseId}-${level}`))) {
+      throw new Error("published upload does not have its complete catalog rows");
+    }
+    await assertCompleteArtifactTree(root, levels, REQUIRED_ARTIFACT_FILES);
+    let publicationRevision: string;
+    try {
+      publicationRevision = readFileSync(join(root, ".publication-id"), "utf8").trim();
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(publicationRevision)) throw new Error("invalid publication id");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      publicationRevision = `legacy-${createHash("sha256").update(JSON.stringify({
+        manifest,
+        rows: rows.slice().sort((a, b) => a.id.localeCompare(b.id)).map(({ id, title, artist, category, difficulty, key, tempo, style, mood, contentType, acquiredVia, sourceYoutubeUrl }) =>
+          ({ id, title, artist, category, difficulty, key, tempo, style, mood, contentType, acquiredVia, sourceYoutubeUrl })),
+      })).digest("hex")}`;
+    }
+    const songIds = levels.map((level) => `${baseId}-${level}`);
+    const easy = rows.find((row) => row.id === `${baseId}-e`)!;
+    return { baseId, sourceHash, publicationRevision, songIds, easySongId: easy.id, title: easy.title, artist: easy.artist };
+  } catch (error) {
+    if (error instanceof ArtifactReconciliationError) throw error;
+    throw new ArtifactReconciliationError(baseId, error);
+  }
+}
+
+export async function getUploadPublicationReceipt(baseId: string, sourceHash: string): Promise<UploadPublicationReceipt | null> {
+  if (!/^[a-f0-9]{64}$/.test(sourceHash) || baseId !== `upload-${sourceHash}`) throw new Error("invalid content-addressed upload identity");
+  const artifactsRoot = join(dataDir(), "artifacts");
+  return inspectBaseArtifact(baseId, { artifactsRoot }, (root) => uploadPublicationReceiptAtRoot(baseId, sourceHash, root));
 }
 
 function slugify(s: string): string {
@@ -304,9 +371,37 @@ function mxlScoreXml(buf: Uint8Array): string {
  * Parse a MIDI/MusicXML buffer, generate 6 difficulty variants, write
  * artifacts and DB rows. Returns the base id + created song ids.
  */
-export async function ingestSource(inp: IngestInput, options: IngestOptions = {}): Promise<{ baseId: string; songIds: string[]; error?: string; code?: "ARTIFACT_RECONCILIATION_REQUIRED" }> {
+export async function ingestSource(inp: IngestInput, options: IngestOptions = {}): Promise<IngestResult> {
   if (inp.baseId && !validBaseId(inp.baseId)) {
     return { baseId: "", songIds: [], error: "invalid base id" };
+  }
+  if (inp.buf.byteLength > 16 * 1024 * 1024) return { baseId: "", songIds: [], error: "source exceeds 16 MiB limit" };
+  const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
+  const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
+  if (inp.sourceArtifactHash !== undefined && !/^[0-9a-f]{64}$/.test(inp.sourceArtifactHash)) {
+    return { baseId: "", songIds: [], error: "invalid sourceArtifactHash: expected 64 lowercase hexadecimal characters" };
+  }
+  if (options.uploadReplay) {
+    if (inp.contentType !== "upload" || baseId !== `upload-${sourceArtifactHash}` || sourceArtifactHash !== createHash("sha256").update(inp.buf).digest("hex")) {
+      return { baseId: "", songIds: [], error: "upload replay requires the source-byte content address" };
+    }
+    if (options.uploadReplay.mode === "replace" && !options.uploadReplay.expectedRevision) {
+      return { baseId: "", songIds: [], error: "expected publication revision is required" };
+    }
+    let receipt: UploadPublicationReceipt | null;
+    try {
+      receipt = await getUploadPublicationReceipt(baseId, sourceArtifactHash);
+    } catch (error) {
+      if (error instanceof ArtifactReconciliationError) return { baseId, songIds: [], error: error.message, code: error.code };
+      if (error instanceof Error && error.message === "artifact publish already locked") return { baseId, songIds: [], error: error.message, code: "ARTIFACT_BUSY" };
+      return { baseId, songIds: [], error: error instanceof Error ? error.message : "unable to inspect upload publication" };
+    }
+    if (options.uploadReplay.mode === "reuse" && receipt) {
+      return { baseId, songIds: receipt.songIds, uploadReceipt: receipt, reused: true };
+    }
+    if (options.uploadReplay.mode === "replace" && receipt?.publicationRevision !== options.uploadReplay.expectedRevision) {
+      return { baseId, songIds: [], error: "the accepted upload publication changed; review it before replacing", code: "UPLOAD_REVISION_STALE" };
+    }
   }
   let transcription: TranscriptionProvenance | undefined;
   if (inp.transcription !== undefined) {
@@ -322,10 +417,6 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     const chordErrors = validateChordLabels(inp.chords);
     if (chordErrors.length) return { baseId: "", songIds: [], error: `invalid chords: ${chordErrors.join("; ")}` };
   }
-  if (inp.sourceArtifactHash !== undefined && !/^[0-9a-f]{64}$/.test(inp.sourceArtifactHash)) {
-    return { baseId: "", songIds: [], error: "invalid sourceArtifactHash: expected 64 lowercase hexadecimal characters" };
-  }
-  if (inp.buf.byteLength > 16 * 1024 * 1024) return { baseId: "", songIds: [], error: "source exceeds 16 MiB limit" };
   let parsed;
   let isMxl = false;
   let sourceIsXml = false;
@@ -357,8 +448,6 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   }
   if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
 
-  const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
-  const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
   if (inp.sourceArrangement) {
     const errors = validateSourceArrangement(inp.sourceArrangement);
     if (inp.sourceArrangement.sourceSha256 !== sourceArtifactHash) errors.push("source arrangement hash mismatch");
@@ -603,8 +692,9 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     ...(transcription ? { transcription } : {}),
     artifactWrittenAt: resolvedAt,
   };
+  let publicationRevision: string | undefined;
   try {
-    const result = await publishBaseArtifact(baseId, async (stageRoot) => {
+    const result = await publishBaseArtifact<IngestResult>(baseId, async (stageRoot) => {
       for (const item of prepared) {
         const dir = join(stageRoot, item.code);
         await mkdir(dir, { recursive: true });
@@ -626,17 +716,48 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     }, {
       artifactsRoot,
       semanticValidation: "strict",
-      beforeSwap: options.beforeReplace,
+      reuseExisting: options.uploadReplay?.mode === "reuse" ? async (root) => {
+        const receipt = await uploadPublicationReceiptAtRoot(baseId, sourceArtifactHash, root);
+        return receipt ? { baseId, songIds: receipt.songIds, uploadReceipt: receipt, reused: true } : undefined;
+      } : undefined,
+      beforeSwap: async () => {
+        options.beforeReplace?.();
+        if (options.uploadReplay?.mode === "replace") {
+          const current = await uploadPublicationReceiptAtRoot(baseId, sourceArtifactHash, join(artifactsRoot, baseId));
+          if (current?.publicationRevision !== options.uploadReplay.expectedRevision) throw new UploadRevisionConflictError("the accepted upload publication changed; review it before replacing");
+        }
+      },
       recoveryData,
-      afterSwap: () => commitCatalogPublication(recoveryData),
+      afterSwap: (publicationId) => {
+        publicationRevision = publicationId;
+        return commitCatalogPublication(recoveryData);
+      },
     });
-    return result;
+    if (!options.uploadReplay || result.reused) return result;
+    if (!publicationRevision) return { baseId, songIds: [], error: "published upload revision is unavailable", code: "ARTIFACT_RECONCILIATION_REQUIRED" };
+    const receipt: UploadPublicationReceipt = {
+      baseId,
+      sourceHash: sourceArtifactHash,
+      publicationRevision,
+      songIds: result.songIds,
+      easySongId: result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0]!,
+      title: inp.title,
+      artist: inp.artist,
+    };
+    return { ...result, uploadReceipt: receipt };
   } catch (e) {
     if (e instanceof ArtifactReconciliationError) {
       return { baseId, songIds: [], error: e.message, code: e.code };
     }
+    if (e instanceof UploadRevisionConflictError) {
+      await rm(stageUpload, { force: true });
+      return { baseId, songIds: [], error: e.message, code: "UPLOAD_REVISION_STALE" };
+    }
+    if (e instanceof Error && e.message === "artifact publish already locked") {
+      return { baseId, songIds: [], error: e.message, code: "ARTIFACT_BUSY" };
+    }
     await rm(stageUpload, { force: true });
-    return { baseId: "", songIds: [], error: `publish failed: ${(e as Error).message}` };
+    return { baseId, songIds: [], error: `publish failed: ${(e as Error).message}` };
   }
 }
 

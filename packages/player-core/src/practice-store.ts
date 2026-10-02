@@ -6,14 +6,16 @@ export const PRACTICE_STATE_KEY = "keyspilli.practice.v1";
 export const PRACTICE_STATE_EVENT = "keyspilli-practice-state";
 export const PRACTICE_STATE_MAX_BYTES = 1_048_576;
 export interface PracticeTarget { baseId: string; variantId: string; fingerprint: string }
+export interface PassageTempoPlan { policyId: string; startBpm: number; stepBpm: number; currentBpm: number; completedAtTempo: number; thresholdPct: number; paused: boolean; status: "active" | "complete" }
 export interface SavedPassage extends PracticeAnnotation {
   id: string; name: string; target: PracticeTarget; startBeat: number; endBeat: number; createdAt: string;
+  tempoPlan?: PassageTempoPlan;
 }
 export interface PracticeAttempt {
   id: string; target: PracticeTarget; startBeat: number; endBeat: number; startedAt: string; finishedAt: string | null;
   outcome: "completed" | "incomplete" | "cancelled" | "interrupted"; countInCompleted: boolean;
   context: Pick<PlayerSettings, "mode" | "speed" | "transpose" | "hand" | "soundSource" | "backgroundMode" | "accompanimentStyle">
-    & { difficulty: string; input: "keyboard" | "midi" | "microphone"; wait: boolean; bpm: number; timingCalibrationMs?: number | null; midiDevice?: string | null; midiChannel?: number | null; effectiveTimbre?: "synth" | "sampled" | "fallback" | "organ" };
+    & { difficulty: string; input: "keyboard" | "midi" | "microphone"; wait: boolean; bpm: number; timingCalibrationMs?: number | null; midiDevice?: string | null; midiChannel?: number | null; effectiveTimbre?: "synth" | "sampled" | "fallback" | "organ"; tempoPlan?: { passageId: string; policyId: string } };
   result: Pick<GradeResult, "total" | "hit" | "missed" | "wrong" | "late" | "accuracyPct"> & { diagnostics?: GradeDiagnostics } | null;
 }
 export interface PracticeResume { target: PracticeTarget; positionBeat: number; passageId?: string; updatedAt: string }
@@ -31,11 +33,17 @@ const range = (v: Record<string, unknown>) => finite(v.startBeat, 0, 1e7) && fin
 const member = (v: unknown, choices: string) => typeof v === "string" && choices.split(" ").includes(v);
 
 function passage(v: unknown): v is SavedPassage {
-  return object(v) && keys(v, "id name target startBeat endBeat createdAt sectionId targetTempo repeatTarget note")
+  return object(v) && keys(v, "id name target startBeat endBeat createdAt sectionId targetTempo repeatTarget note tempoPlan")
     && id(v.id) && text(v.name, 80) && !!v.name.trim() && target(v.target) && range(v) && date(v.createdAt)
     && text(v.sectionId, 128) && (v.note === undefined || text(v.note, 500))
     && (v.targetTempo === undefined || finite(v.targetTempo, 20, 400))
-    && (v.repeatTarget === undefined || finite(v.repeatTarget, 1, 100) && Number.isInteger(v.repeatTarget));
+    && (v.repeatTarget === undefined || finite(v.repeatTarget, 1, 100) && Number.isInteger(v.repeatTarget))
+    && (v.tempoPlan === undefined || object(v.tempoPlan) && keys(v.tempoPlan, "policyId startBpm stepBpm currentBpm completedAtTempo thresholdPct paused status")
+      && id(v.tempoPlan.policyId) && finite(v.targetTempo,20,400) && finite(v.repeatTarget,1,100)
+      && finite(v.tempoPlan.startBpm,20,v.targetTempo) && finite(v.tempoPlan.currentBpm,v.tempoPlan.startBpm,v.targetTempo)
+      && finite(v.tempoPlan.stepBpm,1,50) && finite(v.tempoPlan.completedAtTempo,0,v.repeatTarget) && Number.isInteger(v.tempoPlan.completedAtTempo)
+      && finite(v.tempoPlan.thresholdPct,50,100) && typeof v.tempoPlan.paused === "boolean" && member(v.tempoPlan.status,"active complete")
+      && (v.tempoPlan.status !== "complete" || v.tempoPlan.currentBpm === v.targetTempo && v.tempoPlan.completedAtTempo === v.repeatTarget));
 }
 function diagnostics(v: unknown): v is GradeDiagnostics {
   return object(v) && keys(v, "events omitted") && finite(v.omitted, 0, 1e6) && Number.isInteger(v.omitted)
@@ -71,7 +79,7 @@ function attempt(v: unknown): v is PracticeAttempt {
       || !member(v.outcome, "completed incomplete cancelled interrupted") || typeof v.countInCompleted !== "boolean"
       || !result(v.result) || v.outcome === "completed" && (!v.countInCompleted || v.result === null || v.finishedAt === null)) return false;
   const c = v.context;
-  return object(c) && keys(c, "mode speed transpose hand soundSource backgroundMode accompanimentStyle difficulty input wait bpm timingCalibrationMs midiDevice midiChannel effectiveTimbre")
+  return object(c) && keys(c, "mode speed transpose hand soundSource backgroundMode accompanimentStyle difficulty input wait bpm timingCalibrationMs midiDevice midiChannel effectiveTimbre tempoPlan")
     && member(c.mode, "falling beginner sheet leadsheet") && finite(c.speed, 0.25, 4)
     && finite(c.transpose, -24, 24) && Number.isInteger(c.transpose) && member(c.hand, "L R both")
     && member(c.soundSource, "synth sampled organ") && member(c.backgroundMode, "piano chord")
@@ -80,7 +88,8 @@ function attempt(v: unknown): v is PracticeAttempt {
     && (c.timingCalibrationMs === undefined || c.timingCalibrationMs === null || finite(c.timingCalibrationMs, -250, 250))
     && (c.midiDevice === undefined || c.midiDevice === null || text(c.midiDevice, 256))
     && (c.midiChannel === undefined || c.midiChannel === null || finite(c.midiChannel, 0, 15) && Number.isInteger(c.midiChannel))
-    && (c.effectiveTimbre === undefined || member(c.effectiveTimbre, "synth sampled fallback organ"));
+    && (c.effectiveTimbre === undefined || member(c.effectiveTimbre, "synth sampled fallback organ"))
+    && (c.tempoPlan === undefined || object(c.tempoPlan) && keys(c.tempoPlan,"passageId policyId") && id(c.tempoPlan.passageId) && id(c.tempoPlan.policyId));
 }
 function resume(v: unknown): v is PracticeResume | null {
   return v === null || object(v) && keys(v, "target positionBeat passageId updatedAt") && target(v.target)
@@ -113,6 +122,21 @@ export function savePracticeState(value: PracticeState): boolean {
 }
 export function recordAttempt(value: PracticeAttempt): boolean {
   const state = loadPracticeState();
+  // ponytail: retries are deduplicated within the latest 200 runs; retain per-plan receipts if older run IDs can be replayed.
+  const alreadyCompleted = state.attempts.some(item => item.id === value.id && item.outcome === "completed");
+  const passage = state.passages.find(item => item.id === value.context.tempoPlan?.passageId), plan = passage?.tempoPlan;
+  if (!alreadyCompleted && passage && plan && plan.policyId === value.context.tempoPlan?.policyId && !plan.paused && plan.status === "active"
+      && value.outcome === "completed" && value.countInCompleted && !value.context.wait && value.context.input !== "microphone"
+      && value.result && value.result.accuracyPct >= plan.thresholdPct && value.target.baseId === passage.target.baseId
+      && value.target.variantId === passage.target.variantId && value.target.fingerprint === passage.target.fingerprint
+      && Math.abs(value.startBeat-passage.startBeat) < 1e-6 && Math.abs(value.endBeat-passage.endBeat) < 1e-6
+      && Math.abs(value.context.bpm*value.context.speed-plan.currentBpm) < 1e-6) {
+    plan.completedAtTempo++;
+    if (plan.completedAtTempo >= passage.repeatTarget!) {
+      if (plan.currentBpm >= passage.targetTempo!) plan.status = "complete";
+      else { plan.currentBpm = Math.min(passage.targetTempo!,plan.currentBpm+plan.stepBpm); plan.completedAtTempo = 0; }
+    }
+  }
   state.attempts = [value, ...state.attempts.filter(item => item.id !== value.id)].slice(0, 200);
   return savePracticeState(state);
 }

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { inferIngestFormat, ingestSource } from "@keyspilli/catalog";
+import { getUploadPublicationReceipt, inferIngestFormat, ingestSource, type UploadPublicationReceipt } from "@keyspilli/catalog";
 import {
   acceptSourceCandidateHandoff,
   bindSourceCandidateUpload,
@@ -36,6 +36,10 @@ async function handleUpload(req: NextRequest) {
     console.info("[upload]", { event, elapsedMs: Date.now() - startedAt, ...fields });
   };
   logUpload("start");
+  const mode = req.nextUrl.searchParams.get("mode");
+  if (mode !== null && mode !== "replace") return NextResponse.json({ error: "invalid upload mode" }, { status: 400 });
+  const expectedRevision = req.nextUrl.searchParams.get("expectedRevision");
+  if (mode === "replace" && !expectedRevision) return NextResponse.json({ error: "expected publication revision is required" }, { status: 400 });
   let buf: Buffer;
   try {
     buf = await readBoundedBody(req, MAX_UPLOAD_BYTES, 60_000);
@@ -48,6 +52,29 @@ async function handleUpload(req: NextRequest) {
   const artist = req.nextUrl.searchParams.get("artist") ?? "Unknown";
   const sourceHash = createHash("sha256").update(buf).digest("hex");
   const baseId = `upload-${sourceHash}`;
+  let existingReceipt: UploadPublicationReceipt | null;
+  try {
+    existingReceipt = await getUploadPublicationReceipt(baseId, sourceHash);
+  } catch (error) {
+    const busy = error instanceof Error && error.message === "artifact publish already locked";
+    const reconciliation = error instanceof Error && "code" in error && error.code === "ARTIFACT_RECONCILIATION_REQUIRED";
+    return NextResponse.json({
+      error: busy ? "Another upload is being published. Try again shortly." : reconciliation ? "Upload needs catalog reconciliation" : "Unable to inspect the saved upload",
+      code: busy ? "UPLOAD_BUSY" : reconciliation ? "ARTIFACT_RECONCILIATION_REQUIRED" : "UPLOAD_STATE_UNAVAILABLE",
+      ...(reconciliation ? { baseId, reconciliationRequired: true } : {}),
+    }, { status: 503, headers: busy ? { "Retry-After": "5" } : undefined });
+  }
+  if (mode !== "replace" && existingReceipt) {
+    logUpload("reused", { sourceHash, baseId, publicationRevision: existingReceipt.publicationRevision });
+    return NextResponse.json({ ...existingReceipt, reused: true });
+  }
+  if (mode === "replace" && (!existingReceipt || existingReceipt.publicationRevision !== expectedRevision)) {
+    return NextResponse.json({
+      error: "The accepted upload changed. Review the current lesson before replacing it.",
+      code: "UPLOAD_REVISION_STALE",
+      ...(existingReceipt ? { receipt: existingReceipt } : {}),
+    }, { status: 409 });
+  }
   const handoffId = req.nextUrl.searchParams.get("handoffId");
   let handoff: SourceCandidateHandoff | null = null;
   let handoffLink: SourceCandidateHandoffLink | null = null;
@@ -68,7 +95,6 @@ async function handleUpload(req: NextRequest) {
       });
       handoff = binding.handoff;
       handoffLink = binding.link;
-      saveSourceCandidateHandoff(handoff);
     } catch (error) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "source handoff binding failed" }, { status: 400 });
     }
@@ -87,7 +113,9 @@ async function handleUpload(req: NextRequest) {
       acquiredVia: "upload",
       sourceRef: `upload:${sourceHash}`,
       ...(handoffLink ? { sourceCandidateHandoff: handoffLink } : {}),
-    });
+    }, mode === "replace"
+      ? { uploadReplay: { mode: "replace", expectedRevision: expectedRevision! } }
+      : { uploadReplay: { mode: "reuse" } });
   } catch (error) {
     if (handoff) {
       saveSourceCandidateHandoff(rejectSourceCandidateHandoff(handoff, "ingest failed"));
@@ -98,13 +126,27 @@ async function handleUpload(req: NextRequest) {
   if (result.code === "ARTIFACT_RECONCILIATION_REQUIRED") {
     return NextResponse.json({ error: "Upload needs reconciliation", code: result.code, baseId: result.baseId, reconciliationRequired: true }, { status: 503 });
   }
+  if (result.code === "ARTIFACT_BUSY") {
+    return NextResponse.json({ error: "Another upload is being published. Try again shortly.", code: "UPLOAD_BUSY" }, { status: 503, headers: { "Retry-After": "5" } });
+  }
+  if (result.code === "UPLOAD_REVISION_STALE") {
+    let receipt: UploadPublicationReceipt | null = null;
+    try { receipt = await getUploadPublicationReceipt(baseId, sourceHash); } catch { /* keep the conflict actionable even if the latest receipt is unavailable */ }
+    return NextResponse.json({ error: result.error, code: result.code, ...(receipt ? { receipt } : {}) }, { status: 409 });
+  }
+  if (result.reused && result.uploadReceipt) {
+    logUpload("reused", { sourceHash, baseId, publicationRevision: result.uploadReceipt.publicationRevision });
+    return NextResponse.json({ ...result.uploadReceipt, reused: true });
+  }
   if (result.error) {
     if (handoff) saveSourceCandidateHandoff(rejectSourceCandidateHandoff(handoff, result.error));
     logUpload("failed", { sourceHash, baseId, category: "ingest-rejected" });
     return NextResponse.json({ error: result.error }, { status: 422 });
   }
+  const receipt = result.uploadReceipt ?? await getUploadPublicationReceipt(baseId, sourceHash);
+  if (!receipt) return NextResponse.json({ error: "Published upload receipt is unavailable", code: "ARTIFACT_RECONCILIATION_REQUIRED", baseId, reconciliationRequired: true }, { status: 503 });
   if (handoff) saveSourceCandidateHandoff(acceptSourceCandidateHandoff(handoff));
-  const easySongId = result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0] ?? null;
+  const easySongId = receipt.easySongId;
   logUpload("complete", { sourceHash, baseId: result.baseId, songCount: result.songIds.length, easySongId });
-  return NextResponse.json({ baseId: result.baseId, songIds: result.songIds, easySongId });
+  return NextResponse.json({ ...receipt, reused: false });
 }

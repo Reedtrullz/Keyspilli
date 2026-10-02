@@ -397,6 +397,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const lastAttemptRef = useRef<{ setup: PracticeSetup; range: LoopRegion } | null>(null);
   const gradedTimingRef = useRef({ bpm: initial.data.tempoBpm, speed: 1 });
   const storedAttemptRef = useRef<PracticeAttempt | null>(null);
+  const activeTempoPlanRef = useRef<{ passageId: string; policyId: string } | null>(null);
   const [practiceSaveNotice, setPracticeSaveNotice] = useState("");
   const repeatRangeRef = useRef<LoopRegion | null>(null);
   const [practiceError, setPracticeError] = useState("");
@@ -1539,6 +1540,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     if (p.backgroundMode === "chord" && initial.chordUnavailableReason) return;
     if (p.accompanimentStyle === "melody-accompaniment" && sourceBackingNotes) return;
     const next = { ...settings, ...p };
+    if (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined) activeTempoPlanRef.current = null;
     if (p.transpose !== undefined) next.transpose = Number.isFinite(p.transpose)
       ? Math.max(TRANSPOSE_MIN, Math.min(TRANSPOSE_MAX, Math.trunc(p.transpose))) : settings.transpose;
     if (next.backgroundMode === "chord" && sourceBackingNotes) next.accompanimentStyle = "bass-chords";
@@ -1695,7 +1697,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     setPracticeError("");
     setMicError("");
     repeatRangeRef.current = null;
-    setPracticeSetup(defaultPracticeSetup);
+    setPracticeSetup(activeTempoPlanRef.current ? { ...defaultPracticeSetup, scope: "loop", wait: false } : defaultPracticeSetup);
     showPracticeSetupRef.current = true;
     setShowPracticeSetup(true);
   }
@@ -1722,6 +1724,13 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     try { eng.startGrading(setup.wait, range); }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
     gradedTimingRef.current = { bpm: activeData.tempoBpm, speed: settings.speed };
+    const tempoPassage = loadPracticeState().passages.find(p => p.id === activeTempoPlanRef.current?.passageId);
+    const tempoPlan = tempoPassage?.tempoPlan;
+    const planContext = tempoPassage && tempoPlan && !tempoPlan.paused && tempoPlan.status === "active" && tempoPlan.policyId === activeTempoPlanRef.current?.policyId
+      && tempoPassage.target.fingerprint === practiceTarget?.fingerprint && tempoPassage.target.variantId === initial.song.id
+      && Math.abs(range.startSec/secPerBeat(activeData.tempoBpm,settings.speed)-tempoPassage.startBeat)<1e-6
+      && Math.abs(range.endSec/secPerBeat(activeData.tempoBpm,settings.speed)-tempoPassage.endBeat)<1e-6
+      && Math.abs(activeData.tempoBpm*settings.speed-tempoPlan.currentBpm)<1e-6 ? activeTempoPlanRef.current! : null;
     if (practiceTarget) {
       const spb = secPerBeat(activeData.tempoBpm, settings.speed);
       const attempt: PracticeAttempt = {
@@ -1732,6 +1741,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
           backgroundMode: settings.backgroundMode, accompanimentStyle: settings.accompanimentStyle, bpm: activeData.tempoBpm,
           timingCalibrationMs: setup.input === "microphone" ? null : effectiveTimingBinding(setup.input) ? loadTimingCalibration(effectiveTimingBinding(setup.input)) : null,
           effectiveTimbre: eng.audio instanceof SamplerAudioEngine ? eng.audio.playbackTimbre : settings.soundSource,
+          ...(planContext ? { tempoPlan: planContext } : {}),
           midiDevice: setup.input === "midi" ? midiSelection.device : null, midiChannel: setup.input === "midi" ? midiSelection.channel : null },
       };
       storedAttemptRef.current = attempt;
@@ -2527,6 +2537,15 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       </div>
 
         <PracticeWorkspace target={practiceTarget} variantId={initial.song.id} range={loopBeats}
+          bpm={activeData.tempoBpm}
+          onUseTempoPlan={passage => {
+            if (gradingRef.current || !passage.tempoPlan || passage.tempoPlan.paused || passage.tempoPlan.status !== "active" || passage.target.fingerprint !== practiceTarget?.fingerprint) return;
+            const speed=passage.tempoPlan.currentBpm/activeData.tempoBpm;
+            if (speed<.25 || speed>4) { setPracticeSaveNotice("Plan tempo no longer fits this arrangement."); return; }
+            engineRef.current?.stop(); setLoopBeats({startBeat:passage.startBeat,endBeat:passage.endBeat}); seek(passage.startBeat*secPerBeat(activeData.tempoBpm,settings.speed));
+            updateSettings({speed}); activeTempoPlanRef.current={passageId:passage.id,policyId:passage.tempoPlan.policyId};
+            setPracticeSaveNotice(`Tempo plan selected at ${passage.tempoPlan.currentBpm} BPM. Start Play-along Practice when ready; changes apply between runs.`);
+          }}
           endBeat={duration / secPerBeat(activeData.tempoBpm, settings.speed)} positionBeat={time / secPerBeat(activeData.tempoBpm, settings.speed)} disabled={grading || showPracticeSetup}
           onSelect={passage => { engineRef.current?.stop(); setLoopBeats({ startBeat: passage.startBeat, endBeat: passage.endBeat }); seek(passage.startBeat * secPerBeat(activeData.tempoBpm, settings.speed)); syncTransportState(); }}
           onResume={beat => { engineRef.current?.stop(); seek(beat * secPerBeat(activeData.tempoBpm, settings.speed)); syncTransportState(); }} />

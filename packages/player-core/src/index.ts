@@ -11,5 +11,6 @@ export * from "./accompaniment.js";
 export * from "./prefs.js";
 export * from "./practice-store.js";
 export * from "./owner-state.js";
+export * from "./practice-sets.js";
 export * from "./views/falling.js";
 export * from "./sections.js";

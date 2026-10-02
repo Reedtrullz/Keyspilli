@@ -36,3 +36,17 @@ it("previews bounded owner state, restores supported fields atomically and withh
     setItem: (key: string, value: string) => { if (key === "keyspilli.learned" && !failed) { failed = true; throw Error("quota"); } rows.set(key, value); } });
   expect(restoreOwnerState(imported, "replace")).toBe(false); expect(rows).toEqual(before);
 });
+
+it("merges older passage backups without erasing a compatible newer tempo plan", async () => {
+  const {savePracticeState,loadPracticeState}=await import("../src/practice-store.js");
+  const rows=new Map<string,string>();
+  vi.stubGlobal("localStorage",{get length(){return rows.size;},key:(i:number)=>[...rows.keys()][i]??null,getItem:(k:string)=>rows.get(k)??null,setItem:(k:string,v:string)=>rows.set(k,v),removeItem:(k:string)=>rows.delete(k)});
+  const passage={id:"phrase",name:"Opening",sectionId:"full",target:{baseId:"song",variantId:"song-e",fingerprint:"sha256:"+"a".repeat(64)},startBeat:0,endBeat:4,createdAt:"2026-10-02T00:00:00Z"};
+  expect(savePracticeState({version:1,passages:[passage],attempts:[],resume:null})).toBe(true);
+  const older=exportOwnerState(false);
+  const newer={...passage,targetTempo:60,repeatTarget:2,tempoPlan:{policyId:"plan1",startBpm:50,currentBpm:55,stepBpm:5,completedAtTempo:1,thresholdPct:90,paused:false,status:"active" as const}};
+  expect(savePracticeState({version:1,passages:[newer],attempts:[],resume:null})).toBe(true);
+  expect(restoreOwnerState(older,"merge")).toBe(true);expect(loadPracticeState().passages[0]).toEqual(newer);
+  const changed=structuredClone(older);changed.practice.passages[0]!.endBeat=8;
+  expect(restoreOwnerState(changed,"merge")).toBe(true);expect(loadPracticeState().passages[0]?.tempoPlan).toBeUndefined();
+});

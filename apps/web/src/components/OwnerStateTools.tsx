@@ -8,7 +8,7 @@ export function OwnerStateTools({ disabled = false }: { disabled?: boolean }) {
   const readGeneration = useRef(0);
   return <details className="border rounded-xl p-3 text-sm" aria-label="Back up browser practice">
     <summary className="min-h-11 cursor-pointer">Back up or restore browser practice</summary>
-    <p>Preferences, favorites, passages and source-bound choices only. No songs or credentials. Hardware calibration is reset on restore; musical choices wait for a matching source.</p>
+    <p>Preferences, favorites, passages, practice sets and source-bound choices only. No songs or credentials. Hardware calibration is reset on restore; musical choices wait for a matching source.</p>
     <label className="block my-2"><input type="checkbox" checked={history} onChange={e => setHistory(e.target.checked)} /> Include private practice history</label>
     <button disabled={disabled} className="min-h-11 underline" onClick={() => {
       try {
@@ -23,7 +23,7 @@ export function OwnerStateTools({ disabled = false }: { disabled?: boolean }) {
       catch (error) { if (generation === readGeneration.current) setNotice(error instanceof Error ? error.message : "Could not read owner state."); }
     }} /></label>
     {preview && <div className="border-t pt-2">
-      <p>{preview.favorites.length} favorites · {Object.keys(preview.songPrefs).length} song preferences · {preview.practice.passages.length} passages · {preview.practice.attempts.length} history entries · {Object.keys(preview.musicalChoices).length} source-bound choices.</p>
+      <p>{preview.favorites.length} favorites · {Object.keys(preview.songPrefs).length} song preferences · {preview.practice.passages.length} passages · {preview.practiceSets?.sets.length ?? 0} practice sets · {preview.practice.attempts.length} history entries · {Object.keys(preview.musicalChoices).length} source-bound choices.</p>
       <label>Restore mode <select aria-label="Owner restore mode" value={mode} onChange={e => setMode(e.target.value as "merge" | "replace")}><option value="merge">Merge, imported values win conflicts</option><option value="replace">Replace supported preferences and passages</option></select></label>
       <p>Merge retains unrelated entries. History remains unchanged when excluded; included history keeps the latest 200 runs. A merge exceeding bookmark limits is refused. Replace removes supported preferences and bookmarks absent from this file.</p>
       <button disabled={disabled} className="min-h-11 underline" onClick={() => {

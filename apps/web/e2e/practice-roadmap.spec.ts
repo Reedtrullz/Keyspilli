@@ -30,6 +30,23 @@ test("version-bound passages reload and cancelled/completed/interrupted runs sta
     await workspace.getByLabel("Practice note").fill("Relax between notes");
     await expect(workspace.getByRole("button", { name: "Save selected loop" })).toBeEnabled();
     await workspace.getByRole("button", { name: "Save selected loop" }).click();
+    const sets = workspace.locator('details[aria-label="Owner practice sets"]');
+    await sets.locator(":scope > summary").click();
+    await sets.getByLabel("New practice set").fill("Daily Fixture");
+    await sets.getByRole("button", { name: "Create set", exact: true }).click();
+    const passageId = await page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).passages[0].id);
+    await sets.getByLabel("Practice set passage").selectOption(passageId);
+    await sets.getByRole("button", { name: "Add chosen arrangement" }).click();
+    await sets.getByLabel("Practice set passage").selectOption("");
+    await sets.getByRole("button", { name: "Add chosen arrangement" }).click();
+    await expect(sets.locator("[data-set-item]")).toHaveCount(2);
+    await sets.getByRole("button", { name: "Move Roadmap Practice Fixture up", exact: true }).nth(1).press("Enter");
+    await sets.getByLabel("Manually completed Roadmap Practice Fixture").first().check();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice-sets.v1")!).sets[0].items.map((item: { passageId?: string; completed: boolean }) => [item.passageId ?? null, item.completed]))).toEqual([[null,true],[passageId,false]]);
+    await expect(sets.getByRole("link", { name: "Next unfinished item" })).toHaveAttribute("href", `/player/${id}?passage=${passageId}`);
+    await page.evaluate(() => { const state = JSON.parse(localStorage.getItem("keyspilli.practice-sets.v1")!); state.sets[0].items.push({id:"missing",baseId:"missing-owner",variantId:"missing-owner-level",completed:false}); localStorage.setItem("keyspilli.practice-sets.v1",JSON.stringify(state)); window.dispatchEvent(new Event("keyspilli-practice-sets")); });
+    await expect(sets.getByText("missing-owner-level · Unavailable; original reference retained", { exact: true })).toBeVisible();
+
     await page.reload();
     await workspace.locator(":scope > summary").click();
     await expect(workspace.getByText("Relax between notes")).toBeVisible();
@@ -70,6 +87,14 @@ test("version-bound passages reload and cancelled/completed/interrupted runs sta
     expect(runs[0].result.accuracyPct).toBe(100);
     await workspace.locator(":scope > summary").click();
     await workspace.getByRole("button", { name: "Select First phrase", exact: true }).click();
+    const ladder = workspace.locator('details[aria-label="Tempo plan for First phrase"]');
+    await ladder.locator(":scope > summary").click();
+    const bpm = detail.data.tempoBpm;
+    await ladder.getByLabel("Starting BPM for First phrase").fill(String(bpm));
+    await ladder.getByLabel("Target BPM for First phrase").fill(String(bpm+5));
+    await ladder.getByLabel("Runs per tempo").fill("1");
+    await ladder.getByRole("button", { name: "Save tempo plan", exact: true }).click();
+    await ladder.getByRole("button", { name: `Use plan tempo ${bpm} BPM`, exact: true }).click();
     await page.getByRole("button", { name: "Practice", exact: true }).click();
     dialog = page.getByRole("dialog", { name: "Set up practice" });
     await dialog.getByLabel("Passage", { exact: true }).selectOption("loop");
@@ -83,6 +108,7 @@ test("version-bound passages reload and cancelled/completed/interrupted runs sta
     await expect(problem).toBeVisible();
     const flawed = await page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0]);
     expect(flawed.result.wrong).toBe(1);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).passages[0].tempoPlan.currentBpm)).toBe(bpm);
     expect(flawed.result.diagnostics.events.some((event: { outcome: string }) => event.outcome === "wrong")).toBe(true);
     await problem.click();
     await expect(problem).toHaveCount(0);
@@ -101,6 +127,27 @@ test("version-bound passages reload and cancelled/completed/interrupted runs sta
     await page.evaluate(() => window.dispatchEvent(new Event("blur")));
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0].outcome)).toBe("interrupted");
     await expect(page.getByText("Window focus was lost.", { exact: false })).toBeVisible();
+    await ladder.getByRole("button", { name: `Use plan tempo ${bpm} BPM`, exact: true }).click();
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    dialog = page.getByRole("dialog", { name: "Set up practice" });
+    await dialog.getByLabel("Behavior").selectOption("along");
+    await dialog.getByLabel("Count-in", { exact: true }).selectOption("0");
+    await dialog.getByRole("button", { name: "Start practice", exact: true }).click();
+    const scheduled = targets.map((note: { start: number; midi: number }) => ({ beat: note.start, key: Object.entries(KEYMAP).find(([,midi]) => midi === note.midi)![0] }));
+    await page.evaluate(async ({ notes, bpm }) => {
+      const began = performance.now();
+      for (const note of notes) {
+        await new Promise(resolve => setTimeout(resolve, Math.max(0,note.beat*60_000/bpm-(performance.now()-began))));
+        window.dispatchEvent(new KeyboardEvent("keydown", {key:note.key,bubbles:true}));
+        window.dispatchEvent(new KeyboardEvent("keyup", {key:note.key,bubbles:true}));
+      }
+    }, { notes:scheduled, bpm });
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0].outcome)).toBe("completed");
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).passages[0].tempoPlan.currentBpm)).toBe(bpm+5);
+    await ladder.getByRole("button", { name: `Use plan tempo ${bpm+5} BPM`, exact: true }).click();
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+    await ladder.getByRole("button", { name: "Pause plan", exact: true }).click();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).passages[0].tempoPlan.paused)).toBe(true);
     const backup = page.locator('details[aria-label="Back up browser practice"]');
     await backup.locator(":scope > summary").click();
     await backup.getByLabel("Include private practice history").check();
@@ -108,6 +155,7 @@ test("version-bound passages reload and cancelled/completed/interrupted runs sta
     await backup.getByRole("button", { name: "Download owner state" }).click();
     const download = await downloadEvent, exported = readFileSync((await download.path())!, "utf8");
     const document = JSON.parse(exported);
+    expect(document.practiceSets.sets[0].name).toBe("Daily Fixture");
     expect(document.practice.passages[0].name).toBe("First phrase"); expect(document.practice.attempts.length).toBeGreaterThan(0);
     await page.evaluate(() => localStorage.setItem("keyspilli.favorites", '["unrelated-owner-level"]'));
     await backup.getByLabel("Preview restore").setInputFiles({ name: "owner-state.json", mimeType: "application/json", buffer: Buffer.from(exported) });
@@ -119,10 +167,14 @@ test("version-bound passages reload and cancelled/completed/interrupted runs sta
     await page.goto("/");
     const home = page.getByRole("region", { name: "Your practice workspace" });
     await expect(home.getByRole("link", { name: /Open last practice: Roadmap Practice Fixture/ })).toHaveAttribute("href", `/player/${id}`);
-    await home.getByRole("link", { name: /Open last practice:/ }).click();
+    const homeSets = page.locator('details[aria-label="Owner practice sets"]');
+    await homeSets.locator(":scope > summary").click();
+    await homeSets.getByRole("link", { name: "Next unfinished item" }).click();
+    await expect(page.locator(".player-loop-controls")).toHaveAttribute("data-active", "true");
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
     await page.goto("/songs");
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0].outcome)).toBe("interrupted");
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0].outcome)).toBe("completed");
   } finally {
     const deleted = await request.delete(`/api/songs/${baseId}`, { headers: { Authorization: "Bearer test-token-for-e2e" } });
     expect(deleted.ok()).toBe(true);
