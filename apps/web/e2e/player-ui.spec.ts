@@ -326,7 +326,7 @@ test("practice remains keyboard accessible with reduced motion and 200% CSS zoom
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`/player/${SONG}`);
   await page.locator("body").evaluate((body) => { body.style.zoom = "2"; });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const practice = page.getByRole("button", { name: "Practice", exact: true });
   await practice.press("Enter");
   const input = page.getByLabel("Input", { exact: true });
