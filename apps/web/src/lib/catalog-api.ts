@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { cache } from "react";
 import {
+  artifactPublicationRevision,
   arrangementManifestPath,
   artifactsDir,
   dataDir,
@@ -371,21 +372,15 @@ export class PublicationRevisionConflictError extends Error {
 }
 
 async function readPublicationRevision(baseId: string): Promise<string | null> {
-  try {
-    const revision = (await readFile(join(dataDir(), "artifacts", baseId, ".publication-id"), "utf8")).trim();
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(revision)) throw new PublicationRevisionConflictError();
-    return revision;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
+  try { return await artifactPublicationRevision(baseId, join(dataDir(), "artifacts")); }
+  catch { throw new PublicationRevisionConflictError(); }
 }
 
 function hasPublicationJournal(baseId: string): boolean {
   return existsSync(join(dataDir(), "artifacts", `.${baseId}.reconciliation.json`));
 }
 
-async function withStablePublication<T>(
+export async function withStablePublication<T>(
   baseId: string,
   requiredRevision: string | null | undefined,
   read: () => Promise<T>,
@@ -733,6 +728,7 @@ export async function getArtifactFileWithRevision(
       tempoBpm: loaded.data.tempoBpm,
       timeSig: loaded.data.timeSig,
       timeSigEvents: loaded.data.timeSigEvents,
+      sourcePedal:loaded.data.sourcePedal,
       measures: loaded.data.measures,
     };
     if (validateArtifactFiles(variant, { midi, xml }).length > 0) return null;

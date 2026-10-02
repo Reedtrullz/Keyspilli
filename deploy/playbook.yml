@@ -43,6 +43,9 @@
     keyspilli_tutorial_beta: true
     # Disabled until the owner configures and validates a dedicated rclone Drive directory.
     keyspilli_offhost_replication: false
+    # Empty until full-job headroom and the exact image have operational approval.
+    keyspilli_worker_budget: {}
+    keyspilli_worker_budget_approved: false
     app_version: "{{ lookup('ansible.builtin.env', 'APP_VERSION') | default('latest', true) }}"
     allow_mutable_tag: false
     health_url: "http://{{ app_bind_address }}:{{ app_host_port }}/api/health"
@@ -90,6 +93,26 @@
           /api/health. Set allow_mutable_tag=true only for an intentional
           mutable-tag deploy.
         success_msg: Keyspilli deployment variables validated.
+      tags: [always]
+
+    - name: Validate optional measured worker budget
+      ansible.builtin.assert:
+        that:
+          - keyspilli_worker_budget_approved | bool
+          - keyspilli_worker_budget.full_job_headroom_verified | default(false) | bool
+          - keyspilli_worker_budget.image | default('') == (compose_worker_image | default(worker_image))
+          - keyspilli_worker_budget.evidence_sha256 | default('') is match('^[0-9a-f]{64}$')
+          - keyspilli_worker_budget.cpus | default(0) | type_debug in ['int', 'float']
+          - keyspilli_worker_budget.memory_mib | default(0) | type_debug == 'int'
+          - keyspilli_worker_budget.pids | default(0) | type_debug == 'int'
+          - keyspilli_worker_budget.cpus | default(0) | float >= 0.25
+          - keyspilli_worker_budget.cpus | default(0) | float <= 32
+          - keyspilli_worker_budget.memory_mib | default(0) | int >= 64
+          - keyspilli_worker_budget.memory_mib | default(0) | int <= 65536
+          - keyspilli_worker_budget.pids | default(0) | int >= 16
+          - keyspilli_worker_budget.pids | default(0) | int <= 4096
+        fail_msg: Worker limits require exact-image full-job headroom evidence and explicit operational approval. Decoder-only measurements do not qualify.
+      when: keyspilli_worker_budget | length > 0
       tags: [always]
 
     - name: Assert API token is configured for production

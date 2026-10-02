@@ -1,7 +1,7 @@
 "use client";
 
-import type { ChordPracticeSnapshot, ChordPracticeTarget } from "@keyspilli/player-core";
-import React, { useEffect, useRef } from "react";
+import type { ChordPracticeSnapshot, ChordPracticeTarget, HeldChordSnapshot } from "@keyspilli/player-core";
+import React, { useEffect, useRef, useState } from "react";
 import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -34,6 +34,7 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
   const whiteIndex = new Map(whites.map((midi, index) => [midi, index]));
   const targetSet = new Set(target.notes);
   const played = new Set(snapshot.playedPitchClasses);
+  const physical = "physicalNotes" in snapshot ? new Set((snapshot as HeldChordSnapshot).physicalNotes) : null;
   const width = 100 / Math.max(1, whites.length);
   const targetIndex = new Map(target.notes.map((midi, index) => [midi, index]));
   const blackMidis = visibleMidis
@@ -44,7 +45,7 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
       <div className="absolute inset-0 flex">
         {whites.map((midi) => {
           const active = targetSet.has(midi);
-          const isPlayed = played.has(pitchClass(midi));
+          const isPlayed = physical ? physical.has(midi) : played.has(pitchClass(midi));
           const isWrong = snapshot.lastWrongPitchClass === pitchClass(midi);
           return (
             <div
@@ -63,7 +64,7 @@ function PracticeKeyboard({ target, snapshot }: { target: ChordPracticeTarget; s
           const previous = whiteIndex.get(midi - 1);
           if (previous === undefined) return null;
           const active = targetSet.has(midi);
-          const isPlayed = played.has(pitchClass(midi));
+          const isPlayed = physical ? physical.has(midi) : played.has(pitchClass(midi));
           const isWrong = snapshot.lastWrongPitchClass === pitchClass(midi);
           return (
             <div
@@ -92,6 +93,7 @@ export function ChordPracticePanel({
   scope = "arrangement",
   inputStatus = "Computer keyboard available",
   notice = "",
+  onExercise, midiShapeEligible=false,
 }: {
   targets: ChordPracticeTarget[];
   snapshot: ChordPracticeSnapshot;
@@ -105,8 +107,13 @@ export function ChordPracticePanel({
   scope?: "current" | "passage" | "arrangement";
   inputStatus?: string;
   notice?: string;
+  onExercise?: (exercise:"discovery"|"held"|"transition",windowMs:number,holdMs:number,input:"keyboard"|"midi")=>void;
+  midiShapeEligible?:boolean;
 }) {
   const target = snapshot.target;
+  const held="exercise" in snapshot?snapshot as HeldChordSnapshot:null;
+  const [choice,setChoice]=useState("discovery"),[confirmed,setConfirmed]=useState(false);
+  useEffect(()=>setConfirmed(false),[targets]);
   const { requestClose, visible, closing } = useDialogMotion(onExit);
   const motion = dialogMotionClasses(visible && presenceVisible, closing || !presenceVisible);
   const panelRef = useRef<HTMLElement>(null);
@@ -125,12 +132,23 @@ export function ChordPracticePanel({
           <p className="text-xs uppercase tracking-wide font-semibold text-indigo-700">Chord practice</p>
           <p className="text-sm font-medium text-indigo-900 mt-1">{scope === "current" ? "Current bar" : scope === "passage" ? "Current passage (up to 4 bars)" : "Whole arrangement"} — {targets.length} {targets.length === 1 ? "chord" : "chords"}</p>
           <p className="text-xs text-zinc-600 mt-1">Input: {inputStatus}</p>
-          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">Find the chord tones</h2>
-          <p className="text-sm text-zinc-600 mt-1">The shown voicing is a reference shape. Any octave is accepted, and note order does not matter.</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mt-1">{held?held.exercise==="held"?"Hold the exact voicing":"Transition between exact voicings":"Find the chord tones"}</h2>
+          <p className="text-sm text-zinc-600 mt-1">{held?"Physical keys must overlap at the exact shown pitches within your rolling window. Pedal sound does not count as a key hold. Targets and technique have no independent keyboard approval.":"Chord-tone discovery: any octave and note order are accepted. Completion does not establish simultaneous holding or inversion."}</p>
           {notice && <p className="text-sm text-indigo-800 mt-1" role="status">{notice}</p>}
         </div>
         <button onClick={requestClose} className="min-h-11 px-3 rounded-xl border border-zinc-300 bg-white text-sm">Close</button>
       </div>
+
+      {onExercise&&<form className="border rounded p-3 mb-3" onSubmit={event=>{event.preventDefault();const f=new FormData(event.currentTarget);if(choice!=="discovery"&&!confirmed)return;onExercise(choice as "discovery"|"held"|"transition",Number(f.get('window')),Number(f.get('hold')),String(f.get('input')) as "keyboard"|"midi");}}>
+        <label>Exercise<select aria-label="Chord exercise" className="block border p-2" value={choice} onChange={e=>{setChoice(e.target.value);setConfirmed(false);}}><option value="discovery">Chord-tone discovery</option><option value="held">Held exact shape</option><option value="transition">Exact-shape transitions</option></select></label>
+        <label>Shape input<select className="block border p-2" name="input"><option value="keyboard">Computer keys</option><option value="midi" disabled={!midiShapeEligible}>Selected MIDI device and channel</option></select></label>
+        <label>Rolling window (ms)<input className="block border p-2" name="window" type="number" min="50" max="1000" defaultValue="200" required/></label>
+        <label>Physical hold (ms)<input className="block border p-2" name="hold" type="number" min="250" max="2000" defaultValue="500" required/></label>
+        {choice!=="discovery"&&<><ul aria-label="Exact exercise voicings">{targets.slice(0,256).map((t,i)=><li key={i}>{t.name}: {t.notes.map(noteName).join(' · ')} · {sourceLabel(t)}</li>)}</ul>
+          <label className="flex gap-2"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>I choose these exact reference pitches as exercise targets. Their playability is unverified.</label></>}
+        <button className="min-h-11 underline" disabled={choice!=="discovery"&&(!confirmed||targets.length>256)}>Start chosen chord exercise</button>
+      </form>}
+      {held&&<div role="status"><p>{held.heldStatus}</p><p>Held shapes: {held.completed}. Discovery scoring is separate; physical hand and technique are unmeasured.</p>{held.transitionMetrics.map((m,i)=><p key={i}>Transition {i+1}: {m.gapMs===null?'Unobserved release/attack relationship':`${Math.round(m.gapMs)} ms gap · ${Math.round(m.overlapMs!)} ms overlap`} (raw physical timing)</p>)}</div>}
 
       {!targets.length && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

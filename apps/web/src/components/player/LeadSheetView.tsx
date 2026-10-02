@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { learnerPitch, measureNoteIntervals, intervalSilences, intervalCue, measureIndex, pitchColor, playbackMeasures, secPerBeat, timeSignatureAtBeat, type ChordLabel, type PlayerSettings, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "./chord-provenance";
+import { FunctionalHarmony } from "./FunctionalHarmony";
 import { displayChordName } from "./chord-practice";
 
 
@@ -92,6 +93,7 @@ export function LeadSheetView({ data, time, settings, chords }: { data: SongData
         <p className="text-sm text-zinc-600 mt-2">
           {measureChords.length ? "Chord labels below retain the selected source’s provenance." : "No chord shown for this bar — follow the written notes or rest."}
         </p>
+        <FunctionalHarmony chords={chords.filter(c=>c.beat>=m.startBeat&&c.beat<m.endBeat)} sourceFingerprint={data.sourceFingerprint} startBeat={m.startBeat} endBeat={m.endBeat} songEnd={measures.at(-1)?.endBeat??0}/>
       </div>
     </div>
   );

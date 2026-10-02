@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 import { writeMidi } from "@keyspilli/midi";
 import { finiteNumberSetting } from "./worker-config.js";
 
+import {withResourceAccounting} from "./errors.js";
+
 const execFileP = promisify(execFile);
 
 export type StemImportMode = "auto" | "legacy" | "metal";
@@ -158,7 +160,7 @@ async function defaultRun(
   args: readonly string[],
   options: { timeoutMs: number; signal?: AbortSignal },
 ): Promise<CommandResult> {
-  const result = await execFileP(command, [...args], {
+  const result = await withResourceAccounting(()=>execFileP(command, [...args], {
     timeout: options.timeoutMs,
     ...(options.signal ? { signal: options.signal } : {}),
     killSignal: "SIGKILL",
@@ -172,7 +174,7 @@ async function defaultRun(
       MKL_NUM_THREADS: process.env.MKL_NUM_THREADS ?? "2",
       OPENBLAS_NUM_THREADS: process.env.OPENBLAS_NUM_THREADS ?? "2",
     },
-  });
+  }),options.signal);
   return { stdout: result.stdout, stderr: result.stderr };
 }
 

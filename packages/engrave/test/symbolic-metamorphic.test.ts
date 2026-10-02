@@ -198,6 +198,29 @@ describe("bounded symbolic differential and metamorphic checks", () => {
     }
   });
 
+  it("preserves pickup and meter-change measure boundaries with repeated pitches", () => {
+    const variant: Variant = {level:"advanced",difficultyScore:0,chords:[],bassPattern:"block",key:"C",tempoBpm:120,timeSig:[4,4],
+      timeSigEvents:[{beat:0,tick:0,timeSig:[4,4]},{beat:1,tick:960,timeSig:[6,8]},{beat:4,tick:3840,timeSig:[3,4]}],
+      measures:[{index:0,startBeat:0,endBeat:1},{index:1,startBeat:1,endBeat:4},{index:2,startBeat:4,endBeat:7}],
+      notes:[{midi:60,start:0,dur:1,vel:80,hand:"R"},{midi:60,start:1,dur:.5,vel:80,hand:"R"},{midi:60,start:4,dur:1,vel:80,hand:"R"}]};
+    compareMusicXml(variant,"pickup / 6-8 / 3-4 repeated C4");
+    expect(parseMusicXmlNotes(writeMusicXml(variant,"Pickup","Synthetic")).notationMeasures).toEqual(variant.measures);
+  });
+
+  it("preserves composite and tuplet durations instead of rounding their written value",()=>{
+    compareMusicXml({level:"advanced",difficultyScore:0,chords:[],bassPattern:"block",key:"C",tempoBpm:120,timeSig:[4,4],measures:[{index:0,startBeat:0,endBeat:4},{index:1,startBeat:4,endBeat:8}],notes:[{midi:60,start:0,dur:2.5,vel:80,hand:"R"},{midi:64,start:0,dur:3,vel:80,hand:"R"},{midi:62,start:3,dur:1.25,vel:80,hand:"L"},{midi:67,start:5,dur:.625,vel:80,hand:"R"},{midi:69,start:6,dur:1/3,vel:80,hand:"L"}]},"composite notes and exact tuplet remainder");
+  });
+
+  it("agrees with native Verovio on a finite two-pass repeat before canonical export",()=>{
+    const xml='<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">'+['C','D','E'].map((step,i)=>`<measure number="${i+1}">${i===0?'<attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><barline location="left"><repeat direction="forward"/></barline>':''}<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>${i===1?'<barline location="right"><repeat direction="backward" times="2"/></barline>':''}</measure>`).join('')+'</part></score-partwise>';
+    const canonical=parseMusicXmlNotes(xml);
+    expect(toolkit.loadData(xml)).toBeTruthy();const rendered=Buffer.from(toolkit.renderToMIDI(),"base64"),ppq=rendered.readUInt16BE(12);
+    expect(noteShape(parseMidi(rendered).notes)).toEqual(noteShape(canonical.notes.map(n=>({...n,dur:n.dur-1/ppq}))));
+    const variant:Variant={level:"advanced",difficultyScore:0,notes:canonical.notes,chords:[],bassPattern:"none",key:"C",tempoBpm:120,timeSig:[4,4],measures:canonical.notationMeasures!};
+    compareMusicXml(variant,"finite repeat canonical sequence");
+    expect(parseMusicXmlNotes(writeMusicXml(variant,"Repeat","Synthetic")).notationMeasures).toEqual(canonical.notationMeasures);
+  });
+
   it("fails closed for unsupported MIDI format 2 and MusicXML repeats", () => {
     const midi = writeMidi([], {
       tempoBpm: 120,

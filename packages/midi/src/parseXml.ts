@@ -1,3 +1,5 @@
+import {SOURCE_PEDAL,readSourcePedal} from "./source-pedal.js";
+import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js";
 import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 import { mergedNoteLineage } from "./quantize.js";
 
@@ -132,12 +134,38 @@ function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
   return out.map(({ tieStart: _tieStart, tieStop: _tieStop, voiceId: _voiceId, ...note }) => note);
 }
 
+/** ponytail: only a full-bar, constant-state, explicit two-pass repeat at the
+ * beginning of one part. Keep every other form rejected until independently checked. */
+function repeatOrder(xml: string, measures: string[]): { index: number; occurrence: 1 | 2 }[] | null {
+  if (!/<(?:repeat|ending)\b/i.test(xml)) return null;
+  const fail = () => { throw new Error("Unsupported MusicXML repeat or ending playback order"); };
+  if (/<(?:ending|tie|tied|grace|transpose)\b/i.test(xml) || measures.some(m=>/^<measure\b[^>]*(?:implicit\s*=\s*["']yes["']|number\s*=\s*["']0["'])/.test(m))) fail();
+  const repeats=[...xml.matchAll(/<repeat\b([^>]*?)\/\s*>/g)];
+  if (repeats.length!==2 || [...xml.matchAll(/<repeat\b/g)].length!==2 || measures.length>2048) fail();
+  if (!measures.length) fail();
+  const forward=repeats[0]!, backward=repeats[1]!;
+  for (const repeat of repeats) if (repeat[1]!.replace(/\b(?:direction|times)\s*=\s*(["']).*?\1/g, "").trim()) fail();
+  if (xmlAttribute(forward[1]!,"direction")!=="forward" || xmlAttribute(forward[1]!,"times") || xmlAttribute(backward[1]!,"direction")!=="backward" || !["","2"].includes(xmlAttribute(backward[1]!,"times"))) fail();
+  const last=measures.findIndex(m=>m.includes(backward[0]));
+  if (!measures[0]?.includes(forward[0]) || last<0 || !/<barline\b[^>]*location\s*=\s*["']left["'][^>]*>\s*<repeat\b/.test(measures[0]) || !/<barline\b[^>]*location\s*=\s*["']right["'][^>]*>\s*<repeat\b/.test(measures[last]!)) fail();
+  if (measures[0]!.indexOf(forward[0]) > measures[0]!.indexOf("<note") || measures[last]!.lastIndexOf("</note>") > measures[last]!.indexOf(backward[0])) fail();
+  const attributes=[...measures[0]!.matchAll(/<attributes\b[^>]*>([\s\S]*?)<\/attributes>/g)];
+  if (measures[0]!.indexOf("<attributes") > measures[0]!.indexOf("<note")) fail();
+  if (attributes.length!==1 || !/<divisions>/.test(attributes[0]![1]!) || !/<time\b/.test(attributes[0]![1]!) || measures.slice(1).some(m=>/<attributes\b/.test(m))) fail();
+  const order: {index:number;occurrence:1|2}[]=[];
+  for (const occurrence of [1,2] as const) for(let index=0;index<=last;index++) order.push({index,occurrence});
+  for(let index=last+1;index<measures.length;index++) order.push({index,occurrence:1});
+  if(order.length>2048) throw new Error("repeat source workload exceeds supported limits");
+  return order;
+}
+
 /**
  * Minimal MusicXML to notes parser (score-partwise). Handles output from our
  * own writer and common MuseScore/Sibelius exports: measures, divisions,
  * chords, staffs, tempo/key/time attributes.
  */
 export function parseMusicXmlNotes(xml: string): ParsedMidi {
+  if (xml.length > 8 * 1024 * 1024) throw new Error("MusicXML source workload exceeds supported limits");
   const clean = cleanMusicXml(xml);
   const partNodes = [...clean.matchAll(/<part(?![-\w])([^>]*)>[\s\S]*?<\/part>/g)];
   const partNames = new Map<string, string>();
@@ -147,6 +175,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     if (id) partNames.set(id, name ? decodeXmlEntities(name) : id);
   }
   if (partNodes.length > 1) {
+    if (/<(?:repeat|ending)\b/i.test(clean)) throw new Error("Unsupported MusicXML multipart repeat playback order");
     const parsedParts = partNodes.map((partMatch, index) => {
       const id = xmlAttribute(partMatch[1]!, "id") || `part-${index + 1}`;
       const name = partNames.get(id) ?? id;
@@ -192,7 +221,6 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
 
 function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: string }): ParsedMidi {
   xml = cleanMusicXml(xml);
-  if (/<(?:repeat|ending)\b/i.test(xml)) throw new Error("Unsupported MusicXML repeat or ending playback order");
   if (/<(?:segno|coda|dalsegno|dacapo|tocoda|fine)\b|\b(?:dalsegno|dacapo|tocoda|fine)\s*=/i.test(xml)) {
     throw new Error("Unsupported MusicXML navigation playback order");
   }
@@ -216,6 +244,7 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
   let beats = 4;
   let beatType = 4;
   const timeSigEvents: MidiTimeSignatureEvent[] = [];
+  const notationMeasures: NonNullable<ParsedMidi["notationMeasures"]> = [];
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: ParsedXmlNote[] = [];
@@ -227,9 +256,13 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
   }
   const partBody = xml.match(/<part(?![-\w])[^>]*>([\s\S]*?)<\/part>/)?.[1] ?? xml;
   const measures = partBody.match(/<measure(?=[\s>])[^>]*>[\s\S]*?<\/measure>/g) ?? [];
+  const order = repeatOrder(xml, measures);
+  const playback = order ?? measures.map((_,index)=>({index,occurrence:1 as const}));
   let measureStart = 0;
-  for (let mi = 0; mi < measures.length; mi++) {
-    const m = measures[mi]!;
+  for (let mi = 0; mi < playback.length; mi++) {
+    const occurrence = playback[mi]!;
+    const m = measures[occurrence.index]!;
+    let sourceNoteIndex = 0;
     let cursor = 0;
     let measureEnd = 0;
     let lastStart = 0;
@@ -264,6 +297,7 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
       }
       if (el.startsWith("<backup") || el.startsWith("<forward")) {
         const d = Number(firstMatch(el, /<duration>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/duration>/)) || 0;
+        if (order && el.startsWith("<backup") && cursor < d / divisions - 1e-9) throw new Error("Unsupported MusicXML repeat negative cursor");
         cursor = el.startsWith("<backup")
           ? Math.max(0, cursor - d / divisions)
           : cursor + d / divisions;
@@ -300,6 +334,8 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
       const tieStart = /<(?:tie|tied)\b[^>]*type\s*=\s*["'](?:start|continue)["']/i.test(el);
       const tieStop = /<(?:tie|tied)\b[^>]*type\s*=\s*["'](?:stop|continue)["']/i.test(el);
       const noteIndex = notes.length;
+      const originalId = `${sourcePart.id}:measure:${occurrence.index}:note:${sourceNoteIndex++}`;
+      if (order && notes.length >= 20_000) throw new Error("repeat source workload exceeds supported limits");
       notes.push({
         midi,
         ...(Number.isInteger(alter) && alter >= -2 && alter <= 2 && Number.isInteger(octave) && octave >= -1 && octave <= 9
@@ -313,7 +349,8 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
         tieStart,
         tieStop,
         voiceId: voiceRaw || staffRaw || undefined,
-        sourceOrigins: [{ id: `${sourcePart.id}:${staffRaw || "?"}:${voiceRaw || "?"}:${noteIndex}`, part: sourcePart.id,
+        sourceOrigins: [{ id: order ? `${originalId}:occurrence:${occurrence.occurrence}` : `${sourcePart.id}:${staffRaw || "?"}:${voiceRaw || "?"}:${noteIndex}`, part: sourcePart.id,
+          ...(order ? {originalId,measureIndex:occurrence.index,occurrence:occurrence.occurrence} : {}),
           ...(staffRaw ? { staff: staffRaw } : {}), ...(voiceRaw ? { voice: voiceRaw } : {}) }],
       });
       measureEnd = Math.max(measureEnd, cursor, start + durBeats);
@@ -324,18 +361,30 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
     // Clamp that format quantization back to the declared meter, while still
     // honoring an explicitly padded short measure before a meter change.
     const roundingTolerance = 2 / divisions + 1e-9;
-    const nextTime = firstMatch(measures[mi + 1] ?? "", /<time\b[^>]*>([\s\S]*?)<\/time>/);
+    const nextTime = firstMatch(measures[playback[mi + 1]?.index ?? -1] ?? "", /<time\b[^>]*>([\s\S]*?)<\/time>/);
     const nextBeats = nextTime ? Number(firstMatch(nextTime, /<beats>\s*(\d+)\s*<\/beats>/)) : beats;
     const nextType = nextTime ? Number(firstMatch(nextTime, /<beat-type>\s*(\d+)\s*<\/beat-type>/)) : beatType;
     const meterChangesNext = Boolean(nextTime) && (nextBeats !== beats || nextType !== beatType);
     const explicitShortMeasure = measureEnd < meter - roundingTolerance && meterChangesNext;
-    measureStart += implicit || explicitShortMeasure || measureEnd > meter + roundingTolerance ? measureEnd : meter;
+    const length = implicit || explicitShortMeasure || measureEnd > meter + roundingTolerance ? measureEnd : meter;
+    if (order && Math.abs(measureEnd - meter) > 1e-9) throw new Error("Unsupported MusicXML repeat: full bars required");
+    if (order && (measureStart + length > 4096 || Math.ceil((measureStart + length)/.25)*notes.length > 200_000_000)) throw new Error("repeat source workload exceeds supported limits");
+    notationMeasures.push({ index: mi, startBeat: measureStart, endBeat: measureStart + length, ...(order ? {sourceMeasureIndex:occurrence.index,sourceOccurrence:occurrence.occurrence} : {}) });
+    measureStart += length;
   }
   // A writer may round the onset and duration independently, so a tied
   // segment can end one division tick past its continuation onset.
   const mergedNotes = mergeTiedNotes(notes, 2 / (Number.isFinite(minDivisions) ? minDivisions : divisions) + 1e-9)
     .sort((a, b) => a.start - b.start || a.midi - b.midi);
-  const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
+  const metadata=[...xml.matchAll(/<miscellaneous-field\b([^>]*)>([\s\S]*?)<\/miscellaneous-field>/g)].filter(m=>xmlAttribute(m[1]!,"name")===SOURCE_OCCURRENCES);
+  if(metadata.length>1 || order && metadata.length) throw new Error("ambiguous source occurrence map");
+  const exportedOccurrences=metadata[0]?readSourceOccurrences(decodeXmlEntities(metadata[0][2]!)):null;
+  if(exportedOccurrences && (exportedOccurrences.length!==notationMeasures.length || exportedOccurrences.some((m,i)=>Math.abs(m.startBeat-notationMeasures[i]!.startBeat)>1e-9 || Math.abs(m.endBeat-notationMeasures[i]!.endBeat)>1e-9)))throw new Error("source occurrence map differs from notation");
+  const pedals=[...xml.matchAll(/<miscellaneous-field\b([^>]*)>([\s\S]*?)<\/miscellaneous-field>/g)].filter(m=>xmlAttribute(m[1]!,"name")===SOURCE_PEDAL);
+  if(pedals.length>1 || order && pedals.length)throw new Error("ambiguous source pedal metadata");
+  const sourcePedal=pedals[0]?readSourcePedal(decodeXmlEntities(pedals[0][2]!),mergedNotes):undefined;
+  const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), order ? measureStart : 0);
+  if (order && Math.ceil(durationBeats/.25)*mergedNotes.length > 200_000_000) throw new Error("repeat source workload exceeds supported limits");
   return {
     format: 0,
     division: divisions,
@@ -345,6 +394,8 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
     keyMode: mode === "minor" ? 1 : 0,
     timeSig: [beats, beatType],
     notes: mergedNotes,
+    notationMeasures:exportedOccurrences ?? notationMeasures,
+    ...(order ? {repeatPlayback:"unfolded" as const} : exportedOccurrences ? {repeatPlayback:"declared" as const} : {}),
     trackNames: [sourcePart.name],
     sourceParts: [{
       id: sourcePart.id,
@@ -355,7 +406,9 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
       startBeat: mergedNotes.length ? Math.min(...mergedNotes.map((note) => note.start)) : null,
       endBeat: mergedNotes.length ? Math.max(...mergedNotes.map((note) => note.start + note.dur)) : null,
     }],
-    durationBeats,
+    durationBeats:Math.max(durationBeats,sourcePedal?.endBeat ?? 0),
+    ...(sourcePedal?{sourcePedal}:{}),
+    ...(!sourcePedal && /<pedal\b/.test(xml)?{unsupportedControls:["MusicXML pedal directions without a channel-bound controller timeline"]}:{}),
     ...(timeSigEvents.length ? { timeSigEvents } : {}),
     title: firstMatch(xml, /<work-title>([\s\S]*?)<\/work-title>/),
   };

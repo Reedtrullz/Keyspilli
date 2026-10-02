@@ -6,6 +6,9 @@ The reverse proxy authenticates the private owner, removes client-supplied inter
 | --- | --- | --- |
 | Catalog, artifact, health and job reads | Required private edge; no application bearer required | Read-only; favorites selection POST `/api/songs` accepts only `ids` (at most 5,000), 1 MiB actual bytes, 5 seconds |
 | Upload, source handoff/confirmation, tutorial import/cancellation, play counter, metadata PATCH | `checkMutationAuth`: valid bearer or private same-origin browser; explicit Authorization takes precedence over transported token | JSON objects: 16 KiB actual UTF-8 bytes, 5-second deadline; symbolic upload: 10 MiB, 60 seconds |
+| Owner recovery/tombstones and harmony draft POST | `checkMutationAuth`; pin/journal/token and typed owner confirmation are rechecked at the existing writer boundary | JSON objects: 16 KiB actual bytes, 5 seconds; no automatic admission or purge |
+| Selected-arrangement export POST | `checkMutationAuth`; exact publication/source/selection digest | JSON object: 64 KiB actual bytes, 5 seconds |
+| Private offline pack POST | `checkMutationAuth`; pinned Original and explicit owner rights/1/7/30-day expiry | JSON object: 1 KiB actual bytes, 5 seconds; response bounded at 8 MiB and `no-store` |
 | Catalog DELETE, maintenance YouTube queue and queued-job deletion/retry | Explicit application bearer, including the proxy's preserved transport header | JSON objects: 16 KiB, 5 seconds; no body on delete/retry |
 
 Authenticate before reading a mutation body. JSON readers cancel oversize, timed-out and aborted streams; caller schemas accept only their documented types and never promote a supplied source candidate to provider authority. Unsupported/malformed requests must not reach publication or DB writes. Play counts are protected listening telemetry, not completed practice or anonymous public telemetry.

@@ -1243,3 +1243,5 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
   html[data-theme="charcoal"] :is(.library-toolbar, .helper-callout, .job-row:hover, .dropzone:focus-within) { background: #202025; border-color: #50505b; }
   html[data-theme="charcoal"] .loading-skeleton { background: #29292f; }
 }
+
+.sheet-svg g.measure[role="button"]:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }

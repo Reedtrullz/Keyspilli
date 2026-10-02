@@ -1,3 +1,4 @@
+import {sourcePedalErrors} from "@keyspilli/midi";
 import { createHash, randomUUID } from "node:crypto";
 import { buildShortStudyVariants, selectSourceParts, shortStudyKind, validateShortStudySource } from "@keyspilli/midi";
 import { parseSymbolicUploadSource } from "./ingest.js";
@@ -96,7 +97,7 @@ export function createSymbolicUploadPreflight(buf: Uint8Array, now = Date.now())
     tempoBpm: parsed.tempoBpm,
     timeSig: [...parsed.timeSig],
     parts,
-    unsupportedControls: parsed.unsupportedControls ?? [],
+    unsupportedControls: [...(parsed.unsupportedControls ?? []),...(parsed.sourcePedal?sourcePedalErrors(parsed.notes,parsed.sourcePedal).map(e=>`Source CC64: ${e}`):[])],
     previewNotes,
   };
 }

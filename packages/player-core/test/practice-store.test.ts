@@ -43,3 +43,10 @@ it("round-trips a separate bounded hold/release result and refuses mismatched as
  expect(recordAttempt(attempt)).toBe(true);expect(loadPracticeState().attempts[0]?.result?.articulation).toEqual(grader.result());
  const state=loadPracticeState();state.attempts[0]!.context.articulationToleranceMs=200;expect(savePracticeState(state)).toBe(false);
 });
+
+it("round-trips recalled assistance and reveal counts separately and rejects invented review authority",()=>{
+ let raw:string|null=null;vi.stubGlobal("localStorage",{getItem:()=>raw,setItem:(_key:string,value:string)=>{raw=value;}});
+ const run:PracticeAttempt={id:"recall",target:{baseId:"recall",variantId:"recall-a",fingerprint:"sha256:"+"c".repeat(64)},startBeat:0,endBeat:4,startedAt:"2026-10-02T00:00:00Z",finishedAt:"2026-10-02T00:00:04Z",outcome:"completed",countInCompleted:true,context:{mode:"beginner",difficulty:"advanced",input:"keyboard",wait:true,speed:1,transpose:0,hand:"R",soundSource:"synth",backgroundMode:"piano",accompanimentStyle:"bass-chords",bpm:120,assistance:{mode:"reduced-pitch",passageId:"p1",reveals:2,review:"owner-confirmed-trial"}},result:{total:4,hit:4,missed:0,wrong:0,late:0,accuracyPct:100}};
+ expect(recordAttempt(run)).toBe(true);expect(loadPracticeState().attempts[0]!.context.assistance).toEqual(run.context.assistance);
+ const state=loadPracticeState();state.attempts[0]!.context.assistance!.reveals=1001;expect(savePracticeState(state)).toBe(false);state.attempts[0]!.context.assistance!.reveals=0;(state.attempts[0]!.context.assistance as unknown as {review:string}).review="musically-approved";expect(savePracticeState(state)).toBe(false);
+});

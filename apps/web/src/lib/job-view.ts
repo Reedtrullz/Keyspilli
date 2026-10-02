@@ -9,6 +9,7 @@ export async function publicJobView<T extends { status?: unknown; songId?: unkno
     try { resultAvailable = (await getArtifactFile(job.songId, "variant.mid")) !== null; } catch { /* unavailable until verified */ }
   }
   const displayState = error?.startsWith("Import saved an artifact") ? "Needs reconciliation"
+    : error?.startsWith("Import stopped because the worker") ? "Resource blocked"
     : error?.startsWith("Piano preview cancelled") ? "Cancelled"
     : job.status === "done" ? resultAvailable ? "Completed" : "Result unavailable"
     : job.status === "error" ? "Failed" : job.status === "processing" ? "Processing" : "Queued";

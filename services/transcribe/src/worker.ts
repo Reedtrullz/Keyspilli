@@ -50,7 +50,7 @@ import { metalArrangementTracks } from "./metal-midi.js";
 import { normalizeYoutubeImportUrl, ytNetworkFlags } from "./youtube-url.js";
 import {
   isYoutubeBotChallenge,
-  sanitizeProcessError,
+  sanitizeProcessError, withResourceAccounting, isResourceBlocked,
   YOUTUBE_BOT_BLOCK_MESSAGE,
 } from "./errors.js";
 
@@ -115,14 +115,14 @@ function getOverride(jobId: string): TranscriptionOverride {
 
 async function run(cmd: string, args: string[], timeoutMs = 300_000, signal?: AbortSignal): Promise<string> {
   try {
-    const { stdout } = await execFileP(cmd, args, {
+    const { stdout } = await withResourceAccounting(()=>execFileP(cmd, args, {
       timeout: timeoutMs,
       maxBuffer: 32 * 1024 * 1024,
       ...(signal ? { signal } : {}),
-    });
+    }),signal);
     return stdout;
   } catch (error) {
-    throw sanitizeProcessError(error);
+    throw isResourceBlocked(error)?error:sanitizeProcessError(error);
   }
 }
 
@@ -162,7 +162,7 @@ async function ytDlp(args: string[], timeoutMs = 300_000, signal?: AbortSignal):
       full.push(...args);
       return await run("yt-dlp", full, timeoutMs, signal);
     } catch (e) {
-      if (signal?.aborted) throw e;
+      if (signal?.aborted || isResourceBlocked(e)) throw e;
       if (isYoutubeBotChallenge(e)) throw new Error(YOUTUBE_BOT_BLOCK_MESSAGE);
       lastError = e;
     }
@@ -371,6 +371,7 @@ export async function processJob(
     const sourceArtifactHash = await sha256File(audioPath);
     options.onProgress?.("transcribing");
     const tempo = tempoOverride != null ? String(tempoOverride) : ((await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS, options.signal).catch((e) => {
+      if(isResourceBlocked(e))throw e;
       console.warn(`[worker] ${jobId} tempo detection failed: ${(e as Error).message}`);
       return "";
     }))).trim();
@@ -475,6 +476,7 @@ export async function processJob(
           + `${arranged.stats.leftHandNotes} LH, ${arranged.stats.chordEvents} chords`,
         );
       } catch (error) {
+        if(isResourceBlocked(error))throw error;
         const detail = error instanceof Error ? error.message : String(error);
         // No full-mix fallback has passed the musical route gate. Preserve
         // diagnostics and surface review instead of silently publishing it.
@@ -610,7 +612,7 @@ export async function processJob(
     // A YouTube bot challenge is tied to the worker's egress/session. Retrying
     // the same URL immediately with another attempt only hammers the blocked
     // IP, so surface an actionable terminal error instead.
-    if (!detail.startsWith("SOURCE_REVIEW_REQUIRED:") && !detail.startsWith("ARTIFACT_RECONCILIATION_REQUIRED:") && !isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
+    if (!isResourceBlocked(e) && !detail.startsWith("SOURCE_REVIEW_REQUIRED:") && !detail.startsWith("ARTIFACT_RECONCILIATION_REQUIRED:") && !isYoutubeBotChallenge(e) && attempts < MAX_ATTEMPTS) {
       updateOwnedJob({ status: "queued", error: msg, attempts });
       console.warn(`[worker] ${jobId} attempt ${attempts}/${MAX_ATTEMPTS} failed, requeued: ${detail}`);
     } else {

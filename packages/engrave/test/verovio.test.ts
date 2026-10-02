@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { renderMusicXml, renderMusicXmlPages } from "../src/index.js";
+import { renderMusicXml, renderMusicXmlPages, openMusicXmlOnMainThread } from "../src/index.js";
 
 function fakeToolkit() {
   const calls: string[] = [];
@@ -90,4 +90,11 @@ it("ships the same browser renderer bytes as the pinned independent consumer", (
     expect(readFileSync(new URL(`../../../apps/web/public/verovio/${name}`,import.meta.url))
       .equals(readFileSync(new URL(import.meta.resolve(specifier!))))).toBe(true);
   }
+});
+
+it("keeps the main-thread fallback page-at-a-time, locates IDs and destroys its owned renderer",async()=>{
+ const {tk,calls}=fakeToolkit();let destroyed=0;const owned={...tk,destroy:()=>destroyed++,getPageWithElement:(id:string)=>id==='keyspilli-score-8'?9:0,getPageCount:()=>100,renderToSVG:(page=1)=>{calls.push(`page:${page}`);return `<svg width="640" height="880"><text>Page ${page}</text></svg>`;}};
+ const session=await openMusicXmlOnMainThread('<score/>',{},owned);expect(session.pageCount).toBe(100);expect(calls.filter(c=>c.startsWith('page:'))).toEqual(['page:1']);
+ expect(await session.renderPage(1)).toContain('Page 1');expect(await session.elementPage('keyspilli-score-8')).toBe(9);expect(await session.renderPage(50)).toContain('Page 50');
+ expect(calls.filter(c=>c.startsWith('page:'))).toEqual(['page:1','page:50']);await session.close();await session.close();expect(destroyed).toBe(1);await expect(session.renderPage(2)).rejects.toThrow(/closed/);
 });

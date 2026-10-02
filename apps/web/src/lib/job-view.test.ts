@@ -11,3 +11,8 @@ it("distinguishes completed, missing, cancelled and reconciliation jobs without 
   expect(await publicJobView({ status: "error", error: "TUTORIAL_PREVIEW_CANCELLED" })).toMatchObject({ displayState: "Cancelled" });
   expect((await publicJobView({ status: "error", error: "credential-secret" })).error).not.toContain("credential-secret");
 });
+
+it("shows resource capacity separately without private subprocess details",async()=>{
+ const result=await publicJobView({status:"error",error:"attempt 1: RESOURCE_BLOCKED: /private/token"});
+ expect(result).toMatchObject({displayState:"Resource blocked",resultAvailable:false});expect(result.error).toContain("Review capacity");expect(result.error).not.toContain("/private");
+});

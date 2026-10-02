@@ -19,3 +19,7 @@ export * from "./intervals.js";
 export * from "./diagnostics.js";
 export * from "./pitch-label.js";
 export * from "./articulation.js";
+export * from "./functional-harmony.js";
+export * from "./held-chord.js";
+export * from "./rhythm.js";
+export * from "./midi-take.js";

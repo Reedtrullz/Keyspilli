@@ -337,8 +337,8 @@ it("scopes MIDI devices/channels and releases their CC64 state before unplug cle
   const a: FakeMidiInput = { id: "a", onmidimessage: null }, b: FakeMidiInput = { id: "b", onmidimessage: null };
   const restore = installNavigator([a, b]);
   try {
-    const notes: number[] = [], pedals: boolean[] = [];
-    const midi = new MidiInput({ onNoteOn: m => notes.push(m), onNoteOff() {}, onPedal: down => pedals.push(down) });
+    const notes: number[] = [], pedals: boolean[] = [], pedalTiming: Array<unknown> = [];
+    const midi = new MidiInput({ onNoteOn: m => notes.push(m), onNoteOff() {}, onPedal: (down, _scope, event) => {pedals.push(down);pedalTiming.push(event);} });
     await midi.connect(); midi.select("a", 1);
     a.onmidimessage!({ data: new Uint8Array([0x90, 60, 90]) });
     a.onmidimessage!({ data: new Uint8Array([0x91, 62, 37]) });
@@ -346,7 +346,7 @@ it("scopes MIDI devices/channels and releases their CC64 state before unplug cle
     a.onmidimessage!({ data: new Uint8Array([0xb1, 64, 127]) });
     expect(notes).toEqual([62]); expect(pedals).toEqual([true]);
     access.inputs.delete("a"); access.onstatechange!();
-    expect(pedals).toEqual([true, false]); expect(midi.connectedCount).toBe(0);
+    expect(pedals).toEqual([true, false]); expect(midi.connectedCount).toBe(0); expect(pedalTiming[0]).toBeDefined(); expect(pedalTiming[1]).toBeUndefined();
     expect(await midi.connect()).toBe(false);
     midi.select(null, null); expect(midi.connectedCount).toBe(1);
     b.onmidimessage!({ data: new Uint8Array([0x91, 64, 0]) }); expect(notes).toEqual([62]);

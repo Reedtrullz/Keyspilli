@@ -132,3 +132,5 @@ export { tutorialImportsEnabled } from "./tutorial-imports.js";
 export { commitCatalogPublication, catalogDeletionSnapshot, commitCatalogDeletion, type CatalogPublication, type CatalogDeletion } from "./reconcile.js";
 
 export { catalogRecoveryInventory, recoverCatalogPublication, type RecoveryEntry } from "./recovery.js";
+
+export * from "./tombstone.js";

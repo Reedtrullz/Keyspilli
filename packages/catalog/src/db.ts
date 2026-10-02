@@ -158,9 +158,13 @@ export function removeSongsByBase(baseId: string): number {
   return result.changes;
 }
 
+export function quarantinedBaseIds(): ReadonlySet<string> {
+  return new Set((getDb().prepare("SELECT base_id FROM catalog_tombstones WHERE state NOT IN ('restored','purged')").all() as {base_id:string}[]).map(row=>row.base_id));
+}
+
 function hiddenBaseIds(): ReadonlySet<string> {
   const blocked = blockedLearnerBases();
-  return new Set([...blocked, ...disabledManifestBases()]);
+  return new Set([...blocked, ...disabledManifestBases(), ...quarantinedBaseIds()]);
 }
 
 function visibleSongRowsSnapshot(): SongRow[] {

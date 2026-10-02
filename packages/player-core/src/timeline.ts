@@ -1,6 +1,7 @@
 import { learnerPitch } from "./pitch-label.js";
 import type { SongData } from "./types.js";
 import type { MeasureInfo, MidiTimeSignatureEvent } from "@keyspilli/midi";
+import {sourcePedalEnd,sourcePedalErrors} from "@keyspilli/midi";
 import { chordName, tryParseChordSymbol, type ChordLabel, type ChordSourceKind } from "@keyspilli/midi";
 
 /** Converts beat-based song data into seconds given a speed multiplier. */
@@ -18,6 +19,8 @@ export interface TimedNote {
   lyrics?: string;
   /** Marks voices triggered by live MIDI/mic input so noteOff targets only them. */
   fromInput?: boolean;
+  /** Audio-only source resonance; durSec remains the physical key interval. */
+  soundingDurSec?: number;
 }
 
 export function noteMatchesHand(note: {hand?: "L" | "R"}, hand: "L" | "R" | "both"): boolean {
@@ -53,6 +56,14 @@ export function resolveTimedNotes(song: SongData, speed: number, transpose: numb
     }
     return {midi:n.midi+transpose, displayPitch:learnerPitch(n,transpose,song.key,false), startSec:beatToSec(n.start,song.tempoBpm,speed), durSec:beatToSec(n.dur,song.tempoBpm,speed),vel,hand:n.hand,lyrics:n.lyrics};
   });
+}
+
+/** Source resonance is audio metadata, never longer finger-hold or grading targets. */
+export function resolveSourcePedalNotes(song:SongData,speed:number,transpose:number,expression:RenderedExpression="source"):TimedNote[]{
+ const timed=resolveTimedNotes(song,speed,transpose,expression);if(!song.sourcePedal)return timed;
+ const errors=sourcePedalErrors(song.notes,song.sourcePedal);if(errors.length)throw new Error(errors.join(" "));
+ const sounding=timed.map((n,i)=>({...n,soundingDurSec:beatToSec(sourcePedalEnd(song.notes[i]!,song.sourcePedal!)-song.notes[i]!.start,song.tempoBpm,speed)}));
+ return sounding;
 }
 
 /** Source context used when a caller can classify legacy events. */
@@ -472,7 +483,7 @@ export const MAX_PLAYBACK_MEASURES = 2_048;
 export const MAX_PLAYBACK_BEATS = 4_096;
 
 export function validatePlaybackData(
-  data: Pick<SongData, "notes" | "measures">,
+  data: Pick<SongData, "notes" | "measures" | "sourcePedal">,
 ): string[] {
   const errors: string[] = [];
   if (!Array.isArray(data.notes)) errors.push("notes must be an array");
@@ -497,6 +508,7 @@ export function validatePlaybackData(
       errors.push(`measures[${index}] has invalid timing`);
     }
   });
+  if(data.sourcePedal && !errors.length)errors.push(...sourcePedalErrors(data.notes,data.sourcePedal));
   return errors;
 }
 

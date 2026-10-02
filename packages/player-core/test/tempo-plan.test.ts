@@ -15,6 +15,7 @@ it("advances a source-bound tempo plan only once per eligible completed play-alo
   recordAttempt(run); expect(plan().completedAtTempo).toBe(0);
   recordAttempt({...run,id:"cancelled",outcome:"cancelled",countInCompleted:false,result:null}); expect(plan().completedAtTempo).toBe(0);
   const along = {...run,context:{...run.context,wait:false}};
+  recordAttempt({...along,id:"reduced",context:{...along.context,assistance:{mode:"reduced-pitch",passageId:"phrase",reveals:0,review:"owner-confirmed-trial"}}});expect(plan().completedAtTempo).toBe(0);
   recordAttempt({...along,id:"a1"}); recordAttempt({...along,id:"a2"}); expect(plan().currentBpm).toBe(55);
   recordAttempt({...along,id:"a2",context:{...along.context,speed:.55}}); expect(plan().completedAtTempo).toBe(0);
   const state=loadPracticeState(); state.passages[0]!.tempoPlan!.paused=true; savePracticeState(state);

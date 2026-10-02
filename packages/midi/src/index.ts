@@ -167,3 +167,4 @@ export type {
 } from "./piano-region-selector.js";
 
 export { inferSourceHandLanes } from "./source-hand-lanes.js";
+export * from "./source-pedal.js";

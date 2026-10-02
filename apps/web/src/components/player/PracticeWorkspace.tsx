@@ -6,10 +6,11 @@ import { PracticeSets } from "../PracticeSets";
 import { loadPracticeState, savePracticeState, passageAvailable, PRACTICE_STATE_EVENT, PRACTICE_STATE_KEY,
   type PracticeTarget, type SavedPassage } from "@keyspilli/player-core";
 
-export function PracticeWorkspace({ publicationRevision=null, target, variantId, range, endBeat, positionBeat, disabled, bpm, onSelect, onResume, onUseTempoPlan }: {
+export function PracticeWorkspace({ publicationRevision=null, target, variantId, range, endBeat, positionBeat, disabled, bpm, onRecall, onSelect, onResume, onUseTempoPlan }: {
   target: PracticeTarget | null; variantId: string; range: { startBeat: number; endBeat: number } | null;
   endBeat: number; positionBeat: number; disabled: boolean;
   publicationRevision?:string|null; bpm: number; onUseTempoPlan: (passage: SavedPassage) => void;
+  onRecall?: (passage:SavedPassage)=>void;
   onSelect: (passage: SavedPassage) => void; onResume: (beat: number) => void;
 }) {
   const [state, setState] = useState<ReturnType<typeof loadPracticeState>>({ version: 1, passages: [], attempts: [], resume: null });
@@ -69,6 +70,7 @@ export function PracticeWorkspace({ publicationRevision=null, target, variantId,
           {!available && <p>Unavailable for this source, hand or arrangement. Its original bookmark is retained.</p>}
           <button disabled={disabled || !available} className="min-h-11 underline mr-4" onClick={() => onSelect(passage)}>Select {passage.name}</button>
           <button disabled={disabled} className="min-h-11 underline" onClick={() => { const current = loadPracticeState(); current.passages = current.passages.filter(item => item.id !== passage.id); if (current.resume?.passageId === passage.id) current.resume = null; commit(current); }}>Delete {passage.name}</button>
+          {onRecall && <form onSubmit={event=>{event.preventDefault();if(!disabled&&available&&new FormData(event.currentTarget).get("review"))onRecall(passage);}}><label className="flex gap-2 text-xs"><input type="checkbox" name="review" required disabled={disabled||!available}/>A competent player has reviewed this exact passage at the current tempo; I want a private recall trial.</label><button disabled={disabled||!available} className="min-h-11 underline">Try recall for {passage.name}</button></form>}
           <details className="my-2" aria-label={`Tempo plan for ${passage.name}`}><summary className="min-h-11 cursor-pointer">Tempo plan</summary>
             <p className="text-xs">Opt-in progression from completed keyboard/MIDI play-along runs meeting your onset-score threshold. Wait mode, microphone, cancelled and interrupted runs do not advance it. This is practice progress, not rhythmic or musical certification.</p>
             {passage.tempoPlan && <div>
@@ -103,6 +105,7 @@ export function PracticeWorkspace({ publicationRevision=null, target, variantId,
         <time dateTime={run.startedAt}>{run.startedAt}</time> · {run.outcome}{run.finishedAt === null && " (unfinished)"}
         <p>{run.context.assessment==="key-hold"?"Key hold/release + onset":"Onset only"} · {run.context.input} · {run.context.wait ? "Wait for notes" : "Play along"} · {Math.round(run.context.speed * 100)}% · transpose {run.context.transpose} · {run.context.hand}</p>
         <p className="text-xs text-zinc-600">Sound: {run.context.effectiveTimbre ?? "Unknown historical timbre"}. Timing calibration: {run.context.timingCalibrationMs == null ? "Unknown / uncalibrated" : `${run.context.timingCalibrationMs} ms owner offset`}. Physical hand is not measured.</p>
+        {run.context.assistance && <p>{run.context.assistance.mode==="reduced-pitch"?"Reduced pitch cues":"Guided recall trial"} · {run.context.assistance.reveals} reveals · owner-confirmed passage review; learning or mastery is unverified. Compare assistance separately.</p>}
         {run.context.tempoPlan && <p className="text-xs">Tempo plan attempt · {Math.round(run.context.bpm*run.context.speed)} BPM · {run.context.wait ? "Wait-mode excluded from progress" : "Completed play-along results checked against plan policy"}.</p>}
         {run.result?.diagnostics && <p>{run.result.diagnostics.events.filter(event => event.outcome !== "unmatched").length} saved problem locations · {run.result.diagnostics.omitted} events outside the saved view</p>}
         {run.result && <p>{run.result.accuracyPct}% · {run.result.hit} hit · {run.result.missed} missed · {run.result.wrong} wrong · {run.result.late} late</p>}

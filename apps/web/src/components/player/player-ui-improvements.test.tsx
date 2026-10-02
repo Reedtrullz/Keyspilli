@@ -95,3 +95,9 @@ it("shows matching authored spelling and marks transposed spelling as derived",(
   const changed=renderToStaticMarkup(createElement(component,{data:spelled,time:0,settings:{...DEFAULT_SETTINGS,transpose:1},chords:[]}));expect(changed).toContain("B4");expect(changed).toContain("derived spelling");expect(changed).not.toContain("Bb4");
  }
 });
+
+it("recall cue visibility preserves physical holds and authority while removing target pitches, color and the next preview",()=>{
+ const song={...data,notes:[{...data.notes[0]!,sourcePitch:{step:"C" as const,octave:4 as const,alter:0 as const}}],measures:[{index:0,startBeat:0,endBeat:4},{index:1,startBeat:4,endBeat:8}]},before=structuredClone(song);
+ const props={data:song,time:0,settings:DEFAULT_SETTINGS,chords:[{beat:0,name:"C/E",notes:[52,60,64],sourceKind:"unknown" as const}]};
+ const guided=renderToStaticMarkup(createElement(BeginnerView,props)),hidden=renderToStaticMarkup(createElement(BeginnerView,{...props,pitchCues:false}));expect(guided).toContain('data-midi="60"');expect(hidden).not.toContain('data-midi=');expect(hidden).not.toContain('>C/E<');expect(hidden).not.toContain('Next bar preview');expect(hidden).toContain('Pitch cue reduced');expect(hidden).toContain('Chord cue reduced');expect(hidden).toContain('Hold');expect(hidden).toContain('Chord provenance unknown');expect(song).toEqual(before);
+});

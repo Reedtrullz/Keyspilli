@@ -3,11 +3,17 @@ import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
 // ponytail: three local Chromium samples; establish device budgets only after owner-device baselines.
-const measures = 160;
-const xml = `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${Array.from({ length: measures }, (_, index) => `<measure number="${index + 1}">${index === 0 ? '<attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>' : ''}${['C','D','E','G'].map(step => `<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>`).join('')}</measure>`).join('')}</part></score-partwise>`;
+const span = process.env.KEYSPILLI_PERF_STRESS === "span";
+const stress = process.env.KEYSPILLI_PERF_STRESS === "1" || span;
+const measures = span ? 2048 : stress ? 500 : 160;
+const notesPerMeasure = span ? 2 : stress ? 40 : 4;
+const beatsPerMeasure = span ? 2 : stress ? 5 : 4;
+// ponytail: two fixed generated shapes cover joint note/grid and beat/measure ceilings; no arbitrary benchmark generator.
+const stressXml = stress ? `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${Array.from({length:measures},(_,index)=>`<measure number="${index+1}">${index===0?`<attributes><divisions>2</divisions><time><beats>${beatsPerMeasure}</beats><beat-type>4</beat-type></time></attributes>`:''}${Array.from({length:span?1:10},()=>(span?["C","E"]:["C","E","G","C"]).map((step,pitch)=>`<note>${pitch?"<chord/>":""}<pitch><step>${step}</step><octave>${pitch===3?5:4}</octave></pitch><duration>${span?4:1}</duration><type>${span?"half":"eighth"}</type></note>`).join('')).join('')}</measure>`).join('')}</part></score-partwise>` : "";
+const xml = stress ? stressXml : `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${Array.from({ length: measures }, (_, index) => `<measure number="${index + 1}">${index === 0 ? '<attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>' : ''}${['C','D','E','G'].map(step => `<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>`).join('')}</measure>`).join('')}</part></score-partwise>`;
 
 test("record local library, upload, playback, sheet/PDF and retained-page baselines", async ({ browser, request }, info) => {
-  test.setTimeout(180_000);
+  test.setTimeout(stress ? 600_000 : 180_000);
   const samples: Record<string, unknown>[] = [];
   const headers = { Authorization: "Bearer test-token-for-e2e", "Content-Type": "application/xml" };
   const uploadStart = performance.now();
@@ -16,10 +22,11 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
   const uploadMs = performance.now() - uploadStart;
   const receipt = await created.json(), id = receipt.songIds.find((value: string) => value.endsWith("-a"));
   try {
-    for (let sample = 0; sample < 3; sample++) {
+    for (const renderer of stress ? ["worker", "main"] : ["worker"]) for (let sample = 0; sample < 3; sample++) {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
       const page = await context.newPage();
-      await page.addInitScript(() => {
+      await page.addInitScript(renderer => {
+        if(renderer === "main") Object.defineProperty(window,"Worker",{configurable:true,value:class {constructor(){throw new Error("Controlled worker unavailability");}}});
         localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth", hand: "both" }));
         const state = window as unknown as { __longTasks: number[]; __firstScheduledNote?: number };
         state.__longTasks = [];
@@ -28,7 +35,7 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
         }
         const original = OscillatorNode.prototype.start;
         OscillatorNode.prototype.start = function (when?: number) { state.__firstScheduledNote ??= performance.now(); return original.call(this, when); };
-      });
+      }, renderer);
       const library: number[] = [];
       for (const cache of ["cold", "warm"]) {
         const start = performance.now(); await page.goto("/");
@@ -44,13 +51,13 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
       for (let visit = 0; visit < 2; visit++) {
         if (visit) await page.goto("/");
         const start = performance.now(); await page.goto(`/player/${id}/sheet`);
-        await expect.poll(() => page.evaluate(() => (window as unknown as { __sheetReady?: boolean }).__sheetReady)).toBe(true);
+        await expect.poll(() => page.evaluate(() => {const state=window as unknown as {__sheetReady?:boolean;__sheetError?:string};if(state.__sheetError)throw Error(state.__sheetError);return state.__sheetReady;}), {timeout:stress?40_000:5_000}).toBe(true);
         sheet.push(performance.now() - start);
       }
       const count = await page.evaluate(() => (window as unknown as { __sheetPageCount: number }).__sheetPageCount);
       expect(count).toBeGreaterThan(5);
       const retention: Record<string, unknown>[] = [];
-      for (const number of [...Array.from({ length: count }, (_, i) => i + 1), 1, count, 1]) {
+      for (const number of stress ? [1, Math.ceil(count/2), count, 1, count, 1] : [...Array.from({ length: count }, (_, i) => i + 1), 1, count, 1]) {
         const start = performance.now();
         const group = page.getByRole("group", { name: `Sheet music page ${number} of ${count}`, exact: true });
         await group.scrollIntoViewIfNeeded(); await expect(group.locator(":scope > svg")).toBeVisible();
@@ -58,6 +65,7 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
           const state = window as unknown as { __sheetRenderedPages: number; __sheetRetainedSvgBytes: number; __sheetFallbackSvgBytes: number; __sheetRenderer: string };
           return { page: number, renderMs: elapsed, pages: state.__sheetRenderedPages, estimatedStringBytes: state.__sheetRetainedSvgBytes, fallbackBytes: state.__sheetFallbackSvgBytes, renderer: state.__sheetRenderer };
         }, { number, elapsed: performance.now() - start }));
+        const current=retention.at(-1)!;expect(current.renderer).toBe(renderer);expect(current.pages).toBeLessThanOrEqual(5);expect(current.estimatedStringBytes).toBeLessThanOrEqual(4*1024*1024);expect(current.fallbackBytes).toBe(0);
       }
       const pdfStart = performance.now();
       const pdf = await request.get(`/api/song/${id}/export?type=pdf&layout=classic&revision=${receipt.publicationRevision}`);
@@ -66,12 +74,13 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
         const state = window as unknown as { __longTasks: number[] };
         return { userAgent: navigator.userAgent, longTasksMs: state.__longTasks, heapBytes: (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? null };
       });
-      samples.push({ sample, libraryMs: library, uploadMs: sample === 0 ? uploadMs : null, firstScheduledNoteMs, sheetMs: sheet, pdfMs, retention, ...runtime });
+      samples.push({ renderer, sample, libraryMs: library, uploadMs: sample === 0 && renderer === "worker" ? uploadMs : null, firstScheduledNoteMs, sheetMs: sheet, pdfMs, retention, ...runtime });
+      console.log(JSON.stringify({renderer,sample,sheetMs:sheet,pdfMs,retainedPages:Math.max(...retention.map(row=>Number(row.pages)))}));
       await context.close();
     }
-    const receiptData = { schemaVersion: 1, engravingVersion: "6.3.0", runtime: process.version, browser: browser.version(), viewport: { width: 1280, height: 800 }, fixture: { sha256: createHash("sha256").update(xml).digest("hex"), notes: measures * 4, measures }, sampleCount: samples.length, samples, limitations: ["Local Chromium; audio scheduled, not speaker latency", "String bytes and Chromium heap estimate exclude WASM/native memory", "No device or production budget adopted", "Bounded 640-note fixture; maximum-source stress run remains separate"] };
-    const output = info.outputPath("performance-baseline.json");
+    const receiptData = { schemaVersion: 1, engravingVersion: "6.3.0", runtime: process.version, browser: browser.version(), viewport: { width: 1280, height: 800 }, fixture: { sha256: createHash("sha256").update(xml).digest("hex"), notes: measures * notesPerMeasure, measures, beats: measures * beatsPerMeasure, gridNotePairs: measures * beatsPerMeasure * 4 * measures * notesPerMeasure }, sampleCount: samples.length, samples, limitations: ["Local Chromium; audio scheduled, not speaker latency", "String bytes and Chromium heap estimate exclude WASM/native memory", "No device or production budget adopted", stress ? span ? "Joint maximum beat/measure source; note/grid-pair ceiling measured separately" : "Joint maximum note/grid-pair source; beat/measure ceiling measured separately" : "Bounded 640-note fixture; maximum-source stress run remains separate"] };
+    const output = info.outputPath(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json");
     await writeFile(output, JSON.stringify(receiptData, null, 2));
-    await info.attach("performance-baseline.json", { path: output, contentType: "application/json" });
+    await info.attach(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json", { path: output, contentType: "application/json" });
   } finally { expect((await request.delete(`/api/songs/${receipt.baseId}`, { headers })).ok()).toBe(true); }
 });

@@ -122,6 +122,9 @@ jobs:
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
           python3 deploy/test/test-release-operation.py
+          python3 -m unittest \
+            deploy.test_worker_resources.WorkerResourceBoundary.test_native_limits_are_bounded_without_shell_commands \
+            deploy.test_worker_resources.WorkerResourceBoundary.test_cleanup_failure_cannot_claim_success
           bash deploy/test/ops-check.sh
           transcribe_test_venv=.transcribe-test-venv
           trap 'rm -rf "$transcribe_test_venv"' EXIT
@@ -239,6 +242,7 @@ jobs:
           . .ansible-venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install ansible==12.3.0
+          python deploy/test_worker_resources.py
           ansible-galaxy collection install -r deploy/requirements.yml
           echo "$PWD/.ansible-venv/bin" >> "$GITHUB_PATH"
 
@@ -383,6 +387,7 @@ jobs:
           . .ansible-venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install ansible==12.3.0
+          python deploy/test_worker_resources.py
           ansible-galaxy collection install -r deploy/requirements.yml
           echo "$PWD/.ansible-venv/bin" >> "$GITHUB_PATH"
 

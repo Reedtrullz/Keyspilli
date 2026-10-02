@@ -7,7 +7,7 @@ export function usePianoInput(options: {
   keyboardRef: RefObject<KeyboardInput | null>; midiRef: RefObject<MidiInput | null>;
   onNote: (midi: number, on: boolean, source: "keyboard" | "midi", identity?: string, event?: InputEventMetadata) => void;
   onKey: (event: KeyboardEvent, input: KeyboardInput) => void;
-  onOctaveChange: (octave: number) => void; onPedal: (down: boolean, scope: string) => void;
+  onOctaveChange: (octave: number) => void; onPedal: (down: boolean, scope: string, event?: InputEventMetadata) => void;
   onState: (devices: Array<{ id: string; name: string }>, count: number) => void;
   onRelease: () => void; onInterrupt: (reason: string) => void;
 }) {
@@ -21,7 +21,7 @@ export function usePianoInput(options: {
     const midi = new MidiInput({
       onNoteOn: (m, identity, event) => current.current.onNote(m, true, "midi", identity, event),
       onNoteOff: (m, identity, event) => current.current.onNote(m, false, "midi", identity, event),
-      onPedal: (down, scope) => current.current.onPedal(down, scope),
+      onPedal: (down, scope, event) => current.current.onPedal(down, scope, event),
       onStateChange: () => { if (!disposed) current.current.onState(midi.devices, midi.connectedCount); },
     });
     current.current.keyboardRef.current = keyboard; current.current.midiRef.current = midi;

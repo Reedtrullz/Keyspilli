@@ -644,6 +644,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         : [];
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
+        ...(v.sourcePedal?{sourcePedal:v.sourcePedal}:{}),
         ...(beginnerOffGridRh.length ? { beginnerOffGridRh } : {}),
       warnings: [
         ...(v.warnings ?? []),

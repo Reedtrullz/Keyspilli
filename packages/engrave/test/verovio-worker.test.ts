@@ -16,11 +16,13 @@ class FakeWorker {
 
   postMessage(message: unknown): void {
     this.messages.push(message);
-    const request = message as { id: number; type: string; sessionId?: number; page?: number };
+    const request = message as { id: number; type: string; sessionId?: number; page?: number; prepare?: boolean };
     queueMicrotask(() => {
       const sessionId = request.sessionId ?? 7;
       if (request.type === "open") {
-        this.onmessage?.({ data: { id: request.id, type: "opened", sessionId } } as MessageEvent);
+        this.onmessage?.({ data: request.prepare
+          ? {id:request.id,type:"prepared",sessionId,pageCount:2,width:1600,height:2200}
+          : { id: request.id, type: "opened", sessionId } } as MessageEvent);
         return;
       }
       if (request.type === "prepare") {
@@ -82,7 +84,6 @@ describe("renderMusicXmlPagesInWorker", () => {
     });
     expect(FakeWorker.instances[0]?.messages.map((message) => (message as { type: string }).type)).toEqual([
       "open",
-      "prepare",
       "renderPage",
       "close",
     ]);

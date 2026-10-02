@@ -1,7 +1,7 @@
 import type Database from "better-sqlite3";
 
-/** All epoch-1 releases share the additive layout; no destructive downgrade exists. */
-export const CATALOG_SCHEMA_VERSION = 1;
+/** Epoch 2 adds reversible deletion; older images must refuse the hidden-base contract. */
+export const CATALOG_SCHEMA_VERSION = 2;
 
 function migrateColumn(conn: Database.Database, table: string, col: string, def: string): void {
   const cols = conn.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
@@ -71,6 +71,19 @@ const migrations: Array<(conn: Database.Database) => void> = [conn => {
   migrateColumn(conn, "conversion_jobs", "started_at", "TEXT");
   migrateColumn(conn, "conversion_jobs", "lease_owner", "TEXT");
   migrateColumn(conn, "conversion_jobs", "lease_expires_at", "INTEGER");
+}, conn => {
+  conn.exec(`CREATE TABLE IF NOT EXISTS catalog_tombstones (
+    base_id TEXT PRIMARY KEY, token TEXT NOT NULL, state TEXT NOT NULL, payload TEXT NOT NULL
+  );
+  CREATE TRIGGER IF NOT EXISTS tombstone_song_insert BEFORE INSERT ON songs
+    WHEN EXISTS(SELECT 1 FROM catalog_tombstones WHERE base_id=NEW.base_id AND state NOT IN ('restored','purged'))
+    BEGIN SELECT RAISE(ABORT,'base is quarantined'); END;
+  CREATE TRIGGER IF NOT EXISTS tombstone_song_delete BEFORE DELETE ON songs
+    WHEN EXISTS(SELECT 1 FROM catalog_tombstones WHERE base_id=OLD.base_id AND state NOT IN ('restored','purged'))
+    BEGIN SELECT RAISE(ABORT,'base is quarantined'); END;
+  CREATE TRIGGER IF NOT EXISTS tombstone_song_update BEFORE UPDATE OF id,base_id,title,artist,category,difficulty,difficulty_score,key,tempo,style,mood,bass_pattern,duration,content_type,acquired_via,source_youtube_url,has_sheet_xml,sections,level,created_at ON songs
+    WHEN EXISTS(SELECT 1 FROM catalog_tombstones WHERE base_id IN (OLD.base_id,NEW.base_id) AND state NOT IN ('restored','purged'))
+    BEGIN SELECT RAISE(ABORT,'base is quarantined'); END;`);
 }];
 
 export function initializeCatalogSchema(conn: Database.Database): void {

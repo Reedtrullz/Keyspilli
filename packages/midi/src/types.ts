@@ -8,6 +8,8 @@ export interface SourcePitch {
 }
 
 export interface Note {
+  /** Original MIDI channel; independent of assigned hand. */
+  sourceMidiChannel?: number;
   /** MIDI note number (60 = middle C) */
   midi: number;
   /** Optional original MusicXML pitch spelling; MIDI remains authoritative. */
@@ -31,6 +33,10 @@ export interface Note {
 
 export interface SourceNoteOrigin {
   id: string;
+  /** Original source note and finite playback occurrence for unfolded notation. */
+  originalId?: string;
+  measureIndex?: number;
+  occurrence?: 1 | 2;
   part?: string;
   track?: number;
   staff?: string;
@@ -152,7 +158,11 @@ export interface MidiTimeSignatureEvent {
   timeSig: [number, number];
 }
 
+export interface SourcePedalChange {beat:number;channel:number;value:number;source:string}
+export interface SourcePedalTimeline {version:1;endBeat:number;provenance:"midi-file"|"declared-export";changes:SourcePedalChange[]}
+
 export interface ParsedMidi {
+  sourcePedal?: SourcePedalTimeline;
   format: number;
   division: number;
   /** beats per quarter note */
@@ -171,6 +181,10 @@ export interface ParsedMidi {
   notes: Note[];
   trackNames: string[];
   sourceParts?: SymbolicSourcePart[];
+  /** Parsed notation measure spans; these do not infer repeat playback order. */
+  notationMeasures?: MeasureInfo[];
+  /** Unfolded notation is verified; exported occurrence metadata is self-declared provenance. */
+  repeatPlayback?: "unfolded" | "declared";
   unsupportedControls?: string[];
   durationBeats: number;
   title?: string;
@@ -231,6 +245,7 @@ export interface SongMeta {
 }
 
 export interface Variant {
+  sourcePedal?: SourcePedalTimeline;
   level: DifficultyLevel;
   difficultyScore: number;
   notes: Note[];
@@ -248,6 +263,8 @@ export interface Variant {
 
 export interface MeasureInfo {
   index: number;
+  sourceMeasureIndex?: number;
+  sourceOccurrence?: 1 | 2;
   startBeat: number;
   endBeat: number;
 }

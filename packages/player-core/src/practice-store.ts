@@ -17,7 +17,7 @@ export interface PracticeAttempt {
   id: string; target: PracticeTarget; startBeat: number; endBeat: number; startedAt: string; finishedAt: string | null;
   outcome: "completed" | "incomplete" | "cancelled" | "interrupted"; countInCompleted: boolean;
   context: Pick<PlayerSettings, "mode" | "speed" | "transpose" | "hand" | "soundSource" | "backgroundMode" | "accompanimentStyle">
-    & { difficulty: string; input: "keyboard" | "midi" | "microphone"; wait: boolean; bpm: number; timingCalibrationMs?: number | null; midiDevice?: string | null; midiChannel?: number | null; effectiveTimbre?: "synth" | "sampled" | "fallback" | "organ"; assessment?: "onset"|"key-hold"; articulationToleranceMs?:number; audibleSupport?: boolean; renderedExpression?: "source"|"meter-accents"; physicalKeyboard?: KeyboardRange | null; rangeAcknowledged?: boolean; tempoPlan?: { passageId: string; policyId: string } };
+    & { difficulty: string; input: "keyboard" | "midi" | "microphone"; wait: boolean; bpm: number; timingCalibrationMs?: number | null; midiDevice?: string | null; midiChannel?: number | null; effectiveTimbre?: "synth" | "sampled" | "fallback" | "organ"; assessment?: "onset"|"key-hold"; articulationToleranceMs?:number; audibleSupport?: boolean; renderedExpression?: "source"|"meter-accents"; physicalKeyboard?: KeyboardRange | null; rangeAcknowledged?: boolean; assistance?:{mode:"guided"|"reduced-pitch";passageId:string;reveals:number;review:"owner-confirmed-trial"}; tempoPlan?: { passageId: string; policyId: string } };
   result: Pick<GradeResult, "total" | "hit" | "missed" | "wrong" | "late" | "accuracyPct"> & { diagnostics?: GradeDiagnostics; articulation?:ArticulationResult } | null;
 }
 export interface PracticeResume { target: PracticeTarget; positionBeat: number; passageId?: string; updatedAt: string }
@@ -82,7 +82,7 @@ function attempt(v: unknown): v is PracticeAttempt {
       || !member(v.outcome, "completed incomplete cancelled interrupted") || typeof v.countInCompleted !== "boolean"
       || !result(v.result) || v.outcome === "completed" && (!v.countInCompleted || v.result === null || v.finishedAt === null)) return false;
   const c = v.context;
-  return object(c) && keys(c, "mode speed transpose hand soundSource backgroundMode accompanimentStyle difficulty input wait bpm timingCalibrationMs midiDevice midiChannel effectiveTimbre tempoPlan physicalKeyboard rangeAcknowledged audibleSupport renderedExpression assessment articulationToleranceMs")
+  return object(c) && keys(c, "mode speed transpose hand soundSource backgroundMode accompanimentStyle difficulty input wait bpm timingCalibrationMs midiDevice midiChannel effectiveTimbre tempoPlan physicalKeyboard rangeAcknowledged audibleSupport renderedExpression assessment articulationToleranceMs assistance")
     && member(c.mode, "falling beginner sheet leadsheet") && finite(c.speed, 0.25, 4)
     && finite(c.transpose, -24, 24) && Number.isInteger(c.transpose) && member(c.hand, "L R both")
     && member(c.soundSource, "synth sampled organ") && member(c.backgroundMode, "piano chord")
@@ -101,6 +101,7 @@ function attempt(v: unknown): v is PracticeAttempt {
     && (c.audibleSupport === undefined || typeof c.audibleSupport === "boolean")
     && (c.physicalKeyboard === undefined || validKeyboardRange(c.physicalKeyboard))
     && (c.rangeAcknowledged === undefined || typeof c.rangeAcknowledged === "boolean")
+    && (c.assistance===undefined || object(c.assistance) && keys(c.assistance,"mode passageId reveals review") && member(c.assistance.mode,"guided reduced-pitch") && id(c.assistance.passageId) && finite(c.assistance.reveals,0,1000) && Number.isInteger(c.assistance.reveals) && c.assistance.review==="owner-confirmed-trial" && c.mode==="beginner" && c.backgroundMode==="piano")
     && (c.tempoPlan === undefined || object(c.tempoPlan) && keys(c.tempoPlan,"passageId policyId") && id(c.tempoPlan.passageId) && id(c.tempoPlan.policyId));
 }
 function resume(v: unknown): v is PracticeResume | null {
@@ -138,7 +139,7 @@ export function recordAttempt(value: PracticeAttempt): boolean {
   const alreadyCompleted = state.attempts.some(item => item.id === value.id && item.outcome === "completed");
   const passage = state.passages.find(item => item.id === value.context.tempoPlan?.passageId), plan = passage?.tempoPlan;
   if (!alreadyCompleted && passage && plan && plan.policyId === value.context.tempoPlan?.policyId && !plan.paused && plan.status === "active"
-      && value.outcome === "completed" && value.countInCompleted && !value.context.wait && value.context.assessment !== "key-hold" && value.context.input !== "microphone"
+      && !value.context.assistance && value.outcome === "completed" && value.countInCompleted && !value.context.wait && value.context.assessment !== "key-hold" && value.context.input !== "microphone"
       && value.result && value.result.accuracyPct >= plan.thresholdPct && value.target.baseId === passage.target.baseId
       && value.target.variantId === passage.target.variantId && value.target.fingerprint === passage.target.fingerprint
       && Math.abs(value.startBeat-passage.startBeat) < 1e-6 && Math.abs(value.endBeat-passage.endBeat) < 1e-6

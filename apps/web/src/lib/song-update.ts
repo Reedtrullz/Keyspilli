@@ -176,6 +176,7 @@ interface StoredVariant {
   chords?: Variant["chords"];
   measures?: Variant["measures"];
   timeSigEvents?: Variant["timeSigEvents"];
+  sourcePedal?:Variant["sourcePedal"];
   key: string;
   tempoBpm: number;
   timeSig: [number, number];
@@ -535,6 +536,7 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
     const timeSigEvents = calibrationChanged && stored.timeSigEvents
       ? stored.timeSigEvents.map((event) => ({ ...event, beat: event.beat * factor }))
       : stored.timeSigEvents;
+    const sourcePedal=calibrationChanged && stored.sourcePedal?{...stored.sourcePedal,endBeat:stored.sourcePedal.endBeat*factor,changes:stored.sourcePedal.changes.map(e=>({...e,beat:e.beat*factor}))}:stored.sourcePedal;
     const key = normalizedKey ?? stored.key;
     const { sourceTiming: _storedSourceTiming, ...storedWithoutTiming } = stored;
     const variant: Variant = {
@@ -548,6 +550,7 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
       tempoBpm: playbackTempo,
       timeSig: stored.timeSig,
       ...(timeSigEvents ? { timeSigEvents } : {}),
+      ...(sourcePedal?{sourcePedal}:{}),
     };
     const title = patch.title ?? row.title;
     const artist = patch.artist ?? row.artist;
@@ -561,6 +564,7 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
       tempoBpm: playbackTempo,
       ...(durationBeats === undefined ? {} : { durationBeats }),
       ...(timeSigEvents === undefined ? {} : { timeSigEvents }),
+      ...(sourcePedal?{sourcePedal}:{}),
       provenance: nextNotesProvenance(stored, nextManifest.tempo),
     });
     return { row, dirName: row.level, notesJson, variant, title, artist, keySig: k };
@@ -627,6 +631,8 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
           writeFile(
             join(dir, "variant.mid"),
             writeMidi(item.variant.notes, {
+              sourcePedal:item.variant.sourcePedal,
+              measures:item.variant.measures,
               tempoBpm: item.variant.tempoBpm,
               timeSig: item.variant.timeSig,
               timeSigEvents: item.variant.timeSigEvents,

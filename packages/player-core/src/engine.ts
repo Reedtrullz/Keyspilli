@@ -82,6 +82,7 @@ export class PlaybackEngine {
   private inputClock = { time: 0, ms: 0 };
   private inputBoundaryMs = 0;
   private lastScheduled = 0;
+  private sourceCarryPending = true;
   private lastChordScheduled = -1;
 
   constructor(
@@ -95,6 +96,7 @@ export class PlaybackEngine {
     private monotonicNow: () => number = () => performance.now(),
   ) {
     this.settings = settings;
+    this.audio.sustainPedal=settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
     this.audio.setGains(settings.voiceGain, settings.pianoGain);
     this.chords = this.normalizeChordTimeline(chords);
     this.gradingNotes = gradingNotes;
@@ -113,6 +115,7 @@ export class PlaybackEngine {
     this.playing = true;
     this.resetInputClock();
     this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
     this.lastChordScheduled = -1;
     this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     this.emit();
@@ -133,6 +136,7 @@ export class PlaybackEngine {
     this.time = Math.max(0, Math.min(this.duration, t));
     this.resetInputClock();
     this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
     this.lastChordScheduled = -1;
     if (wasPlaying) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     this.emit();
@@ -160,6 +164,7 @@ export class PlaybackEngine {
     if (dt > 0.5 || wrapped) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
     }
     if (this.time >= this.duration && !this.loop && (!this.grader || !this.gradingRange)) {
@@ -176,6 +181,7 @@ export class PlaybackEngine {
     if (this.notes === notes) return;
     this.resetInputClock();
     this.notes = notes;
+    this.audio.sustainPedal=this.settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
     this.gradingNotes = notes;
     this.duration = duration;
     this.chords = this.normalizeChordTimeline(this.chords);
@@ -183,6 +189,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -197,6 +204,7 @@ export class PlaybackEngine {
     if (notesChanged) {
       this.resetInputClock();
       this.notes = notes;
+      this.audio.sustainPedal=this.settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
       this.duration = duration;
     }
     if (gradingNotesChanged) this.gradingNotes = gradingNotes;
@@ -206,6 +214,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -219,6 +228,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
   }
@@ -235,11 +245,12 @@ export class PlaybackEngine {
     const sustainChanged = this.settings.sustainPedal !== settings.sustainPedal;
     this.settings = settings;
     this.audio.setGains(settings.voiceGain, settings.pianoGain);
-    this.audio.sustainPedal = settings.sustainPedal;
+    this.audio.sustainPedal = settings.sustainPedal && !this.notes.some(n=>n.soundingDurSec!==undefined);
     this.audio.setOrganControls?.(settings.organRotary, settings.organDrive, settings.organSpace);
     if (backgroundChanged && this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     } else if ((chordTimingChanged || metronomeChanged || sustainChanged) && this.playing) {
@@ -248,6 +259,7 @@ export class PlaybackEngine {
       // leave stale metronome clicks/pedal tails after a setting change).
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
     }
 
@@ -264,6 +276,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -376,6 +389,7 @@ export class PlaybackEngine {
       this.time = Math.min(this.gradingRange?.endSec ?? this.duration,
         Math.max(this.time, next?.startSec ?? accepted.startSec + accepted.durSec));
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       if (this.gradingRange && !next) this.finishGrading();
       else if (!this.playing) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -398,7 +412,7 @@ export class PlaybackEngine {
 
     const notes = this.notes.flatMap((note) => {
       if (!Number.isInteger(note.midi) || note.midi < 0 || note.midi > 127) return [];
-      const noteEnd = note.startSec + note.durSec;
+      const noteEnd = note.startSec + (note.soundingDurSec ?? note.durSec);
       const visibleStart = Math.max(start, note.startSec);
       const visibleEnd = Math.min(end, noteEnd);
       if (visibleEnd <= visibleStart + 1e-6) return [];
@@ -448,12 +462,20 @@ export class PlaybackEngine {
     if (to <= from) return;
     const chordMode = this.settings.backgroundMode === "chord" && this.hasPlayableChord() && !!this.audio.playChord;
     if (chordMode) this.scheduleChords(from, to);
+    if(this.sourceCarryPending){
+      this.sourceCarryPending=false;
+      for(const note of this.notes){
+        if(note.soundingDurSec===undefined||note.startSec>=from||note.startSec+note.soundingDurSec<=from)continue;
+        const end=Math.min(endpoint,note.startSec+note.soundingDurSec);
+        if(end>from)this.audio.noteOn({...note,startSec:from,durSec:end-from},0);
+      }
+    }
     let i = firstNoteAtOrAfter(this.notes, from);
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
       if (!Number.isInteger(n.midi) || n.midi < 0 || n.midi > 127) continue;
-      const durSec = Math.min(n.durSec, endpoint - n.startSec);
+      const durSec = Math.min(n.soundingDurSec ?? n.durSec, endpoint - n.startSec);
       if (durSec > 0) this.audio.noteOn(durSec === n.durSec ? n : { ...n, durSec }, Math.max(0, n.startSec - this.time));
     }
     // The metronome follows the song timeline in either background mode.

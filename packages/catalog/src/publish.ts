@@ -2,7 +2,9 @@ import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/prom
 import { createHash, randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
 import { constants, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import {getDb} from "./db.js";
+import {dataDir} from "./paths.js";
 import { validateArtifactFiles, type Variant } from "@keyspilli/midi";
 import { parseArrangementManifest } from "./artifact-manifest.js";
 import type { ArrangementManifest } from "./artifact-manifest.js";
@@ -38,6 +40,8 @@ export interface PublishBaseArtifactOptions<T = unknown> {
 
 export interface ArtifactLockOptions {
   artifactsRoot: string;
+  /** Only the explicit tombstone recovery workflow may touch a hidden base. */
+  allowTombstone?: boolean;
 }
 
 export interface DeleteBaseArtifactOptions extends ArtifactLockOptions {
@@ -87,6 +91,9 @@ export async function withBaseArtifactLock<T>(
       if ((error as { code?: string }).code === "SQLITE_BUSY") throw new Error("artifact publish already locked");
       throw error;
     }
+    if (!options.allowTombstone && resolve(root) === resolve(dataDir(), "artifacts")
+      && getDb().prepare("SELECT 1 FROM catalog_tombstones WHERE base_id=? AND state NOT IN ('restored','purged')").get(baseId))
+      throw new Error("base is quarantined; use the explicit undo or purge workflow");
     return await operation();
   } finally {
     lock.close();

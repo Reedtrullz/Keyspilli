@@ -51,9 +51,9 @@ export function activeExportVariant(data:SongData,resolution:AccompanimentResolu
  if(!notes.length||notes.length>100000||notes.some(n=>!Number.isInteger(n.midi)||n.midi<0||n.midi>127||!Number.isFinite(n.start)||n.start<0||!Number.isFinite(n.dur)||n.dur<=0))throw new ActiveExportUnsupportedError("Active notes are empty or outside the supported MIDI range.");
  const key=selection.transpose?transposeChordSymbol(data.key.replace(/\s+major$/i,"").replace(/\s+minor$/i,"m"),selection.transpose):data.key;
  const labels=resolution.displayChords.map(chord=>({...chord,name:selection.transpose&&chord.name!=="N.C."?transposeChordSymbol(chord.name,selection.transpose):chord.name,notes:chord.notes.map(midi=>midi+selection.transpose)}));
- return {level:"advanced",difficultyScore:0,bassPattern:"active-selection",notes,chords:labels,key,tempoBpm:data.tempoBpm*selection.speed,timeSig:data.timeSig,timeSigEvents:data.timeSigEvents,measures:data.measures};
+ return {level:"advanced",difficultyScore:0,bassPattern:"active-selection",notes,...(selection.backgroundMode==="piano"&&data.sourcePedal?{sourcePedal:data.sourcePedal}:{}),chords:labels,key,tempoBpm:data.tempoBpm*selection.speed,timeSig:data.timeSig,timeSigEvents:data.timeSigEvents,measures:data.measures};
 }
 export async function activeExportDigest(variant:Variant):Promise<string> {
- const shape={notes:variant.notes.map(n=>[n.midi,n.start,n.dur,n.vel,n.hand??null]),chords:variant.chords.map(c=>[c.beat,c.name,c.notes,c.durationBeats??null]),key:variant.key,tempoBpm:variant.tempoBpm,timeSig:variant.timeSig,timeSigEvents:variant.timeSigEvents??[],measures:variant.measures};
+ const shape={notes:variant.notes.map(n=>[n.midi,n.start,n.dur,n.vel,n.hand??null,...(variant.sourcePedal?[n.sourceMidiChannel]:[])]),...(variant.sourcePedal?{sourcePedal:variant.sourcePedal}:{}),chords:variant.chords.map(c=>[c.beat,c.name,c.notes,c.durationBeats??null]),key:variant.key,tempoBpm:variant.tempoBpm,timeSig:variant.timeSig,timeSigEvents:variant.timeSigEvents??[],measures:variant.measures};
  return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(shape))))).map(n=>n.toString(16).padStart(2,"0")).join("");
 }

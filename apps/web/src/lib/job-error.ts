@@ -10,6 +10,7 @@ export function publicJobError(error: unknown): string | null {
     return "YouTube blocked server-side extraction (bot check); configure a trusted proxy or cookie session, or pre-seed the audio file.";
   }
   const withoutAttempt = message.replace(/^attempt\s+\d+:\s*/i, "");
+  if (withoutAttempt.startsWith("RESOURCE_BLOCKED:")) return "Import stopped because the worker reached a memory or process limit. No arrangement was published. Review capacity before retrying.";
   if (withoutAttempt.startsWith("ARTIFACT_RECONCILIATION_REQUIRED:")) return "Import saved an artifact but needs operator reconciliation before it can be used. Do not retry this job.";
   if (withoutAttempt === "TUTORIAL_PREVIEW_CANCELLED") return "Piano preview cancelled. Saved source evidence was retained.";
   if (withoutAttempt === "Less than 30GiB free") return "Import paused because server storage is low. Retry after storage is available.";

@@ -1,3 +1,5 @@
+import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js";
+import {validSourcePedal} from "./source-pedal.js";
 import { tutorialSourceLane } from "./source-hand-lanes.js";
 import { Hand, MidiTempoEvent, MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 
@@ -65,6 +67,9 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   let keySig = 0;
   let keyMode: 0 | 1 = 0;
   let title: string | undefined;
+  const pedalChanges: NonNullable<ParsedMidi["sourcePedal"]>["changes"] = [];
+  let fileEndBeat=0;
+  let occurrences:ParsedMidi["notationMeasures"];
 
   for (let t = 0; t < ntrks; t++) {
     if (pos + 8 > buf.length || readStr(buf, { v: pos }, 4, buf.length) !== "MTrk") throw new Error("bad track header");
@@ -130,6 +135,14 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
               namesInTrack.push(name);
               trackNames.push(name);
             }
+          } else if (type === 0x7f) {
+            const prefix=readStr(buf,{v:pos},Math.min(len2,SOURCE_OCCURRENCES.length+1));
+            if (prefix===`${SOURCE_OCCURRENCES}:` && len2>262144)throw new Error("source occurrence map exceeds bounds");
+            const payload=len2<=262144?readStr(buf,{v:pos},len2):"";
+            if(payload.startsWith(`${SOURCE_OCCURRENCES}:`)){
+              if(occurrences || tick!==0)throw new Error("ambiguous source occurrence map");
+              occurrences=readSourceOccurrences(payload.slice(SOURCE_OCCURRENCES.length+1));
+            }
           } else if (type === 0x01 || type === 0x02) {
             const s = readStr(buf, { v: pos }, len2);
             if (!title && s.trim()) title = s.trim();
@@ -166,7 +179,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
         if (started?.length) {
           const active = started.shift()!;
           if (started.length === 0) on.delete(key);
-          notes.push({ midi: note, start: active.start, dur: b - active.start, vel: active.vel });
+          notes.push({ midi: note, start: active.start, dur: b - active.start, vel: active.vel, sourceMidiChannel:chan });
         }
       } else if (kind === 0x90) {
         const note = buf[pos]!;
@@ -179,6 +192,9 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
           active.push({ midi: note, start: b, vel });
           on.set(key, active);
         }
+      } else if (kind === 0xb0 && buf[pos] === 64) {
+        if(pedalChanges.length>=4096 || buf[pos+1]!>127)throw new Error("Invalid or excessive source CC64 events");
+        pedalChanges.push({beat:b,channel:chan,value:buf[pos+1]!,source:`midi:${t}`});pos+=2;
       } else if (kind === 0xa0 || kind === 0xb0 || kind === 0xe0) {
         unsupportedControls.add(kind === 0xa0 ? "polyphonic aftertouch" : kind === 0xb0 ? "control changes" : "pitch bend");
         pos += 2;
@@ -188,9 +204,10 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
       }
     }
     // close hanging notes at track end
-    for (const active of on.values()) {
+    fileEndBeat=Math.max(fileEndBeat,tick/division);
+    for (const [key,active] of on) {
       for (const s of active) {
-        notes.push({ midi: s.midi, start: s.start, dur: Math.max(0.01, tick / division - s.start), vel: s.vel });
+        notes.push({ midi: s.midi, start: s.start, dur: Math.max(0.01, tick / division - s.start), vel: s.vel, sourceMidiChannel:Number(key.split(":")[0]) });
       }
     }
     const hand = inferTrackHand(namesInTrack);
@@ -245,8 +262,12 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     }
   }
   valid.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  if(!pedalChanges.length)for(const note of valid)delete note.sourceMidiChannel;
+  const sourcePedal=pedalChanges.length ? {version:1 as const,endBeat:fileEndBeat,provenance:"midi-file" as const,changes:pedalChanges.sort((a,b)=>a.beat-b.beat)} : undefined;
+  if(sourcePedal && !validSourcePedal(sourcePedal))throw new Error("Invalid or ambiguous source CC64 timeline");
   const tempoBpm = tempos.find((event) => event.tick === 0)?.bpm ?? 120;
   const durationBeats = valid.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
+  if(occurrences && durationBeats>occurrences.at(-1)!.endBeat+1/division+1e-9)throw new Error("source occurrence map differs from MIDI");
   return {
     format,
     division,
@@ -261,7 +282,9 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     trackNames: trackNames.filter((n) => n.trim()),
     sourceParts,
     ...(unsupportedControls.size ? { unsupportedControls: [...unsupportedControls].sort() } : {}),
-    durationBeats,
+    durationBeats:Math.max(durationBeats,occurrences?.at(-1)?.endBeat ?? 0,sourcePedal?.endBeat ?? 0),
+    ...(sourcePedal?{sourcePedal}:{}),
+    ...(occurrences?{notationMeasures:occurrences,repeatPlayback:"declared" as const}:{}),
     title,
   };
 }

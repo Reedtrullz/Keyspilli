@@ -1,0 +1,23 @@
+import {afterAll,expect,it} from "vitest";
+import {mkdtempSync} from "node:fs";
+import {writeFile,rm} from "node:fs/promises";
+import {join} from "node:path";
+import {tmpdir} from "node:os";
+import {getDb,getSong,ingestSource} from "@keyspilli/catalog";
+import {ownerReviewList} from "./owner-review";
+const old=process.env.KEYSPILLI_DATA_DIR,root=mkdtempSync(join(tmpdir(),"keyspilli-owner-review-"));process.env.KEYSPILLI_DATA_DIR=root;
+afterAll(async()=>{getDb().close();if(old===undefined)delete process.env.KEYSPILLI_DATA_DIR;else process.env.KEYSPILLI_DATA_DIR=old;await rm(root,{recursive:true,force:true});});
+it("inspects excluded exact versions without approval, exposes changed revision, bounds pages and refuses malformed policy",async()=>{
+ await writeFile(join(root,"manifest.json"),JSON.stringify({songs:[]}));
+ const buf=Buffer.from(`<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>${['C','D','E','F','G','A','B','C'].map(step=>`<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration></note>`).join('')}</measure></part></score-partwise>`);
+ const result=await ingestSource({baseId:"owner-review",buf,title:"Owner fixture",artist:"Authored",category:"Test",contentType:"standard"});expect(result.error).toBeUndefined();
+ await writeFile(join(root,"learner-review.json"),JSON.stringify({verdicts:{"owner-review":{blocked:true}}}));
+ expect(getSong("owner-review-a")).toBeUndefined();
+ const inventory=await ownerReviewList(),entry=inventory.entries[0]!;expect(entry.excluded).toBe(true);expect(entry.variants).toHaveLength(6);
+ expect(entry.variants[0]!.decisions).toEqual([{mode:"Original",status:"unavailable",listening:"unknown",keyboard:"unknown"},{mode:"Chords",status:"unavailable",listening:"unknown",keyboard:"unknown"}]);
+ expect(entry.variants.every(v=>v.sourceFingerprint?.includes(':notes:')&&v.structural==="notes-and-manifest-validated")).toBe(true);
+ expect(JSON.stringify(inventory)).not.toContain(root);expect(getSong("owner-review-a")).toBeUndefined();
+ await writeFile(join(root,"artifacts","owner-review",".publication-id"),"changed-revision");expect((await ownerReviewList()).entries[0]!.publicationRevision).toBe("changed-revision");
+ expect((await ownerReviewList("owner-review")).entries).toEqual([]);await expect(ownerReviewList("../private")).rejects.toThrow("cursor");
+ await writeFile(join(root,"learner-review.json"),"{malformed");await expect(ownerReviewList()).rejects.toThrow("LEARNER_REVIEW_MALFORMED");
+});

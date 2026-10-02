@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMusicXmlNotes, parseMidi, buildVariants, selectSourceParts, writeMusicXml, Variant } from "../src/index.js";
+import { parseMusicXmlNotes, parseMidi, buildVariants, selectSourceParts, writeMusicXml, writeMidi, Variant } from "../src/index.js";
 
 const HEX = (s: string) => new Uint8Array(s.trim().split(/\s+/).map((b) => parseInt(b, 16)));
 const SCALE_MIDI = HEX(`
@@ -43,6 +43,29 @@ describe("parseMusicXmlNotes", () => {
     expect(() => parseMusicXmlNotes(`${head}<direction><direction-type><segno/></direction-type></direction>${note.repeat(4)}${tail}`)).toThrow(/unsupported.*navigation/i);
     expect(() => parseMusicXmlNotes(`<!DOCTYPE score-partwise [<!ENTITY x "${note}">]>${head}&x;${tail}`)).toThrow(/unsupported|invalid MusicXML/i);
   });
+  it("unfolds one explicit two-pass repeat with occurrence lineage and rejects expanded workloads/ambiguous forms", () => {
+    const xml = '<score-partwise><part id="P1">'+['C','D','E'].map((step,i)=>`<measure number="${i+1}">${i===0?'<attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><barline location="left"><repeat direction="forward"/></barline>':''}<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>${i===1?'<barline location="right"><repeat direction="backward" times="2"/></barline>':''}</measure>`).join('')+'</part></score-partwise>';
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.repeatPlayback).toBe("unfolded");
+    expect(parsed.notes.map(n=>[n.midi,n.start,n.dur])).toEqual([[60,0,4],[62,4,4],[60,8,4],[62,12,4],[64,16,4]]);
+    expect(parsed.notationMeasures?.map(m=>[m.sourceMeasureIndex,m.sourceOccurrence])).toEqual([[0,1],[1,1],[0,2],[1,2],[2,1]]);
+    expect(parsed.notes[0]!.sourceOrigins![0]!.originalId).toBe(parsed.notes[2]!.sourceOrigins![0]!.originalId);
+    expect(parsed.notes[0]!.sourceOrigins![0]!.id).not.toBe(parsed.notes[2]!.sourceOrigins![0]!.id);
+    const advanced=buildVariants(parsed,{title:"Repeat",artist:"Synthetic"},{chords:[]}).find(v=>v.level==='advanced')!;
+    expect(advanced.measures).toEqual(parsed.notationMeasures);
+    expect(parseMidi(writeMidi(advanced.notes,{tempoBpm:120,timeSig:[4,4],measures:advanced.measures})).notationMeasures).toEqual(advanced.measures);
+    expect(parseMusicXmlNotes(writeMusicXml(advanced,"Unfolded","Synthetic")).notationMeasures).toEqual(advanced.measures);
+    expect(parseMusicXmlNotes(writeMusicXml(advanced,"Unfolded","Synthetic")).notes.map(n=>[n.midi,n.start,n.dur])).toEqual(advanced.notes.map(n=>[n.midi,n.start,n.dur]));
+    for (const bad of [xml.replace('times="2"','times="3"'),xml.replace('direction="forward"','direction="backward"'),xml.replace('<duration>4</duration>','<duration>1</duration>'),xml.replace('<type>whole</type>','<type>whole</type><tie type="start"/>'),xml.replace('number="1"','number="1" implicit="yes"'),xml.replace('</measure>','<attributes><divisions>2</divisions></attributes></measure>')]) expect(()=>parseMusicXmlNotes(bad)).toThrow(/unsupported.*repeat/i);
+    const exported=writeMusicXml(advanced,"Unfolded","Synthetic");
+    expect(parseMusicXmlNotes(exported).repeatPlayback).toBe("declared");
+    expect(()=>parseMusicXmlNotes(exported.replace(/\[\[0,1,0,4\][\s\S]*?\]\]/,"[[0,1,0,4],[0,2,4,8],[99,1,8,12],[1,1,12,16],[2,1,16,20]]"))).toThrow(/occurrence/);
+    expect(()=>parseMusicXmlNotes(exported.replace('[[0,1,0,4]', '[[0,2,0,4]'))).toThrow(/occurrence/);
+    expect(()=>parseMusicXmlNotes(xml.replace('</part>','<barline location="right"><repeat direction="backward"/></barline></part>'))).toThrow(/unsupported.*repeat/i);
+    const huge=xml.replace('<beats>4</beats>','<beats>1024</beats>').replaceAll('<duration>4</duration>','<duration>1024</duration>');
+    expect(()=>parseMusicXmlNotes(huge)).toThrow(/workload/i);
+  });
+
   it("round-trips interleaved grand-staff note starts", () => {
     const variant: Variant = {
       level: "advanced",

@@ -1,3 +1,5 @@
+import {SOURCE_OCCURRENCES,writeSourceOccurrences} from "./source-occurrences.js";
+import {SOURCE_PEDAL,writeSourcePedal} from "./source-pedal.js";
 import { matchingSourcePitch } from "./source-pitch.js";
 import { Note, Variant } from "./types.js";
 import { PITCH_COLORS } from "./pitchColors.js";
@@ -34,7 +36,7 @@ function noteInfo(midi: number): { step: string; alter: number; octave: number }
   return { step, alter, octave };
 }
 
-function typeFromDur(beats: number): { type: string; dots: number } {
+function typeFromDur(beats: number): { type: string; dots: number; timeModification: string } {
   const dotted: [number, string][] = [
     [1.5, "quarter"],
     [3, "half"],
@@ -43,9 +45,9 @@ function typeFromDur(beats: number): { type: string; dots: number } {
     [0.375, "16th"],
   ];
   for (const [b, t] of dotted) {
-    if (Math.abs(beats - b) < 1e-6) return { type: t, dots: 1 };
+    if (Math.abs(beats - b) < 1e-6) return { type: t, dots: 1, timeModification: "" };
   }
-  const names = ["whole", "half", "quarter", "eighth", "16th", "32nd", "64th"];
+  const names = ["whole", "half", "quarter", "eighth", "16th", "32nd", "64th", "128th", "256th"];
   let b = beats;
   let i = 2; // 1 beat = quarter
   while (b < 1 && i < names.length - 1) {
@@ -56,7 +58,22 @@ function typeFromDur(beats: number): { type: string; dots: number } {
     b /= 2;
     i--;
   }
-  return { type: names[i]!, dots: 0 };
+  const writtenTicks = Math.round(4 * DIV / 2 ** i), ticks = Math.max(1,Math.round(beats * DIV));
+  let left = writtenTicks, right = ticks;
+  while (right) { const next = left % right; left = right; right = next; }
+  const timeModification = writtenTicks === ticks ? "" : `<time-modification><actual-notes>${writtenTicks/left}</actual-notes><normal-notes>${ticks/left}</normal-notes><normal-type>${names[i]}</normal-type></time-modification>`;
+  return { type: names[i]!, dots: 0, timeModification };
+}
+
+/** Split ordinary composite lengths into written values; preserve exact tuplets otherwise. */
+const TUPLET_NOTATIONS = '<tuplet type="start" number="1" bracket="no"/><tuplet type="stop" number="1"/>';
+function notatedDurations(duration: number): number[] {
+  let ticks = Math.round(duration * DIV);
+  if (ticks <= 0 || ticks % 15 !== 0) return [duration];
+  const values = [5760,3840,2880,1920,1440,960,720,480,360,240,180,120,90,60,45,30,15];
+  const parts: number[] = [];
+  while (ticks) { const next = values.find(value=>value<=ticks)!; parts.push(next/DIV); ticks-=next; }
+  return parts;
 }
 
 function xmlEscape(s: string): string {
@@ -99,6 +116,9 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
     tailEnd += beatsPerMeasure;
     measures.push({ index: nextIndex++, startBeat, endBeat: tailEnd });
   }
+  const occurrences=writeSourceOccurrences(measures);
+  const sourcePedal=writeSourcePedal(variant.notes,variant.sourcePedal);
+  const metadata=[...(occurrences?[[SOURCE_OCCURRENCES,occurrences]]:[]),...(sourcePedal?[[SOURCE_PEDAL,sourcePedal]]:[])].map(([name,text])=>`<miscellaneous-field name="${name}">${xmlEscape(text!)}</miscellaneous-field>`).join("");
   const { fifths, mode } = keySignature(variant.key);
   const bpm = variant.tempoBpm;
 
@@ -111,7 +131,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
     const notes=variant.notes.filter(n=>staff===2?n.hand==="L":n.hand!=="L")
       .sort((a,b)=>a.start-b.start||b.dur-a.dur||a.midi-b.midi);
     for(const n of notes){
-      let lane=lanes.findIndex(l=>l.end<=n.start+1e-9||Math.abs(l.start-n.start)<1e-9&&!l.midis.has(n.midi));
+      let lane=lanes.findIndex(l=>l.end<=n.start+1e-9||Math.abs(l.start-n.start)<1e-9&&Math.abs(l.end-n.start-n.dur)<1e-9&&!l.midis.has(n.midi));
       if(lane<0){lane=lanes.length;lanes.push({start:n.start,end:n.start+n.dur,midis:new Set([n.midi])});}
       else{
         const l=lanes[lane]!;
@@ -167,7 +187,12 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
         voice: voiceByNote.get(n),
       };
       const arr = notesByMeasure.get(mi) ?? [];
-      arr.push(segment);
+      const durations = notatedDurations(segment.dur);
+      let onset = segment.start;
+      durations.forEach((dur,index)=>{
+        arr.push({...segment,start:onset,dur,tieStart:segment.tieStart||index<durations.length-1,tieStop:segment.tieStop||index>0,...(index>0?{lyrics:undefined}:{})});
+        onset += dur;
+      });
       notesByMeasure.set(mi, arr);
       cursor = segmentEnd;
     }
@@ -204,7 +229,10 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
       }
       for (const [start, group] of [...byStart.entries()].sort((a, b) => a[0] - b[0])) {
         if (start > cursor + 1e-6) {
-          xml.push(`<forward><duration>${Math.round((start - cursor) * DIV)}</duration><voice>${voice}</voice><staff>${staff}</staff></forward>`);
+          for (const restDuration of notatedDurations(start-cursor)) {
+            const {type,dots,timeModification}=typeFromDur(restDuration);
+            xml.push(`<note><rest/><duration>${Math.round(restDuration*DIV)}</duration><voice>${voice}</voice><type>${type}</type>${dots?"<dot/>":""}${timeModification}<staff>${staff}</staff>${timeModification?`<notations>${TUPLET_NOTATIONS}</notations>`:""}</note>`);
+          }
           cursor = start;
         }
         const ordered = [...group].sort((a, b) => b.dur - a.dur || a.midi - b.midi);
@@ -216,7 +244,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
           // Preserve the source duration. Clamping short notes to a quarter of
           // a beat silently stretched 16th/32nd-note passages in every sheet.
           const durBeats = Math.max(1 / DIV, n.dur);
-          const { type, dots } = typeFromDur(durBeats);
+          const { type, dots, timeModification } = typeFromDur(durBeats);
           const color = PITCH_COLORS[n.midi % 12]!;
           const lyric = n.lyrics
             ? "<lyric number=\"1\"><syllabic>single</syllabic><text>" + xmlEscape(n.lyrics) + "</text></lyric>"
@@ -229,7 +257,8 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
             n.tieStop ? "<tied type=\"stop\"/>" : "",
             n.tieStart ? "<tied type=\"start\"/>" : "",
           ].join("");
-          const notations = tiedNotations ? "<notations>" + tiedNotations + "</notations>" : "";
+          const durationNotations = timeModification ? TUPLET_NOTATIONS : "";
+          const notations = tiedNotations || durationNotations ? "<notations>" + tiedNotations + durationNotations + "</notations>" : "";
           xml.push(
             "<note" + (isChord ? "" : " default-x=\"" + Math.round(10 + start * 120) + "\"") + " color=\"" + color + "\">" +
               (isChord ? "<chord/>" : "") +
@@ -237,15 +266,16 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
               "<duration>" + Math.round(durBeats * DIV) + "</duration>" +
               tieTypes +
               "<voice>" + voice + "</voice><type>" + type + "</type>" + (dots ? "<dot/>" : "") +
-              "<staff>" + staff + "</staff>" + lyric + notations + "</note>",
+              timeModification + "<staff>" + staff + "</staff>" + lyric + notations + "</note>",
           );
           cursor = start + cursorDur;
         }
       }
       if (cursor < measureLength - 1e-9) {
-        const restDuration = measureLength - cursor;
-        const { type, dots } = typeFromDur(restDuration);
-        xml.push(`<note><rest/><duration>${Math.round(restDuration * DIV)}</duration><voice>${voice}</voice><type>${type}</type>${dots ? "<dot/>" : ""}<staff>${staff}</staff></note>`);
+        for (const restDuration of notatedDurations(measureLength - cursor)) {
+          const { type, dots, timeModification } = typeFromDur(restDuration);
+          xml.push(`<note><rest/><duration>${Math.round(restDuration * DIV)}</duration><voice>${voice}</voice><type>${type}</type>${dots ? "<dot/>" : ""}${timeModification}<staff>${staff}</staff>${timeModification?`<notations>${TUPLET_NOTATIONS}</notations>`:""}</note>`);
+        }
         cursor = measureLength;
       }
     }
@@ -275,7 +305,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
           ? `<direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type></direction>`
           : "";
       return (
-        `<measure number="${mi + 1}">` +
+        `<measure number="${mi + 1}"${measureLength < measureNum * 4 / measureDen - 1e-6 ? ' implicit="yes"' : ""}>` +
         `<attributes><divisions>${DIV}</divisions>${keyTime}<staves>2</staves>` +
         `<clef number="1"><sign>G</sign><line>2</line></clef>` +
         `<clef number="2"><sign>F</sign><line>4</line></clef>` +
@@ -289,7 +319,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
   return `<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <work><work-title>${xmlEscape(title)}</work-title></work>
-  <identification><creator type="composer">${xmlEscape(artist)}</creator></identification>
+  <identification><creator type="composer">${xmlEscape(artist)}</creator>${metadata?`<miscellaneous>${metadata}</miscellaneous>`:""}</identification>
   <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
   <part id="P1">${measureXml}</part>
 </score-partwise>`;

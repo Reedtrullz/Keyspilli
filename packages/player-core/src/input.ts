@@ -125,7 +125,7 @@ export class MidiInput {
   releaseAll(device?: string): void {
     for (const [scope, pedal] of this.pedals) {
       if (device !== undefined && pedal.device !== device) continue;
-      this.cb.onPedal?.(false, scope, pedal.event); this.pedals.delete(scope);
+      this.cb.onPedal?.(false, scope); // Cleanup is not an observed physical pedal release. this.pedals.delete(scope);
     }
     for (const [identity, note] of this.held) {
       if (device !== undefined && note.device !== device) continue;

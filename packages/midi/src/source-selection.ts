@@ -17,11 +17,15 @@ export function selectSourceParts(parsed: ParsedMidi, partIds: readonly string[]
     return origins?.length ? [{ ...note, sourceOrigins: origins }] : [];
   });
   if (!notes.length) throw new Error("selected source parts contain no pitched notes");
+  const channels=new Set(notes.map(n=>n.sourceMidiChannel));
+  const changes=parsed.sourcePedal?.changes.filter(e=>channels.has(e.channel));
+  const sourcePedal=changes?.length?{...parsed.sourcePedal!,changes}:undefined;
   return {
     ...parsed,
+    sourcePedal,
     notes,
     trackNames: selected.map((part) => part.name),
     sourceParts: selected,
-    durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur), 0),
+    durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur), sourcePedal?.endBeat ?? 0),
   };
 }

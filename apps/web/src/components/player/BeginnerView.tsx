@@ -7,7 +7,7 @@ import { chordProvenance } from "./chord-provenance";
 import { displayChordName } from "./chord-practice";
 
 
-export function BeginnerView({ data, time, settings, chords, provisionalTempo = false }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[]; provisionalTempo?: boolean }) {
+export function BeginnerView({ data, time, settings, chords, provisionalTempo = false, pitchCues = true }: { data: SongData; time: number; settings: PlayerSettings; chords: ChordLabel[]; provisionalTempo?: boolean; pitchCues?:boolean }) {
   const [following, setFollowing] = useState(true);
   const [reviewMeasure, setReviewMeasure] = useState(0);
   const beat = time / secPerBeat(data.tempoBpm, settings.speed);
@@ -74,13 +74,13 @@ export function BeginnerView({ data, time, settings, chords, provisionalTempo = 
             <th scope="row"><span aria-hidden="true">{hand?`${hand}H`:"?"}</span><span className="sr-only">{hand===undefined?"Unassigned part":hand === "R" ? "Right hand" : "Left hand"}</span></th>
             {columns.map((column, i) => <td key={column.start} data-current={i === activeIndex || undefined}>
               <div className="note-letter-stack">{column.notes.filter((interval) => interval.note.hand === hand).map((interval, n) => { const note=interval.note, midi=note.midi+settings.transpose; const pitch=learnerPitch(note,settings.transpose,data.key); const cue=intervalCue(interval,m.startBeat,timeSignatureAtBeat(interval.startBeat,data.timeSig,data.timeSigEvents)[1]/4); return <span
-                key={n} data-midi={midi} className="note-letter-badge"
+                key={n} data-midi={pitchCues?midi:undefined} className="note-letter-badge"
                 data-sounding={beat >= note.start && beat < note.start + note.dur || undefined}
-                style={{ borderLeftColor: pitchColor(midi) }}
-                title={`${hand===undefined?"Unassigned part":hand === "R" ? "Right hand" : "Left hand"}: ${pitch.label} · ${cue} · ${pitch.authority} spelling`}>
-                {pitch.label}
+                style={{ borderLeftColor: pitchCues?pitchColor(midi):"currentColor" }}
+                title={`${hand===undefined?"Unassigned part":hand === "R" ? "Right hand" : "Left hand"}: ${pitchCues?pitch.label:"Pitch cue reduced"} · ${cue} · ${pitch.authority} spelling`}>
+                {pitchCues?pitch.label:"Pitch cue reduced"}
                 <small>{cue}</small>
-                {note.lyrics && <small>{note.lyrics}</small>}
+                {pitchCues && note.lyrics && <small>{note.lyrics}</small>}
               </span>; })}{column.silences.filter(silence=>silence.hand===hand).map(silence=><small key={silence.endBeat}>Silence to beat {Number((1+(silence.endBeat-m.startBeat)*timeSignatureAtBeat(column.start,data.timeSig,data.timeSigEvents)[1]/4).toFixed(3))}</small>)}</div>
             </td>)}
           </tr>)}
@@ -88,8 +88,8 @@ export function BeginnerView({ data, time, settings, chords, provisionalTempo = 
             <th scope="row">Chord</th>{columns.map((column) => <td key={column.start}>{column.chords.map((chord, i) => {
               const provenance = chordProvenance(chord);
               const name = displayChordName(chord.name, settings.transpose);
-              return <span key={i} title={`${name}: ${provenance.label}`} className={`note-letter-chord ${provenance.textClass} ${provenance.backgroundClass} ${provenance.borderClass}`} style={{ borderStyle: provenance.dotted ? "dotted" : "solid" }}>
-                {name}<small>{provenance.label}</small>
+              return <span key={i} title={`${pitchCues?name:"Chord cue reduced"}: ${provenance.label}`} className={`note-letter-chord ${provenance.textClass} ${provenance.backgroundClass} ${provenance.borderClass}`} style={{ borderStyle: provenance.dotted ? "dotted" : "solid" }}>
+                {pitchCues?name:"Chord cue reduced"}<small>{provenance.label}</small>
               </span>;
             })}</td>)}
           </tr>}
@@ -97,7 +97,7 @@ export function BeginnerView({ data, time, settings, chords, provisionalTempo = 
         </table> : <p className="p-4 text-sm text-zinc-500">No note or chord starts in this bar.</p>}
       </div>
       <p className="mt-3 text-xs text-zinc-600">LH: left hand · RH: right hand · Number: octave (C4 is middle C). Hold and carry cues follow note intervals, not inferred fingering or written ties. Silence is derived for each assigned hand; empty cells mean no new event.</p>
-      {nextMeasure && <p className="mt-3 text-sm text-zinc-700" aria-label="Next bar preview">
+      {pitchCues && nextMeasure && <p className="mt-3 text-sm text-zinc-700" aria-label="Next bar preview">
         <strong>Next bar {currentMeasure + 2}: </strong>
         {nextNotes.length ? nextNotes.slice(0, 8).map((note) => `${note.start<nextMeasure.startBeat ? "Carry " : ""}${note.hand === "L" ? "LH" : "RH"} ${learnerPitch(note,settings.transpose,data.key).label}`).join(" · ") : "No note onsets"}
         {nextNotes.length > 8 && " …"}

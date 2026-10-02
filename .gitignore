@@ -41,3 +41,6 @@ apps/data/*.sqlite*
 
 # Python test/runtime bytecode
 __pycache__/
+
+# Generated public offline shell contains no owner arrangement data.
+apps/web/public/offline/

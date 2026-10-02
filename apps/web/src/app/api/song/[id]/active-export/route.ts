@@ -22,7 +22,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   const variant=activeExportVariant(data,resolveActiveExport(data,b.selection),b.selection),hash=await activeExportDigest(variant);
   if(hash!==b.expectedHash)return NextResponse.json({error:"The active arrangement differs from its canonical source selection; reload and retry.",code:"ACTIVE_SELECTION_CONFLICT"},{status:409});
   const sig=keySignature(variant.key),xml=writeMusicXml(variant,detail.song.title,detail.song.artist,{chordWords:true});
-  const midi=writeMidi(variant.notes,{tempoBpm:variant.tempoBpm,timeSig:variant.timeSig,timeSigEvents:variant.timeSigEvents,keySig:sig.fifths,keyMode:sig.mode,chordMarkers:variant.chords,tracks:[{name:"Right Hand",notes:variant.notes.filter(n=>n.hand!=="L")},{name:"Left Hand",notes:variant.notes.filter(n=>n.hand==="L")}]});
+  const midi=writeMidi(variant.notes,{sourcePedal:variant.sourcePedal,measures:variant.measures,tempoBpm:variant.tempoBpm,timeSig:variant.timeSig,timeSigEvents:variant.timeSigEvents,keySig:sig.fifths,keyMode:sig.mode,chordMarkers:variant.chords,tracks:[{name:"Right Hand",notes:variant.notes.filter(n=>n.hand!=="L")},{name:"Left Hand",notes:variant.notes.filter(n=>n.hand==="L")}]});
   const issues=validateArtifactFiles(variant,{midi,xml});if(issues.length)return NextResponse.json({error:"This active arrangement cannot be represented faithfully in the supported symbolic formats.",issues:issues.slice(0,8)},{status:422});
   // Recheck the immutable publication after generation, before exposing either format.
   const shell=await getSongDetailShell(id,b.revision);
