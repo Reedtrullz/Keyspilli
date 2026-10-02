@@ -1002,6 +1002,7 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 .player-focus .player-workspace { flex: 1; min-height: 0; height: auto; display: flex; flex-direction: column; }
 .player-focus .player-workspace[data-falling="true"] { min-height: 0; }
 .player-focus .player-workspace .falling-canvas { min-height: 150px; }
+.player-focus .player-secondary-tools { display: none; }
 .chord-progression-details { min-width: 0; }
 @media (max-width: 640px) {
   .player-song-actions { margin-left: 0; }

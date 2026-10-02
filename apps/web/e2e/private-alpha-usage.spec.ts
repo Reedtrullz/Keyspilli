@@ -65,13 +65,27 @@ async function openUploads(page: Page) {
   timings.pageInteractive.push(await page.evaluate(() => performance.now()));
 }
 
+async function publishAuthoredFixture(page: Page) {
+  await page.getByRole("button", { name: "Review file parts", exact: true }).click();
+  const parts = page.getByRole("list", { name: "Source parts" });
+  await expect(parts.getByRole("checkbox").first()).toBeVisible();
+  for (const checkbox of await parts.getByRole("checkbox").all()) await checkbox.check();
+  for (const role of await parts.getByRole("combobox").all()) await role.selectOption("other");
+  await page.getByRole("checkbox", { name: /I created these symbolic bytes/ }).check();
+  await page.getByRole("button", { name: "Confirm and publish lesson", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText(/Lesson created with \d+ available levels|already has an accepted lesson/);
+  if (await page.getByRole("button", { name: "Reuse this lesson", exact: true }).isVisible()) {
+    await page.getByRole("button", { name: "Reuse this lesson", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Using the accepted lesson.");
+  }
+}
+
 async function upload(page: Page, input: { name: string; mimeType: string; buffer: Buffer; title: string }) {
   await page.getByLabel("Title (optional)").fill(input.title);
   await page.getByLabel("Artist (optional)").fill("Keyspilli private alpha");
   await page.locator('input[type="file"]').setInputFiles(input);
   const started = await page.evaluate(() => performance.now());
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.getByRole("status")).toContainText("four public levels", { timeout: 120_000 });
+  await publishAuthoredFixture(page);
   timings.uploadToResult.push(await page.evaluate((value) => performance.now() - value, started));
   const href = await page.getByRole("link", { name: /Open in the player/ }).getAttribute("href");
   expect(href).toMatch(/^\/player\/[^/]+-e$/);
@@ -170,10 +184,9 @@ test("discovery states stay understandable and a mediated file completes generat
   await expect(page.getByText("Project-owned symbolic lead")).toBeVisible();
   timings.sourceSearch.push(await page.evaluate((value) => performance.now() - value, searchStarted));
   await page.getByRole("button", { name: "Use as a lead" }).click();
-  await page.getByRole("checkbox").check();
+  await page.getByRole("checkbox", { name: /I confirm this lead matches/ }).check();
   await page.locator('input[type="file"]').setInputFiles({ name: "usage-discovery.mid", mimeType: "audio/midi", buffer: midiFixture(9) });
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.getByRole("status")).toContainText("four public levels", { timeout: 120_000 });
+  await publishAuthoredFixture(page);
 
   mode = "none";
   await page.getByRole("button", { name: "Add another song" }).click();
@@ -201,13 +214,13 @@ test("malformed upload is announced and corrected retry succeeds", async ({ page
   trackErrors(page);
   await openUploads(page);
   await page.locator('input[type="file"]').setInputFiles({ name: "not-a-score.musicxml", mimeType: "application/vnd.recordare.musicxml+xml", buffer: Buffer.from("<html>not a score</html>") });
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.locator('p[role="alert"]')).toContainText(/parse failed|too few notes|invalid/i);
+  await page.getByRole("button", { name: "Review file parts", exact: true }).click();
+  await expect(page.locator('p[role="alert"]')).toContainText(/parse failed|too few notes|invalid|not a MIDI file/i);
+  await expect(page.getByRole("button", { name: "Confirm and publish lesson", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Remove" }).click();
   await expect(page.getByRole("button", { name: "Browse files" })).toBeFocused();
   await page.locator('input[type="file"]').setInputFiles({ name: "corrected.mid", mimeType: "audio/midi", buffer: midiFixture(20) });
-  await page.getByRole("button", { name: "Upload & create lesson" }).click();
-  await expect(page.getByRole("status")).toContainText("four public levels", { timeout: 120_000 });
+  await publishAuthoredFixture(page);
   findings.push({ flow: "malformed-input", outcome: "expected-failure", detail: "alert identifies invalid symbolic content", actions: 2 });
   findings.push({ flow: "corrected-retry", outcome: "pass", detail: "Remove, Browse, and replacement upload succeed without page reload", actions: 3 });
 });
@@ -220,7 +233,7 @@ for (const viewport of viewports) {
     await openUploads(page);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
     await expect(page.getByRole("button", { name: "Find source leads" })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Upload & create lesson" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Confirm and publish lesson", exact: true })).toBeDisabled();
     await expect(page.getByLabel("Title (optional)")).toBeVisible();
     await expect(page.getByLabel("Artist (optional)")).toBeVisible();
     await expect(page.getByRole("button", { name: "Browse files" })).toBeVisible();

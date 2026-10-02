@@ -4,6 +4,40 @@ import { KEYMAP } from "../../../packages/player-core/src/input";
 
 const xml = `<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time></attributes>${["C", "D", "E", "F", "G", "A", "B", "C"].map(step => `<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>`).join("")}</measure></part></score-partwise>`;
 
+test("speed changes preserve musical position and optional lesson tools leave room for the piano", async ({ page, request }) => {
+  const longXml = xml.replace(/<measure number="1">([\s\S]*?)<\/measure>/, (_, contents) =>
+    Array.from({ length: 16 }, (_, index) => `<measure number="${index + 1}">${contents}</measure>`).join(""));
+  const headers = { Authorization: "Bearer test-token-for-e2e", "Content-Type": "application/xml" };
+  const uploaded = await request.post("/api/uploads?title=Transport%20Space%20Fixture&artist=Authored", { headers, data: Buffer.from(longXml) });
+  expect(uploaded.ok(), await uploaded.text()).toBe(true);
+  const receipt = await uploaded.json(), id = receipt.songIds.find((value: string) => value.endsWith("-a"));
+  await page.addInitScript(() => localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth" })));
+  try {
+    await page.goto(`/player/${id}`);
+    const seek = page.getByRole("slider", { name: "Seek", exact: true });
+    await seek.fill("20");
+    const bar = (await seek.getAttribute("aria-valuetext"))!.split(",")[0];
+    await page.getByRole("button", { name: "50%", exact: true }).click();
+    await expect(seek).toHaveValue("40");
+    await expect(seek).toHaveAttribute("aria-valuetext", new RegExp(`^${bar}`));
+    await page.getByRole("button", { name: "100%", exact: true }).click();
+    await expect(seek).toHaveValue("20");
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 1740, height: 1370 }, { width: 428, height: 700 }, { width: 926, height: 320 }]) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(() => scrollTo(0, 0));
+      const keyboard = page.getByRole("button", { name: "Piano keyboard", exact: true });
+      await expect.poll(async () => { const box = await keyboard.boundingBox(); return box ? box.y + box.height : Infinity; }).toBeLessThanOrEqual(viewport.height);
+      await expect.poll(async () => (await page.locator(".falling-canvas").boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(viewport.height * 0.48);
+      await page.getByRole("button", { name: "Focus", exact: true }).click();
+      await expect(page.getByLabel("Saved passages and practice history")).toBeHidden();
+      const canvas = page.getByLabel("Falling notes player");
+      await expect.poll(async () => { const box = await canvas.boundingBox(); return box ? box.y + box.height : Infinity; }).toBeLessThanOrEqual(viewport.height);
+      await page.getByRole("button", { name: "Exit focus", exact: true }).click();
+      await expect(page.getByLabel("Saved passages and practice history")).toBeVisible();
+    }
+  } finally { expect((await request.delete(`/api/songs/${receipt.baseId}`, { headers })).ok()).toBe(true); }
+});
+
 test("version-bound passages reload and cancelled/completed/interrupted runs stay distinct", async ({ page, request }) => {
   const uploaded = await request.post("/api/uploads?title=Roadmap%20Practice%20Fixture&artist=Authored%20Test", {
     headers: { Authorization: "Bearer test-token-for-e2e", "Content-Type": "application/xml" }, data: Buffer.from(xml),

@@ -1589,7 +1589,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     if (next.backgroundMode === "chord" && sourceBackingNotes) next.accompanimentStyle = "bass-chords";
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
-    engineRef.current?.setSettings(next);
+    // The timeline effect needs the old speed to preserve the musical position.
     if (p.accompanimentStyle !== undefined) saveAccompanimentStyleIntent(p.accompanimentStyle);
     saveSettings(next);
     if (p.stageTheme !== undefined) applyAppTheme(next.stageTheme);
@@ -2246,10 +2246,6 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         </div>
       )}
 
-      <LearningInspection songId={initial.song.id} revision={initial.publicationRevision}/>
-      <OwnerMetadata song={initial.song} revision={initial.publicationRevision}/>
-      <OfflinePackControl id={initial.song.id} revision={initial.publicationRevision}/>
-      <OwnerDeletion baseId={initial.song.baseId} revision={initial.publicationRevision} disabled={grading||playing||countIn!==null||auxiliary!==null}/>
       {tempoNoticePresence.mounted && (
         <div
           className="player-tempo-notice motion-presence mb-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900"
@@ -2468,7 +2464,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
             </fieldset> : <InputStatus locked={grading} octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} devices={midiDevices} selection={midiSelection} onSelection={selectMidi} offsets={timingOffsets} onTimingOffset={setTimingOffset} />}
           </PlayerTools>
 
-          <button className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setOpenTool(null); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
+          <button disabled={auxiliary!==null} className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setOpenTool(null); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
         </div>
 
       </div>
@@ -2639,6 +2635,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
 
       </div>
 
+      <div className="player-secondary-tools">
+      <LearningInspection songId={initial.song.id} revision={initial.publicationRevision}/>
+      <OwnerMetadata song={initial.song} revision={initial.publicationRevision}/>
+      <OfflinePackControl id={initial.song.id} revision={initial.publicationRevision}/>
+      <OwnerDeletion baseId={initial.song.baseId} revision={initial.publicationRevision} disabled={grading||playing||countIn!==null||auxiliary!==null}/>
         <PracticeWorkspace onRecall={settings.mode==="beginner"&&settings.backgroundMode==="piano"?passage=>{if(auxiliaryRef.current||gradingRef.current||!practiceTarget||passage.target.fingerprint!==practiceTarget.fingerprint)return;if(passage.endBeat-passage.startBeat>16){setPracticeSaveNotice("Recall trials support up to 16 beats; save a shorter reviewed passage.");return;}engineRef.current?.stop();cancelSoundPreview();setLoopBeats({startBeat:passage.startBeat,endBeat:passage.endBeat});seek(passage.startBeat*secPerBeat(activeData.tempoBpm,settings.speed));activeTempoPlanRef.current=null;setRecall({passage,demonstrated:false,guided:false,reduced:false});}:undefined} publicationRevision={initial.publicationRevision} target={practiceTarget} variantId={initial.song.id} range={loopBeats}
           bpm={activeData.tempoBpm}
           onUseTempoPlan={passage => {
@@ -2660,6 +2661,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         <RhythmCoach data={guidanceData} startBeat={rhythmRange.startSec/secPerBeat(activeData.tempoBpm,settings.speed)}
           endBeat={rhythmRange.endSec/secPerBeat(activeData.tempoBpm,settings.speed)} speed={settings.speed} disabled={grading||showPracticeSetup||chordPracticeActive||playing||auxiliary==="take"} onPrepare={()=>prepareAuxiliary("rhythm")} onDone={()=>releaseAuxiliary("rhythm")}/>
         {practiceSaveNotice && <p role="status" className="px-4 text-xs">{practiceSaveNotice}</p>}
+      </div>
 
       {displayVariants.length > 1 && (
         <section className="mb-6">
