@@ -10,7 +10,8 @@ vi.mock("smplr", async (importOriginal) => ({
 class FakeAudioContext {
   static last: FakeAudioContext;
   static rate = 48000;
-  state = "running";
+  static initialState = "running";
+  state = FakeAudioContext.initialState;
   currentTime = 0;
   sampleRate = FakeAudioContext.rate;
   decodes = 0;
@@ -89,7 +90,11 @@ describe("SamplerAudioEngine", () => {
   it("rejects an incomplete set and retries missing samples rather than reporting Ready", async () => {
     FakeAudioContext.rate = 44100;
     let fail = true;
-    const fetchSample = vi.fn(async () => new Response(new Uint8Array([1, 2]), { status: fail ? 503 : 200 }));
+    let failedUrl = "";
+    const fetchSample = vi.fn(async (url: string) => {
+      failedUrl ||= url;
+      return new Response(new Uint8Array([1, 2]), { status: fail && url === failedUrl ? 503 : 200 });
+    });
     vi.stubGlobal("fetch", fetchSample);
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const { SampleLoader, pianoToPreset } = await import("smplr");
@@ -103,7 +108,20 @@ describe("SamplerAudioEngine", () => {
     await vi.waitFor(() => expect(engine.readiness).toBe("failed"));
     fail = false; expect(engine.retrySamples()).toBe(true);
     await vi.waitFor(() => expect(engine.readiness).toBe("ready"));
-    expect(fetchSample).toHaveBeenCalledTimes(452);
+    expect(fetchSample).toHaveBeenCalledTimes(227);
+    expect(FakeAudioContext.last.decodes).toBe(226);
+    engine.dispose();
+  });
+  it("prepares samples while suspended and activates output only on deliberate playback", async () => {
+    FakeAudioContext.initialState = "suspended";
+    const resume = vi.spyOn(FakeAudioContext.prototype, "resume");
+    pianoFactory.mockReturnValue({ ready: Promise.resolve(), setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn() });
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine();
+    (engine.ensure as (activate?: boolean) => AudioContext)(false);
+    await vi.waitFor(() => expect(engine.readiness).toBe("ready"));
+    expect(resume).not.toHaveBeenCalled();
+    engine.ensure(); expect(resume).toHaveBeenCalledTimes(1);
     engine.dispose();
   });
   it("waits explicitly and bounds failed-load retries without replacing its context", async () => {
@@ -127,6 +145,7 @@ describe("SamplerAudioEngine", () => {
   beforeEach(() => {
     pianoFactory.mockReset();
     FakeAudioContext.rate = 48000;
+    FakeAudioContext.initialState = "running";
     vi.stubGlobal("AudioContext", FakeAudioContext);
   });
 

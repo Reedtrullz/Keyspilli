@@ -5,23 +5,28 @@ import { AudioEngine } from "./audio.js";
 import { SampleLoader, SplendidGrandPiano, type Smplr } from "smplr";
 
 // ponytail: one default piano set/sample rate; key by preset if other libraries are added.
-let pianoSamples: { sampleRate: number; promise: Promise<Map<string, AudioBuffer>>; expiry?: ReturnType<typeof setTimeout> } | null = null;
+let pianoSamples: { sampleRate: number; buffers: Map<string, AudioBuffer>; promise: Promise<Map<string, AudioBuffer>> | null; expiry?: ReturnType<typeof setTimeout> } | null = null;
 
 function sharedPianoLoader(ctx: AudioContext): SampleLoader {
   return {
     load(preset) {
       if (!pianoSamples || pianoSamples.sampleRate !== ctx.sampleRate) {
         if (pianoSamples?.expiry) clearTimeout(pianoSamples.expiry);
-        const entry = { sampleRate: ctx.sampleRate, promise: null! as Promise<Map<string, AudioBuffer>>, expiry: undefined as ReturnType<typeof setTimeout> | undefined };
+        const entry = { sampleRate: ctx.sampleRate, buffers: new Map<string, AudioBuffer>(), promise: null as Promise<Map<string, AudioBuffer>> | null, expiry: undefined as ReturnType<typeof setTimeout> | undefined };
         pianoSamples = entry;
-        entry.promise = SampleLoader(ctx).load(preset).then(buffers => {
-          if (preset.groups.some(group => group.regions.some(region => !buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
-          // Keep decoded data, never a disposed context/voice graph, for a short warm switch.
-          entry.expiry = setTimeout(() => { if (pianoSamples === entry) pianoSamples = null; }, 5 * 60_000);
-          return buffers;
-        }).catch(error => { if (pianoSamples === entry) pianoSamples = null; throw error; });
+        entry.expiry = setTimeout(() => { if (pianoSamples === entry) pianoSamples = null; }, 5 * 60_000);
       }
-      return pianoSamples.promise;
+      const entry = pianoSamples;
+      if (!entry.promise) {
+        // Deselection may finish warming this one set; no disposed instrument is installed.
+        const signal = AbortSignal.timeout(30_000);
+        entry.promise = SampleLoader(ctx, { storage: { fetch: url => fetch(url, { signal }).catch(() => new Response(null, { status: 503 })) } }).load(preset, { buffers: entry.buffers }).then(buffers => {
+          entry.buffers = buffers;
+          if (preset.groups.some(group => group.regions.some(region => !buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
+          return buffers;
+        }).catch(error => { entry.promise = null; throw error; });
+      }
+      return entry.promise;
     },
   };
 }
@@ -108,7 +113,7 @@ export class SamplerAudioEngine implements AudioLike {
     if (this.pianoReady) for (const instrument of [this.voicePiano, this.piano]) instrument?.setCC(64, this.sustainPedal ? 127 : 0);
   }
 
-  ensure(): AudioContext {
+  ensure(activate = true): AudioContext {
     if (!this.ctx || this.ctx.state === "closed") {
       // A closed context cannot accept an instrument that is still loading.
       // Invalidate any previous request before creating the replacement.
@@ -146,7 +151,8 @@ export class SamplerAudioEngine implements AudioLike {
       this.pianoGainNode.connect(this.master);
       this.applyGains();
     }
-    if (this.ctx.state === "suspended") void this.ctx.resume();
+    const context = this.ctx;
+    if (activate && context.state === "suspended") void context.resume().catch(() => { if (this.ctx === context) this.onStateChange?.(context.state); });
     // Start fetching samples as soon as the context exists so the first
     // play uses the sampler rather than falling back to oscillators.
     if (!this.loadStarted && !this.pianoLoadPromise && !this.pianoFailed) {

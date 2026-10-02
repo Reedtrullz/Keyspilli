@@ -27,6 +27,10 @@ test("paused Grand Piano selection prepares one sample set and reuses it after a
     await page.getByRole("radio", { name: "Grand Piano", exact: true }).click();
     await expect.poll(() => requests).toBe(226);
     await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("loading");
+    await page.getByRole("radio", { name: "Synth Piano", exact: true }).click();
+    await page.getByRole("radio", { name: "Grand Piano", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("loading");
+    expect(requests).toBe(226);
     release();
     await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("ready");
     await expect(page.getByLabel("Playback status", { exact: true })).toContainText("Ready");
