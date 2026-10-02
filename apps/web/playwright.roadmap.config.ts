@@ -25,7 +25,7 @@ getDb().close();
 }
 
 export default defineConfig({
-  testDir: "./e2e", testMatch: ["library-roadmap.spec.ts", "jobs-roadmap.spec.ts", "practice-roadmap.spec.ts", "audio-graph.spec.ts", "upload-replay.spec.ts"], workers: 1, timeout: 60_000,
+  testDir: "./e2e", testMatch: process.env.KEYSPILLI_PERF_BASELINE === "1" ? ["performance-baseline.spec.ts"] : ["library-roadmap.spec.ts", "jobs-roadmap.spec.ts", "practice-roadmap.spec.ts", "audio-graph.spec.ts", "upload-replay.spec.ts", "keyboard-range.spec.ts", "diagnostics.spec.ts", "symbolic-intake.spec.ts", "learning-inspection.spec.ts", "key-holds.spec.ts", "active-export.spec.ts", "catalog-recovery.spec.ts", "accessibility-roadmap.spec.ts", "owner-metadata.spec.ts"], workers: 1, timeout: 60_000,
   globalTeardown: "./e2e/scratch-global-teardown.ts",
   webServer: {
     command: "npm run start -- --hostname 127.0.0.1 --port 3128", url: "http://127.0.0.1:3128", reuseExistingServer: false,

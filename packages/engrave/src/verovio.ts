@@ -92,23 +92,12 @@ function setRenderOptions(tk: VerovioToolkit, opts: RenderOptions): void {
   });
 }
 
-function scoreForVerovio(xml: string): string {
-  // The browser Verovio build imports playback-level <tie> correctly, but
-  // currently leaves notation-level <tied> markers open in dense grand-staff
-  // streams. The source/export MusicXML retains both standards-compliant
-  // markers; strip only the duplicate visual marker for this renderer so a
-  // valid score does not surface a false "ties left open" warning.
-  return xml
-    .replace(/<tied\b[^>]*\/>/gi, "")
-    .replace(/<notations>\s*<\/notations>/gi, "");
-}
-
 /** Render MusicXML to all page SVG documents in score order. */
 export async function renderMusicXmlPages(xml: string, opts: RenderOptions = {}, toolkit?: VerovioToolkit): Promise<string[]> {
   const tk = toolkit ?? (await loadVerovio());
   // Verovio lays out at load time; options must be set first.
   setRenderOptions(tk, opts);
-  if (!tk.loadData(scoreForVerovio(xml))) throw new Error("Verovio loadData failed");
+  if (!tk.loadData(xml)) throw new Error("Verovio loadData failed");
   const pageCount = Math.max(1, Math.floor(tk.getPageCount()));
   const count = opts.pages === "first" ? 1 : pageCount;
   const pages: string[] = [];

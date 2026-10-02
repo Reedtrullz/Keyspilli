@@ -3,6 +3,11 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
   artifactsDir,
+  uploadsDir,
+  readRecoveryDocument,
+  type CatalogPublication,
+  artifactPublicationRevision,
+  manifestLevels,
   createLegacyBootstrapManifest,
   dataDir,
   commitCatalogPublication,
@@ -49,7 +54,6 @@ const KEY_ROOTS = new Set([
   "Cb", "B#", "E#", "Fb",
 ]);
 
-const EXPECTED_VARIANT_COUNT = 6;
 const EXPECTED_VARIANT_LEVELS = new Set(["a", "b", "e", "m", "ve", "vb"]);
 const BEAT_TOLERANCE = 1e-6;
 
@@ -362,19 +366,15 @@ async function loadStoredVariants(baseId: string, rows: SongRow[], manifest: Awa
   legacy: boolean;
   sourceFingerprint: string;
 }> {
-  if (rows.length !== EXPECTED_VARIANT_COUNT) {
-    throw new SongUpdateError(500, `expected ${EXPECTED_VARIANT_COUNT} variants for ${baseId}, found ${rows.length}`);
+  const requiredLevels = manifest.status === "valid" ? manifestLevels(manifest.manifest) : [...EXPECTED_VARIANT_LEVELS];
+  if (rows.length !== requiredLevels.length) {
+    throw new SongUpdateError(500, `expected ${requiredLevels.length} variants for ${baseId}, found ${rows.length}`);
   }
   const levels = new Set(rows.map((row) => row.level));
   if (levels.size !== rows.length) throw new SongUpdateError(500, `duplicate variant levels for ${baseId}`);
-  const missingLevels = [...EXPECTED_VARIANT_LEVELS].filter((level) => !levels.has(level));
-  const unexpectedLevels = [...levels].filter((level) => !EXPECTED_VARIANT_LEVELS.has(level));
-  if (missingLevels.length || unexpectedLevels.length) {
-    throw new SongUpdateError(
-      500,
-      `invalid variant levels for ${baseId}; missing ${missingLevels.join(", ") || "none"}; unexpected ${unexpectedLevels.join(", ") || "none"}`,
-    );
-  }
+  const missingLevels = requiredLevels.filter(level => !levels.has(level));
+  const unexpectedLevels = [...levels].filter(level => !requiredLevels.includes(level));
+  if (missingLevels.length || unexpectedLevels.length) throw new SongUpdateError(500, `invalid variant levels for ${baseId}; missing ${missingLevels.join(", ") || "none"}; unexpected ${unexpectedLevels.join(", ") || "none"}`);
 
   const variants = await Promise.all(
     rows.map(async (row): Promise<LoadedVariant> => {
@@ -439,11 +439,22 @@ async function loadStoredVariants(baseId: string, rows: SongRow[], manifest: Awa
  * calibration edits are the only tempo updates that alter beat coordinates;
  * playback edits update scheduling mirrors while preserving those coordinates.
  */
-export async function applySongMetadata(id: string, patch: SongPatch): Promise<SongRow[]> {
+export async function applySongMetadata(id: string, patch: SongPatch, options: { expectedRevision?: string | null } = {}): Promise<SongRow[]> {
   const baseId = resolveBaseId(id);
   if (!baseId) throw new SongUpdateError(404, "song not found");
   const rows = getSongsByBase(baseId);
   if (!rows.length) throw new SongUpdateError(404, "song not found");
+
+  for (const [field, limit] of [["title",160],["artist",160],["category",80],["style",64],["mood",64]] as const) {
+    const value = patch[field];
+    if (value !== undefined && (typeof value !== "string" || value.length > limit || (field !== "artist" && !value.trim()) || /[\u0000-\u001f]/.test(value))) throw new SongUpdateError(400, `${field} must contain up to ${limit} printable characters`);
+  }
+  const checkExpectedRevision = async () => {
+    if (options.expectedRevision === undefined) return;
+    if (options.expectedRevision !== null && !/^[A-Za-z0-9_-]{1,128}$/.test(options.expectedRevision)) throw new SongUpdateError(400, "invalid expected publication revision");
+    if (await artifactPublicationRevision(baseId, join(dataDir(), "artifacts")) !== options.expectedRevision) throw new SongUpdateError(409, "publication changed; reload and review before saving");
+  };
+  await checkExpectedRevision();
 
   if (patch.tempo !== undefined && patch.playbackTempo !== undefined) {
     throw new SongUpdateError(400, "use either tempo or playbackTempo, not both");
@@ -569,7 +580,27 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     playbackTempo,
     previousPlayback,
   );
-  const recoveryData = { baseId, rows: rows.map(row => ({ ...row,
+  // A descriptive edit reuses the exact retained source; it must not invent
+  // a staging move or drop the upload's validated short-study intent.
+  let upload: CatalogPublication["upload"];
+  if (nextManifest.symbolicIntent) {
+    const names: string[] = [];
+    for (const ext of ["mid", "xml", "mxl"]) {
+      const name = `${baseId}.${ext}`;
+      try {
+        const bytes = await readRecoveryDocument(join(uploadsDir(), name), 10 * 1024 * 1024);
+        if (createHash("sha256").update(bytes).digest("hex") !== nextManifest.symbolicIntent.sourceHash)
+          throw new SongUpdateError(409, "retained upload changed; source review required");
+        names.push(name);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
+    if (names.length !== 1) throw new SongUpdateError(409, "retained upload missing or ambiguous; source review required");
+    upload = { final: names[0]!, sha256: nextManifest.symbolicIntent.sourceHash };
+  }
+  const recoveryData: CatalogPublication = { baseId,
+    ...(nextManifest.symbolicIntent ? { symbolicIntent: nextManifest.symbolicIntent, upload } : {}), rows: rows.map(row => ({ ...row,
     ...rowPatch,
     duration: Math.round(row.duration * durationFactor),
   })) as SongRow[] };
@@ -581,6 +612,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
       // writer. Re-read the complete source snapshot under that lock so a
       // concurrent ingest or metadata edit cannot be overwritten by the
       // stale `writes` array prepared above.
+      await checkExpectedRevision();
       const currentRows = getSongsByBase(baseId);
       const currentManifest = await readArrangementManifest(baseId);
       const current = await loadStoredVariants(baseId, currentRows, currentManifest);
@@ -621,6 +653,7 @@ export async function applySongMetadata(id: string, patch: SongPatch): Promise<S
     {
       artifactsRoot: join(dataDir(), "artifacts"),
       semanticValidation: "strict",
+      requiredLevels: manifestLevels(nextManifest),
       recoveryData,
       afterSwap: () => commitCatalogPublication(recoveryData),
     },

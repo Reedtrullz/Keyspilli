@@ -47,6 +47,8 @@ export class AudioEngine {
       this.compressor.connect(this.ctx.destination);
       this.voiceGainNode = this.ctx.createGain();
       this.pianoGainNode = this.ctx.createGain();
+      this.voiceGainNode.gain.value = this.voiceGain;
+      this.pianoGainNode.gain.value = this.pianoGain;
       this.voiceGainNode.connect(this.master);
       this.pianoGainNode.connect(this.master);
       this.applyGains();

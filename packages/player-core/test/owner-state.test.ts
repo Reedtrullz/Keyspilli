@@ -15,6 +15,8 @@ it("previews bounded owner state, restores supported fields atomically and withh
   snapshot.songPrefs = { "new-e": { hand: "R" } };
   snapshot.musicalChoices = { "new-e": { sourceFingerprint: "fixture-v1", selection: "right-hand", sourceBackingMode: "default", phraseOverrides: [] } };
   const imported = parseOwnerState(JSON.stringify(snapshot));
+  const olderSettings = structuredClone(snapshot); delete olderSettings.settings.physicalKeyboard;
+  expect(parseOwnerState(JSON.stringify(olderSettings)).settings.physicalKeyboard).toBeUndefined();
   expect(rows.get("keyspilli.favorites")).toBe('["old-e"]');
   expect(restoreOwnerState(imported, "merge")).toBe(true);
   expect(JSON.parse(rows.get("keyspilli.favorites")!)).toEqual(["old-e", "new-e"]);

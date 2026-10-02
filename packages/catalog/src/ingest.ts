@@ -10,7 +10,11 @@ import {
   parseMusicXmlNotes,
   cleanTranscription,
   buildVariants,
+  buildShortStudyVariants,
   assertSourceWorkload,
+  selectSourceParts,
+  shortStudyKind,
+  validateShortStudySource,
   normalizeTempoBpm,
   writeVariantArtifacts,
   validateArtifactFiles,
@@ -26,6 +30,7 @@ import { getSongsByBase, SongRow } from "./db.js";
 import { dataDir, uploadsDir } from "./paths.js";
 import {
   parseTranscriptionProvenance,
+  validateSymbolicUploadIntent,
   readArrangementManifest,
   transcriptionConfigForFingerprint,
   writeArrangementManifestFile,
@@ -33,6 +38,7 @@ import {
   type ArrangementManifest,
   type TempoSource,
   type TranscriptionProvenance,
+  type SymbolicUploadIntent,
 } from "./artifact-manifest.js";
 import { canonicalizeSourceProvenance } from "./provenance.js";
 import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERSION, TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_BEATS } from "./transcribe.js";
@@ -122,6 +128,8 @@ export interface IngestInput {
   /** Server-created lineage for an explicitly selected discovery lead. */
   sourceCandidateHandoff?: SourceCandidateHandoffLink;
   sourceArrangement?: SourceArrangement;
+  /** Set only from an authenticated, confirmed symbolic upload preflight. */
+  symbolicIntent?: SymbolicUploadIntent;
 }
 
 /** Optional deterministic hook used by integration tests to exercise rollback. */
@@ -139,6 +147,7 @@ export interface UploadPublicationReceipt {
   easySongId: string;
   title: string;
   artist: string;
+  symbolicIntent?: SymbolicUploadIntent;
 }
 
 export interface IngestResult {
@@ -163,11 +172,13 @@ async function uploadPublicationReceiptAtRoot(baseId: string, sourceHash: string
       throw new Error("published upload source does not match its content-addressed id");
     }
     const rows = getSongsByBase(baseId);
-    const levels = ["vb", "b", "ve", "e", "m", "a"];
-    if (rows.length !== levels.length || rows.some((row) => row.contentType !== "upload") || levels.some((level) => !rows.some((row) => row.id === `${baseId}-${level}`))) {
+    const levelCodes = manifest.symbolicIntent?.study
+      ? manifest.symbolicIntent.study.availableLevels.map((level) => LEVEL_CODE[level]!)
+      : ["vb", "b", "ve", "e", "m", "a"];
+    if (rows.length !== levelCodes.length || rows.some((row) => row.contentType !== "upload") || levelCodes.some((level) => !rows.some((row) => row.id === `${baseId}-${level}`))) {
       throw new Error("published upload does not have its complete catalog rows");
     }
-    await assertCompleteArtifactTree(root, levels, REQUIRED_ARTIFACT_FILES);
+    await assertCompleteArtifactTree(root, levelCodes, REQUIRED_ARTIFACT_FILES);
     let publicationRevision: string;
     try {
       publicationRevision = readFileSync(join(root, ".publication-id"), "utf8").trim();
@@ -180,9 +191,10 @@ async function uploadPublicationReceiptAtRoot(baseId: string, sourceHash: string
           ({ id, title, artist, category, difficulty, key, tempo, style, mood, contentType, acquiredVia, sourceYoutubeUrl })),
       })).digest("hex")}`;
     }
-    const songIds = levels.map((level) => `${baseId}-${level}`);
-    const easy = rows.find((row) => row.id === `${baseId}-e`)!;
-    return { baseId, sourceHash, publicationRevision, songIds, easySongId: easy.id, title: easy.title, artist: easy.artist };
+    const songIds = levelCodes.map((level) => `${baseId}-${level}`);
+    const easy = rows.find((row) => row.id === `${baseId}-e`) ?? rows[0]!;
+    return { baseId, sourceHash, publicationRevision, songIds, easySongId: easy.id, title: easy.title, artist: easy.artist,
+      ...(manifest.symbolicIntent ? { symbolicIntent: manifest.symbolicIntent } : {}) };
   } catch (error) {
     if (error instanceof ArtifactReconciliationError) throw error;
     throw new ArtifactReconciliationError(baseId, error);
@@ -367,6 +379,17 @@ function mxlScoreXml(buf: Uint8Array): string {
   return new TextDecoder().decode(files[scoreName]);
 }
 
+export function parseSymbolicUploadSource(buf: Uint8Array) {
+  const format = inferIngestFormat(buf);
+  const parsed = format === "mxl"
+    ? parseMusicXmlNotes(mxlScoreXml(buf))
+    : format === "musicxml"
+      ? parseMusicXmlNotes(new TextDecoder().decode(buf))
+      : parseMidi(buf);
+  assertSourceWorkload(parsed);
+  return { format, parsed };
+}
+
 /**
  * Parse a MIDI/MusicXML buffer, generate 6 difficulty variants, write
  * artifacts and DB rows. Returns the base id + created song ids.
@@ -417,17 +440,29 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     const chordErrors = validateChordLabels(inp.chords);
     if (chordErrors.length) return { baseId: "", songIds: [], error: `invalid chords: ${chordErrors.join("; ")}` };
   }
+  if (inp.symbolicIntent) {
+    const intentErrors = validateSymbolicUploadIntent(inp.symbolicIntent);
+    if (inp.contentType !== "upload" || inp.symbolicIntent.sourceHash !== sourceArtifactHash || intentErrors.length) {
+      return { baseId: "", songIds: [], error: `invalid symbolic upload intent${intentErrors.length ? `: ${intentErrors.join("; ")}` : ""}` };
+    }
+    if (inp.symbolicIntent.study && (inp.transcription !== undefined || inp.contentType !== "upload")) {
+      return { baseId: "", songIds: [], error: "short-study intent is limited to owner-authored symbolic uploads" };
+    }
+  }
   let parsed;
-  let isMxl = false;
-  let sourceIsXml = false;
+  let ingestFormat: "midi" | "musicxml" | "mxl";
   try {
-    isMxl = isZip(inp.buf);
-    sourceIsXml = looksLikeXml(inp.buf);
-    parsed = isMxl
-      ? parseMusicXmlNotes(mxlScoreXml(inp.buf))
-      : sourceIsXml
-        ? parseMusicXmlNotes(new TextDecoder().decode(inp.buf))
-        : parseMidi(inp.buf);
+    const source = parseSymbolicUploadSource(inp.buf);
+    ingestFormat = source.format;
+    parsed = inp.symbolicIntent
+      ? selectSourceParts(source.parsed, inp.symbolicIntent.selectedParts.map((part) => part.id))
+      : source.parsed;
+    if (inp.symbolicIntent?.arrangementIntent === "backing-only-chords") {
+      // Owner-selected harmony/bass parts form a backing-only source lane.
+      // The output hand label is a safe playback assignment, not evidence of
+      // the performer's physical hand or a transcription of the source staff.
+      parsed = { ...parsed, notes: parsed.notes.map((note) => ({ ...note, hand: "L" as const })) };
+    }
     assertSourceWorkload(parsed);
   } catch (e) {
     return { baseId: "", songIds: [], error: `parse failed: ${(e as Error).message}` };
@@ -446,7 +481,14 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       parsed.notes = parsed.notes.map(({ hand: _hand, ...note }) => note);
     }
   }
-  if (parsed.notes.length < 8) return { baseId: "", songIds: [], error: "too few notes" };
+  if (inp.symbolicIntent?.study) {
+    const sourceErrors = validateShortStudySource(parsed.notes);
+    if (sourceErrors.length || shortStudyKind(parsed.notes) !== inp.symbolicIntent.study.kind) {
+      return { baseId: "", songIds: [], error: sourceErrors.join("; ") || "short-study intent does not match selected source notes" };
+    }
+  } else if (parsed.notes.length < 8) {
+    return { baseId: "", songIds: [], error: "too few notes" };
+  }
 
   if (inp.sourceArrangement) {
     const errors = validateSourceArrangement(inp.sourceArrangement);
@@ -480,7 +522,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const persistedProfile = inp.baseId
     ? await readArrangementManifest(baseId)
     : undefined;
-  const arrangementProfile = inp.arrangementProfile
+  const arrangementProfile = inp.symbolicIntent ? "source" : inp.arrangementProfile
     ?? (persistedProfile?.status === "valid" && ["source", "learner", "metal"].includes(persistedProfile.manifest.arrangementProfile ?? "")
       ? persistedProfile.manifest.arrangementProfile as "source" | "learner" | "metal"
       : undefined)
@@ -500,25 +542,29 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       : null;
   let variants;
   try {
-    variants = buildVariants(
-    parsed,
-    {
-      title: inp.title,
-      artist: inp.artist,
-      key: inp.key,
-      tempo: inp.tempo,
-    },
-    {
-      ...(maxDurBeats === undefined ? {} : { maxDurBeats }),
-      arrangementProfile,
-      audioDerived: inp.contentType === "youtube",
-      ...(inp.chords ? { chords: inp.chords } : {}),
-    },
-  );
+    variants = inp.symbolicIntent?.study
+      ? buildShortStudyVariants(parsed, { title: inp.title, artist: inp.artist, key: inp.key, tempo: inp.tempo }, { maxDurBeats })
+      : buildVariants(
+        parsed,
+        { title: inp.title, artist: inp.artist, key: inp.key, tempo: inp.tempo },
+        {
+          ...(maxDurBeats === undefined ? {} : { maxDurBeats }),
+          arrangementProfile,
+          ...(inp.symbolicIntent?.arrangementIntent === "backing-only-chords" ? { safeLeftHandOnly: true } : {}),
+          audioDerived: inp.contentType === "youtube",
+          ...(inp.chords ? { chords: inp.chords } : {}),
+        },
+      );
   } catch (e) {
     return { baseId: "", songIds: [], error: `arrangement failed: ${(e as Error).message}` };
   }
-  const validationErrors = validateVariants(variants, { maxDurBeats });
+  if (inp.symbolicIntent?.study) {
+    const availableLevels = variants.map((variant) => variant.level);
+    if (JSON.stringify(availableLevels) !== JSON.stringify(inp.symbolicIntent.study.availableLevels)) {
+      return { baseId: "", songIds: [], error: "study level availability changed; repeat the preflight review" };
+    }
+  }
+  const validationErrors = validateVariants(variants, { maxDurBeats, shortStudy: Boolean(inp.symbolicIntent?.study) });
   if (validationErrors.length) {
     return { baseId: "", songIds: [], error: `validation failed: ${validationErrors.join("; ")}` };
   }
@@ -599,7 +645,12 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
         ...(beginnerOffGridRh.length ? { beginnerOffGridRh } : {}),
-        warnings: v.warnings,
+      warnings: [
+        ...(v.warnings ?? []),
+        ...(inp.symbolicIntent?.arrangementIntent === "backing-only-chords"
+          ? ["owner-selected harmony/bass parts placed in the left-hand accompaniment lane; physical hand suitability is not verified"]
+          : []),
+      ],
         chords: v.chords,
         measures: v.measures,
         key: v.key,
@@ -612,6 +663,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
             timeSig: [...event.timeSig] as [number, number],
           })),
         } : {}),
+        ...(inp.symbolicIntent ? { symbolicIntent: inp.symbolicIntent } : {}),
         provenance,
       }) });
     } catch (e) {
@@ -623,7 +675,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   }
 
   const artifactsRoot = join(dataDir(), "artifacts");
-  const uploadExt = isMxl ? "mxl" : sourceIsXml ? "xml" : "mid";
+  const uploadExt = ingestFormat === "mxl" ? "mxl" : ingestFormat === "musicxml" ? "xml" : "mid";
   const uploadRoot = uploadsDir();
   const finalUpload = join(uploadRoot, `${baseId}.${uploadExt}`);
   const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -631,6 +683,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const backupUpload = join(uploadRoot, `.${baseId}.backup-${token}.${uploadExt}`);
   const recoveryData: CatalogPublication = {
     baseId, rows: prepared.map(item => item.row),
+    ...(inp.symbolicIntent ? { symbolicIntent: inp.symbolicIntent } : {}),
     ...(options.job ? { job: options.job } : {}),
     ...(inp.contentType === "upload" ? { upload: {
       staged: basename(stageUpload), final: basename(finalUpload), backup: basename(backupUpload),
@@ -647,6 +700,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       cleanTranscription: inp.contentType === "youtube" && inp.cleanTranscription !== false,
       maxDurBeats,
       arrangementProfile,
+      symbolicIntent: inp.symbolicIntent ?? null,
       chords: inp.chords ?? null,
       key: inp.key ?? null,
       tempoOverride: inp.tempo ?? null,
@@ -685,6 +739,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     ...(candidate ? { candidate } : {}),
     ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
     ...(inp.sourceArrangement ? { sourceArrangement: inp.sourceArrangement } : {}),
+    ...(inp.symbolicIntent ? { symbolicIntent: inp.symbolicIntent } : {}),
     tempo: {
       calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
       playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },
@@ -711,10 +766,11 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       // The manifest is deliberately written last inside the stage. The
       // shared publisher validates it again immediately before swapping.
       await writeArrangementManifestFile(join(stageRoot, "manifest.json"), manifest);
-      await stagePreparedBacking(baseId, stageRoot, artifactsRoot);
+      if (!inp.symbolicIntent?.study) await stagePreparedBacking(baseId, stageRoot, artifactsRoot);
       return { baseId, songIds: prepared.map((item) => item.row.id) };
     }, {
       artifactsRoot,
+      requiredLevels: variants.map((variant) => LEVEL_CODE[variant.level]!),
       semanticValidation: "strict",
       reuseExisting: options.uploadReplay?.mode === "reuse" ? async (root) => {
         const receipt = await uploadPublicationReceiptAtRoot(baseId, sourceArtifactHash, root);
@@ -743,6 +799,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       easySongId: result.songIds.find((id) => id.endsWith("-e")) ?? result.songIds[0]!,
       title: inp.title,
       artist: inp.artist,
+      ...(inp.symbolicIntent ? { symbolicIntent: inp.symbolicIntent } : {}),
     };
     return { ...result, uploadReceipt: receipt };
   } catch (e) {

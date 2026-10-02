@@ -57,6 +57,8 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
 
   const trackNotes: Note[][] = [];
   const trackNames: string[] = [];
+  const sourceParts: ParsedMidi["sourceParts"] = [];
+  const unsupportedControls = new Set<string>();
   const tempos: MidiTempoEvent[] = [];
   const timeSigEvents: MidiTimeSignatureEvent[] = [];
   let timeSig: [number, number] = [4, 4];
@@ -74,6 +76,9 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     let tick = 0;
     let running: number | null = null;
     const namesInTrack: string[] = [];
+    let trackName = "";
+    let percussion = false;
+    let percussionNoteCount = 0;
     // MIDI does not carry a note identity on note-off events. Keep a FIFO
     // queue per (channel,pitch). The writer allocates separate channels for
     // overlapping same-pitch intervals, which makes even nested re-strikes
@@ -121,6 +126,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
           } else if (type === 0x03) {
             const name = readStr(buf, { v: pos }, len2);
             if (name.trim()) {
+              trackName ||= name.trim();
               namesInTrack.push(name);
               trackNames.push(name);
             }
@@ -166,6 +172,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
         const note = buf[pos]!;
         const vel = buf[pos + 1]!;
         pos += 2;
+        if (chan === 9 && vel > 0) { percussion = true; percussionNoteCount++; }
         if (chan !== 9 && vel > 0) {
           const key = `${chan}:${note}`;
           const active = on.get(key) ?? [];
@@ -173,8 +180,10 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
           on.set(key, active);
         }
       } else if (kind === 0xa0 || kind === 0xb0 || kind === 0xe0) {
+        unsupportedControls.add(kind === 0xa0 ? "polyphonic aftertouch" : kind === 0xb0 ? "control changes" : "pitch bend");
         pos += 2;
       } else if (kind === 0xc0 || kind === 0xd0) {
+        unsupportedControls.add(kind === 0xc0 ? "program changes" : "channel aftertouch");
         pos += 1;
       }
     }
@@ -187,10 +196,24 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     const hand = inferTrackHand(namesInTrack);
     const identitySource = inferTrackIdentitySource(namesInTrack);
     const sourceLane = namesInTrack.length === 1 ? tutorialSourceLane(namesInTrack[0]!) : undefined;
+    const partId = `midi:${t}`;
     trackNotes.push(notes.map((n, index) => ({ ...n,
-      sourceOrigins: [{ id: `midi:${t}:${index}`, track: t }],
+      sourceOrigins: [{ id: `${partId}:${index}`, part: partId, track: t }],
       ...(hand ? { hand } : {}), ...(identitySource ? { identitySource } : {}), ...(sourceLane ? { sourceLane } : {}),
     })));
+    if (trackName || notes.length || percussion) {
+      const pitches = notes.map((note) => note.midi);
+      sourceParts!.push({
+        id: partId,
+        name: trackName || `Track ${t + 1}`,
+        noteCount: notes.length + percussionNoteCount,
+        lowMidi: pitches.length ? Math.min(...pitches) : null,
+        highMidi: pitches.length ? Math.max(...pitches) : null,
+        startBeat: notes.length ? Math.min(...notes.map((note) => note.start)) : null,
+        endBeat: notes.length ? Math.max(...notes.map((note) => note.start + note.dur)) : null,
+        ...(percussion ? { percussion: true } : {}),
+      });
+    }
   }
 
   const valid = trackNotes
@@ -236,6 +259,8 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     timeSig,
     notes: valid,
     trackNames: trackNames.filter((n) => n.trim()),
+    sourceParts,
+    ...(unsupportedControls.size ? { unsupportedControls: [...unsupportedControls].sort() } : {}),
     durationBeats,
     title,
   };

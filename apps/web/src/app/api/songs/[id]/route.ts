@@ -1,17 +1,16 @@
 import { readJsonObject } from "../../../../lib/bounded-body";
 import { NextResponse } from "next/server";
 import { getSongDetail, PublicationRevisionConflictError } from "@/lib/catalog-api";
+import { checkMutationAuth } from "@/lib/mutation-auth";
 import { apiAuthorization } from "../../../../lib/api-auth";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
-import { readdir, rm } from "node:fs/promises";
 import {
   ArtifactReconciliationError,
   dataDir,
   deleteBaseArtifact,
-  deleteBaseRows,
-  uploadsDir,
-  transcribedDir,
+  catalogDeletionSnapshot,
+  commitCatalogDeletion,
 } from "@keyspilli/catalog";
 import { join } from "node:path";
 
@@ -50,12 +49,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const authResponse = checkAuth(req);
+  const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
   const { id } = await params;
   const input = await readJsonObject(req);
   if (input.response) return input.response;
   const body = input.body;
+  if (Object.keys(body).some(key => !["title","artist","key","category","style","mood","tempo","playbackTempo","calibrationTempo","expectedRevision"].includes(key))) return NextResponse.json({ error: "unsupported metadata field" }, { status: 400 });
+  if (body.expectedRevision !== undefined && body.expectedRevision !== null && (typeof body.expectedRevision !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(body.expectedRevision))) return NextResponse.json({ error: "invalid expected publication revision" }, { status: 400 });
   const patch = {} as SongPatch & TempoRequestPatch;
   for (const k of ["title", "artist", "key", "category", "style", "mood"] as const) {
     const v = body[k];
@@ -74,7 +75,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     throw e;
   }
   try {
-    const rows = await applySongMetadata(id, patch);
+    const rows = await applySongMetadata(id, patch, { expectedRevision: body.expectedRevision as string | null | undefined });
     return NextResponse.json({ baseId: rows[0]!.baseId, songIds: rows.map((r) => r.id), tempoRole });
   } catch (e) {
     if (e instanceof ArtifactReconciliationError) {
@@ -98,28 +99,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   try {
     await deleteBaseArtifact(baseId, {
       artifactsRoot: join(dataDir(), "artifacts"),
-      // Keep DB/read-model and auxiliary-source cleanup inside the same
-      // per-base lock. Filesystem deletion is the commit point; a DB failure
-      // is surfaced as reconciliationRequired rather than being hidden.
-      afterFilesystemDelete: async () => {
-        const { jobIds } = deleteBaseRows(baseId);
-
-        // Source sidecars are not part of the atomic artifact tree. Cleanup
-        // is best effort after the DB transaction so retained source data can
-        // support explicit reconciliation if a cleanup fails.
-        const uploads = await readdir(uploadsDir()).catch(() => [] as string[]);
-        await Promise.all(
-          uploads
-            .filter((f) => f.startsWith(`${baseId}.`))
-            .map((f) => rm(join(uploadsDir(), f), { force: true }).catch(() => undefined)),
-        );
-        const transcribed = await readdir(transcribedDir()).catch(() => [] as string[]);
-        await Promise.all(
-          transcribed
-            .filter((f) => jobIds.includes(f) || jobIds.some((j) => f.startsWith(`${j}-`)))
-            .map((f) => rm(join(transcribedDir(), f), { recursive: true, force: true }).catch(() => undefined)),
-        );
-      },
+      prepareRecoveryData: () => catalogDeletionSnapshot(baseId),
+      afterFilesystemDelete: commitCatalogDeletion,
     });
   } catch (e) {
     const message = (e as Error).message;

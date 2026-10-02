@@ -17,6 +17,7 @@ export interface GradeResult {
   accuracyPct: number;
   summary: string;
   diagnostics?: GradeDiagnostics;
+  articulation?: import("./articulation.js").ArticulationResult;
 }
 
 /**
@@ -125,6 +126,7 @@ export class Grader {
 
   /** Feed a played note (midi) at the given time. Returns true if accepted in wait mode. */
   play(midi: number, now: number, timing?: { rawSec: number; offsetMs: number }): boolean {
+    this.lastAcceptedNote = null;
     this.eventTiming = timing;
     const waitingFor = this.currentWait;
     if (waitingFor) {
@@ -173,7 +175,8 @@ export class Grader {
     }
     if (exactIndex >= 0) {
       this.hits++;
-      this.recordTarget(this.remaining[exactIndex]!, "hit", midi, now);
+      this.lastAcceptedNote = this.remaining[exactIndex]!;
+      this.recordTarget(this.lastAcceptedNote, "hit", midi, now);
       this.consumeTarget(exactIndex);
       return true;
     }
@@ -194,7 +197,8 @@ export class Grader {
     }
     if (pastIdx >= 0) {
       this.late++;
-      this.recordTarget(this.remaining[pastIdx]!, "late", midi, now);
+      this.lastAcceptedNote = this.remaining[pastIdx]!;
+      this.recordTarget(this.lastAcceptedNote, "late", midi, now);
       this.consumeTarget(pastIdx);
       return true;
     }
@@ -223,6 +227,8 @@ export class Grader {
   }
 
   /** The most recently accepted note in wait mode (for transport advance). */
+  acceptedTargetIndex(): number | null { return this.lastAcceptedNote ? this.targetIndexes.get(this.lastAcceptedNote) ?? null : null; }
+
   lastAccepted(): TimedNote | null {
     return this.lastAcceptedNote;
   }

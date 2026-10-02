@@ -1,3 +1,4 @@
+import {ArticulationGrader} from "../src/articulation.js";
 import { afterEach, expect, it, vi } from "vitest";
 import { loadPracticeState, savePracticeState, passageAvailable, practiceFingerprint, recordAttempt, type PracticeAttempt, type SavedPassage } from "../src/practice-store.js";
 
@@ -33,4 +34,12 @@ it("binds passages to complete source content and keeps bounded, explicit run ou
   expect(loadPracticeState().passages).toEqual([]);
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => { throw Error("quota"); } });
   expect(savePracticeState(state)).toBe(false);
+});
+
+it("round-trips a separate bounded hold/release result and refuses mismatched assessment context",()=>{
+ let raw:string|null=null;vi.stubGlobal("localStorage",{getItem:()=>raw,setItem:(_key:string,value:string)=>{raw=value;}});
+ const grader=new ArticulationGrader(1,1);grader.press("fixture",{midi:60,startSec:0,durSec:1,vel:80},0,0,0);grader.release("fixture",.05);
+ const attempt:PracticeAttempt={id:"hold-fixture",target:{baseId:"fixture",variantId:"fixture-e",fingerprint:"sha256:"+"b".repeat(64)},startBeat:0,endBeat:2,startedAt:"2026-10-02T00:00:00Z",finishedAt:"2026-10-02T00:00:01Z",outcome:"completed",countInCompleted:true,context:{mode:"beginner",difficulty:"easy",input:"midi",wait:false,speed:1,transpose:0,hand:"both",soundSource:"synth",backgroundMode:"piano",accompanimentStyle:"bass-chords",bpm:120,assessment:"key-hold",articulationToleranceMs:150,midiDevice:"fixture",midiChannel:0},result:{total:1,hit:1,missed:0,wrong:0,late:0,accuracyPct:100,articulation:grader.result()}};
+ expect(recordAttempt(attempt)).toBe(true);expect(loadPracticeState().attempts[0]?.result?.articulation).toEqual(grader.result());
+ const state=loadPracticeState();state.attempts[0]!.context.articulationToleranceMs=200;expect(savePracticeState(state)).toBe(false);
 });

@@ -3,18 +3,20 @@ import { build } from "esbuild";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
+import type { PlaybackEngine } from "../../../packages/player-core/src/engine";
+import type { resolveTimedNotes, selectHandNotes } from "../../../packages/player-core/src/timeline";
 import type { AudioEngine } from "../../../packages/player-core/src/audio";
 import type { SamplerAudioEngine } from "../../../packages/player-core/src/sampler-audio";
 
 test("offline PCM oracle catches silent buses, held voices, clicks and pedal tails", async ({ page, browser },info) => {
   const root=resolve(__dirname,"../../..");
   const fixture=resolve(__dirname,"fixtures/controlled-piano.ts");
-  const bundled=await build({ stdin:{contents:'export { AudioEngine } from "./packages/player-core/src/audio.ts"; export { SamplerAudioEngine } from "./packages/player-core/src/sampler-audio.ts";',resolveDir:root,loader:"ts"},bundle:true,write:false,platform:"browser",format:"iife",globalName:"AudioOracle",plugins:[{
+  const bundled=await build({ stdin:{contents:'export { PlaybackEngine } from "./packages/player-core/src/engine.ts"; export { resolveTimedNotes, selectHandNotes } from "./packages/player-core/src/timeline.ts"; export { AudioEngine } from "./packages/player-core/src/audio.ts"; export { SamplerAudioEngine } from "./packages/player-core/src/sampler-audio.ts";',resolveDir:root,loader:"ts"},bundle:true,write:false,platform:"browser",format:"iife",globalName:"AudioOracle",plugins:[{
     name:"controlled-pcm",setup(builder) { builder.onResolve({filter:/^smplr$/},()=>({path:fixture,namespace:"controlled-pcm"})); builder.onLoad({filter:/.*/,namespace:"controlled-pcm"},()=>({contents:readFileSync(fixture,"utf8"),loader:"ts"})); },
   }] });
   await page.goto("/"); await page.addScriptTag({content:bundled.outputFiles![0]!.text});
   const metrics=await page.evaluate(async () => {
-    const classes=(window as unknown as {AudioOracle:{AudioEngine:typeof AudioEngine;SamplerAudioEngine:typeof SamplerAudioEngine}}).AudioOracle;
+    const classes=(window as unknown as {AudioOracle:{PlaybackEngine:typeof PlaybackEngine;resolveTimedNotes:typeof resolveTimedNotes;selectHandNotes:typeof selectHandNotes;AudioEngine:typeof AudioEngine;SamplerAudioEngine:typeof SamplerAudioEngine}}).AudioOracle;
     const NativeOffline=window.OfflineAudioContext;
     // Real offline graph; ensure() resume is a no-op until our explicit render/resume boundary.
     window.AudioContext=class extends NativeOffline { constructor() {super(2,96_000,48_000);} resume() {return Promise.resolve();} } as unknown as typeof AudioContext;
@@ -42,10 +44,23 @@ test("offline PCM oracle catches silent buses, held voices, clicks and pedal tai
     }
     async function pedal(enabled:boolean) { const engine=new classes.AudioEngine(); engine.sustainPedal=enabled; const context=engine.ensure() as unknown as OfflineAudioContext;
       engine.noteOn({...note("R"),durSec:.5},.2); const buffer=await context.startRendering(); engine.dispose(); return rms(buffer,.73,.79); }
+    async function support(enabled:boolean) {
+      const audio=new classes.AudioEngine();
+      const source=[{...note("R"),startSec:.1},{...note("L"),startSec:.1,midi:60}];
+      const audible=classes.selectHandNotes(source,"L",enabled),targets=classes.selectHandNotes(source,"L");
+      const engine=new classes.PlaybackEngine(audio,audible,2,{tempoBpm:120,timeSig:[4,4]}, {voiceGain:1,pianoGain:0,sustainPedal:false,speed:1,transpose:0,hand:"L",backgroundMode:"piano"} as import("../../../packages/player-core/src/types").PlayerSettings,[],targets);
+      engine.start();const context=audio.ensure() as unknown as OfflineAudioContext;const buffer=await context.startRendering();engine.stop();audio.dispose();return rms(buffer,.15,.3);
+    }
+    async function expression(policy:"source"|"meter-accents") {
+      const audio=new classes.AudioEngine();audio.setGains(1,0);audio.sustainPedal=false;
+      const song={notes:[{midi:60,start:0,dur:.5,vel:80,hand:"R" as const}],chords:[],measures:[{index:0,startBeat:0,endBeat:3}],key:"C",tempoBpm:120,timeSig:[3,4] as [number,number],sourceTiming:{timeSig:[3,4] as const,measureStartBeat:0,provenance:"source-measure-boundary" as const,sourceFingerprint:"authored-pcm-fixture"}};
+      const timed=classes.resolveTimedNotes(song,1,0,policy),context=audio.ensure() as unknown as OfflineAudioContext;
+      audio.noteOn(timed[0]!, .25);const buffer=await context.startRendering();audio.dispose();return {velocity:timed[0]!.vel,rms:rms(buffer,.29,.4),sourceVelocity:song.notes[0]!.vel};
+    }
     const pcm=new Float32Array(right.length*right.numberOfChannels);
     for(let channel=0;channel<right.numberOfChannels;channel++) pcm.set(right.getChannelData(channel),channel*right.length);
     const pcmSha256=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",pcm.buffer)),byte=>byte.toString(16).padStart(2,"0")).join("");
-    return {pcmSha256,fixture:"synthetic-sine-PCM-v1",sampleRate:48_000,frames:96_000,
+    return {sourceExpression:await expression("source"),accentExpression:await expression("meter-accents"),supportOn:await support(true),supportOff:await support(false),pcmSha256,fixture:"synthetic-sine-PCM-v1",sampleRate:48_000,frames:96_000,
       right:rms(right,.27,.47),rightMutedLeft:rms(right,.92,1.12),left:rms(left,.92,1.12),leftMutedRight:rms(left,.27,.47),
       sampledLeft:rms(sampled,.92,1.12),sampledMutedRight:rms(sampled,.27,.47),silent:rms(silent,0,2),onsetSilence:rms(right,.01,.2),tailSilence:rms(right,1.5,1.9),
       difference,channelDifference,released:await release(false),cancelled:await release(true),sampledReleased:await release(false,true),sampledCancelled:await release(true,true),pedalOn:await pedal(true),pedalOff:await pedal(false)};
@@ -57,6 +72,9 @@ test("offline PCM oracle catches silent buses, held voices, clicks and pedal tai
   for(const value of [metrics.rightMutedLeft,metrics.leftMutedRight,metrics.sampledMutedRight,metrics.silent,metrics.onsetSilence,metrics.tailSilence]) expect(value).toBeLessThan(1e-6);
   // Two Float32 ulps near unity cover browser graph rounding; silence thresholds stay strict.
   expect(metrics.difference).toBeLessThan(2**-22);expect(metrics.channelDifference).toBeLessThan(2**-22);
+  expect(metrics.supportOn).toBeGreaterThan(1e-4);expect(metrics.supportOff).toBeLessThan(1e-6);
+  // Velocity also changes filtering and enters a compressor; require a measurable increase, not a linear ratio.
+  expect(metrics.sourceExpression.velocity).toBe(80);expect(metrics.accentExpression.velocity).toBe(92);expect(metrics.accentExpression.sourceVelocity).toBe(80);expect(metrics.accentExpression.rms).toBeGreaterThan(metrics.sourceExpression.rms*1.05);
   expect(metrics.pcmSha256).toMatch(/^[a-f0-9]{64}$/);
   for(const result of [metrics.released,metrics.cancelled,metrics.sampledReleased,metrics.sampledCancelled]) {expect(result.before).toBeGreaterThan(1e-4);expect(result.after).toBeLessThan(1e-6);}
   expect(metrics.pedalOn).toBeGreaterThan(1e-5);expect(metrics.pedalOff).toBeLessThan(1e-6);

@@ -42,6 +42,12 @@ describe("loadSettings", () => {
     expect(loadSettings()).toEqual({ ...DEFAULT_SETTINGS, speed: 1, voiceGain: 0.5, metronome: true });
   });
 
+  it("keeps physical ranges independent and rejects malformed device guesses",()=>{
+    store.set(KEY,JSON.stringify({physicalKeyboard:{lowMidi:36,highMidi:96},showAllKeys:true}));
+    expect(loadSettings().physicalKeyboard).toEqual({lowMidi:36,highMidi:96});expect(loadSettings().showAllKeys).toBe(true);
+    store.set(KEY,JSON.stringify({physicalKeyboard:{lowMidi:96,highMidi:36}}));expect(loadSettings().physicalKeyboard).toBeNull();
+  });
+
   it("clamps numbers into range", () => {
     store.set(KEY, JSON.stringify({ voiceGain: 99, transpose: -100 }));
     const s = loadSettings();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMusicXmlNotes, parseMidi, buildVariants, writeMusicXml, Variant } from "../src/index.js";
+import { parseMusicXmlNotes, parseMidi, buildVariants, selectSourceParts, writeMusicXml, Variant } from "../src/index.js";
 
 const HEX = (s: string) => new Uint8Array(s.trim().split(/\s+/).map((b) => parseInt(b, 16)));
 const SCALE_MIDI = HEX(`
@@ -14,6 +14,17 @@ const SCALE_MIDI = HEX(`
 `);
 
 describe("parseMusicXmlNotes", () => {
+  it("preserves bounded original pitch spelling independently of the MIDI pitch", () => {
+    const xml = `<score-partwise><part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes>
+<note><pitch><step>F</step><alter>2</alter><octave>4</octave></pitch><duration>1</duration></note>
+<note><pitch><step>C</step><alter>3</alter><octave>4</octave></pitch><duration>1</duration></note>
+</measure></part></score-partwise>`;
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.notes[0]).toMatchObject({ midi: 67, sourcePitch: { step: "F", alter: 2, octave: 4 } });
+    expect(parsed.notes[1]).toMatchObject({ midi: 63 });
+    expect(parsed.notes[1]).not.toHaveProperty("sourcePitch");
+  });
+
   it("ignores comments and rejects malformed or unsupported song form", () => {
     const note = '<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>';
     const head = '<?xml version="1.0"?><score-partwise><part id="P1"><measure><attributes><divisions>1</divisions></attributes>';
@@ -148,9 +159,9 @@ describe("parseMusicXmlNotes", () => {
     const xml = writeMusicXml(variant, "Padded staff", "Test");
     const measure = xml.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/)?.[0] ?? "";
     // The RH stream is followed by a full-measure backup before the LH stream;
-    // the LH stream itself ends with a forward to the same boundary.
+    // the LH stream itself ends with an explicit rest to the same boundary.
     expect(measure).toContain('<backup><duration>3840</duration></backup>');
-    expect(measure).toMatch(/<staff>2<\/staff>[\s\S]*?<forward><duration>960<\/duration><\/forward><\/measure>$/);
+    expect(measure).toMatch(/<staff>2<\/staff>[\s\S]*?<note><rest\/><duration>960<\/duration><voice>2<\/voice>[\s\S]*?<staff>2<\/staff><\/note><\/measure>$/);
     expect(parseMusicXmlNotes(xml).notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
       [60, 0, 1],
       [48, 2.5, 0.5],
@@ -249,12 +260,21 @@ describe("parseMusicXmlNotes", () => {
     expect(m.notes.map((n) => n.midi)).toEqual([64]);
   });
 
-  it("rejects multi-part scores rather than silently dropping instruments", () => {
-    const xml = `<score-partwise version="4.0"><part id="P1"><measure number="1"><attributes><divisions>4</divisions></attributes>
+  it("keeps named and unnamed MusicXML parts distinct for explicit selection", () => {
+    const xml = `<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Lead</part-name></score-part>
+<score-part id="P2"><part-name>Bass</part-name></score-part></part-list>
+<part id="P1"><measure number="1"><attributes><divisions>4</divisions></attributes>
 <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>
 </measure></part><part id="P2"><measure number="1"><attributes><divisions>4</divisions></attributes>
 <note><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration></note>
+</measure></part><part id="P3"><measure number="1"><attributes><divisions>4</divisions></attributes>
+<note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration></note>
 </measure></part></score-partwise>`;
-    expect(() => parseMusicXmlNotes(xml)).toThrow(/multiple parts/);
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.sourceParts?.map(({ id, name }) => [id, name])).toEqual([
+      ["musicxml:P1", "Lead"], ["musicxml:P2", "Bass"], ["musicxml:P3", "P3"],
+    ]);
+    expect(parsed.notes.map((note) => note.sourceOrigins?.[0]?.part).sort()).toEqual(["musicxml:P1", "musicxml:P2", "musicxml:P3"]);
+    expect(selectSourceParts(parsed, ["musicxml:P2"]).notes.map((note) => note.midi)).toEqual([55]);
   });
 });

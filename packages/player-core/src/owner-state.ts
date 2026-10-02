@@ -1,3 +1,4 @@
+import { validKeyboardRange } from "./keyboard-range.js";
 import { DEFAULT_SETTINGS, loadSettings, loadSongPrefs, loadStringList, preferenceStorage, TIMING_CALIBRATION_KEY, type SongPrefs } from "./prefs.js";
 import { loadPracticeState, validPracticeState, PRACTICE_STATE_KEY, PRACTICE_STATE_EVENT, PRACTICE_STATE_MAX_BYTES, type PracticeState } from "./practice-store.js";
 import type { PlayerSettings } from "./types.js";
@@ -26,11 +27,11 @@ function songPrefs(v: unknown): v is SongPrefs {
     && (v.mode === undefined || oneOf(v.mode, modes)) && (v.hand === undefined || oneOf(v.hand, hands));
 }
 function settings(v: unknown): v is PlayerSettings {
-  if (!object(v) || !keys(v, Object.keys(DEFAULT_SETTINGS)) || Object.keys(v).length !== Object.keys(DEFAULT_SETTINGS).length) return false;
-  const enums: Record<string, readonly string[]> = { mode: modes, hand: hands, backgroundMode: ["piano", "chord"],
+  if (!object(v) || !keys(v, Object.keys(DEFAULT_SETTINGS)) || Object.keys(v).length !== Object.keys(DEFAULT_SETTINGS).length - Number(v.physicalKeyboard === undefined) - Number(v.audibleSupport === undefined) - Number(v.renderedExpression === undefined)) return false;
+  const enums: Record<string, readonly string[]> = { renderedExpression: ["source", "meter-accents"], mode: modes, hand: hands, backgroundMode: ["piano", "chord"],
     accompanimentStyle: ["melody-accompaniment", "bass-chords"], soundSource: ["synth", "sampled", "organ"], organStyle: ["rock", "cathedral"],
     organRegistration: ["warm", "clear", "full"], organRotary: ["slow", "fast"], keyboardLabels: ["notes", "octaves", "off"], stageTheme: ["light", "charcoal"] };
-  return Object.entries(DEFAULT_SETTINGS).every(([key, fallback]) => enums[key] ? oneOf(v[key], enums[key]!)
+  return Object.entries(DEFAULT_SETTINGS).every(([key, fallback]) => (key === "audibleSupport" || key === "renderedExpression") && v[key] === undefined ? true : key === "physicalKeyboard" ? v[key] === undefined || validKeyboardRange(v[key]) : enums[key] ? oneOf(v[key], enums[key]!)
     : typeof fallback === "boolean" ? typeof v[key] === "boolean"
     : key === "transpose" ? bounded(v[key], -24, 24) && Number.isInteger(v[key])
     : key === "speed" ? bounded(v[key], .25, 4) : bounded(v[key], 0, key.endsWith("Gain") ? 2 : 1));

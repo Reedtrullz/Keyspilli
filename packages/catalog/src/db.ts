@@ -555,19 +555,22 @@ export interface DeletedBaseRows {
  * succeeded; a thrown transaction leaves the database intact so the stale
  * read model can be reconciled explicitly.
  */
+export function getBaseJobIds(baseId: string): string[] {
+  return (getDb().prepare("SELECT id FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")
+    .all(baseId) as { id: string }[]).map(row => row.id);
+}
+
 export function deleteBaseRows(baseId: string): DeletedBaseRows {
   const conn = getDb();
   const remove = conn.transaction((id: string): DeletedBaseRows => {
-    const jobs = conn
-      .prepare("SELECT id FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")
-      .all(id) as { id: string }[];
-    if (jobs.length) {
+    const jobIds = getBaseJobIds(id);
+    if (jobIds.length) {
       conn
         .prepare("DELETE FROM conversion_jobs WHERE song_id IN (SELECT id FROM songs WHERE base_id = ?)")
         .run(id);
     }
     const songCount = conn.prepare("DELETE FROM songs WHERE base_id = ?").run(id).changes;
-    return { jobIds: jobs.map((row) => row.id), songCount };
+    return { jobIds, songCount };
   });
   const result = remove(baseId);
   invalidateSongReadModel();

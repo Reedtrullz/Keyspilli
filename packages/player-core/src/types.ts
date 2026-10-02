@@ -87,6 +87,10 @@ export interface PlayerSettings {
   transpose: number;
   mode: ViewMode;
   showAllKeys: boolean;
+  /** Owner-confirmed physical range, independently of the piano view. */
+  audibleSupport?: boolean;
+  renderedExpression?: import("./timeline.js").RenderedExpression;
+  physicalKeyboard?: import("./keyboard-range.js").KeyboardRange | null;
   keyboardLabels: "notes" | "octaves" | "off";
   showKeyBindings: boolean;
   stageTheme: "light" | "charcoal";

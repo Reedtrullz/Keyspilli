@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { validActiveExportSelection, type ActiveExportSelection } from "./active-arrangement-export";
 import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 export function DownloadDialog({
   songId,
@@ -8,6 +9,7 @@ export function DownloadDialog({
   hasSheetXml,
   backgroundMode = "piano",
   transpose = 0,
+  activeExport,
   onClose,
 }: {
   songId: string;
@@ -15,6 +17,7 @@ export function DownloadDialog({
   hasSheetXml: boolean;
   backgroundMode?: "piano" | "chord";
   transpose?: number;
+  activeExport?: {selection:ActiveExportSelection;sourceFingerprint:string|null;digest:()=>Promise<string>};
   onClose: () => void;
 }) {
   const items = [
@@ -26,6 +29,22 @@ export function DownloadDialog({
 
   const pin = publicationRevision === undefined ? "" : `&revision=${encodeURIComponent(publicationRevision ?? "unpinned")}`;
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [arrangement,setArrangement]=useState("stored"),[busy,setBusy]=useState(false),[error,setError]=useState("");
+  const requestRef=useRef<AbortController|null>(null);
+  useEffect(()=>()=>{requestRef.current?.abort();requestRef.current=null;},[]);
+  async function downloadActive(type:"midi"|"musicxml"|"pdf") {
+    if(!activeExport||!publicationRevision||!activeExport.sourceFingerprint||busy||!validActiveExportSelection(activeExport.selection))return;
+    const controller=new AbortController();requestRef.current=controller;setBusy(true);setError("");
+    const timer=setTimeout(()=>controller.abort(),100000);
+    try {
+      const expectedHash=await activeExport.digest();if(controller.signal.aborted)return;
+      const response=await fetch(`/api/song/${encodeURIComponent(songId)}/active-export`,{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({type,revision:publicationRevision,sourceFingerprint:activeExport.sourceFingerprint,selection:activeExport.selection,expectedHash})});
+      if(!response.ok){const value=await response.json();throw new Error(value.error??"Active export unavailable.");}
+      const blob=await response.blob();if(controller.signal.aborted)return;
+      const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`${songId}-active.${type==="midi"?"mid":type==="pdf"?"pdf":"musicxml"}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(error){if(requestRef.current===controller)setError(controller.signal.aborted?"Active export timed out. Retry deliberately.":error instanceof Error?error.message:"Active export failed.");}
+    finally{clearTimeout(timer);if(requestRef.current===controller)setBusy(false);}
+  }
   const { requestClose, visible, closing } = useDialogMotion(onClose);
   const motion = dialogMotionClasses(visible, closing);
 
@@ -58,15 +77,16 @@ export function DownloadDialog({
           <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
         </div>
         <p className="text-xs text-zinc-500 mb-4">Download this arrangement for practice. Source rights still apply.</p>
-        {backgroundMode === "chord" && (
+        <label className="block mb-4 text-sm">Arrangement<select className="block border rounded min-h-11 px-2" disabled={busy} value={arrangement} onChange={event=>{setArrangement(event.target.value);setError("");}}><option value="stored">Stored Original</option><option value="active" disabled={!activeExport||!publicationRevision||!activeExport.sourceFingerprint}>Active arrangement</option></select></label>
+        {arrangement === "stored" && backgroundMode === "chord" && (
           <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
             Downloads use the stored Original arrangement. Chord mode changes playback and guidance only.
           </p>
         )}
-        {transpose !== 0 && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
+        {arrangement === "stored" && transpose !== 0 && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
           Downloads stay in the original key; playback is transposed {transpose > 0 ? `+${transpose}` : transpose} semitones.
         </p>}
-        <div className="space-y-2">
+        {arrangement === "active" ? <div className="space-y-2"><p className="text-xs text-zinc-600">Selected notes, backing, hand support, speed, transposition and declared dynamics. Chord names appear as MusicXML text and MIDI markers. Timbre, mixer volume and pedal sound tails are separate. Symbolic parity is checked before download.</p>{(["midi","musicxml","pdf"] as const).map(type=><button key={type} disabled={busy} onClick={()=>void downloadActive(type)} className="block w-full text-left rounded-xl border p-3 min-h-11">{busy?"Preparing…":`Active ${type==="midi"?"MIDI":type==="pdf"?"Sheet PDF":"MusicXML"}`}</button>)}</div> : <div className="space-y-2">
           {items.map((it) => (
             <a
               key={it.label}
@@ -82,6 +102,8 @@ export function DownloadDialog({
             </a>
           ))}
         </div>
+        }
+        {error && <p className="text-sm text-red-700 mt-3" role="alert">{error}</p>}
         <button onClick={requestClose} className="w-full mt-4 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium">
           Done
         </button>

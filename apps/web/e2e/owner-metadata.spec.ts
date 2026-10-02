@@ -1,0 +1,44 @@
+import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+const xml = `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>${['C','D','E','F','G','A','B','C'].map(step => `<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration></note>`).join('')}</measure></part></score-partwise>`;
+test("owner metadata preview saves all variants and survives validation, auth expiry and stale review", async ({ page, request }) => {
+  const headers = { Authorization: "Bearer test-token-for-e2e", "Content-Type": "application/xml" };
+  const created = await request.post("/api/uploads?title=Metadata%20Fixture&artist=Author", { headers, data: Buffer.from(xml) });
+  expect(created.ok(), await created.text()).toBe(true);
+  const receipt = await created.json(), id = receipt.songIds.find((value: string) => value.endsWith("-a"));
+  const root = process.env.KEYSPILLI_E2E_SCRATCH_DIR!;
+  const files = await Promise.all(receipt.songIds.map((songId: string) => readFile(join(root,"artifacts",receipt.baseId,songId.split("-").at(-1)!,"notes.json"))));
+  try {
+    await page.goto(`/player/${id}/beginner`);
+    const editor = page.getByRole("group", { name: "Owner metadata edit" });
+    await editor.locator("summary").click();
+    await editor.getByLabel("Lesson title").fill("Edited lesson");
+    await editor.getByRole("button", { name: "Preview metadata changes" }).click();
+    await expect(editor.getByLabel("Metadata change preview")).toContainText("Metadata Fixture → Edited lesson");
+    let expire = true;
+    await page.route(`**/api/songs/${id}`, route => route.continue({ headers: { ...route.request().headers(), ...(expire ? { authorization: "Bearer expired-test-token" } : {}) } }));
+    await editor.getByRole("button", { name: "Save reviewed metadata" }).click();
+    await expect(editor.getByRole("status")).toContainText("Owner access expired");
+    expire = false;
+    await editor.getByRole("button", { name: "Save reviewed metadata" }).click();
+    await expect(editor.getByRole("status")).toContainText("Saved for every available variant");
+    expect(await Promise.all(receipt.songIds.map((songId: string) => readFile(join(root,"artifacts",receipt.baseId,songId.split("-").at(-1)!,"notes.json"))))).toEqual(files);
+    for (const songId of receipt.songIds) expect((await (await request.get(`/api/songs/${songId}`)).json()).song.title).toBe("Edited lesson");
+    await editor.getByRole("button", { name: "Reload publication" }).click();
+    await page.getByRole("group", { name: "Owner metadata edit" }).locator("summary").click();
+    await editor.getByLabel("Lesson category").fill("Study");
+    await editor.getByRole("button", { name: "Preview metadata changes" }).click();
+    const current = await (await request.get(`/api/songs/${id}`)).json();
+    expect((await request.patch(`/api/songs/${id}`, { headers: { Authorization: headers.Authorization }, data: { expectedRevision: current.publicationRevision, artist: "New owner label" } })).ok()).toBe(true);
+    await editor.getByRole("button", { name: "Save reviewed metadata" }).click();
+    await expect(editor.getByRole("status")).toContainText("This version changed");
+    await editor.getByRole("button", { name: "Reload publication" }).click();
+    await editor.locator("summary").click();
+    expect((await request.patch(`/api/songs/${id}`, { headers: { Authorization: headers.Authorization }, data: { title: "x".repeat(161) } })).status()).toBe(400);
+    await editor.getByLabel("Lesson title").fill("");
+    await expect(editor.getByRole("button", { name: "Preview metadata changes" })).toBeDisabled();
+    await editor.getByRole("button", { name: "Discard metadata changes" }).click();
+    await expect(editor.getByLabel("Lesson title")).toHaveValue("Edited lesson");
+  } finally { expect((await request.delete(`/api/songs/${receipt.baseId}`, { headers })).ok()).toBe(true); }
+});

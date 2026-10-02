@@ -6,10 +6,10 @@ import { PracticeSets } from "../PracticeSets";
 import { loadPracticeState, savePracticeState, passageAvailable, PRACTICE_STATE_EVENT, PRACTICE_STATE_KEY,
   type PracticeTarget, type SavedPassage } from "@keyspilli/player-core";
 
-export function PracticeWorkspace({ target, variantId, range, endBeat, positionBeat, disabled, bpm, onSelect, onResume, onUseTempoPlan }: {
+export function PracticeWorkspace({ publicationRevision=null, target, variantId, range, endBeat, positionBeat, disabled, bpm, onSelect, onResume, onUseTempoPlan }: {
   target: PracticeTarget | null; variantId: string; range: { startBeat: number; endBeat: number } | null;
   endBeat: number; positionBeat: number; disabled: boolean;
-  bpm: number; onUseTempoPlan: (passage: SavedPassage) => void;
+  publicationRevision?:string|null; bpm: number; onUseTempoPlan: (passage: SavedPassage) => void;
   onSelect: (passage: SavedPassage) => void; onResume: (beat: number) => void;
 }) {
   const [state, setState] = useState<ReturnType<typeof loadPracticeState>>({ version: 1, passages: [], attempts: [], resume: null });
@@ -101,7 +101,7 @@ export function PracticeWorkspace({ target, variantId, range, endBeat, positionB
       {!attempts.length && <p>No practice history for this variant yet.</p>}
       <ol>{attempts.slice(0, 20).map(run => <li key={run.id} className="border-t py-2">
         <time dateTime={run.startedAt}>{run.startedAt}</time> · {run.outcome}{run.finishedAt === null && " (unfinished)"}
-        <p>{run.context.input} · {run.context.wait ? "Wait for notes" : "Play along"} · {Math.round(run.context.speed * 100)}% · transpose {run.context.transpose} · {run.context.hand}</p>
+        <p>{run.context.assessment==="key-hold"?"Key hold/release + onset":"Onset only"} · {run.context.input} · {run.context.wait ? "Wait for notes" : "Play along"} · {Math.round(run.context.speed * 100)}% · transpose {run.context.transpose} · {run.context.hand}</p>
         <p className="text-xs text-zinc-600">Sound: {run.context.effectiveTimbre ?? "Unknown historical timbre"}. Timing calibration: {run.context.timingCalibrationMs == null ? "Unknown / uncalibrated" : `${run.context.timingCalibrationMs} ms owner offset`}. Physical hand is not measured.</p>
         {run.context.tempoPlan && <p className="text-xs">Tempo plan attempt · {Math.round(run.context.bpm*run.context.speed)} BPM · {run.context.wait ? "Wait-mode excluded from progress" : "Completed play-along results checked against plan policy"}.</p>}
         {run.result?.diagnostics && <p>{run.result.diagnostics.events.filter(event => event.outcome !== "unmatched").length} saved problem locations · {run.result.diagnostics.omitted} events outside the saved view</p>}
@@ -112,7 +112,7 @@ export function PracticeWorkspace({ target, variantId, range, endBeat, positionB
         <button disabled={disabled} className="min-h-11 underline" onClick={() => { const current = loadPracticeState(); current.attempts = current.attempts.filter(item => item.target.variantId !== variantId); commit(current); }}>Clear this variant’s history</button>
         <a className="min-h-11 underline flex items-center" download={`${variantId}-practice-history.json`} href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify({ version: 1, attempts }))}`}>Download practice history</a>
       </div>}
-      <OwnerStateTools disabled={disabled} />
+      <OwnerStateTools disabled={disabled} publicationRevision={publicationRevision}/>
       <PracticeSets target={target} endBeat={endBeat} disabled={disabled} />
     </div>
   </details>;

@@ -216,6 +216,8 @@ export class OrganAudioEngine implements AudioLike {
     ctx.onstatechange = () => { if (this.ctx === ctx) this.onStateChange?.(ctx.state); };
     this.voiceGainNode = ctx.createGain();
     this.pianoGainNode = ctx.createGain();
+    this.voiceGainNode.gain.value = this.voiceGain;
+    this.pianoGainNode.gain.value = this.pianoGain;
     this.master = ctx.createGain();
     this.compressor = ctx.createDynamicsCompressor();
 

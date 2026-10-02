@@ -1,9 +1,9 @@
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
-import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
+import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, PUBLIC_DIFFICULTY_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
 import { mergedNoteLineage, quantize } from "./quantize.js";
 import { midiBeatToNativeSeconds } from "./parse.js";
-import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS } from "./validate.js";
+import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS, validateShortStudySource, validateVariants } from "./validate.js";
 import { sanitizeImportedNotes } from "./clean.js";
 import { validateChordLabels } from "./chords.js";
 import {
@@ -46,6 +46,8 @@ export interface VariantOptions {
    * semantic piano cover, retaining sparse harmonic anchors at every level.
    */
   arrangementProfile?: "source" | "learner" | "metal";
+  /** Source-only lane for owner-selected backing harmony/bass; emits only source pitches. */
+  safeLeftHandOnly?: boolean;
   /**
    * The source is an audio transcription whose one-staff pitch stream may
    * need inferred inner-voice placement. Keep this opt-in so curated MIDI
@@ -2905,6 +2907,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const grid = opts.grid ?? 0.25;
   const metalProfile = opts.arrangementProfile === "metal";
   const learnerProfile = opts.arrangementProfile === "learner";
+  const safeLeftHandOnly = opts.safeLeftHandOnly === true;
   const learnerSafetyProfile = learnerProfile || metalProfile;
   const protectedIdentitySources = new Set(opts.protectedIdentitySources ?? []);
   const tempo = normalizeTempoBpm(meta.tempo ?? src.tempoBpm);
@@ -3193,7 +3196,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const beginnerSource = quantize(
     [
       ...beginnerRh,
-      ...(metalProfile ? sparseLeftHandAnchors(veryEasy, Math.max(1, beatsPerMeasure / 2)) : []),
+      ...(metalProfile || safeLeftHandOnly ? sparseLeftHandAnchors(veryEasy, Math.max(1, beatsPerMeasure / 2)) : []),
     ],
     { grid: 0.25 },
   );
@@ -3224,7 +3227,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const veryBeginnerSource = quantize(
     [
       ...veryBeginnerRh,
-      ...(metalProfile ? sparseLeftHandAnchors(beginner, Math.max(1, beatsPerMeasure)) : []),
+      ...(metalProfile || safeLeftHandOnly ? sparseLeftHandAnchors(beginner, Math.max(1, beatsPerMeasure)) : []),
     ],
     { grid: 0.5 },
   );
@@ -3408,6 +3411,62 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       measures: buildMeasures(notes, src.timeSig, src.durationBeats, sourceTimeSigEvents),
     };
   });
+}
+
+/** Keep an owner-authored short study exact and expose only levels that pass
+ * the normal playability limits. No notes, pitches, or hands are synthesized. */
+export function buildShortStudyVariants(
+  source: ParsedMidi,
+  meta: SongMeta,
+  options: { maxDurBeats?: number | null } = {},
+): Variant[] {
+  assertSourceWorkload(source);
+  const sourceErrors = validateShortStudySource(source.notes);
+  if (sourceErrors.length) throw new Error(sourceErrors.join("; "));
+
+  const sourceTempo = normalizeTempoBpm(source.tempoBpm);
+  let parsed = source;
+  if (source.tempoEvents?.length && (
+    !source.tempoEvents.some((event) => event.tick === 0)
+    || source.tempoEvents.some((event) => Math.abs(60_000_000 / event.microsecondsPerQuarter - sourceTempo) > 1e-6)
+  )) {
+    const beat = (value: number) => midiBeatToNativeSeconds(source, value) * sourceTempo / 60;
+    parsed = {
+      ...source,
+      tempoBpm: sourceTempo,
+      tempoEvents: undefined,
+      durationBeats: beat(source.durationBeats),
+      notes: source.notes.map((note) => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
+      ...(source.timeSigEvents?.length ? { timeSigEvents: source.timeSigEvents.map((event) => ({ ...event, beat: beat(event.beat) })) } : {}),
+    };
+  }
+  const tempoBpm = normalizeTempoBpm(meta.tempo ?? parsed.tempoBpm);
+  const notes = parsed.notes.map((note) => ({ ...note }));
+  const timeSigEvents = normalizeTimeSigEvents(parsed.timeSigEvents);
+  const scores: Record<(typeof PUBLIC_DIFFICULTY_ORDER)[number], number> = {
+    beginner: 1.4,
+    easy: 2.6,
+    medium: 3.4,
+    advanced: 4.6,
+  };
+  const candidates = PUBLIC_DIFFICULTY_ORDER.map((level): Variant => ({
+    level,
+    difficultyScore: scores[level],
+    notes: notes.map((note) => ({ ...note })),
+    chords: [],
+    bassPattern: "none",
+    key: meta.key ?? detectKey(notes).name,
+    tempoBpm,
+    timeSig: [...parsed.timeSig] as [number, number],
+    ...(timeSigEvents.length ? { timeSigEvents: timeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
+    measures: buildMeasures(notes, parsed.timeSig, parsed.durationBeats, timeSigEvents),
+  }));
+  const available = candidates.filter((variant) => validateVariants([variant], {
+    shortStudy: true,
+    maxDurBeats: options.maxDurBeats ?? null,
+  }).length === 0);
+  if (!available.length) throw new Error("study does not pass any public level's playability limits");
+  return available;
 }
 
 function buildMeasures(

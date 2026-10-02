@@ -1,3 +1,4 @@
+import { validKeyboardRange } from "./keyboard-range.js";
 import type { PlayerSettings } from "./types.js";
 import type { AccompanimentStyle } from "./accompaniment.js";
 
@@ -34,6 +35,9 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   transpose: 0,
   mode: "falling",
   showAllKeys: true,
+  physicalKeyboard: null,
+  audibleSupport: false,
+  renderedExpression: "source",
   keyboardLabels: "notes",
   showKeyBindings: false,
   stageTheme: "light",
@@ -108,6 +112,9 @@ export function loadSettings(): PlayerSettings {
       transpose: clampNum(Math.trunc(Number(raw.transpose)), TRANSPOSE_MIN, TRANSPOSE_MAX, DEFAULT_SETTINGS.transpose),
       mode: pickEnum(raw.mode, VIEW_MODES, DEFAULT_SETTINGS.mode),
       showAllKeys: pickBool(raw.showAllKeys, DEFAULT_SETTINGS.showAllKeys),
+      audibleSupport: pickBool(raw.audibleSupport, false),
+      renderedExpression: pickEnum(raw.renderedExpression,["source","meter-accents"] as const,"source"),
+      physicalKeyboard: validKeyboardRange(raw.physicalKeyboard) ? raw.physicalKeyboard : null,
       keyboardLabels: pickEnum(raw.keyboardLabels, ["notes", "octaves", "off"] as const, DEFAULT_SETTINGS.keyboardLabels),
       showKeyBindings: pickBool(raw.showKeyBindings, DEFAULT_SETTINGS.showKeyBindings),
       stageTheme: pickEnum(raw.stageTheme, ["light", "charcoal"] as const, DEFAULT_SETTINGS.stageTheme),

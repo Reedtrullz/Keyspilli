@@ -96,6 +96,9 @@ export function SoundControls({
     <>
       <section aria-label="Arrangement settings" className="player-settings-section">
         <h2 className="text-sm font-semibold mb-3">Arrangement</h2>
+        <label className="flex items-center gap-2 mb-2 text-sm"><input type="checkbox" checked={settings.audibleSupport??false} onChange={event=>onChange({audibleSupport:event.target.checked})}/>Keep the other hand audible</label>
+        <p className="text-xs text-zinc-600 mb-3">Practice targets follow your hand choice. Support uses the existing hand volume controls; it adds no assessed targets. Chords keeps your chosen backing arrangement.</p>
+        <label className="block mb-3">Rendered expression <select aria-label="Rendered expression" value={settings.renderedExpression??"source"} onChange={event=>onChange({renderedExpression:event.target.value as "source"|"meter-accents"})}><option value="source">Preserve source velocity</option><option value="meter-accents">Meter accents for flat velocities</option></select><small className="block">Accents require validated source measure phase. Unknown phase and varying source dynamics keep source velocity.</small></label>
         <div className="mb-4">
           <h3 className="text-sm font-medium mb-2">Background sound</h3>
           <div className="flex gap-2" role="radiogroup" aria-label="Background sound">

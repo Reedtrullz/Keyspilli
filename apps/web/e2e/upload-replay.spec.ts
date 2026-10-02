@@ -11,7 +11,11 @@ test("a repeat file opens the accepted lesson and replacement requires its revie
     await page.getByLabel("Title (optional)").fill("Changed Fixture");
     await page.getByLabel("Artist (optional)").fill("Other Author");
     await page.locator('input[type="file"]').setInputFiles({name:"authored.musicxml",mimeType:"application/xml",buffer:Buffer.from(xml)});
-    await page.getByRole("button",{name:"Upload & create lesson",exact:true}).click();
+    await page.getByRole("button",{name:"Review file parts",exact:true}).click();
+    await page.getByRole("list",{name:"Source parts"}).getByRole("checkbox").check();
+    await page.getByLabel("Role for Piano",{exact:true}).selectOption("other");
+    await page.getByRole("checkbox",{name:/I created these symbolic bytes/}).check();
+    await page.getByRole("button",{name:"Confirm and publish lesson",exact:true}).click();
     await expect(page.getByRole("status")).toContainText("Accepted Fixture by Author already has an accepted lesson");
     await expect(page.getByRole("link",{name:"Open accepted lesson"})).toHaveAttribute("href",`/player/${first.easySongId}`);
     const unchanged=await (await request.get(`/api/songs/${first.easySongId}`)).json();

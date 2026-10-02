@@ -4,9 +4,9 @@ export { CHORDS_TUNING, type ChordsTuning, type HarmonyTuning, type StrikeTuning
 export { parseMidi, midiBeatToNativeSeconds, midiTickToNativeSeconds } from "./parse.js";
 export { quantize } from "./quantize.js";
 export { splitHands, detectKey, keyName, chordName, detectBassPattern, melodyFrom, keySignature } from "./analyze.js";
-export { assertSourceWorkload, buildVariants, reduceMediumRhythm, padPitches, melodyOnly, normalizeTempoBpm, SAFE_TEMPO_BPM } from "./simplify.js";
-export { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, validateVariants, PLAYABILITY_LIMITS } from "./validate.js";
-export type { VariantValidationOptions } from "./validate.js";
+export { assertSourceWorkload, buildVariants, buildShortStudyVariants, reduceMediumRhythm, padPitches, melodyOnly, normalizeTempoBpm, SAFE_TEMPO_BPM } from "./simplify.js";
+export { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, validateVariants, validateShortStudySource, shortStudyKind, PLAYABILITY_LIMITS } from "./validate.js";
+export type { VariantValidationOptions, ShortStudyKind } from "./validate.js";
 export {
   measurePlayability,
   assessPlayability,
@@ -73,6 +73,8 @@ export type {
 } from "./metal-arrange.js";
 export { PITCH_COLORS, pitchColor } from "./pitchColors.js";
 export { parseMusicXmlNotes } from "./parseXml.js";
+export { selectSourceParts } from "./source-selection.js";
+export { matchingSourcePitch } from "./source-pitch.js";
 export { ARTIFACT_TEMPO_TOLERANCE, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
 export {
   parseChordSymbol,

@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "runtime": "v22.22.3",
+  "browser": "151.0.7922.34",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "fixture": {
+    "sha256": "621a9c7a287194f60760a932143a138a6d655a1c08f8857a275f35b1cb647008",
+    "notes": 640,
+    "measures": 160
+  },
+  "sampleCount": 3,
+  "samples": [
+    {
+      "sample": 0,
+      "libraryMs": [
+        227.137792,
+        92.77433299999984
+      ],
+      "uploadMs": 323.063125,
+      "firstScheduledNoteMs": 496.09999990463257,
+      "sheetMs": [
+        2181.9491660000003,
+        1411.2155830000002
+      ],
+      "pdfMs": 1307.378834000001,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 141.52550000000065,
+          "pages": 3,
+          "estimatedStringBytes": 660216,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 2,
+          "renderMs": 42.165500000000065,
+          "pages": 4,
+          "estimatedStringBytes": 835986,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 3,
+          "renderMs": 115.65129200000047,
+          "pages": 5,
+          "estimatedStringBytes": 1011736,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 4,
+          "renderMs": 188.72287499999948,
+          "pages": 5,
+          "estimatedStringBytes": 878926,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 5,
+          "renderMs": 118.22516700000051,
+          "pages": 5,
+          "estimatedStringBytes": 833356,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 6,
+          "renderMs": 113.28354200000012,
+          "pages": 4,
+          "estimatedStringBytes": 657524,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 7,
+          "renderMs": 266.0413329999992,
+          "pages": 3,
+          "estimatedStringBytes": 481754,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 174.17845800000032,
+          "pages": 3,
+          "estimatedStringBytes": 660216,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 7,
+          "renderMs": 168.7451659999997,
+          "pages": 3,
+          "estimatedStringBytes": 481754,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 183.9320830000006,
+          "pages": 3,
+          "estimatedStringBytes": 660216,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [],
+      "heapBytes": 24500000
+    },
+    {
+      "sample": 1,
+      "libraryMs": [
+        124.60924999999952,
+        150.90520900000047
+      ],
+      "uploadMs": null,
+      "firstScheduledNoteMs": 234.19999992847443,
+      "sheetMs": [
+        1990.1489169999986,
+        2018.3073750000003
+      ],
+      "pdfMs": 1155.4715419999993,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 122.6997080000001,
+          "pages": 3,
+          "estimatedStringBytes": 660260,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 2,
+          "renderMs": 42.5150420000009,
+          "pages": 4,
+          "estimatedStringBytes": 836060,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 3,
+          "renderMs": 122.80637500000012,
+          "pages": 5,
+          "estimatedStringBytes": 1011868,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 4,
+          "renderMs": 283.4894999999997,
+          "pages": 5,
+          "estimatedStringBytes": 879042,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 5,
+          "renderMs": 110.91225000000122,
+          "pages": 5,
+          "estimatedStringBytes": 833386,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 6,
+          "renderMs": 129.41441699999996,
+          "pages": 4,
+          "estimatedStringBytes": 657558,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 7,
+          "renderMs": 159.73649999999907,
+          "pages": 3,
+          "estimatedStringBytes": 481758,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 165.1324999999997,
+          "pages": 3,
+          "estimatedStringBytes": 660260,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 7,
+          "renderMs": 163.29979099999764,
+          "pages": 3,
+          "estimatedStringBytes": 481758,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 130.4544160000005,
+          "pages": 3,
+          "estimatedStringBytes": 660260,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [],
+      "heapBytes": 26000000
+    },
+    {
+      "sample": 2,
+      "libraryMs": [
+        122.8570830000026,
+        121.80620900000213
+      ],
+      "uploadMs": null,
+      "firstScheduledNoteMs": 319,
+      "sheetMs": [
+        1980.8087919999998,
+        1130.247875000001
+      ],
+      "pdfMs": 1195.193542000001,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 404.5786249999983,
+          "pages": 3,
+          "estimatedStringBytes": 660190,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 2,
+          "renderMs": 94.64649999999892,
+          "pages": 4,
+          "estimatedStringBytes": 835986,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 3,
+          "renderMs": 111.97404100000131,
+          "pages": 5,
+          "estimatedStringBytes": 1011768,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 4,
+          "renderMs": 116.59575000000041,
+          "pages": 5,
+          "estimatedStringBytes": 878954,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 5,
+          "renderMs": 113.6620839999996,
+          "pages": 5,
+          "estimatedStringBytes": 833320,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 6,
+          "renderMs": 110.13487499999974,
+          "pages": 4,
+          "estimatedStringBytes": 657542,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 7,
+          "renderMs": 266.9668329999986,
+          "pages": 3,
+          "estimatedStringBytes": 481746,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 190.3080409999966,
+          "pages": 3,
+          "estimatedStringBytes": 660190,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 7,
+          "renderMs": 186.30108299999847,
+          "pages": 3,
+          "estimatedStringBytes": 481746,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 185.36041599999953,
+          "pages": 3,
+          "estimatedStringBytes": 660190,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [],
+      "heapBytes": 37300000
+    }
+  ],
+  "limitations": [
+    "Local Chromium; audio scheduled, not speaker latency",
+    "String bytes and Chromium heap estimate exclude WASM/native memory",
+    "No device or production budget adopted",
+    "Bounded 640-note fixture; maximum-source stress run remains separate"
+  ],
+  "engravingVersion": "6.3.0"
+}

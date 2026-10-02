@@ -67,8 +67,10 @@ Through the production Caddy edge, send Basic Auth plus
 `X-Keyspilli-Api-Token: Bearer $KEYSPILLI_API_TOKEN`: Caddy consumes and strips
 the Basic `Authorization` header, while the application treats the custom
 header as a transport alias for its unchanged bearer check.
-The route derives a stable `upload-<sha256>` base id, so retrying identical
-bytes replaces one six-level artifact set instead of creating duplicate rows.
+The route derives a stable `upload-<sha256>` base ID. Identical accepted bytes
+return the current accepted publication. Deliberate replacement requires its
+current revision; a stale replay cannot replace newer metadata. Normal song
+intake and explicit short studies expose only the levels that pass their own gates.
 
 The file is parsed and validated by the normal catalog ingest pipeline before
 any artifact/SQLite publish. A native symbolic upload is a
@@ -1046,3 +1048,37 @@ or a deliberate reload. Initial load settlement latency is diagnostic, not
 hardware audio latency. Timing offsets and stored attempts distinguish sampled
 piano from fallback. Inactive contexts do not report false interruptions; active
 metronome clicks remain part of the selected audio session.
+
+Publication recovery boundaries and storage non-claims are documented in [Publication failure model](publication-failure-model.md). A publication marker alone cannot certify a complete restored tree.
+
+
+## Explicit owner publication recovery
+
+Open `/maintenance` and choose Refresh to inspect the bounded journal inventory.
+This reads pending publication state without running recovery. A journal digest
+binds the action; type its exact base ID and explicitly Recover to use the same
+catalog writer lock and manifest/source/ownership checks as CLI reconciliation.
+Changed journals return conflict; unavailable locks return locked; malformed or
+incomplete state remains retained for investigation. Conversion retry remains
+in the import job inbox and does not clear publication journals.
+
+A successful action creates a bounded local recovery receipt before removing
+the journal. Repeating the same digest returns that receipt without publishing
+again. Download it locally for the audit trail. Inventory presence is a snapshot,
+not proof that the pending tree can pass reconciliation. Never manually remove
+journals or rollback trees to bypass a refusal. This contract covers process
+recovery on the same local filesystem; see `publication-failure-model.md` for
+storage-loss limits.
+
+## Active arrangement export
+
+Download defaults to Stored Original. Active MIDI/MusicXML/PDF requires the
+current publication pin, a bounded canonical selection and a digest of the
+actual resolved player note/chord timeline. The server recomputes that timeline
+and rejects stale or different selections. PDF uses the same validated active
+MusicXML and existing all-pages renderer. Exported notes describe symbolic key
+intervals; sound/timbre, mix and pedal resonance are not rendered audio or
+musical acceptance. Unsupported or out-of-range material is refused explicitly.
+Stored Original downloads retain their existing artifacts.
+
+Deletion journals now record owned job IDs before removal, so explicit recovery can replay upload/transcription cleanup after a database-commit interruption. Source cleanup failures retain the journal. Legacy deletion journals without that snapshot require operator investigation; do not fabricate job ownership or report complete cleanup.

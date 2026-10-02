@@ -37,6 +37,6 @@ export function HomePractice({ publicTotal }: { publicTotal: number }) {
       const song = available(run.target.variantId, run.target.baseId);
       return <li key={run.id} className="my-2">{song ? <Link className="underline" href={`/player/${run.target.variantId}`}>{song.representative.title}</Link> : "Unavailable arrangement"} · {run.outcome} · {run.context.input} · {Math.round(run.context.speed * 100)}%</li>;
     })}</ul></>}
-    <div className="flex gap-4"><Link className="min-h-11 inline-flex items-center underline" href="/songs">Browse songs</Link><Link className="min-h-11 inline-flex items-center underline" href="/uploads">Add a song</Link></div>
+    <div className="flex gap-4"><Link className="min-h-11 inline-flex items-center underline" href="/songs">Browse songs</Link><Link className="min-h-11 inline-flex items-center underline" href="/uploads">Add a song</Link><Link className="min-h-11 inline-flex items-center underline" href="/uploads#starter-studies">Try a starter study</Link></div>
   </section>;
 }

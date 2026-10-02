@@ -1,8 +1,17 @@
 export type Hand = "R" | "L";
 
+/** Original MusicXML spelling, retained only when it still matches the MIDI pitch. */
+export interface SourcePitch {
+  step: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  alter: -2 | -1 | 0 | 1 | 2;
+  octave: -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+}
+
 export interface Note {
   /** MIDI note number (60 = middle C) */
   midi: number;
+  /** Optional original MusicXML pitch spelling; MIDI remains authoritative. */
+  sourcePitch?: SourcePitch;
   /** start time in beats */
   start: number;
   /** duration in beats */
@@ -22,9 +31,21 @@ export interface Note {
 
 export interface SourceNoteOrigin {
   id: string;
+  part?: string;
   track?: number;
   staff?: string;
   voice?: string;
+}
+
+export interface SymbolicSourcePart {
+  id: string;
+  name: string;
+  noteCount: number;
+  lowMidi: number | null;
+  highMidi: number | null;
+  startBeat: number | null;
+  endBeat: number | null;
+  percussion?: boolean;
 }
 
 /** Provenance of a chord event; omitted on legacy chord labels. */
@@ -149,6 +170,8 @@ export interface ParsedMidi {
   timeSigEvents?: MidiTimeSignatureEvent[];
   notes: Note[];
   trackNames: string[];
+  sourceParts?: SymbolicSourcePart[];
+  unsupportedControls?: string[];
   durationBeats: number;
   title?: string;
 }

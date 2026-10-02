@@ -145,17 +145,11 @@ function setRenderOptions(toolkit, options) {
   });
 }
 
-function scoreForVerovio(xml) {
-  return xml
-    .replace(/<tied\b[^>]*\/>/gi, "")
-    .replace(/<notations>\s*<\/notations>/gi, "");
-}
-
 async function prepareSession(session) {
   const toolkit = await loadVerovio();
   preparedScoreCache.clear(); // Every entry owns this same mutable toolkit.
   setRenderOptions(toolkit, session.options);
-  if (!toolkit.loadData(scoreForVerovio(session.xml))) throw new Error("Verovio loadData failed");
+  if (!toolkit.loadData(session.xml)) throw new Error("Verovio loadData failed");
   session.toolkit = toolkit;
   session.pageCount = Math.max(1, Math.floor(toolkit.getPageCount()));
   session.prepared = true;

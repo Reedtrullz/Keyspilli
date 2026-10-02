@@ -89,6 +89,8 @@ export interface WriteMidiOptions {
   keySig?: number;
   keyMode?: 0 | 1;
   title?: string;
+  /** Opt-in chord-name markers; note tracks remain the sounding arrangement. */
+  chordMarkers?: readonly { beat: number; name: string }[];
   /** notes grouped by hand; if empty, all notes go to one track */
   tracks?: { name: string; notes: Note[]; channel?: number; program?: number; percussion?: boolean }[];
   division?: number;
@@ -118,6 +120,11 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
       events.push({ tick: 0, bytes: [0xff, 0x03, name.length, ...name] });
     }
     if (track === tracks[0]) {
+      for (const chord of opts.chordMarkers ?? []) {
+        if (!Number.isFinite(chord.beat) || chord.beat < 0 || typeof chord.name !== "string" || chord.name.length > 256) throw new Error("Invalid chord marker");
+        const name = strBytes(chord.name);
+        events.push({ tick: Math.round(chord.beat * division), bytes: [0xff, 0x06, ...varint(name.length), ...name] });
+      }
       events.push(
         { tick: 0, bytes: [0xff, 0x51, 0x03, (tempoUs >>> 16) & 0xff, (tempoUs >>> 8) & 0xff, tempoUs & 0xff] },
         { tick: 0, bytes: [0xff, 0x58, 0x04, initialTimeSig[0]!, Math.round(Math.log2(initialTimeSig[1]!)), 24, 8] },

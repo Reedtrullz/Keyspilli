@@ -12,6 +12,7 @@ import {
   KEYMAP,
   lastFallingChordIndex,
   noteLabel,
+  learnerPitch,
   pitchColor,
   secPerBeat,
   measureProgressAt,
@@ -46,6 +47,7 @@ interface Props {
   chords: { beat: number; name: string; notes: number[]; durationBeats?: number }[];
   tempoBpm: number;
   timeSig?: [number, number];
+  sourceKey?: string;
   lowMidi: number;
   highMidi: number;
   loop: LoopRegion | null;
@@ -69,7 +71,10 @@ export function beatGridPoints(
   return [...points].sort((a, b) => a - b);
 }
 
-export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, sourceKey="C", timeSig = [4, 4] }: Props) {
+  const keyLabels=useMemo(()=>Array.from({length:128},(_,midi)=>({compact:learnerPitch({midi:midi-settings.transpose},settings.transpose,sourceKey,false).label,full:learnerPitch({midi:midi-settings.transpose},settings.transpose,sourceKey,true).label})),[sourceKey,settings.transpose]);
+  const keyLabelsRef=useRef(keyLabels);keyLabelsRef.current=keyLabels;
+  const keyLabel=(midi:number,full=false)=>keyLabelsRef.current[midi]?.[full?"full":"compact"]??noteLabel(midi,full);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lyricLineRef = useRef<HTMLParagraphElement>(null);
   const lyricEvents = useMemo(() => {
@@ -141,7 +146,7 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
   // the refs directly and does not need an extra React-driven draw.
   useEffect(() => {
     if (!playingRef.current) drawRef.current?.();
-  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig, inputOctave, measures, countIn, readingWindow, showLyrics]);
+  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig, inputOctave, measures, countIn, readingWindow, showLyrics, sourceKey]);
 
   // Single rAF loop — draws once on mount and only schedules frames while
   // playing, reading state from refs.
@@ -353,10 +358,10 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
        } else {
           ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
         }
-        if (showLabel(w.midi) && ctx.measureText(noteLabel(w.midi)).width + 4 <= w.w) {
-          const labelWidth = ctx.measureText(noteLabel(w.midi)).width;
+        if (showLabel(w.midi) && ctx.measureText(keyLabel(w.midi)).width + 4 <= w.w) {
+          const labelWidth = ctx.measureText(keyLabel(w.midi)).width;
           ctx.fillStyle = "#ffffff"; ctx.fillRect(kx + (w.w - labelWidth) / 2 - 1, H - 30, labelWidth + 2, 15);
-          ctx.fillStyle = "#3f3f46"; ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+          ctx.fillStyle = "#3f3f46"; ctx.fillText(keyLabel(w.midi), kx + w.w / 2, H - 18);
         }
         // Small bevels give keys depth without an animated shadow or new draw loop.
         ctx.fillStyle = "#18181b18"; ctx.fillRect(kx, H - 4, w.w - 1, 4);
@@ -405,9 +410,9 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
           ctx.textAlign = "center";
           ctx.textBaseline = "alphabetic";
           ctx.fillStyle = pk.has(b.midi) ? "#ffffff" : "#d4d4d8";
-          if (showLabel(b.midi) && ctx.measureText(noteLabel(b.midi)).width + 4 <= b.w) {
+          if (showLabel(b.midi) && ctx.measureText(keyLabel(b.midi)).width + 4 <= b.w) {
             ctx.fillStyle = "#27272a"; ctx.fillRect(kx + 1, H - KB_H * 0.38 - 21, b.w - 2, 15);
-            ctx.fillStyle = "#fafafa"; ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
+            ctx.fillStyle = "#fafafa"; ctx.fillText(keyLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
           }
           const hint = s.showKeyBindings && KB_H * 0.62 >= 52 ? hintFor(b.midi) : undefined;
           if (hint && ctx.measureText(hint).width + 4 <= b.w) {
@@ -587,7 +592,7 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
   return (
     <div className="falling-canvas relative">
       {showLyrics && lyricEvents.length > 0 && <p ref={lyricLineRef} className="falling-lyrics" aria-label="Current lyrics" />}
-      <canvas ref={canvasRef} aria-label="Falling notes player" aria-description="The indigo landmark marks middle C. The keyboard range stays fixed throughout the arrangement." className="block w-full" style={{ height: showLyrics && lyricEvents.length ? "calc(100% - 24px - var(--lyric-lane-height, 56px))" : "calc(100% - 24px)" }} />
+      <canvas ref={canvasRef} aria-label="Falling notes player" aria-description="The indigo landmark marks middle C. The keyboard range stays fixed throughout the arrangement. Note labels use matching source spelling when available; other labels are derived from the playback key. Physical key labels are derived." className="block w-full" style={{ height: showLyrics && lyricEvents.length ? "calc(100% - 24px - var(--lyric-lane-height, 56px))" : "calc(100% - 24px)" }} />
       <div ref={pianoRef} className="piano-pointer-surface absolute bottom-6 touch-none outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
         role="button" tabIndex={0} aria-label="Piano keyboard" aria-disabled={!inputEnabled}
         aria-description={inputEnabled ? "Play with touch, mouse or computer keys. Arrow keys select a note; Enter or Space holds it. The indigo mark is middle C." : "On-screen input is unavailable during setup, count-in, or a MIDI/microphone-only attempt."}
@@ -613,15 +618,15 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
           } else {
             const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : event.key === "ArrowUp" ? 12 : -12;
             selectedRef.current = Math.min(highMidi, Math.max(lowMidi, selectedRef.current + step));
-            event.currentTarget.setAttribute("aria-label", `Piano keyboard, ${noteLabel(selectedRef.current, true)} selected`);
-            if (selectedLabelRef.current) selectedLabelRef.current.textContent = `${noteLabel(selectedRef.current, true)} selected`;
+            event.currentTarget.setAttribute("aria-label", `Piano keyboard, ${keyLabel(selectedRef.current,true)} selected`);
+            if (selectedLabelRef.current) selectedLabelRef.current.textContent = `${keyLabel(selectedRef.current,true)} selected`;
           }
         }}
         onKeyUp={event => {
           if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); const id = event.key === "Enter" ? -1 : -2; callbacks.current.onKeyUp?.(id); pointersRef.current.delete(id); }
         }} />
       <div className="piano-input-status flex h-6 items-center gap-2 px-3 text-[11px] bg-zinc-100 text-zinc-700 overflow-hidden whitespace-nowrap" onClick={event => event.stopPropagation()}>
-        <span className="min-w-0 truncate">{midiConnected ? "MIDI connected · " : "Computer keys · "}{noteLabel(60 + (inputOctave - 2) * 12)}–{noteLabel(76 + (inputOctave - 2) * 12, true)} · Z/X octave</span>
+        <span className="min-w-0 truncate">{midiConnected ? "MIDI connected · " : "Computer keys · "}{keyLabel(60 + (inputOctave - 2) * 12)}–{keyLabel(76 + (inputOctave - 2) * 12,true)} · Z/X octave</span>
         {(60 + (inputOctave - 2) * 12 < lowMidi || 76 + (inputOctave - 2) * 12 > highMidi) && <button className="shrink-0 underline" onClick={onResetOctave} title="Computer input extends outside the visible piano">Outside view · Reset</button>}
         <span ref={selectedLabelRef} className="sr-only" aria-live="polite" />
         <span ref={rhythmLabelRef} className="ml-auto shrink-0" />

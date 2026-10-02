@@ -10,6 +10,11 @@ interface ParsedXmlNote extends Note {
 
 const STEP_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
+function xmlAttribute(attributes: string, name: string): string {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return attributes.match(new RegExp(`\\b${escaped}\\s*=\\s*(["'])(.*?)\\1`))?.[2] ?? "";
+}
+
 /** Decode the standard XML entities that appear in MusicXML lyrics. */
 function decodeXmlEntities(s: string): string {
   return s
@@ -133,6 +138,59 @@ function mergeTiedNotes(notes: ParsedXmlNote[], tolerance: number): Note[] {
  * chords, staffs, tempo/key/time attributes.
  */
 export function parseMusicXmlNotes(xml: string): ParsedMidi {
+  const clean = cleanMusicXml(xml);
+  const partNodes = [...clean.matchAll(/<part(?![-\w])([^>]*)>[\s\S]*?<\/part>/g)];
+  const partNames = new Map<string, string>();
+  for (const match of clean.matchAll(/<score-part\b([^>]*)>([\s\S]*?)<\/score-part>/g)) {
+    const id = xmlAttribute(match[1]!, "id");
+    const name = firstMatch(match[2]!, /<part-name>([\s\S]*?)<\/part-name>/);
+    if (id) partNames.set(id, name ? decodeXmlEntities(name) : id);
+  }
+  if (partNodes.length > 1) {
+    const parsedParts = partNodes.map((partMatch, index) => {
+      const id = xmlAttribute(partMatch[1]!, "id") || `part-${index + 1}`;
+      const name = partNames.get(id) ?? id;
+      const singlePart = clean.replace(/<part(?![-\w])[^>]*>[\s\S]*?<\/part>/g, (candidate) => candidate === partMatch[0] ? candidate : "");
+      return { parsed: parseSingleMusicXmlNotes(singlePart, { id: `musicxml:${id}`, name }), id, name };
+    });
+    const signatureByBeat = new Map<number, [number, number]>();
+    for (const { parsed } of parsedParts) {
+      for (const event of parsed.timeSigEvents ?? []) {
+        const previous = signatureByBeat.get(event.beat);
+        if (previous && (previous[0] !== event.timeSig[0] || previous[1] !== event.timeSig[1])) {
+          throw new Error("Unsupported: conflicting MusicXML part time signatures");
+        }
+        signatureByBeat.set(event.beat, [...event.timeSig]);
+      }
+    }
+    const first = parsedParts[0]!.parsed;
+    const timeSigEvents = [...signatureByBeat]
+      .sort(([left], [right]) => left - right)
+      .map(([beat, timeSig]) => ({ beat, timeSig, tick: Math.round(beat * first.division) }));
+    const notes = parsedParts.flatMap(({ parsed }) => parsed.notes).sort((a, b) => a.start - b.start || a.midi - b.midi);
+    return {
+      ...first,
+      notes,
+      trackNames: parsedParts.map(({ name }) => name),
+      sourceParts: parsedParts.map(({ parsed, id, name }) => ({
+        id: `musicxml:${id}`,
+        name,
+        noteCount: parsed.notes.length,
+        lowMidi: parsed.notes.length ? Math.min(...parsed.notes.map((note) => note.midi)) : null,
+        highMidi: parsed.notes.length ? Math.max(...parsed.notes.map((note) => note.midi)) : null,
+        startBeat: parsed.notes.length ? Math.min(...parsed.notes.map((note) => note.start)) : null,
+        endBeat: parsed.notes.length ? Math.max(...parsed.notes.map((note) => note.start + note.dur)) : null,
+      })),
+      durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur), 0),
+      ...(timeSigEvents.length ? { timeSigEvents } : {}),
+    };
+  }
+  const node = partNodes[0];
+  const id = node ? xmlAttribute(node[1]!, "id") || "part-1" : "part-1";
+  return parseSingleMusicXmlNotes(clean, { id: `musicxml:${id}`, name: partNames.get(id) ?? "MusicXML" });
+}
+
+function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: string }): ParsedMidi {
   xml = cleanMusicXml(xml);
   if (/<(?:repeat|ending)\b/i.test(xml)) throw new Error("Unsupported MusicXML repeat or ending playback order");
   if (/<(?:segno|coda|dalsegno|dacapo|tocoda|fine)\b|\b(?:dalsegno|dacapo|tocoda|fine)\s*=/i.test(xml)) {
@@ -161,7 +219,8 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: ParsedXmlNote[] = [];
-  // Reject multiple parts; only single-part piano scores are supported.
+  // This helper receives one isolated source part; the public parser handles
+  // named multi-part MusicXML above before selecting this part's body.
   const partMatches = xml.match(/<part(?![-\w])[^>]*>/g) ?? [];
   if (partMatches.length > 1) {
     throw new Error("Unsupported: multiple parts (expected single-part MusicXML)");
@@ -223,7 +282,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       const step = firstMatch(el, /<step>([A-G])<\/step>/);
       if (!step) continue;
       const alter = parseInt(firstMatch(el, /<alter>(-?\d+)<\/alter>/), 10) || 0;
-      const octave = parseInt(firstMatch(el, /<octave>(\d+)<\/octave>/), 10);
+      const octave = parseInt(firstMatch(el, /<octave>(-?\d+)<\/octave>/), 10);
       const dur = Number(firstMatch(el, /<duration>\s*([0-9]+(?:\.[0-9]+)?)\s*<\/duration>/)) || 0;
       const staffRaw = firstMatch(el, /<staff>(\d+)<\/staff>/);
       const voiceRaw = firstMatch(el, /<voice>(\d+)<\/voice>/);
@@ -243,6 +302,9 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       const noteIndex = notes.length;
       notes.push({
         midi,
+        ...(Number.isInteger(alter) && alter >= -2 && alter <= 2 && Number.isInteger(octave) && octave >= -1 && octave <= 9
+          ? { sourcePitch: { step: step as "A" | "B" | "C" | "D" | "E" | "F" | "G", alter: alter as -2 | -1 | 0 | 1 | 2, octave: octave as -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 } }
+          : {}),
         start: measureStart + start,
         dur: durBeats,
         vel: 80,
@@ -251,7 +313,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
         tieStart,
         tieStop,
         voiceId: voiceRaw || staffRaw || undefined,
-        sourceOrigins: [{ id: `musicxml:${staffRaw || "?"}:${voiceRaw || "?"}:${noteIndex}`,
+        sourceOrigins: [{ id: `${sourcePart.id}:${staffRaw || "?"}:${voiceRaw || "?"}:${noteIndex}`, part: sourcePart.id,
           ...(staffRaw ? { staff: staffRaw } : {}), ...(voiceRaw ? { voice: voiceRaw } : {}) }],
       });
       measureEnd = Math.max(measureEnd, cursor, start + durBeats);
@@ -283,7 +345,16 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
     keyMode: mode === "minor" ? 1 : 0,
     timeSig: [beats, beatType],
     notes: mergedNotes,
-    trackNames: ["MusicXML"],
+    trackNames: [sourcePart.name],
+    sourceParts: [{
+      id: sourcePart.id,
+      name: sourcePart.name,
+      noteCount: mergedNotes.length,
+      lowMidi: mergedNotes.length ? Math.min(...mergedNotes.map((note) => note.midi)) : null,
+      highMidi: mergedNotes.length ? Math.max(...mergedNotes.map((note) => note.midi)) : null,
+      startBeat: mergedNotes.length ? Math.min(...mergedNotes.map((note) => note.start)) : null,
+      endBeat: mergedNotes.length ? Math.max(...mergedNotes.map((note) => note.start + note.dur)) : null,
+    }],
     durationBeats,
     ...(timeSigEvents.length ? { timeSigEvents } : {}),
     title: firstMatch(xml, /<work-title>([\s\S]*?)<\/work-title>/),

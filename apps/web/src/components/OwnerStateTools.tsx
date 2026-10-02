@@ -1,8 +1,9 @@
 "use client";
+import { DiagnosticTools } from "./DiagnosticTools";
 import { useRef, useState } from "react";
 import { exportOwnerState, parseOwnerState, restoreOwnerState, OWNER_STATE_MAX_BYTES, type OwnerState } from "@keyspilli/player-core";
 
-export function OwnerStateTools({ disabled = false }: { disabled?: boolean }) {
+export function OwnerStateTools({ disabled = false, publicationRevision=null }: { disabled?: boolean;publicationRevision?:string|null }) {
   const [history, setHistory] = useState(false), [preview, setPreview] = useState<OwnerState | null>(null);
   const [mode, setMode] = useState<"merge" | "replace">("merge"), [notice, setNotice] = useState("");
   const readGeneration = useRef(0);
@@ -34,5 +35,7 @@ export function OwnerStateTools({ disabled = false }: { disabled?: boolean }) {
       <button className="min-h-11 underline ml-4" onClick={() => setPreview(null)}>Discard preview</button>
     </div>}
     {notice && <p role="status">{notice}</p>}
+    <p><a href="/maintenance" className="inline-flex min-h-11 items-center underline">Inspect catalog publication recovery</a></p>
+    <DiagnosticTools disabled={disabled} publicationRevision={publicationRevision}/>
   </details>;
 }

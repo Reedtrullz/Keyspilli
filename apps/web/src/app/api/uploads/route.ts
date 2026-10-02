@@ -1,6 +1,14 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getUploadPublicationReceipt, inferIngestFormat, ingestSource, type UploadPublicationReceipt } from "@keyspilli/catalog";
+import {
+  confirmSymbolicUploadChoice,
+  getUploadPublicationReceipt,
+  inferIngestFormat,
+  ingestSource,
+  type SymbolicUploadChoice,
+  type SymbolicUploadIntent,
+  type UploadPublicationReceipt,
+} from "@keyspilli/catalog";
 import {
   acceptSourceCandidateHandoff,
   bindSourceCandidateUpload,
@@ -52,6 +60,29 @@ async function handleUpload(req: NextRequest) {
   const artist = req.nextUrl.searchParams.get("artist") ?? "Unknown";
   const sourceHash = createHash("sha256").update(buf).digest("hex");
   const baseId = `upload-${sourceHash}`;
+  const preflightId = req.headers.get("x-keyspilli-upload-preflight");
+  const choiceHeader = req.headers.get("x-keyspilli-upload-choice");
+  if (Boolean(preflightId) !== Boolean(choiceHeader)) {
+    return NextResponse.json({ error: "symbolic upload preflight and explicit choice must be sent together" }, { status: 400 });
+  }
+  let symbolicIntent: SymbolicUploadIntent | undefined;
+  if (preflightId && choiceHeader) {
+    if (choiceHeader.length > 16_384) return NextResponse.json({ error: "symbolic upload choice is too large" }, { status: 400 });
+    let choice: unknown;
+    try { choice = JSON.parse(choiceHeader) as unknown; } catch {
+      return NextResponse.json({ error: "symbolic upload choice is invalid JSON" }, { status: 400 });
+    }
+    if (!choice || typeof choice !== "object" || Array.isArray(choice)) {
+      return NextResponse.json({ error: "symbolic upload choice must be an object" }, { status: 400 });
+    }
+    try {
+      symbolicIntent = confirmSymbolicUploadChoice(preflightId, buf, choice as SymbolicUploadChoice);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "symbolic upload choice could not be confirmed";
+      const status = /expired/i.test(message) ? 410 : /bytes changed/i.test(message) ? 409 : 422;
+      return NextResponse.json({ error: message }, { status });
+    }
+  }
   let existingReceipt: UploadPublicationReceipt | null;
   try {
     existingReceipt = await getUploadPublicationReceipt(baseId, sourceHash);
@@ -63,6 +94,14 @@ async function handleUpload(req: NextRequest) {
       code: busy ? "UPLOAD_BUSY" : reconciliation ? "ARTIFACT_RECONCILIATION_REQUIRED" : "UPLOAD_STATE_UNAVAILABLE",
       ...(reconciliation ? { baseId, reconciliationRequired: true } : {}),
     }, { status: 503, headers: busy ? { "Retry-After": "5" } : undefined });
+  }
+  if (mode !== "replace" && symbolicIntent && existingReceipt
+    && JSON.stringify(existingReceipt.symbolicIntent ?? null) !== JSON.stringify(symbolicIntent)) {
+    return NextResponse.json({
+      error: "This source already has a lesson with different part or arrangement choices. Review it before replacing it.",
+      code: "UPLOAD_INTENT_REVIEW_REQUIRED",
+      receipt: existingReceipt,
+    }, { status: 409 });
   }
   if (mode !== "replace" && existingReceipt) {
     logUpload("reused", { sourceHash, baseId, publicationRevision: existingReceipt.publicationRevision });
@@ -112,6 +151,7 @@ async function handleUpload(req: NextRequest) {
       contentType: "upload",
       acquiredVia: "upload",
       sourceRef: `upload:${sourceHash}`,
+      ...(symbolicIntent ? { symbolicIntent } : {}),
       ...(handoffLink ? { sourceCandidateHandoff: handoffLink } : {}),
     }, mode === "replace"
       ? { uploadReplay: { mode: "replace", expectedRevision: expectedRevision! } }

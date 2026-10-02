@@ -1,3 +1,4 @@
+import { matchingSourcePitch } from "./source-pitch.js";
 import { Note, Variant } from "./types.js";
 import { PITCH_COLORS } from "./pitchColors.js";
 import { keySignature } from "./analyze.js";
@@ -66,7 +67,7 @@ function xmlEscape(s: string): string {
  * Write score-partwise MusicXML (piano grand staff) with per-note colors.
  * Notes are in beats; lyrics attach to RH notes via note.lyrics.
  */
-export function writeMusicXml(variant: Variant, title: string, artist: string): string {
+export function writeMusicXml(variant: Variant, title: string, artist: string, options: { chordWords?: boolean } = {}): string {
   const [num, den] = variant.timeSig;
   const timeSigEvents = (variant.timeSigEvents ?? [])
     .filter((event) => Number.isFinite(event.beat) && event.beat >= 0
@@ -101,33 +102,24 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
   const { fifths, mode } = keySignature(variant.key);
   const bpm = variant.tempoBpm;
 
-  // Allocate a stable MusicXML voice for overlapping notes of the same pitch
-  // and hand. Without this, two ties can end at the same barline and a parser
-  // has no identity information with which to match their continuations.
-  // Non-overlapping notes reuse the staff's primary voice, while additional
-  // lanes use odd/even voice ids per staff (3, 5, ... for RH; 4, 6, ... for
-  // LH) and therefore remain distinguishable through every split segment.
+  // A voice is a sequential stream. Simultaneous distinct pitches share a
+  // chord, but later overlapping attacks and duplicate unisons need separate
+  // voices; otherwise independent consumers move their onsets or lose ties.
   const voiceByNote = new Map<Note, number>();
   for (const staff of [1, 2] as const) {
-    const staffNotes = variant.notes.filter((n) => (staff === 2 ? n.hand === "L" : n.hand !== "L"));
-    const byMidi = new Map<number, Note[]>();
-    for (const n of staffNotes) {
-      const arr = byMidi.get(n.midi) ?? [];
-      arr.push(n);
-      byMidi.set(n.midi, arr);
-    }
-    for (const notes of byMidi.values()) {
-      const lanes: number[] = [];
-      for (const n of [...notes].sort((a, b) => a.start - b.start || a.dur - b.dur)) {
-        let lane = lanes.findIndex((end) => end <= n.start + 1e-9);
-        if (lane < 0) {
-          lane = lanes.length;
-          lanes.push(n.start + n.dur);
-        } else {
-          lanes[lane] = n.start + n.dur;
-        }
-        voiceByNote.set(n, staff + lane * 2);
+    const lanes: {start:number;end:number;midis:Set<number>}[]=[];
+    const notes=variant.notes.filter(n=>staff===2?n.hand==="L":n.hand!=="L")
+      .sort((a,b)=>a.start-b.start||b.dur-a.dur||a.midi-b.midi);
+    for(const n of notes){
+      let lane=lanes.findIndex(l=>l.end<=n.start+1e-9||Math.abs(l.start-n.start)<1e-9&&!l.midis.has(n.midi));
+      if(lane<0){lane=lanes.length;lanes.push({start:n.start,end:n.start+n.dur,midis:new Set([n.midi])});}
+      else{
+        const l=lanes[lane]!;
+        if(Math.abs(l.start-n.start)>=1e-9){l.start=n.start;l.end=n.start+n.dur;l.midis.clear();}
+        else l.end=Math.max(l.end,n.start+n.dur);
+        l.midis.add(n.midi);
       }
+      voiceByNote.set(n,staff+lane*2);
     }
   }
 
@@ -185,50 +177,42 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
    * cursor sequentially, so interleaved RH/LH notes must be written as two
    * streams separated by <backup>; otherwise the second staff is shifted by
    * whatever duration happened to be emitted on the first staff. Every staff
-   * is padded to the measure boundary: a missing trailing <forward> makes
+   * is padded with a rest to the measure boundary: some importers ignore
+   * trailing <forward> when calculating measure length, which makes
    * MusicXML importers advance the next measure at a different time and can
    * leave otherwise balanced cross-bar ties open. */
   const renderStaff = (notes: XmlNoteSegment[], staff: 1 | 2, measureStart: number, measureLength: number): { xml: string; cursor: number } => {
-    const byStart = new Map<number, XmlNoteSegment[]>();
+    const byVoice = new Map<number, XmlNoteSegment[]>();
     for (const n of notes) {
-      const rel = Math.max(0, n.start - measureStart);
-      const key = Number(rel.toFixed(6));
-      const arr = byStart.get(key) ?? [];
-      arr.push(n);
-      byStart.set(key, arr);
+      const voice = n.voice ?? staff;
+      const stream = byVoice.get(voice) ?? [];
+      stream.push(n);
+      byVoice.set(voice, stream);
     }
+    if (!byVoice.size) byVoice.set(staff, []);
     const xml: string[] = [];
     let cursor = 0;
-    for (const [start, group] of [...byStart.entries()].sort((a, b) => a[0] - b[0])) {
-      if (start > cursor + 1e-6) {
-        xml.push("<forward><duration>" + Math.round((start - cursor) * DIV) + "</duration></forward>");
-        cursor = start;
-      } else if (start < cursor - 1e-6) {
-        xml.push("<backup><duration>" + Math.round((cursor - start) * DIV) + "</duration></backup>");
-        cursor = start;
+    for (const [voice, voiceNotes] of [...byVoice.entries()].sort((a, b) => a[0] - b[0])) {
+      if (cursor > 0) xml.push(`<backup><duration>${Math.round(cursor * DIV)}</duration></backup>`);
+      cursor = 0;
+      const byStart = new Map<number, XmlNoteSegment[]>();
+      for (const n of voiceNotes) {
+        const start = Number(Math.max(0, n.start - measureStart).toFixed(6));
+        const group = byStart.get(start) ?? [];
+        group.push(n);
+        byStart.set(start, group);
       }
-      // Notes in one voice at the same onset are a chord. Distinct voices
-      // must be rendered as separate streams with a backup between them;
-      // using <chord/> across voices loses identity for overlapping ties.
-      const byVoice = new Map<number, XmlNoteSegment[]>();
-      for (const n of group) {
-        const voice = n.voice ?? staff;
-        const arr = byVoice.get(voice) ?? [];
-        arr.push(n);
-        byVoice.set(voice, arr);
-      }
-      let firstVoice = true;
-      for (const [voice, voiceNotes] of [...byVoice.entries()].sort((a, b) => a[0] - b[0])) {
-        if (!firstVoice && cursor > start + 1e-6) {
-          xml.push("<backup><duration>" + Math.round((cursor - start) * DIV) + "</duration></backup>");
+      for (const [start, group] of [...byStart.entries()].sort((a, b) => a[0] - b[0])) {
+        if (start > cursor + 1e-6) {
+          xml.push(`<forward><duration>${Math.round((start - cursor) * DIV)}</duration><voice>${voice}</voice><staff>${staff}</staff></forward>`);
           cursor = start;
         }
-        const ordered = [...voiceNotes].sort((a, b) => b.dur - a.dur || a.midi - b.midi);
+        const ordered = [...group].sort((a, b) => b.dur - a.dur || a.midi - b.midi);
         const cursorDur = Math.max(...ordered.map((n) => n.dur));
         for (let i = 0; i < ordered.length; i++) {
           const n = ordered[i]!;
           const isChord = i > 0;
-          const { step, alter, octave } = noteInfo(n.midi);
+          const { step, alter, octave } = matchingSourcePitch(n) ?? noteInfo(n.midi);
           // Preserve the source duration. Clamping short notes to a quarter of
           // a beat silently stretched 16th/32nd-note passages in every sheet.
           const durBeats = Math.max(1 / DIV, n.dur);
@@ -256,16 +240,14 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
               "<staff>" + staff + "</staff>" + lyric + notations + "</note>",
           );
           cursor = start + cursorDur;
-          firstVoice = false;
         }
       }
-    }
-    // A staff may legitimately rest after its final attack. Keep the part
-    // cursor at the declared measure boundary so both staffs share the same
-    // timeline and tie matching remains stable across bars.
-    if (cursor < measureLength - 1e-9) {
-      xml.push("<forward><duration>" + Math.round((measureLength - cursor) * DIV) + "</duration></forward>");
-      cursor = measureLength;
+      if (cursor < measureLength - 1e-9) {
+        const restDuration = measureLength - cursor;
+        const { type, dots } = typeFromDur(restDuration);
+        xml.push(`<note><rest/><duration>${Math.round(restDuration * DIV)}</duration><voice>${voice}</voice><type>${type}</type>${dots ? "<dot/>" : ""}<staff>${staff}</staff></note>`);
+        cursor = measureLength;
+      }
     }
     return { xml: xml.join(""), cursor };
   };
@@ -299,7 +281,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string): 
         `<clef number="2"><sign>F</sign><line>4</line></clef>` +
         `<staff-details number="1"><staff-lines>5</staff-lines></staff-details>` +
         `<staff-details number="2"><staff-lines>5</staff-lines></staff-details>` +
-        `</attributes>${tempoDir}${noteXmls}</measure>`
+        `</attributes>${tempoDir}${options.chordWords ? variant.chords.filter(c => c.beat >= m.startBeat && c.beat < m.endBeat).map(c => `<direction placement="above"><direction-type><words>${xmlEscape(c.name)}</words></direction-type><offset>${Math.round((c.beat-m.startBeat)*DIV)}</offset></direction>`).join("") : ""}${noteXmls}</measure>`
       );
     })
     .join("");

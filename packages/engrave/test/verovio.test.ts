@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderMusicXml, renderMusicXmlPages } from "../src/index.js";
 
@@ -40,12 +41,12 @@ describe("renderMusicXml", () => {
     expect(seen[0]).not.toHaveProperty("adjustPageHeight");
   });
 
-  it("strips Verovio's false-open notation ties without changing source XML", async () => {
+  it("preserves both sound and notation ties for the importer", async () => {
     const { tk, getLoadedXml } = fakeToolkit();
     const xml = '<score><note><tie type="start"/><notations><tied type="start"/></notations></note></score>';
     await renderMusicXml(xml, {}, tk);
     expect(getLoadedXml()).toContain('<tie type="start"/>');
-    expect(getLoadedXml()).not.toContain("<tied");
+    expect(getLoadedXml()).toBe(xml);
   });
 
   it("renders every bounded page in order", async () => {
@@ -82,4 +83,11 @@ describe("renderMusicXml", () => {
     tk.loadData = () => false;
     await expect(renderMusicXml("<score/>", {}, tk)).rejects.toThrow(/loadData/);
   });
+});
+
+it("ships the same browser renderer bytes as the pinned independent consumer", () => {
+  for (const [specifier,name] of [["verovio/wasm","verovio-module.mjs"],["verovio/esm","verovio.mjs"]]) {
+    expect(readFileSync(new URL(`../../../apps/web/public/verovio/${name}`,import.meta.url))
+      .equals(readFileSync(new URL(import.meta.resolve(specifier!))))).toBe(true);
+  }
 });

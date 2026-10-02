@@ -1,3 +1,5 @@
+import { ArticulationGrader } from "./articulation.js";
+import { gradeableNotes } from "./keyboard-range.js";
 import type { InputEventMetadata } from "./input.js";
 import { Grader, type GradeResult } from "./grading.js";
 import { beatToSec, beatsPerMeasure, completeChordDurations, firstNoteAtOrAfter, secPerBeat, type LoopRegion, type TimedNote } from "./timeline.js";
@@ -63,6 +65,7 @@ export class PlaybackEngine {
   playing = false;
   loop: LoopRegion | null = null;
   grader: Grader | null = null;
+  private articulation: ArticulationGrader | null = null;
   /** Retained after completion so the owner can render results and repeat. */
   gradingRange: { startSec: number; endSec: number } | null = null;
   gradeResult: GradeResult | null = null;
@@ -138,13 +141,14 @@ export class PlaybackEngine {
   /** Advance by dt seconds (called from the owner's rAF loop). */
   tick(dt: number): void {
     if (!this.playing || (this.grader && this.waitMode)) return;
-    if (this.grader && this.gradingRange && this.time + dt >= this.gradingRange.endSec) {
+    if (!Number.isFinite(dt) || dt < 0) return;
+    // Physical releases get a bounded 400ms dispatch tail; no target audio is scheduled past the passage.
+    if (this.grader && this.gradingRange && this.time + dt >= this.gradingRange.endSec + (this.articulation ? .4 : 0)) {
       this.time = this.gradingRange.endSec;
       this.grader.tick(this.time);
       this.finishGrading();
       return;
     }
-    if (!Number.isFinite(dt) || dt < 0) return;
     const next = this.time + dt;
     const wrapped = this.loop && !this.grader && next >= this.loop.endSec;
     this.time = wrapped && this.loop
@@ -158,7 +162,7 @@ export class PlaybackEngine {
       this.lastScheduled = this.time;
       this.lastChordScheduled = -1;
     }
-    if (this.time >= this.duration && !this.loop) {
+    if (this.time >= this.duration && !this.loop && (!this.grader || !this.gradingRange)) {
       this.stop();
       this.seek(0);
       return;
@@ -272,7 +276,8 @@ export class PlaybackEngine {
     this.emit();
   }
 
-  startGrading(wait: boolean, range?: { startSec: number; endSec: number }): void {
+  startGrading(wait: boolean, range?: { startSec: number; endSec: number }, articulationToleranceMs?: number): void {
+    if (articulationToleranceMs !== undefined && (wait || !Number.isFinite(articulationToleranceMs) || articulationToleranceMs < 50 || articulationToleranceMs > 400)) throw new RangeError("Articulation requires timed practice and 50–400ms tolerance");
     if (range && (!Number.isFinite(range.startSec) || !Number.isFinite(range.endSec))) {
       throw new RangeError("Practice bounds must be finite");
     }
@@ -283,14 +288,14 @@ export class PlaybackEngine {
     if (bounded && bounded.endSec <= bounded.startSec) throw new RangeError("Practice end must follow its start");
     // Hand filtering already happened in the notes memo; ornaments are decoration.
     const minDurSec = 0.25 * (60 / this.song.tempoBpm / this.settings.speed);
-    const gradeable = this.gradingNotes.filter((n) => n.durSec >= minDurSec &&
-      (!bounded || (n.startSec >= bounded.startSec && n.startSec < bounded.endSec)));
+    const gradeable = gradeableNotes(this.gradingNotes, bounded, minDurSec);
     if (!gradeable.length) throw new RangeError("No playable notes in this passage");
     this.audio.ensure();
     if (this.audio.prepareTimbre?.() === false) throw new Error("Piano samples are not ready. Wait or select synthesis fallback in Sound.");
     if (this.playing || this.grader) this.audio.cancelAll();
     this.playing = false;
-    this.gradingRange = bounded;
+    this.gradingRange = bounded ?? (articulationToleranceMs !== undefined ? {startSec:0,endSec:this.duration} : null);
+    this.articulation = articulationToleranceMs === undefined ? null : new ArticulationGrader(gradeable.length,this.gradingRange!.endSec,articulationToleranceMs);
     this.gradeResult = null;
     this.waitMode = wait;
     this.grader = new Grader(gradeable, { waitMode: wait, bpm: this.song.tempoBpm, speed: this.settings.speed });
@@ -303,6 +308,8 @@ export class PlaybackEngine {
       this.audio.cancelAll();
       this.lastChordScheduled = -1;
       this.gradeResult = this.grader.result();
+      if(this.articulation)this.gradeResult.articulation=this.articulation.result();
+      this.articulation=null;
       this.grader = null;
     }
     this.waitMode = false;
@@ -322,6 +329,18 @@ export class PlaybackEngine {
     this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: velocity, hand: "R", fromInput: true });
     this.emit();
     return true;
+  }
+
+  private physicalTime(event: InputEventMetadata | undefined): number | null {
+    if(!event || event.timingSource !== "event" || !Number.isFinite(event.timestampMs) || event.timestampMs < this.inputBoundaryMs || event.timestampMs > this.monotonicNow()+1)return null;
+    return this.inputClock.time+(event.timestampMs-this.inputClock.ms)/1000;
+  }
+  observeKeyPress(identity:string,event:InputEventMetadata|undefined,offsetMs=0):void {
+    const raw=this.physicalTime(event),target=this.grader?.lastAccepted();
+    if(this.articulation && target && raw!==null)this.articulation.press(identity,target,this.grader!.acceptedTargetIndex(),raw,offsetMs);
+  }
+  observeKeyRelease(identity:string,event:InputEventMetadata|undefined):void {
+    const raw=this.physicalTime(event);if(this.articulation && raw!==null)this.articulation.release(identity,raw);
   }
 
   handleNoteOff(midi: number): void {

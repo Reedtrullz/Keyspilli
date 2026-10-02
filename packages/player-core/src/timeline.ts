@@ -1,3 +1,4 @@
+import { learnerPitch } from "./pitch-label.js";
 import type { SongData } from "./types.js";
 import type { MeasureInfo, MidiTimeSignatureEvent } from "@keyspilli/midi";
 import { chordName, tryParseChordSymbol, type ChordLabel, type ChordSourceKind } from "@keyspilli/midi";
@@ -9,6 +10,7 @@ export function beatToSec(beat: number, bpm: number, speed: number): number {
 
 export interface TimedNote {
   midi: number;
+  displayPitch?: {label:string;authority:"source"|"derived"};
   startSec: number;
   durSec: number;
   vel: number;
@@ -18,38 +20,38 @@ export interface TimedNote {
   fromInput?: boolean;
 }
 
+export function noteMatchesHand(note: {hand?: "L" | "R"}, hand: "L" | "R" | "both"): boolean {
+  return hand === "both" || note.hand === hand;
+}
+/** Support is audible material, never extra assessment targets or an inferred hand. */
+export function selectHandNotes<T extends {hand?: "L" | "R"}>(notes: readonly T[], hand: "L" | "R" | "both", support = false): T[] {
+  return notes.filter(note => noteMatchesHand(note, hand) || support && note.hand !== undefined);
+}
+
 /** Resolve song data to absolute-second notes with transpose applied. */
-export function resolveTimedNotes(song: SongData, speed: number, transpose: number): TimedNote[] {
-  const vels = song.notes.map((n) => n.vel);
-  const mean = vels.reduce((s, v) => s + v, 0) / Math.max(1, vels.length);
-  const stddev = Math.sqrt(vels.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, vels.length));
-  // Real dynamics (stddev >= 8) pass through untouched; synthetic accent +
-  // jitter is only for flat-velocity sources.
-  const useRealDynamics = stddev >= 8;
-  return song.notes.map((n, i) => {
+export type RenderedExpression = "source" | "meter-accents";
+export function resolveTimedNotes(song: SongData, speed: number, transpose: number, expression: RenderedExpression = "source"): TimedNote[] {
+  const timing = expression === "meter-accents" ? playbackTiming(song) : undefined;
+  const vels = song.notes.map(n => n.vel);
+  const mean = vels.reduce((sum, vel) => sum + vel, 0) / Math.max(1, vels.length);
+  const flat = Math.sqrt(vels.reduce((sum, vel) => sum + (vel - mean) ** 2, 0) / Math.max(1, vels.length)) < 8;
+  return song.notes.map(n => {
     let vel = n.vel;
-    if (!useRealDynamics) {
-      // ponytail: metric accent + deterministic jitter for flat-velocity
-      // sources; replace when sources carry real dynamics.
-      const b = n.start;
-      const beatAccent =
-        b % 4 === 0 ? 1.15 :           // strong downbeat
-        b % 4 === 2 ? 1.05 :           // secondary accent (beat 3)
-        b % 1 === 0 ? 0.95 :           // weak beats (2, 4)
-        0.80;                           // off-beat subdivisions
-      // Deterministic jitter seeded by note index — keeps playback reproducible
-      // but not robotically identical. ±5% range.
-      const jitter = 1 + 0.05 * Math.sin(i * 7919);
-      vel = Math.round(Math.min(127, Math.max(1, n.vel * beatAccent * jitter)));
+    if (timing && flat) {
+      let phase = timing.measureStartBeat, meter = timing.timeSig;
+      for (const event of timing.timeSigEvents ?? []) {
+        if (event.beat > n.start + 1e-9) break;
+        phase = event.beat; meter = event.timeSig;
+      }
+      const unit = 4 / meter[1], width = meter[0] * unit;
+      const position = ((n.start - phase) % width + width) % width;
+      const compound = meter[1] === 8 && meter[0] >= 6 && meter[0] % 3 === 0;
+      const pulse = compound ? 3 * unit : unit;
+      const onPulse = Math.abs(position / pulse - Math.round(position / pulse)) < 1e-6;
+      const accent = position < 1e-6 || width - position < 1e-6 ? 1.15 : onPulse ? (compound ? 1.05 : .95) : .8;
+      vel = Math.max(1, Math.min(127, Math.round(vel * accent)));
     }
-    return {
-      midi: n.midi + transpose,
-      startSec: beatToSec(n.start, song.tempoBpm, speed),
-      durSec: beatToSec(n.dur, song.tempoBpm, speed),
-      vel,
-      hand: n.hand,
-      lyrics: n.lyrics,
-    };
+    return {midi:n.midi+transpose, displayPitch:learnerPitch(n,transpose,song.key,false), startSec:beatToSec(n.start,song.tempoBpm,speed), durSec:beatToSec(n.dur,song.tempoBpm,speed),vel,hand:n.hand,lyrics:n.lyrics};
   });
 }
 
@@ -545,7 +547,7 @@ function sourceMeasuresMatchTiming(
     : [{ beat: 0, timeSig: data.timeSig }];
   const events = timing.timeSigEvents?.length
     ? timing.timeSigEvents
-    : [{ beat: timing.measureStartBeat, timeSig: timing.timeSig }];
+    : [{ beat: 0, timeSig: timing.timeSig }];
   if (canonicalEvents.length !== events.length
     || canonicalEvents.some((event, index) => {
       const candidate = events[index]!;
@@ -572,8 +574,12 @@ function sourceMeasuresMatchTiming(
       if (event.beat > measure.startBeat + 1e-9) break;
       active = event;
     }
-    if (!measureBoundaryMatchesPhase(measure.startBeat, active.beat, active.timeSig)) return false;
-    const expectedEnd = measure.startBeat + beatsPerMeasure(active.timeSig as [number, number]);
+    const phase = timing.timeSigEvents?.length ? active.beat : timing.measureStartBeat;
+    const width = beatsPerMeasure(active.timeSig as [number, number]);
+    // A source-bound pickup is the clipped first bar of the same meter grid.
+    const pickup = measure === measures[0] && measure.startBeat === 0 && phase < 0 && phase > -width;
+    if (!pickup && !measureBoundaryMatchesPhase(measure.startBeat, phase, active.timeSig)) return false;
+    const expectedEnd = pickup ? phase + width : measure.startBeat + width;
     if (!Number.isFinite(expectedEnd) || Math.abs(measure.endBeat - expectedEnd) > 1e-6) return false;
   }
   return true;

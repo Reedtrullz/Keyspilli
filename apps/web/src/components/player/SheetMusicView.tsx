@@ -121,6 +121,8 @@ export function SheetMusicView({ songId, publicationRevision, renderMode = "virt
         setPages({ ...loadedPagesRef.current });
         updateSheetState({
           __sheetRenderedPages: Object.keys(loadedPagesRef.current).length,
+          __sheetRetainedSvgBytes: Object.values(loadedPagesRef.current).reduce((sum, svg) => sum + svg.length * 2, 0),
+          __sheetFallbackSvgBytes: fallbackPagesRef.current?.reduce((sum, svg) => sum + svg.length * 2, 0) ?? 0,
         });
       }
     };
@@ -261,7 +263,11 @@ export function SheetMusicView({ songId, publicationRevision, renderMode = "virt
             if (loadedPage < start || loadedPage > end) delete loadedPagesRef.current[loadedPage];
           }
           setPages({ ...loadedPagesRef.current });
-          updateSheetState({ __sheetRenderedPages: Object.keys(loadedPagesRef.current).length });
+          updateSheetState({
+            __sheetRenderedPages: Object.keys(loadedPagesRef.current).length,
+            __sheetRetainedSvgBytes: Object.values(loadedPagesRef.current).reduce((sum, svg) => sum + svg.length * 2, 0),
+            __sheetFallbackSvgBytes: fallbackPagesRef.current?.reduce((sum, svg) => sum + svg.length * 2, 0) ?? 0,
+          });
           setActivePage(page);
           setWindowStart(start);
           setWindowEnd(end);

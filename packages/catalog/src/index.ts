@@ -3,6 +3,7 @@ export * from "./readiness.js";
 export * from "./db.js";
 export * from "./paths.js";
 export * from "./ingest.js";
+export * from "./symbolic-upload.js";
 export * from "./group.js";
 export * from "./public-difficulty.js";
 export * from "./transcribe.js";
@@ -128,4 +129,6 @@ export type {
 
 export { tutorialImportsEnabled } from "./tutorial-imports.js";
 
-export { commitCatalogPublication, type CatalogPublication } from "./reconcile.js";
+export { commitCatalogPublication, catalogDeletionSnapshot, commitCatalogDeletion, type CatalogPublication, type CatalogDeletion } from "./reconcile.js";
+
+export { catalogRecoveryInventory, recoverCatalogPublication, type RecoveryEntry } from "./recovery.js";
