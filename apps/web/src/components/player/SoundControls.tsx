@@ -24,6 +24,11 @@ function previewLabel(role: MelodyAuditionRole, backgroundMode: PlayerSettings["
 export function SoundControls({
   settings,
   onChange,
+  sampleStatus,
+  samplePolicy = "fallback",
+  sampleBusy = false,
+  onSamplePolicy,
+  onSampleRetry,
   chordSource = "auto",
   chordSources,
   chordSourceStatus = null,
@@ -48,6 +53,11 @@ export function SoundControls({
 }: {
   settings: PlayerSettings;
   onChange: (p: Partial<PlayerSettings>) => void;
+  sampleStatus?: { readiness: string; timbre: string; latencyMs: number | null };
+  samplePolicy?: "fallback" | "wait";
+  sampleBusy?: boolean;
+  onSamplePolicy?: (policy: "fallback" | "wait") => void;
+  onSampleRetry?: () => void;
   chordSource?: ChordSourceId;
   chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
@@ -427,13 +437,22 @@ export function SoundControls({
           </div>
           <p className="text-xs text-zinc-500 mt-1">
             {settings.soundSource === "sampled"
-              ? "Realistic multi-layer piano samples (loads on first play)"
+              ? "Piano samples load from an external asset service on first play; your song and input are not sent."
               : settings.soundSource === "organ"
                 ? settings.organStyle === "rock"
                   ? "Native tonewheel organ with rotary speaker"
                   : "Native pipe organ with large cathedral acoustics"
                 : "Lightweight oscillator tone; works instantly on slow connections"}
           </p>
+          {settings.soundSource === "sampled" && sampleStatus && <div className="mt-2 text-sm">
+            <p role="status">Samples: {sampleStatus.readiness}. Current sound: {sampleStatus.timbre === "sampled" ? "sampled piano" : "synthesis fallback"}.
+              {sampleStatus.latencyMs !== null && ` Load settled in ${Math.round(sampleStatus.latencyMs)} ms.`}
+              {sampleStatus.readiness === "ready" && sampleStatus.timbre === "fallback" && " Samples apply on the next Play, Practice or Preview start."}</p>
+            <label>Before starting <select aria-label="Piano sample policy" disabled={sampleBusy} value={samplePolicy} onChange={e => onSamplePolicy?.(e.target.value as "fallback" | "wait")}>
+              <option value="fallback">Use synthesis while samples load</option><option value="wait">Wait for samples</option>
+            </select></label>
+            {sampleStatus.readiness === "failed" && <button className="min-h-11 underline" disabled={sampleBusy} onClick={onSampleRetry}>Retry sample loading (up to twice)</button>}
+          </div>}
         </div>
 
         {settings.soundSource === "organ" && (

@@ -331,6 +331,8 @@ export function projectChordSources(data: SongData, loadedTimeline: ChordTimelin
 }
 
 export interface SongDetail {
+  /** Existing publication identity; null means this is an explicitly unpinned legacy artifact. */
+  publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   data: SongData | null;
@@ -350,6 +352,7 @@ export interface SongDetail {
  * `SongData` object back into the sheet route's RSC payload.
  */
 export interface SongDetailShell {
+  publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   variants: SongRow[];
@@ -359,6 +362,46 @@ export type SongArtifactStatus =
   | { status: "legacy"; errors: []; manifest?: undefined }
   | { status: "valid"; errors: []; manifest: ArrangementManifest }
   | { status: "unavailable"; errors: string[]; manifest?: ArrangementManifest };
+
+export class PublicationRevisionConflictError extends Error {
+  constructor() {
+    super("publication changed; reload and retry");
+    this.name = "PublicationRevisionConflictError";
+  }
+}
+
+async function readPublicationRevision(baseId: string): Promise<string | null> {
+  try {
+    const revision = (await readFile(join(dataDir(), "artifacts", baseId, ".publication-id"), "utf8")).trim();
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(revision)) throw new PublicationRevisionConflictError();
+    return revision;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function hasPublicationJournal(baseId: string): boolean {
+  return existsSync(join(dataDir(), "artifacts", `.${baseId}.reconciliation.json`));
+}
+
+async function withStablePublication<T>(
+  baseId: string,
+  requiredRevision: string | null | undefined,
+  read: () => Promise<T>,
+): Promise<{ value: T; publicationRevision: string | null }> {
+  for (let attempt = 0; attempt < (requiredRevision === undefined ? 2 : 1); attempt += 1) {
+    if (hasPublicationJournal(baseId)) throw new PublicationRevisionConflictError();
+    const before = await readPublicationRevision(baseId);
+    if (requiredRevision !== undefined && before !== requiredRevision) throw new PublicationRevisionConflictError();
+    const value = await read();
+    const after = await readPublicationRevision(baseId);
+    if (!hasPublicationJournal(baseId) && before === after && (requiredRevision === undefined || after === requiredRevision)) {
+      return { value, publicationRevision: before };
+    }
+  }
+  throw new PublicationRevisionConflictError();
+}
 
 /**
  * Validated exports are immutable until their atomic artifact publication
@@ -400,6 +443,7 @@ function artifactCacheKey(song: SongRow): string {
       artifactFileSignature(join(dir, "variant.mid")),
       artifactFileSignature(join(dir, "variant.xml")),
       artifactFileSignature(arrangementManifestPath(song.baseId)),
+      artifactFileSignature(join(dataDir(), "artifacts", song.baseId, ".publication-id")),
       artifactFileSignature(join(dataDir(), "artifacts", `.${song.baseId}.reconciliation.json`)),
     ],
   });
@@ -540,10 +584,13 @@ export async function withChordSources(source: SongData, baseId: string, level: 
  * server render (for example `generateMetadata` followed by the page) share
  * one result.
  */
-async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
+async function loadSongDetailUncached(id: string, requiredRevision?: string | null): Promise<SongDetail | null> {
   const song = getSong(id);
   if (!song) return null;
-  const loaded = await loadSongArtifact(song);
+  const stable = await withStablePublication(song.baseId, requiredRevision, async () => {
+  const currentSong = getSong(id);
+  if (!currentSong || currentSong.baseId !== song.baseId) return null;
+  const loaded = await loadSongArtifact(currentSong);
   let data = loaded.data;
   const variants = getSongsByBase(song.baseId);
   const advanced = variants.find((variant) => variant.level === "a");
@@ -610,7 +657,9 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
     }
   }
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
-  return { song, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
+  return { song: currentSong, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
+  });
+  return stable.value ? { ...stable.value, publicationRevision: stable.publicationRevision } : null;
 }
 
 /**
@@ -622,26 +671,43 @@ async function loadSongDetailUncached(id: string): Promise<SongDetail | null> {
  */
 export const getSongDetail = cache(loadSongDetailUncached);
 
-async function loadSongDetailShellUncached(id: string): Promise<SongDetailShell | null> {
+async function loadSongDetailShellUncached(id: string, requiredRevision?: string | null): Promise<SongDetailShell | null> {
   const song = getSong(id);
   if (!song) return null;
-  const saved = await readArrangementManifest(song.baseId);
-  const sourceArrangement = saved.status === "valid" ? saved.manifest.sourceArrangement : undefined;
-  return { song, variants: getSongsByBase(song.baseId), ...(sourceArrangement ? { sourceArrangement } : {}) };
+  const stable = await withStablePublication(song.baseId, requiredRevision, async () => {
+    const currentSong = getSong(id);
+    if (!currentSong || currentSong.baseId !== song.baseId) return null;
+    const saved = await readArrangementManifest(song.baseId);
+    const sourceArrangement = saved.status === "valid" ? saved.manifest.sourceArrangement : undefined;
+    return { song: currentSong, variants: getSongsByBase(song.baseId), ...(sourceArrangement ? { sourceArrangement } : {}) };
+  });
+  return stable.value ? { ...stable.value, publicationRevision: stable.publicationRevision } : null;
 }
 
 /** Request-local metadata-only loader for direct sheet pages. */
 export const getSongDetailShell = cache(loadSongDetailShellUncached);
 
-export async function getArtifactFile(id: string, name: "variant.mid" | "variant.xml"): Promise<Buffer | null> {
+export type VersionedArtifactFile = { data: Buffer; publicationRevision: string | null };
+
+export async function getArtifactFileWithRevision(
+  id: string,
+  name: "variant.mid" | "variant.xml",
+  requiredRevision?: string | null,
+): Promise<VersionedArtifactFile | null> {
+  const rootSong = getSong(id);
+  if (!rootSong) return null;
+  const stable = await withStablePublication(rootSong.baseId, requiredRevision, async () => {
   const song = getSong(id);
-  if (!song) return null;
-  const cacheKey = artifactCacheKey(song);
+  if (!song || song.baseId !== rootSong.baseId) return null;
+  const before = artifactCacheKey(song);
+  const cacheKey = before;
   const cached = artifactCache.get(cacheKey);
   if (cached) {
     // Refresh the LRU position without changing the bounded cache size.
+    const signature = artifactFileSignature(join(artifactsDir(song.baseId, song.level), name));
+    if (artifactCacheKey(song) !== cacheKey) throw new PublicationRevisionConflictError();
     rememberArtifact(cacheKey, cached);
-    return cachedArtifact(cached, name);
+    return { data: cachedArtifact(cached, name), signature };
   }
   // Exports are another runtime boundary: never serve a MIDI/XML artifact
   // whose manifest or denormalized tempo mirrors would make the player reject
@@ -671,20 +737,36 @@ export async function getArtifactFile(id: string, name: "variant.mid" | "variant
     };
     if (validateArtifactFiles(variant, { midi, xml }).length > 0) return null;
     const entry: ArtifactCacheEntry = { midi, xml: Buffer.from(xml, "utf8") };
-    // Do not cache an entry if publication changed a file while it was being
-    // read/validated. The current request may still return the bytes it
-    // validated, but the next request must perform a fresh read.
-    if (artifactCacheKey(song) === cacheKey) rememberArtifact(cacheKey, entry);
-    return cachedArtifact(entry, name);
-  } catch {
+    // Reject a changed pair even for legacy data, which has no durable revision token.
+    const data = cachedArtifact(entry, name);
+    const signature = artifactFileSignature(join(dir, name));
+    if (artifactCacheKey(song) !== cacheKey) throw new PublicationRevisionConflictError();
+    rememberArtifact(cacheKey, entry);
+    return { data, signature };
+  } catch (error) {
+    if (error instanceof PublicationRevisionConflictError) throw error;
     return null;
   }
+  });
+  if (!stable.value) return null;
+  const signature = artifactFileSignature(join(artifactsDir(rootSong.baseId, rootSong.level), name));
+  if (signature !== stable.value.signature) throw new PublicationRevisionConflictError();
+  return { data: stable.value.data, publicationRevision: stable.publicationRevision };
+}
+
+export async function getArtifactFile(
+  id: string,
+  name: "variant.mid" | "variant.xml",
+  requiredRevision?: string | null,
+): Promise<Buffer | null> {
+  return (await getArtifactFileWithRevision(id, name, requiredRevision))?.data ?? null;
 }
 
 export type ArtifactFileMetadata = {
   data: Buffer;
   etag: string;
   lastModified: string;
+  publicationRevision: string | null;
 };
 
 /**
@@ -698,30 +780,29 @@ export type ArtifactFileMetadata = {
 export async function getArtifactFileWithMetadata(
   id: string,
   name: "variant.mid" | "variant.xml",
+  requiredRevision?: string | null,
 ): Promise<ArtifactFileMetadata | null> {
   const song = getSong(id);
   if (!song) return null;
   const path = join(artifactsDir(song.baseId, song.level), name);
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const stable = await withStablePublication(song.baseId, requiredRevision, async () => {
     const before = artifactFileSignature(path);
-    const data = await getArtifactFile(id, name);
-    if (!data) return null;
-    const after = artifactFileSignature(path);
-    if (before !== after) continue;
-
+    const loaded = await getArtifactFileWithRevision(id, name, requiredRevision);
+    if (!loaded) return null;
     try {
       const stat = statSync(path, { bigint: true });
+      const after = artifactFileSignature(path);
+      if (before !== after) throw new PublicationRevisionConflictError();
       const fingerprint = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
       return {
-        data,
+        data: loaded.data,
         etag: `"${createHash("sha256").update(fingerprint).digest("hex")}"`,
         lastModified: new Date(Number(stat.mtimeMs)).toUTCString(),
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof PublicationRevisionConflictError) throw error;
       return null;
     }
-  }
-
-  return null;
+  });
+  return stable.value ? { ...stable.value, publicationRevision: stable.publicationRevision } : null;
 }

@@ -4,12 +4,14 @@ import React, { useEffect, useRef } from "react";
 import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 export function DownloadDialog({
   songId,
+  publicationRevision,
   hasSheetXml,
   backgroundMode = "piano",
   transpose = 0,
   onClose,
 }: {
   songId: string;
+  publicationRevision?: string | null;
   hasSheetXml: boolean;
   backgroundMode?: "piano" | "chord";
   transpose?: number;
@@ -22,6 +24,7 @@ export function DownloadDialog({
     { label: "MusicXML", desc: "Edit in MuseScore or any notation app", href: `/api/song/${songId}/export?type=musicxml`, enabled: true },
   ];
 
+  const pin = publicationRevision === undefined ? "" : `&revision=${encodeURIComponent(publicationRevision ?? "unpinned")}`;
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { requestClose, visible, closing } = useDialogMotion(onClose);
   const motion = dialogMotionClasses(visible, closing);
@@ -67,7 +70,7 @@ export function DownloadDialog({
           {items.map((it) => (
             <a
               key={it.label}
-              href={it.enabled ? it.href : undefined}
+              href={it.enabled ? it.href + pin : undefined}
               aria-disabled={!it.enabled}
               onClick={(e) => {
                 if (!it.enabled) e.preventDefault();

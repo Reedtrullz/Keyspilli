@@ -55,6 +55,24 @@ class FakeAudioContext {
 }
 
 describe("SamplerAudioEngine", () => {
+  it("waits explicitly and bounds failed-load retries without replacing its context", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    pianoFactory.mockImplementation(() => ({ ready: Promise.reject(new Error("fixture")), setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn() }));
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine(); engine.samplePolicy = "wait";
+    expect(engine.prepareTimbre()).toBe(false);
+    const context = FakeAudioContext.last;
+    await new Promise<void>(resolve => setImmediate(resolve));
+    expect(engine.readiness).toBe("failed"); expect(engine.loadLatencyMs).toBeGreaterThanOrEqual(0);
+    for (let i = 0; i < 2; i++) {
+      expect(engine.retrySamples()).toBe(true);
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(FakeAudioContext.last).toBe(context);
+    }
+    expect(engine.retrySamples()).toBe(false); expect(pianoFactory).toHaveBeenCalledTimes(9);
+    engine.samplePolicy = "fallback"; expect(engine.prepareTimbre()).toBe(true);
+    expect(engine.playbackTimbre).toBe("fallback"); engine.dispose();
+  });
   beforeEach(() => {
     pianoFactory.mockReset();
     vi.stubGlobal("AudioContext", FakeAudioContext);
@@ -76,6 +94,23 @@ describe("SamplerAudioEngine", () => {
     engine.playChord([60], 1, 12);
     engine.playChord([60], 0, NaN);
     expect(start.mock.calls.map(([event]) => event.duration)).toEqual([0.125, 0.125, 0.125, 12]);
+    engine.dispose();
+  });
+
+  it("keeps sampled hardware input sustain independent of playback CC64", async () => {
+    const instruments: Array<{ setCC: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }> = [];
+    pianoFactory.mockImplementation(() => {
+      const instance = { ready: Promise.resolve(), setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn() };
+      instruments.push(instance); return instance;
+    });
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine(); engine.ensure();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    engine.sustainPedal = true; engine.noteOff(60);
+    expect(instruments[0]?.setCC).toHaveBeenLastCalledWith(64, 127);
+    expect(instruments[2]?.setCC).toHaveBeenLastCalledWith(64, 0);
+    expect(instruments[0]?.stop).not.toHaveBeenCalled();
+    expect(instruments[2]?.stop).toHaveBeenCalledExactlyOnceWith({ stopId: "input:60" });
     engine.dispose();
   });
 
@@ -101,12 +136,40 @@ describe("SamplerAudioEngine", () => {
     engine.noteOn({ ...note, midi: 62 });
     engine.noteOn({ ...note, midi: 64 });
 
-    expect(pianoFactory).toHaveBeenCalledTimes(2);
+    expect(pianoFactory).toHaveBeenCalledTimes(3);
 
     engine.dispose();
     resolveReady();
     await new Promise<void>(resolve => setImmediate(resolve));
-    expect(dispose).toHaveBeenCalledTimes(2);
+    expect(dispose).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps fallback timbre through late sample readiness and ignores its state after an explicit switch", async () => {
+    let ready!: () => void;
+    const pending = new Promise<void>(resolve => { ready = resolve; });
+    const sampled = vi.fn(), fallbackNote = vi.spyOn((await import("../src/audio.js")).AudioEngine.prototype, "noteOn").mockImplementation(() => {});
+    pianoFactory.mockReturnValue({ ready: pending, setCC: vi.fn(), start: sampled, stop: vi.fn(), dispose: vi.fn() });
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine(), states: string[] = [];
+    engine.onStateChange = state => states.push(state);
+    engine.prepareTimbre();
+    const ownContext = FakeAudioContext.last as unknown as { state: string; onstatechange: () => void };
+    ownContext.state = "suspended"; ownContext.onstatechange();
+    expect(states).toEqual([]); ownContext.state = "running";
+    engine.noteOn({ midi: 60, startSec: 0, durSec: 1, vel: 80 });
+    const fallback = (engine as unknown as { fallbackEngine: { onStateChange: ((state: string) => void) | null } }).fallbackEngine;
+    ready(); await new Promise<void>(resolve => setImmediate(resolve));
+    expect(engine.readiness).toBe("ready"); expect(engine.playbackTimbre).toBe("fallback");
+    engine.noteOn({ midi: 64, startSec: 0, durSec: 1, vel: 80 });
+    expect(sampled).not.toHaveBeenCalled(); expect(fallbackNote).toHaveBeenCalledTimes(2);
+    fallback.onStateChange?.("suspended"); expect(states).toEqual(["suspended"]);
+    engine.prepareTimbre();
+    engine.noteOn({ midi: 67, startSec: 0, durSec: 1, vel: 80 });
+    expect(sampled).toHaveBeenCalledOnce(); expect(engine.playbackTimbre).toBe("sampled");
+    ownContext.state = "suspended"; ownContext.onstatechange();
+    expect(states).toEqual(["suspended", "suspended"]); ownContext.state = "running";
+    fallback.onStateChange?.("suspended"); expect(states).toEqual(["suspended", "suspended"]);
+    engine.dispose();
   });
 
   it("starts chord-only fallback with current gains and sustain", async () => {
@@ -139,9 +202,9 @@ describe("SamplerAudioEngine", () => {
     engine.setGains(1, 0);
     engine.noteOn({ midi: 60, startSec: 0, durSec: 0.4, vel: 100, hand: "R", fromInput: true });
     engine.noteOn({ midi: 48, startSec: 0, durSec: 0.4, vel: 90, hand: "L" });
-    expect(instruments).toHaveLength(2);
+    expect(instruments).toHaveLength(3);
     expect(instruments[0]!.destination).not.toBe(instruments[1]!.destination);
-    expect(instruments[0]!.start).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ note: 60, stopId: "input:60" }));
+    expect(instruments[2]!.start).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ note: 60, stopId: "input:60" }));
     expect(instruments[1]!.start).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ note: 48, duration: 0.4 }));
     const rightGain = instruments[0]!.destination.gain.setTargetAtTime as ReturnType<typeof vi.fn>;
     const leftGain = instruments[1]!.destination.gain.setTargetAtTime as ReturnType<typeof vi.fn>;
@@ -164,12 +227,14 @@ describe("SamplerAudioEngine", () => {
     const note = { midi: 60, startSec: 0, durSec: 0.4, vel: 100 };
     engine.noteOn({ ...note, fromInput: true });
     await new Promise<void>(resolve => setImmediate(resolve));
+    engine.prepareTimbre(); // explicit next-run boundary after the pre-load fallback voice
     engine.noteOn(note);
     engine.noteOn({ ...note, fromInput: true });
+    stop.mockClear();
     engine.noteOff(60);
     expect(start.mock.calls[0]![0]).toMatchObject({ duration: 0.4 });
     expect(start.mock.calls[1]![0]).toMatchObject({ stopId: "input:60", duration: undefined });
-    expect(stop).toHaveBeenCalledTimes(2);
+    expect(stop).toHaveBeenCalledTimes(1);
     expect(stop).toHaveBeenLastCalledWith({ stopId: "input:60" });
     expect(fallbackOff).toHaveBeenCalledExactlyOnceWith(60);
     engine.dispose();

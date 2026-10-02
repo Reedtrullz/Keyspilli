@@ -13,8 +13,10 @@ domain with operator Basic Auth; the application bearer token remains a
 separate machine-mutation credential.
 
 Pushes to `main` run checks, build both images, and deploy automatically. Manual
-workflow dispatch additionally rebuilds the production catalog; do not use it
-just to retry a documentation release. CI builds the tutorial worker from
+workflow dispatch defaults to `deploy_only`. Choose `rebuild_target` with a
+validated base ID, or `rebuild_all` with the exact confirmation
+`REBUILD_ALL_CATALOG`, to opt into catalog mutation. Both retain the production
+environment gate. A deployment retry leaves catalog sources and data untouched. CI builds the tutorial worker from
 `services/transcribe/Dockerfile.tutorial --target worker`; the root Compose
 file is a separate development topology with the legacy audio worker.
 
@@ -686,7 +688,9 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
   reports the removal it would perform.
 - Positional base ids restrict the run: `npx tsx ... reingest-all-youtube.ts <baseId>...`
 - VPS: trigger the "Rebuild YouTube catalog on VPS" job via GitHub Actions
-  workflow dispatch (runs inside the worker container with `--keep-existing-tempo`).
+  workflow dispatch with `rebuild_target` and an explicit base ID, or `rebuild_all`
+  with `REBUILD_ALL_CATALOG` (runs inside the worker container with
+  `--keep-existing-tempo`). The default `deploy_only` skips this job.
 
 ### Discovery-assisted private alpha deployment canary — 2026-09-05
 
@@ -880,7 +884,10 @@ but never a Docker socket. A timeout or failed unpause is a failed backup.
 `deploy/backup.sh` is data-only. It creates a consistent SQLite snapshot,
 validates the database and tar archive, and publishes the database and archive
 before publishing `backup-manifest-STAMP.json` last. The manifest names the
-paired files and records both SHA-256 checksums. The archive includes
+paired files and records both SHA-256 checksums, SQLite `user_version` as
+`catalogSchemaEpoch`, and the inspected immutable web/worker image IDs with
+OCI revision labels. Missing labels remain null; a dated tag is not proof of
+the restored revision. The archive includes
 `artifacts/` recursively, so hidden `.BASE.reconciliation.json` and
 `.BASE.old` recovery state is retained with ordinary artifacts. It also
 includes the persisted source and provenance directories when present.
@@ -900,11 +907,32 @@ Run fixture checks:
 
 Use a new, absent destination. The command verifies the committed pair and
 checksums, copies both files, runs SQLite `PRAGMA integrity_check`, validates
-safe tar members, and extracts the archive without changing the source backup:
+safe tar members, and extracts into `FRESH_DESTINATION/runtime/` with a normal
+`db.sqlite`, without changing the source backup. `restore-report.json` records
+archive validation, schema epoch and elapsed time. Archive validation alone
+leaves application verification `not_run`:
 
     bash deploy/restore-drill.sh \
       /backups/backup-manifest-2026-09-15-020000.json \
       /tmp/keyspilli-restore-drill-2026-09-15
+
+To opt into actual application verification, supply the local web image ID,
+full revision and a representative song variant **from that backup**:
+
+    bash deploy/restore-drill.sh MANIFEST.json FRESH_DESTINATION \
+      --verify-app sha256:IMAGE_ID FULL_40_CHARACTER_REVISION SONG_VARIANT_ID
+
+The IDs must match the backup metadata and the image must already exist locally;
+no image pull occurs. The verifier starts only that web image, with `--network
+none`, no host listener, no worker, a read-only image filesystem and the isolated
+restored runtime. It checks health/revision/schema, player document/detail and
+MIDI/MusicXML plus both PDF exports, then removes its own named container even
+on failure. The report distinguishes `passed`, `failed` and `not_run`, records
+application elapsed time and exact identity, and never equates these structural
+checks with playback/listening/keyboard acceptance. Old backups without image
+metadata cannot claim a pinned application proof. Real backup execution needs
+owner-approved access and enough space for a fresh full copy; fixture checks
+are not a disaster-recovery certification.
 
 ### Publication reconciliation recovery
 
@@ -938,3 +966,83 @@ reconciliation and the restore drill remain explicit recovery checks.
 An approved song may include `artifacts/<baseId>/chord-timeline.json` alongside its six-level artifact tree. The timeline must identify the same base and carry `prepared:<source fingerprint>` provenance. The catalog loader prefers this per-song timeline over image-bundled charts; Player still verifies its source fingerprint. Runtime timeline file changes participate in cache invalidation. Publish the entire artifact tree through `publishBaseArtifact` with strict validation and the existing catalog reconciliation callback. Preserve all unrelated catalog rows and files.
 
 This file lives inside the existing artifacts backup/restore boundary and survives immutable image upgrades. It is not a raw-upload endpoint or automatic musical approval. Verify the exact Original notes/clock and realized Chords events after publication. The `song-bundle.mts install` command remains an isolated-catalog tool, not a live catalog replacement.
+
+
+## Runtime preflight and worker health
+
+`npm run preflight` validates redacted startup configuration, opens an existing
+catalog read-only with a 250 ms SQLite lock timeout, checks owned write paths,
+and reports binary presence. It never creates a missing catalog or starts
+imports. Optional provider/model/browser-library usability stays `unknown`
+until separately exercised; an enabled flag or executable is not readiness.
+Normal app startup with an explicit `KEYSPILLI_DATA_DIR` initializes/upgrades
+its schema deliberately. `/api/health/live` is cheap process liveness;
+`/api/health` is bounded catalog readiness and capability configuration.
+The production private edge protects both routes.
+
+The worker writes an atomic, ID-free, 4 KiB bounded heartbeat under the owned
+transcribed directory. The separate `worker-health-check.ts` reader rejects
+invalid/stale snapshots and reports idle/busy/draining/unfinished/health-error
+states with a five-job queue sample and oldest sampled age. Production Compose
+checks it every 30 seconds and allows 125 seconds for the worker's default
+120-second shutdown grace. The ops checker requires a healthy heartbeat in
+addition to a running container. Queue samples are bounds, not exact counts.
+
+SIGTERM stops admission and aborts supported subprocesses. Before publication,
+shutdown releases only its owned lease without consuming an attempt. After an
+atomic swap has been authorized, publication may finish or require existing
+journal/lease recovery; shutdown does not discard the accepted artifact.
+Grace expiry reports recovery pending only after a successful lease fence;
+failed fencing and health-file writes remain explicit errors. Health-file
+invalidation on an unwritable volume is best effort. A real worker shutdown and
+production image/Compose health acceptance have not been performed by fixture
+checks.
+
+
+## Optional Google Drive backup replication
+
+`deploy/replicate-backup.py` uses the installed rclone; it sends only a committed database/archive pair and its manifest to a dedicated owner-configured remote directory. Normal rclone HTTPS applies; no extra client encryption layer or new Restic repository is added. Google Drive configuration and any account restriction must be resolved by the owner first. No default remote is chosen, and deployment leaves `keyspilli_offhost_replication: false`.
+
+Before activation, configure a private existing rclone remote and a dedicated directory such as `drive:Keyspilli/backups`. Supply only these routing values in root-owned mode-0600 `/etc/keyspilli/replication.env`: `KEYSPILLI_BACKUP_REMOTE` and `KEYSPILLI_RCLONE_CONFIG` (the latter is the path to the existing protected rclone configuration, never its contents). Validate access and run one pair explicitly:
+
+```sh
+python3 /opt/apps/keyspilli/replicate-backup.py --manifest /backups/backup-manifest-STAMP.json --remote drive:Keyspilli/backups --config /PATH/TO/EXISTING/rclone.conf
+```
+
+The helper hashes the local pair, uploads immutable named data first, downloads it through rclone's streaming verification, then sends and verifies the completion manifest last. Bounded retries share a 30-minute deadline. Partial uploads have no completion marker; retries reuse the same stamp without replacing differing committed bytes. Temporary hard links preserve a pair through local retention and are removed on exit. No remote files are deleted: remote retention is explicitly `no-remote-deletion` until the owner chooses a pruning policy. Local retention remains the existing backup-script policy.
+
+After a verified remote pair and owner-authorized release, set `keyspilli_offhost_replication: true`. The local service triggers a separate replication service only after successful backup and writer unpause. Local backup success and off-host success remain separate in ops; an enabled but failed, missing or older-than-48-hour verified transfer fails the off-host check. The status report contains no remote/config path, account name or raw provider error. Recover an off-host pair into a fresh local directory with rclone and use the existing `restore-drill.sh` hashes/runtime verifier; no real off-host restore has been performed by the implementation fixtures.
+
+
+## Input timing and hardware acceptance
+
+The practice input tool keeps an unknown calibration separate from an entered zero. Keyboard/MIDI DOM timestamps use the document's monotonic clock; delayed events from a prior seek/count-in/playback epoch cannot grade the new passage. A selected MIDI device/channel and chosen sound have their own optional offset (−250…250 ms); positive subtracts delay once. Wait mode ignores compensation because it does not assess rhythmic arrival. On-screen and microphone timing are uncalibrated. Setup changes select a different binding, and media-device changes reset stored offsets and interrupt active practice.
+
+For actual acceptance, use one keyboard, one channel and a fixed speaker/headphone path; capture a rights-cleared click/reference alongside physical attacks, compare raw and compensated errors over repeated runs, then test seek, count-in, pause, timbre change, hot unplug and pedal-up/blur release. Record the exact browser/device/audio setup and measured distribution; no hardware latency or microphone confidence has been measured by synthetic tests. Microphone practice admits only monophonic targets, reports quiet/unresolved/pitch-present signal states, and stops capture on active interruption. Repeated-note recognition and physical-hand/technique inference remain unsupported.
+
+
+## Browser practice backup and sampled piano
+
+The Home page and player saved-passages workspace expose an explicit owner-state
+backup. It contains preferences, favorites/learned lists, per-song settings,
+bookmarks and exact-source musical choices, with history opt-in. It excludes
+song files and credentials. Import is bounded to 2 MiB, rejects unknown versions
+and malformed fields, and previews merge/replace before applying. Merge retains
+unrelated fields; history remains unchanged when omitted. Included history keeps
+the latest 200 runs; an oversized bookmark merge is refused. Hardware calibration
+is reset because a restored browser/output setup is not a measured equivalent.
+Musical choices activate only when the opened source fingerprint matches and
+never import cached review provenance. Legacy choices without a bounded source
+fingerprint are omitted. Export before replacing; localStorage cannot provide a
+cross-tab transaction. A failed restore attempts rollback and reports failure;
+reload/check existing state before retrying.
+
+Grand Piano discloses sample readiness and external requests to
+`smpldsnds.github.io`. The owner chooses wait-for-samples or immediate synthesis
+fallback. The current run retains its chosen timbre even if samples finish
+loading; the next deliberate Play/Practice/Preview start can choose ready samples.
+Failed loading permits two explicit retries in the same context, then fallback
+or a deliberate reload. Initial load settlement latency is diagnostic, not
+hardware audio latency. Timing offsets and stored attempts distinguish sampled
+piano from fallback. Inactive contexts do not report false interruptions; active
+metronome clicks remain part of the selected audio session.

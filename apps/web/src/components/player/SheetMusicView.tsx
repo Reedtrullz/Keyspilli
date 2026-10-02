@@ -12,6 +12,7 @@ export type SheetReaderPosition = { zoom: number; page: number; offset: number; 
 
 type SheetMusicViewProps = {
   songId: string;
+  publicationRevision?: string | null;
   initialPosition?: SheetReaderPosition;
   /**
    * `virtual` keeps only a small page window of SVG markup in the DOM (the
@@ -57,7 +58,7 @@ function updateSheetState(values: Record<string, unknown>): void {
   Object.assign(window as unknown as Record<string, unknown>, values);
 }
 
-export function SheetMusicView({ songId, renderMode = "virtual", initialPosition }: SheetMusicViewProps) {
+export function SheetMusicView({ songId, publicationRevision, renderMode = "virtual", initialPosition }: SheetMusicViewProps) {
   const [zoom, setZoom] = useState(initialPosition?.zoom ?? 100);
   const restoredPositionRef = useRef(false);
   const [pages, setPages] = useState<PageMap>({});
@@ -103,6 +104,7 @@ export function SheetMusicView({ songId, renderMode = "virtual", initialPosition
       __sheetRenderMode: renderMode,
       __sheetRenderer: "pending",
       __sheetPrintReady: renderMode === "all",
+      __publicationConflict: false,
     });
 
     const markPage = (page: number, svg: string) => {
@@ -125,7 +127,13 @@ export function SheetMusicView({ songId, renderMode = "virtual", initialPosition
 
     const load = async () => {
       try {
-        const response = await fetch(`/api/v1/sheet/${encodeURIComponent(songId)}`, { signal: controller.signal });
+        const query = publicationRevision === undefined ? ""
+          : `?revision=${publicationRevision === null ? "unpinned" : encodeURIComponent(publicationRevision)}`;
+        const response = await fetch(`/api/v1/sheet/${encodeURIComponent(songId)}${query}`, { signal: controller.signal });
+        if (response.status === 409) {
+          updateSheetState({ __publicationConflict: true });
+          throw new Error("This score changed while loading. Reload the page to continue.");
+        }
         if (!response.ok) throw new Error("sheet unavailable");
         const xml = await response.text();
 
@@ -221,7 +229,7 @@ export function SheetMusicView({ songId, renderMode = "virtual", initialPosition
       sessionRef.current = null;
       void session?.close();
     };
-  }, [songId, renderMode]);
+  }, [songId, publicationRevision, renderMode]);
 
   useEffect(() => {
     if (renderMode !== "virtual" || pageCount < 1 || error) return;

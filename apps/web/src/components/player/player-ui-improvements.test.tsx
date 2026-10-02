@@ -49,6 +49,7 @@ it("names source and effective key and tempo in note letters", () => {
 it("shows the resolved setup context and input readiness before Start", () => {
   vi.stubGlobal("React", React);
   const html = renderToStaticMarkup(createElement(PracticeSetupDialog, {
+    microphoneTarget: () => ({ eligible: false, reason: "Overlapping pitches" }), micSignal: "Unknown signal quality",
     initialSetup: { input: "midi", wait: true, scope: "bars", countInBeats: 0 },
     hasLoop: false, midiConnected: false, micReady: false, micPending: false, micError: "", error: "",
     describeSetup: () => "Bars 2–5 · Both hands · Playback D · 50% · 60 practice BPM",
@@ -62,4 +63,16 @@ it("divides arrangement from instrument and mix without changing settings", () =
   const html = renderToStaticMarkup(createElement(SoundControls, { settings: DEFAULT_SETTINGS, onChange: () => {} }));
   expect(html).toContain('aria-label="Arrangement settings"');
   expect(html).toContain('aria-label="Instrument and mix settings"');
+});
+
+it("withholds microphone practice for a polyphonic target even after permission is ready", () => {
+  vi.stubGlobal("React", React);
+  const html = renderToStaticMarkup(createElement(PracticeSetupDialog, {
+    microphoneTarget: () => ({ eligible: false, reason: "Overlapping pitches exceed the monophonic detector" }), micSignal: "Unknown signal quality",
+    initialSetup: { input: "microphone", wait: false, scope: "bars", countInBeats: 0 },
+    hasLoop: false, midiConnected: false, micReady: true, micPending: false, micError: "", error: "",
+    onEnableMic: () => {}, onInputChange: () => {}, onStart: () => {}, onCancel: () => {},
+  }));
+  expect(html).toContain("Overlapping pitches"); expect(html).toContain("Unknown signal quality");
+  expect(html).toMatch(/<button[^>]*disabled[^>]*>Start practice/);
 });

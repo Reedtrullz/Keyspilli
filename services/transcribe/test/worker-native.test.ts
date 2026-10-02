@@ -34,6 +34,62 @@ vi.stubEnv("KEYSPILLI_SOURCE_ASSISTED_BETA", "1");
 vi.stubEnv("KEYSPILLI_VERIFIED_SOURCE_INDEX", join(dir, "index.json"));
 afterAll(() => { vi.unstubAllEnvs(); rmSync(dir, { recursive: true, force: true }); });
 
+it("releases an owned job for shutdown without incrementing attempts", async () => {
+  const { insertJob, getJob } = await import("@keyspilli/catalog");
+  const { processJob } = await import("../src/worker.js");
+  insertJob({ id: "shutdown-before-work", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: null, error: null, attempts: 1, createdAt: new Date().toISOString(), finishedAt: null });
+  const controller = new AbortController();
+  controller.abort();
+
+  await processJob("shutdown-before-work", { signal: controller.signal });
+
+  expect(getJob("shutdown-before-work")).toMatchObject({ status: "queued", attempts: 1, error: null });
+});
+
+it("fences the owned lease when shutdown grace expires during publication", async () => {
+  const { insertJob, getJob } = await import("@keyspilli/catalog");
+  const { processJob } = await import("../src/worker.js");
+  insertJob({ id: "shutdown-grace-fence", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: null, error: null, attempts: 1, createdAt: new Date().toISOString(), finishedAt: null });
+  const controller = new AbortController();
+  controller.abort();
+  let fenceRegistered = false;
+
+  await processJob("shutdown-grace-fence", {
+    signal: controller.signal,
+    registerGraceExpired: (fence) => {
+      fenceRegistered = true;
+      fence("publishing");
+    },
+  });
+
+  expect(fenceRegistered).toBe(true);
+  expect(getJob("shutdown-grace-fence")).toMatchObject({ status: "queued", attempts: 1, error: null });
+});
+
+it("does not begin publication when shutdown arrives at the publication boundary", async () => {
+  const { insertJob, getJob, getSongsByBase } = await import("@keyspilli/catalog");
+  const { processJob } = await import("../src/worker.js");
+  transport.bytes = writeMidi(Array.from({ length: 64 }, (_, i) => ({ midi: 60 + i % 5, start: i, dur: .75, vel: 90, hand: "R" as const })), { tempoBpm: 90 });
+  const hash = sha256Hex(transport.bytes);
+  const baseId = `beta-native-${hash.slice(0, 24)}`;
+  writeFileSync(join(dir, "index.json"), JSON.stringify([{
+    id: "shutdown-fixture", recordingIds: ["abcdefghijk"], artist: "Synthetic", title: "Shutdown Fixture",
+    arrangementTitle: "Shutdown Fixture Piano", sourceUrl: "https://scores.example/fixture.mid", sourceSha256: hash,
+    license: "CC0-1.0", licenseEvidenceUrl: "https://scores.example/license",
+    verificationEvidenceUrl: "https://scores.example/fixture", containsMelody: true, completeArrangement: true,
+  }]));
+  insertJob({ id: "shutdown-before-publish", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: null, error: null, attempts: 1, createdAt: new Date().toISOString(), finishedAt: null });
+  const controller = new AbortController();
+
+  await processJob("shutdown-before-publish", {
+    signal: controller.signal,
+    onProgress: (stage) => { if (stage === "publishing") controller.abort(); },
+  });
+
+  expect(getJob("shutdown-before-publish")).toMatchObject({ status: "queued", attempts: 1, error: null });
+  expect(getSongsByBase(baseId)).toHaveLength(0);
+});
+
 it("runs a queued requested recording through native resolution and publishes all five public levels", async () => {
   const { insertJob, getJob, getSongsByBase } = await import("@keyspilli/catalog");
   const { processJob } = await import("../src/worker.js");

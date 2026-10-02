@@ -1,3 +1,4 @@
+import { initializeCatalogSchema } from "./catalog-schema.js";
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -7,6 +8,7 @@ import type { JobRow, SongFilters, SongRow } from "./db-types.js";
 import { groupSongs, type GroupedSong } from "./group.js";
 import { disabledManifestBases } from "./manifest.js";
 import { blockedLearnerBases } from "./learner-review.js";
+import { isPublicDifficultyLevel, projectPublicGroupedSongs, PUBLIC_DIFFICULTY_ORDER } from "./public-difficulty.js";
 
 export type { SongRow, JobRow, SongFilters };
 
@@ -109,79 +111,13 @@ function mapJob(r: Record<string, unknown>): JobRow {
   };
 }
 
-function migrateColumn(conn: Database.Database, table: string, col: string, def: string): void {
-  const cols = conn.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
-  if (cols.some((c) => c.name === col)) return;
-  try {
-    conn.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
-  } catch (e) {
-    // Web + worker boot together; a check-then-ALTER race makes one process
-    // see "duplicate column name". The other process already migrated.
-    if (!(e as Error).message.includes("duplicate column name")) throw e;
-  }
-}
-
 export function getDb(): Database.Database {
   if (db) return db;
   mkdirSync(dirname(dbPath()), { recursive: true });
   const conn = new Database(dbPath());
+  try { initializeCatalogSchema(conn); }
+  catch (error) { conn.close(); throw error; }
   conn.pragma("journal_mode = WAL");
-  conn.pragma("busy_timeout = 5000");
-  conn.exec(`
-    CREATE TABLE IF NOT EXISTS songs (
-      id TEXT PRIMARY KEY,
-      base_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      artist TEXT NOT NULL,
-      category TEXT NOT NULL DEFAULT 'Classical',
-      difficulty TEXT NOT NULL,
-      difficulty_score REAL NOT NULL,
-      key TEXT NOT NULL,
-      tempo INTEGER NOT NULL,
-      style TEXT NOT NULL DEFAULT 'classical',
-      mood TEXT NOT NULL DEFAULT 'peaceful',
-      bass_pattern TEXT NOT NULL DEFAULT 'block',
-      duration INTEGER NOT NULL DEFAULT 0,
-      content_type TEXT NOT NULL DEFAULT 'standard',
-      acquired_via TEXT,
-      source_youtube_url TEXT,
-      has_sheet_xml INTEGER NOT NULL DEFAULT 1,
-      sections TEXT,
-      plays INTEGER NOT NULL DEFAULT 0,
-      level TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_songs_base ON songs(base_id);
-    CREATE INDEX IF NOT EXISTS idx_songs_difficulty ON songs(difficulty);
-    CREATE INDEX IF NOT EXISTS idx_songs_key ON songs(key);
-    -- The catalogue API always orders its first page by one of these columns.
-    -- Keep the sort key in the index so SQLite can stop after LIMIT rows
-    -- instead of scanning the full table and materializing a temp B-tree.
-    CREATE INDEX IF NOT EXISTS idx_songs_plays ON songs(plays DESC);
-    CREATE INDEX IF NOT EXISTS idx_songs_title_nocase ON songs(title COLLATE NOCASE);
-    CREATE INDEX IF NOT EXISTS idx_songs_difficulty_plays ON songs(difficulty, plays DESC);
-    CREATE TABLE IF NOT EXISTS conversion_jobs (
-      id TEXT PRIMARY KEY,
-      youtube_url TEXT NOT NULL,
-      status TEXT NOT NULL,
-      song_id TEXT,
-      error TEXT,
-      created_at TEXT NOT NULL,
-      finished_at TEXT
-    );
-    CREATE TABLE IF NOT EXISTS source_candidate_handoffs (
-      id TEXT PRIMARY KEY,
-      state TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      payload TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_source_candidate_handoffs_expiry ON source_candidate_handoffs(expires_at);
-  `);
-  migrateColumn(conn, "conversion_jobs", "attempts", "INTEGER NOT NULL DEFAULT 0");
-  migrateColumn(conn, "conversion_jobs", "started_at", "TEXT");
-  migrateColumn(conn, "conversion_jobs", "lease_owner", "TEXT");
-  migrateColumn(conn, "conversion_jobs", "lease_expires_at", "INTEGER");
   db = conn;
   return db;
 }
@@ -316,7 +252,12 @@ function pagination(f: SongFilters, cap: number): { limit: number; offset: numbe
   return { limit: Math.min(Number.isSafeInteger(cap) && cap > 0 ? cap : 200, limit), offset };
 }
 
-export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
+function selectedBases(ids: readonly string[], publicOnly = false): Set<string> {
+  const selected = new Set(ids);
+  return new Set(visibleSongRowsSnapshot().filter(row => selected.has(row.id) && (!publicOnly || isPublicDifficultyLevel(row.difficulty))).map(row => row.baseId));
+}
+
+function songConditions(f: SongFilters): { where: string; params: Record<string, unknown> } {
   const conds: string[] = [];
   const params: Record<string, unknown> = {};
   const hidden = [...hiddenBaseIds()];
@@ -324,6 +265,14 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
     const placeholders = hidden.map((_, index) => `hidden${index}`);
     conds.push(`base_id NOT IN (${placeholders.map((name) => `@${name}`).join(", ")})`);
     for (const [index, baseId] of hidden.entries()) params[`hidden${index}`] = baseId;
+  }
+  if (f.publicOnly) {
+    conds.push("difficulty IN (SELECT value FROM json_each(@publicLevels))");
+    params.publicLevels = JSON.stringify(PUBLIC_DIFFICULTY_ORDER);
+  }
+  if (f.ids !== undefined) {
+    conds.push("base_id IN (SELECT value FROM json_each(@selectedBases))");
+    params.selectedBases = JSON.stringify([...selectedBases(f.ids, f.publicOnly)]);
   }
   const map: Record<string, string> = {
     difficulty: "difficulty",
@@ -347,9 +296,14 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
     params.importBases = JSON.stringify(bases);
   }
   if (f.q) {
-    conds.push("(title LIKE @q OR artist LIKE @q)");
-    params.q = `%${f.q}%`;
+    conds.push("(title LIKE @q ESCAPE '\\' OR artist LIKE @q ESCAPE '\\')");
+    params.q = `%${f.q.replace(/[\\%_]/g, "\\$&")}%`;
   }
+  return { where: conds.length ? "WHERE " + conds.join(" AND ") : "", params };
+}
+
+export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
+  const { where, params } = songConditions(f);
   const order =
     f.sort === "newest"
       ? "created_at DESC, base_id"
@@ -364,7 +318,7 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
   return (
     getDb()
       .prepare(
-        `SELECT * FROM songs ${conds.length ? "WHERE " + conds.join(" AND ") : ""} ORDER BY ${order} LIMIT @limit OFFSET @offset`,
+        `SELECT * FROM songs ${where} ORDER BY ${order}, base_id, id LIMIT @limit OFFSET @offset`,
       )
       .all({ ...params, limit, offset }) as Record<string, unknown>[]
   ).map(mapSong);
@@ -409,10 +363,14 @@ function groupedSongsForFilters(f: SongFilters): GroupedSong[] {
   // Read the complete visible snapshot: the previous listSongs(limit=10_000)
   // path silently truncated catalogues larger than 10,000 rows.
   const importBases = f.importMethod ? matchingImportBases(f.importMethod) : undefined;
-  const all = visibleSongRowsSnapshot().filter((row) => (!importBases || importBases.has(row.baseId)) && matchesSongFilters(row, f));
+  const ids = f.ids === undefined ? undefined : selectedBases(f.ids, f.publicOnly);
+  const all = visibleSongRowsSnapshot().filter(row =>
+    (!f.publicOnly || isPublicDifficultyLevel(row.difficulty)) &&
+    (!importBases || importBases.has(row.baseId)) && (!ids || ids.has(row.baseId)) && matchesSongFilters(row, f));
   // Grouping currently returns references to input rows.  Clone the cached
   // snapshot for request isolation so a caller cannot mutate future results.
   let grouped = groupSongs(all.map((row) => ({ ...row })));
+  if (f.publicOnly) grouped = projectPublicGroupedSongs(grouped);
   if (f.difficulty) grouped = grouped.filter((g) => g.levels.some((l) => l.difficulty === f.difficulty));
   if (f.key) grouped = grouped.filter((g) => g.levels.some((l) => l.key === f.key));
   if (f.style) grouped = grouped.filter((g) => g.levels.some((l) => l.style === f.style));
@@ -459,7 +417,7 @@ function groupedOrder(f: SongFilters): (a: GroupedSong, b: GroupedSong) => numbe
         : f.sort === "difficulty"
         ? (a: GroupedSong, b: GroupedSong) => a.representative.difficultyScore - b.representative.difficultyScore
         : (a: GroupedSong, b: GroupedSong) => b.totalPlays - a.totalPlays;
-  return order;
+  return (a, b) => order(a, b) || a.representative.baseId.localeCompare(b.representative.baseId);
 }
 
 /** Count the full filtered grouped catalogue, independent of page size. */
@@ -468,14 +426,17 @@ export function countSongsGrouped(f: SongFilters = {}): number {
 }
 
 export function countSongs(f: SongFilters = {}): number {
-  if (f.importMethod) {
-    const bases = matchingImportBases(f.importMethod);
-    return visibleSongRowsSnapshot().filter(row => bases.has(row.baseId) && matchesSongFilters(row, f)).length;
-  }
-  const hidden = [...hiddenBaseIds()];
-  if (!hidden.length) return (getDb().prepare("SELECT COUNT(*) AS c FROM songs").get() as { c: number }).c;
-  const placeholders = hidden.map(() => "?").join(", ");
-  return (getDb().prepare(`SELECT COUNT(*) AS c FROM songs WHERE base_id NOT IN (${placeholders})`).get(...hidden) as { c: number }).c;
+  const { where, params } = songConditions(f);
+  return (getDb().prepare(`SELECT COUNT(*) AS c FROM songs ${where}`).get(params) as { c: number }).c;
+}
+
+/** Directory/home metrics use exactly the same visible public rows as the library. */
+export function publicCatalogSummary(): { arrangements: number; plays: number; artists: Array<{ artist: string; arrangements: number }> } {
+  const rows = visibleSongRowsSnapshot().filter(row => isPublicDifficultyLevel(row.difficulty));
+  const artists = new Map<string, number>();
+  for (const row of rows) artists.set(row.artist, (artists.get(row.artist) ?? 0) + 1);
+  return { arrangements: rows.length, plays: rows.reduce((total, row) => total + row.plays, 0),
+    artists: [...artists].map(([artist, arrangements]) => ({ artist, arrangements })).sort((a, b) => a.artist.localeCompare(b.artist)) };
 }
 
 export function incrementPlays(id: string): void {

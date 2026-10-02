@@ -1,3 +1,4 @@
+import type { InputEventMetadata } from "./input.js";
 import { Grader, type GradeResult } from "./grading.js";
 import { beatToSec, beatsPerMeasure, completeChordDurations, firstNoteAtOrAfter, secPerBeat, type LoopRegion, type TimedNote } from "./timeline.js";
 import type { ChordLabel } from "@keyspilli/midi";
@@ -11,6 +12,9 @@ const DEFAULT_CHORD_DURATION_SEC = 1.2;
 /** Minimal audio surface the engine needs (AudioEngine satisfies this). */
 export interface AudioLike {
   ensure(): unknown;
+  readonly state?: string;
+  onStateChange?: ((state: string) => void) | null;
+  prepareTimbre?(): boolean | void;
   noteOn(n: TimedNote, when?: number): void;
   noteOff(midi: number): void;
   metronomeClick(beat: number, when?: number): void;
@@ -72,6 +76,8 @@ export class PlaybackEngine {
   waitMode = false;
   onChange: ((snap: EngineSnapshot) => void) | null = null;
 
+  private inputClock = { time: 0, ms: 0 };
+  private inputBoundaryMs = 0;
   private lastScheduled = 0;
   private lastChordScheduled = -1;
 
@@ -83,17 +89,26 @@ export class PlaybackEngine {
     settings: PlayerSettings,
     chords: ChordPlaybackLabel[] = [],
     gradingNotes: TimedNote[] = notes,
+    private monotonicNow: () => number = () => performance.now(),
   ) {
     this.settings = settings;
     this.audio.setGains(settings.voiceGain, settings.pianoGain);
     this.chords = this.normalizeChordTimeline(chords);
     this.gradingNotes = gradingNotes;
+    this.resetInputClock();
+  }
+
+  private resetInputClock(): void {
+    this.inputBoundaryMs = this.monotonicNow();
+    this.inputClock = { time: this.time, ms: this.inputBoundaryMs };
   }
 
   start(): void {
     if (this.playing) return;
     this.audio.ensure();
+    if (!this.grader && this.audio.prepareTimbre?.() === false) return;
     this.playing = true;
+    this.resetInputClock();
     this.lastScheduled = this.time;
     this.lastChordScheduled = -1;
     this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
@@ -103,6 +118,7 @@ export class PlaybackEngine {
   stop(): void {
     if (!this.playing && !this.grader) return;
     this.playing = false;
+    this.resetInputClock();
     this.audio.cancelAll();
     this.lastChordScheduled = -1;
     this.emit();
@@ -112,6 +128,7 @@ export class PlaybackEngine {
     const wasPlaying = this.playing;
     if (wasPlaying) this.audio.cancelAll();
     this.time = Math.max(0, Math.min(this.duration, t));
+    this.resetInputClock();
     this.lastScheduled = this.time;
     this.lastChordScheduled = -1;
     if (wasPlaying) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
@@ -133,6 +150,8 @@ export class PlaybackEngine {
     this.time = wrapped && this.loop
       ? this.loop.startSec + (next - this.loop.startSec) % (this.loop.endSec - this.loop.startSec)
       : next;
+    this.inputClock = { time: this.time, ms: this.monotonicNow() };
+    if (wrapped) this.inputBoundaryMs = this.inputClock.ms;
     // Skip missed attacks after a stalled frame, while still processing loop/end state.
     if (dt > 0.5 || wrapped) {
       this.audio.cancelAll();
@@ -151,6 +170,7 @@ export class PlaybackEngine {
 
   setNotes(notes: TimedNote[], duration: number): void {
     if (this.notes === notes) return;
+    this.resetInputClock();
     this.notes = notes;
     this.gradingNotes = notes;
     this.duration = duration;
@@ -171,6 +191,7 @@ export class PlaybackEngine {
     const gradingNotesChanged = this.gradingNotes !== gradingNotes;
     if (!notesChanged && !chordsChanged && !gradingNotesChanged) return;
     if (notesChanged) {
+      this.resetInputClock();
       this.notes = notes;
       this.duration = duration;
     }
@@ -265,6 +286,8 @@ export class PlaybackEngine {
     const gradeable = this.gradingNotes.filter((n) => n.durSec >= minDurSec &&
       (!bounded || (n.startSec >= bounded.startSec && n.startSec < bounded.endSec)));
     if (!gradeable.length) throw new RangeError("No playable notes in this passage");
+    this.audio.ensure();
+    if (this.audio.prepareTimbre?.() === false) throw new Error("Piano samples are not ready. Wait or select synthesis fallback in Sound.");
     if (this.playing || this.grader) this.audio.cancelAll();
     this.playing = false;
     this.gradingRange = bounded;
@@ -292,9 +315,11 @@ export class PlaybackEngine {
    * Input voices are tagged so noteOff can release only what the player played
    * instead of cutting song-scheduled notes at the same pitch (voice stealing).
    */
-  handleNoteOn(midi: number): boolean {
-    if (!this.gradeInput(midi)) return false;
-    this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: 100, hand: "R", fromInput: true });
+  handleNoteOn(midi: number, event?: InputEventMetadata, offsetMs = 0): boolean {
+    if (!Number.isInteger(midi) || midi < 0 || midi > 127) return false;
+    if (!this.gradeInput(midi, event, offsetMs)) return false;
+    const velocity = event && Number.isFinite(event.velocity) ? Math.min(127, Math.max(1, event.velocity)) : 100;
+    this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: velocity, hand: "R", fromInput: true });
     this.emit();
     return true;
   }
@@ -316,10 +341,16 @@ export class PlaybackEngine {
   }
 
   /** Both input sources advance wait targets even without a UI reading waitNote. */
-  private gradeInput(midi: number): boolean {
+  private gradeInput(midi: number, event?: InputEventMetadata, offsetMs = 0): boolean {
     if (!this.grader) return true;
     const target = this.grader.currentWait;
-    if (!this.grader.play(midi, this.time)) return false;
+    let raw = this.time;
+    if (event) {
+      if (!Number.isFinite(event.timestampMs) || event.timestampMs < this.inputBoundaryMs || event.timestampMs > this.monotonicNow() + 1) return false;
+      if (this.playing && !this.waitMode) raw = this.inputClock.time + (event.timestampMs - this.inputClock.ms) / 1000;
+    }
+    const offset = target ? 0 : Math.min(250, Math.max(-250, Number.isFinite(offsetMs) ? offsetMs : 0));
+    if (!this.grader.play(midi, raw - offset / 1000, { rawSec: raw, offsetMs: offset })) return false;
     if (target) {
       const next = this.grader.currentWait;
       const accepted = this.grader.lastAccepted() ?? target;

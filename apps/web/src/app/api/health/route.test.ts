@@ -1,17 +1,17 @@
 import {tutorialImportsEnabled} from "../../../../../../packages/catalog/src/tutorial-imports";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const countSongs = vi.hoisted(() => vi.fn());
+const inspectCatalogReadiness = vi.hoisted(() => vi.fn());
 const hasSourceCandidateProvider = vi.hoisted(() => vi.fn());
 
-vi.mock("@keyspilli/catalog", () => ({ countSongs, tutorialImportsEnabled }));
+vi.mock("@keyspilli/catalog/runtime", () => ({ inspectCatalogReadiness, tutorialImportsEnabled }));
 vi.mock("../../../lib/source-candidate-provider", () => ({ hasSourceCandidateProvider }));
 
 import { GET } from "./route";
 
 describe("health route capabilities", () => {
   beforeEach(() => {
-    countSongs.mockReturnValue(12);
+    inspectCatalogReadiness.mockReturnValue({ state: "ready", songs: 12, writable: true, schemaEpoch: 1 });
     hasSourceCandidateProvider.mockReturnValue(true);
   });
 
@@ -24,6 +24,7 @@ describe("health route capabilities", () => {
         sourceDiscoveryConfigured: true,
         directAudioAmt: false,
       },
+      readiness: { sourceDiscovery: { state: "unknown", configured: true } },
     });
     expect(hasSourceCandidateProvider).toHaveBeenCalledOnce();
   });

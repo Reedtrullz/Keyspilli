@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { experimentLabelsForSongs } from "./SongBrowser";
+import { experimentLabelsForSongs, readLibraryQuery, writeLibraryQuery } from "./SongBrowser";
+
+it("round-trips bounded library state while preserving unrelated URL parameters", () => {
+  const query = readLibraryQuery(new URLSearchParams("q=hello&difficulty=easy&sort=newest&favorites=1&page=5&key=C&artist=Read"));
+  const params = writeLibraryQuery(new URLSearchParams("tab=mine"), query);
+  expect(params.get("tab")).toBe("mine");
+  expect(readLibraryQuery(params)).toEqual(query);
+  expect(readLibraryQuery(new URLSearchParams("page=Infinity&sort=sql&difficulty=legacy&key=wrong&bass=wrong&importMethod=wrong"))).toMatchObject({ page: 1, sort: "popular", difficulty: "", key: "", bass: "", importMethod: "" });
+});
 
 describe("song experiment labels", () => {
   it("labels duplicate artist/title runs while leaving unique songs unlabeled", () => {

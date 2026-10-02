@@ -7,22 +7,9 @@ import {
 } from "@keyspilli/catalog";
 import { checkMutationAuth } from "../../../lib/mutation-auth";
 import { discoverSourceCandidates, hasSourceCandidateProvider } from "../../../lib/source-candidate-provider";
+import { readJsonObject } from "../../../lib/bounded-body";
 
 export const dynamic = "force-dynamic";
-const MAX_REQUEST_BYTES = 64 * 1024;
-
-async function jsonBody(req: Request): Promise<Record<string, unknown> | null> {
-  const length = req.headers.get("content-length");
-  if (length !== null && (!/^\d+$/.test(length) || Number(length) > MAX_REQUEST_BYTES)) return null;
-  const text = await req.text();
-  if (text.length > MAX_REQUEST_BYTES) return null;
-  try {
-    const value = JSON.parse(text) as unknown;
-    return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-  } catch {
-    return null;
-  }
-}
 
 function field(body: Record<string, unknown>, key: string, max = 160): string {
   return typeof body[key] === "string"
@@ -41,8 +28,9 @@ export async function POST(req: NextRequest) {
       { status: 503 },
     );
   }
-  const body = await jsonBody(req);
-  if (!body) return NextResponse.json({ error: "invalid handoff request" }, { status: 400 });
+  const input = await readJsonObject(req);
+  if (input.response) return input.response;
+  const body = input.body;
   const target = { id: field(body, "targetId", 120), artist: field(body, "targetArtist"), title: field(body, "targetTitle") };
   const candidateId = field(body, "candidateId", 120);
   if (!target.id || !target.artist || !target.title || !candidateId) {

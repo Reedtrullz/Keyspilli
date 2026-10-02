@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chromium, type Browser, type Page } from "playwright";
-import { getArtifactFile, getSongDetailShell } from "@/lib/catalog-api";
+import { getArtifactFileWithRevision, getSongDetailShell, PublicationRevisionConflictError } from "@/lib/catalog-api";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -9,6 +9,7 @@ let browserPromise: Promise<Browser> | null = null;
 let activeRenders = 0;
 
 class PdfRenderError extends Error {}
+class PdfPublicationConflictError extends Error {}
 
 async function getBrowser(): Promise<Browser> {
   if (browserPromise) {
@@ -32,8 +33,8 @@ async function waitForExportReady(page: Page, layout: "simplify" | "classic"): P
   try {
     await page.waitForFunction(
       () => {
-        const state = window as unknown as { __sheetReady?: boolean; __sheetError?: string };
-        return state.__sheetReady === true || typeof state.__sheetError === "string";
+        const state = window as unknown as { __sheetReady?: boolean; __sheetError?: string; __publicationConflict?: boolean };
+        return state.__sheetReady === true || typeof state.__sheetError === "string" || state.__publicationConflict === true || Boolean(document.querySelector("[data-publication-conflict]"));
       },
       undefined,
       // The large classic smoke score produces 69 pages / 138 SVG elements
@@ -46,12 +47,13 @@ async function waitForExportReady(page: Page, layout: "simplify" | "classic"): P
   }
 
   const state = await page.evaluate((expectedLayout) => {
-    const windowState = window as unknown as { __sheetReady?: boolean; __sheetError?: string };
+    const windowState = window as unknown as { __sheetReady?: boolean; __sheetError?: string; __publicationConflict?: boolean };
     const svg = document.querySelector(".sheet-svg svg");
     const rect = svg?.getBoundingClientRect();
     return {
       ready: windowState.__sheetReady === true,
       error: windowState.__sheetError,
+      publicationConflict: windowState.__publicationConflict === true || Boolean(document.querySelector("[data-publication-conflict]")),
       // The simplified score is server-rendered; the heading plus body text
       // confirms that the export page did not render an empty/error document.
       hasContent:
@@ -61,6 +63,7 @@ async function waitForExportReady(page: Page, layout: "simplify" | "classic"): P
     };
   }, layout);
 
+  if (state.publicationConflict) throw new PdfPublicationConflictError("publication changed; reload and retry");
   if (state.error) throw new PdfRenderError("score render failed");
   if (!state.ready || !state.hasContent) throw new PdfRenderError("score render did not produce printable content");
 }
@@ -105,25 +108,43 @@ function pdfErrorResponse(code: "PDF_GENERATION_UNAVAILABLE" | "PDF_RENDER_FAILE
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const value = req.nextUrl.searchParams.get("revision");
+  const requiredRevision = value === null ? undefined : value === "unpinned" ? null : value;
   const type = req.nextUrl.searchParams.get("type") ?? "midi";
   const layout = req.nextUrl.searchParams.get("layout") ?? "simplify";
 
   if (type === "midi" || type === "musicxml") {
-    const buf = await getArtifactFile(id, type === "midi" ? "variant.mid" : "variant.xml");
-    if (!buf) return NextResponse.json({ error: "not found" }, { status: 404 });
-    return new NextResponse(new Uint8Array(buf), {
+    try {
+      const artifact = await getArtifactFileWithRevision(id, type === "midi" ? "variant.mid" : "variant.xml", requiredRevision);
+      if (!artifact) return NextResponse.json({ error: "not found" }, { status: 404 });
+      return new NextResponse(new Uint8Array(artifact.data), {
       headers: {
         "Content-Type": type === "midi" ? "audio/midi" : "application/vnd.recordare.musicxml+xml",
         "Content-Disposition": `attachment; filename="${id}.${type === "midi" ? "mid" : "musicxml"}"`,
+        "X-Publication-Revision": artifact.publicationRevision ?? "unpinned",
       },
-    });
+      });
+    } catch (error) {
+      if (error instanceof PublicationRevisionConflictError) {
+        return NextResponse.json({ error: error.message, code: "PUBLICATION_REVISION_CONFLICT" }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
+      throw error;
+    }
   }
 
   if (type === "pdf") {
     if (layout !== "simplify" && layout !== "classic") {
       return NextResponse.json({ error: "unknown PDF layout" }, { status: 400 });
     }
-    const shell = await getSongDetailShell(id);
+    let shell;
+    try {
+      shell = await getSongDetailShell(id, requiredRevision);
+    } catch (error) {
+      if (error instanceof PublicationRevisionConflictError) {
+        return NextResponse.json({ error: error.message, code: "PUBLICATION_REVISION_CONFLICT" }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
+      throw error;
+    }
     if (!shell) return NextResponse.json({ error: "not found" }, { status: 404 });
     if (layout === "classic") {
       if (shell.song.hasSheetXml !== 1) {
@@ -161,7 +182,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (cancelled) { void created.close().catch(() => undefined); checkCancelled(); }
         page = created;
         const origin = process.env.KEYSPILLI_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
-        await page.goto(`${origin}/export/${id}?layout=${layout}`, { waitUntil: "networkidle" });
+        const pin = `&revision=${shell.publicationRevision === null ? "unpinned" : encodeURIComponent(shell.publicationRevision)}`;
+        const response = await page.goto(`${origin}/export/${id}?layout=${layout}${pin}`, { waitUntil: "networkidle" });
+        if (response?.status() === 409) throw new PdfPublicationConflictError("publication changed; reload and retry");
         checkCancelled();
         await waitForExportReady(page, layout);
         checkCancelled();
@@ -174,9 +197,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         headers: {
           "Content-Type": "application/pdf",
           "Content-Disposition": `attachment; filename="${id}-${layout}.pdf"`,
+          "X-Publication-Revision": shell.publicationRevision ?? "unpinned",
         },
       });
     } catch (e) {
+      if (e instanceof PdfPublicationConflictError || e instanceof PublicationRevisionConflictError) {
+        return NextResponse.json({ error: "publication changed; reload and retry", code: "PUBLICATION_REVISION_CONFLICT" }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
       const renderFailure = e instanceof PdfRenderError;
       console.error(`[pdf-export] ${renderFailure ? "render" : "generation"} failure`, {
         id,

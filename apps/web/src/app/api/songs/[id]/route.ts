@@ -1,5 +1,6 @@
+import { readJsonObject } from "../../../../lib/bounded-body";
 import { NextResponse } from "next/server";
-import { getSongDetail } from "@/lib/catalog-api";
+import { getSongDetail, PublicationRevisionConflictError } from "@/lib/catalog-api";
 import { apiAuthorization } from "../../../../lib/api-auth";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
@@ -34,18 +35,27 @@ function checkAuth(req: Request): Response | null {
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const detail = await getSongDetail(id);
-  if (!detail) return NextResponse.json({ error: "not found" }, { status: 404 });
-  return NextResponse.json(detail);
+  try {
+    const value = new URL(_req.url).searchParams.get("revision");
+    const revision = value === null ? undefined : value === "unpinned" ? null : value;
+    const detail = await getSongDetail(id, revision);
+    if (!detail) return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json(detail);
+  } catch (error) {
+    if (error instanceof PublicationRevisionConflictError) {
+      return NextResponse.json({ error: error.message, code: "PUBLICATION_REVISION_CONFLICT" }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
+    throw error;
+  }
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const authResponse = checkAuth(req);
   if (authResponse) return authResponse;
   const { id } = await params;
-  const parsed: unknown = await req.json().catch(() => null);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return NextResponse.json({ error: "JSON object required" }, { status: 400 });
-  const body = parsed as Record<string, unknown>;
+  const input = await readJsonObject(req);
+  if (input.response) return input.response;
+  const body = input.body;
   const patch = {} as SongPatch & TempoRequestPatch;
   for (const k of ["title", "artist", "key", "category", "style", "mood"] as const) {
     const v = body[k];

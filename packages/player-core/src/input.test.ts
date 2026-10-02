@@ -5,6 +5,24 @@ import type { TimedNote } from "./timeline.js";
 import { PlaybackEngine } from "./engine.js";
 import { KeyboardInput, MidiInput } from "./input.js";
 
+it("leaves modified/composing attacks native while releasing held physical keys", () => {
+  const events: string[] = [];
+  let prevented = 0;
+  const input = new KeyboardInput({ onNoteOn: m => events.push(`on:${m}`), onNoteOff: m => events.push(`off:${m}`) });
+  const key = (extra: Partial<KeyboardEvent> = {}) => ({ key: "a", code: "KeyA", type: "keydown", repeat: false,
+    preventDefault() { prevented++; }, ...extra }) as KeyboardEvent;
+  for (const flag of ["metaKey", "ctrlKey", "altKey", "isComposing"]) {
+    input.handleKey(key({ [flag]: true }));
+    input.handleKey(key({ key: "x", code: "KeyX", [flag]: true }));
+  }
+  expect(events).toEqual([]);
+  expect(prevented).toBe(0);
+  expect(input.octave).toBe(2);
+  input.handleKey(key());
+  input.handleKey(key({ type: "keyup", metaKey: true, isComposing: true }));
+  expect(events).toEqual(["on:60", "off:60"]);
+});
+
 type MidiHandler = (e: { data?: Uint8Array }) => void;
 
 interface FakeMidiInput {
@@ -284,4 +302,54 @@ it("releases a shifted punctuation note when Shift is released before its physic
   input.handleKey({ key: ";", code: "Comma", type: "keydown", repeat: false, preventDefault() {} } as KeyboardEvent);
   input.handleKey({ key: ",", code: "Comma", type: "keyup", repeat: false, preventDefault() {} } as KeyboardEvent);
   expect(events).toEqual(["on:76", "off:76"]);
+});
+
+it("carries MIDI arrival time and velocity so delayed dispatch grades once on the transport clock", async () => {
+  const input: FakeMidiInput = { id: "timed", onmidimessage: null };
+  const restore = installNavigator([input]);
+  try {
+    let monotonic = 1000;
+    const audio = new ReconnectAudio();
+    const notes = [{ midi: 60, startSec: 1, durSec: 1, vel: 80 }];
+    const engine = new PlaybackEngine(audio, notes, 10, { tempoBpm: 120, timeSig: [4, 4] }, { ...DEFAULT_SETTINGS }, [], notes, () => monotonic);
+    engine.startGrading(false); engine.start();
+    monotonic = 2000; engine.tick(1);
+    monotonic = 2400;
+    const accepted: unknown[] = [];
+    const midi = new MidiInput({ onNoteOff() {}, onNoteOn(pitch, _identity, event) { accepted.push(event); engine.handleNoteOn(pitch, event, 100); } });
+    await midi.connect();
+    input.onmidimessage!({ data: new Uint8Array([0x90, 60, 37]), timeStamp: 1950 } as never);
+    expect(accepted[0]).toMatchObject({ velocity: 37, timestampMs: 1950, deviceId: "timed", channel: 0 });
+    expect(engine.grader?.result()).toMatchObject({ hit: 1, late: 0 });
+    expect(engine.grader?.result().diagnostics?.events[0]).toMatchObject({ rawSec: expect.closeTo(0.95), playedSec: expect.closeTo(0.85), offsetMs: 100 });
+    monotonic = 3000; engine.seek(2);
+    expect(engine.handleNoteOn(60, { timestampMs: 2900, velocity: 90, timingSource: "event" })).toBe(false);
+    midi.disconnect();
+    const opposite = new PlaybackEngine(audio, notes, 10, { tempoBpm: 120, timeSig: [4, 4] }, { ...DEFAULT_SETTINGS }, [], notes, () => monotonic);
+    opposite.startGrading(false); opposite.start();
+    monotonic = 4000; opposite.tick(1);
+    opposite.handleNoteOn(60, { timestampMs: 3950, velocity: 60, timingSource: "event" }, -100);
+    expect(opposite.grader?.result().diagnostics?.events[0]).toMatchObject({ rawSec: expect.closeTo(0.95), playedSec: expect.closeTo(1.05), offsetMs: -100 });
+  } finally { restore(); }
+});
+
+it("scopes MIDI devices/channels and releases their CC64 state before unplug cleanup", async () => {
+  const a: FakeMidiInput = { id: "a", onmidimessage: null }, b: FakeMidiInput = { id: "b", onmidimessage: null };
+  const restore = installNavigator([a, b]);
+  try {
+    const notes: number[] = [], pedals: boolean[] = [];
+    const midi = new MidiInput({ onNoteOn: m => notes.push(m), onNoteOff() {}, onPedal: down => pedals.push(down) });
+    await midi.connect(); midi.select("a", 1);
+    a.onmidimessage!({ data: new Uint8Array([0x90, 60, 90]) });
+    a.onmidimessage!({ data: new Uint8Array([0x91, 62, 37]) });
+    b.onmidimessage!({ data: new Uint8Array([0x91, 64, 90]) });
+    a.onmidimessage!({ data: new Uint8Array([0xb1, 64, 127]) });
+    expect(notes).toEqual([62]); expect(pedals).toEqual([true]);
+    access.inputs.delete("a"); access.onstatechange!();
+    expect(pedals).toEqual([true, false]); expect(midi.connectedCount).toBe(0);
+    expect(await midi.connect()).toBe(false);
+    midi.select(null, null); expect(midi.connectedCount).toBe(1);
+    b.onmidimessage!({ data: new Uint8Array([0x91, 64, 0]) }); expect(notes).toEqual([62]);
+    midi.disconnect();
+  } finally { restore(); }
 });

@@ -41,6 +41,8 @@
     worker_image: ghcr.io/reedtrullz/keyspilli-worker:latest
     # Owner-authorized private beta; set false to disable new tutorial imports.
     keyspilli_tutorial_beta: true
+    # Disabled until the owner configures and validates a dedicated rclone Drive directory.
+    keyspilli_offhost_replication: false
     app_version: "{{ lookup('ansible.builtin.env', 'APP_VERSION') | default('latest', true) }}"
     allow_mutable_tag: false
     health_url: "http://{{ app_bind_address }}:{{ app_host_port }}/api/health"
@@ -258,6 +260,43 @@
         owner: root
         group: root
         mode: '0750'
+      tags: [backup]
+
+    - name: Install bounded off-host replication helper
+      ansible.builtin.copy:
+        src: replicate-backup.py
+        dest: "{{ app_dir }}/replicate-backup.py"
+        owner: root
+        group: root
+        mode: '0750'
+      tags: [backup]
+
+    - name: Check owner replication configuration metadata
+      ansible.builtin.stat:
+        path: /etc/keyspilli/replication.env
+      register: keyspilli_replication_config
+      when: keyspilli_offhost_replication | bool
+      tags: [backup]
+
+    - name: Require private existing replication configuration before enabling
+      ansible.builtin.assert:
+        that:
+          - keyspilli_replication_config.stat.exists | bool
+          - keyspilli_replication_config.stat.isreg | bool
+          - keyspilli_replication_config.stat.uid == 0
+          - keyspilli_replication_config.stat.mode == '0600'
+        fail_msg: Owner must configure and validate the dedicated rclone remote in /etc/keyspilli/replication.env before enabling.
+      when: keyspilli_offhost_replication | bool
+      tags: [backup]
+
+    - name: Install separate backup replication service
+      ansible.builtin.template:
+        src: templates/keyspilli-replication.service.j2
+        dest: /etc/systemd/system/keyspilli-replication.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
       tags: [backup]
 
     - name: Install backup systemd service

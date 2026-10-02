@@ -40,6 +40,14 @@ services:
         max-file: "3"
 
   worker:
+    # Runtime drains for at most 120 seconds before lease recovery is required.
+    stop_grace_period: 125s
+    healthcheck:
+      test: ["CMD", "node", "--import", "tsx", "services/transcribe/src/worker-health-check.ts"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 2
     image: "{{ compose_worker_image | default(worker_image) }}"
     container_name: "{{ worker_container_name }}"
     restart: unless-stopped

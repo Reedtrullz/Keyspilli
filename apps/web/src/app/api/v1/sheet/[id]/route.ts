@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getArtifactFileWithMetadata } from "@/lib/catalog-api";
+import { getArtifactFileWithMetadata, PublicationRevisionConflictError } from "@/lib/catalog-api";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,17 @@ function isNotModified(req: Request, etag: string, lastModified: string): boolea
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const artifact = await getArtifactFileWithMetadata(id, "variant.xml");
+  let artifact;
+  try {
+    const value = new URL(req.url).searchParams.get("revision");
+    const revision = value === null ? undefined : value === "unpinned" ? null : value;
+    artifact = await getArtifactFileWithMetadata(id, "variant.xml", revision);
+  } catch (error) {
+    if (error instanceof PublicationRevisionConflictError) {
+      return NextResponse.json({ error: error.message, code: "PUBLICATION_REVISION_CONFLICT" }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
+    throw error;
+  }
   if (!artifact) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const headers = {
@@ -33,6 +43,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     "Content-Type": "application/vnd.recordare.musicxml+xml",
     ETag: artifact.etag,
     "Last-Modified": artifact.lastModified,
+    "X-Publication-Revision": artifact.publicationRevision ?? "unpinned",
   };
   if (isNotModified(req, artifact.etag, artifact.lastModified)) {
     return new NextResponse(null, { status: 304, headers });

@@ -16,49 +16,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-class UploadTooLargeError extends Error {}
-class BodyDeadlineError extends Error {}
+import { readBoundedBody, BodyTooLargeError as UploadTooLargeError, BodyDeadlineError } from "../../../lib/bounded-body";
 let uploadActive = false;
 
-async function readBoundedBody(req: Request): Promise<Buffer> {
-  const contentLength = req.headers.get("content-length");
-  if (contentLength !== null) {
-    const declared = Number(contentLength);
-    if (!Number.isInteger(declared) || declared < 0) throw new Error("invalid content length");
-    if (declared > MAX_UPLOAD_BYTES) throw new UploadTooLargeError("file too large (max 10 MB)");
-  }
-  if (!req.body) return Buffer.alloc(0);
-  const reader = req.body.getReader();
-  const chunks: Buffer[] = [];
-  let total = 0;
-  let stop!: () => void;
-  const deadline = new Promise<never>((_, reject) => {
-    stop = () => {
-      reject(new BodyDeadlineError(req.signal.aborted ? "upload cancelled" : "body read timed out"));
-      void reader.cancel().catch(() => undefined);
-    };
-  });
-  const timer = setTimeout(stop, 60_000);
-  req.signal.addEventListener("abort", stop, { once: true });
-  if (req.signal.aborted) stop();
-  try {
-    while (true) {
-      const { done, value } = await Promise.race([reader.read(), deadline]);
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_UPLOAD_BYTES) {
-        void reader.cancel().catch(() => undefined);
-        throw new UploadTooLargeError("file too large (max 10 MB)");
-      }
-      chunks.push(Buffer.from(value));
-    }
-  } finally {
-    clearTimeout(timer);
-    req.signal.removeEventListener("abort", stop);
-    reader.releaseLock();
-  }
-  return Buffer.concat(chunks, total);
-}
 
 export async function POST(req: NextRequest) {
   const authResponse = checkMutationAuth(req);
@@ -78,11 +38,11 @@ async function handleUpload(req: NextRequest) {
   logUpload("start");
   let buf: Buffer;
   try {
-    buf = await readBoundedBody(req);
+    buf = await readBoundedBody(req, MAX_UPLOAD_BYTES, 60_000);
   } catch (error) {
     const status = error instanceof BodyDeadlineError ? 408 : error instanceof UploadTooLargeError ? 400 : 422;
     logUpload("failed", { category: error instanceof UploadTooLargeError ? "too-large" : "invalid-body" });
-    return NextResponse.json({ error: error instanceof Error ? error.message : "invalid upload body" }, { status });
+    return NextResponse.json({ error: error instanceof UploadTooLargeError ? "file too large (max 10 MB)" : error instanceof Error ? error.message : "invalid upload body" }, { status });
   }
   const title = req.nextUrl.searchParams.get("title") ?? "Untitled Upload";
   const artist = req.nextUrl.searchParams.get("artist") ?? "Unknown";

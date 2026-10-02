@@ -1,6 +1,13 @@
 import type { TimedNote } from "./timeline.js";
 import { secPerBeat } from "./timeline.js";
 
+export interface GradeEvent {
+  targetIndex: number | null; expectedPitch: number | null; startSec: number | null; hand: "R" | "L" | null;
+  playedPitch: number | null; playedSec: number | null; errorSec: number | null; rawSec?: number | null; offsetMs?: number;
+  outcome: "hit" | "late" | "missed" | "wrong" | "unmatched";
+}
+export interface GradeDiagnostics { events: GradeEvent[]; omitted: number }
+
 export interface GradeResult {
   total: number;
   hit: number;
@@ -9,6 +16,7 @@ export interface GradeResult {
   late: number;
   accuracyPct: number;
   summary: string;
+  diagnostics?: GradeDiagnostics;
 }
 
 /**
@@ -20,6 +28,12 @@ export interface GradeResult {
  */
 export class Grader {
   private remaining: TimedNote[];
+  private diagnosticTargets: TimedNote[];
+  private targetIndexes = new Map<TimedNote, number>();
+  private targetEvents = new Map<number, GradeEvent>();
+  private inputEvents: GradeEvent[] = [];
+  private omittedInputs = 0;
+  private eventTiming: { rawSec: number; offsetMs: number } | undefined;
   /**
    * Index of the first note which has not been missed. `tick()` advances this
    * cursor instead of splicing one item at a time from the front of the
@@ -33,6 +47,8 @@ export class Grader {
   private wrongs = 0;
   private late = 0;
   private missed = 0;
+  /** Reconciled prefix indexes; the retained evidence is bounded by run target count. */
+  private reconciledMisses = new Set<number>();
   private waitMode = false;
   private waitingFor: TimedNote | null = null;
   private lastAcceptedNote: TimedNote | null = null;
@@ -42,7 +58,9 @@ export class Grader {
     notes: TimedNote[],
     opts: { waitMode?: boolean; bpm?: number; speed?: number } = {},
   ) {
-    this.remaining = [...notes].sort((a, b) => a.startSec - b.startSec);
+    this.remaining = notes.map(note => ({ ...note })).sort((a, b) => a.startSec - b.startSec);
+    this.diagnosticTargets = this.remaining.slice(0, 2000);
+    this.diagnosticTargets.forEach((note, index) => this.targetIndexes.set(note, index));
     this.remainingCount = this.remaining.length;
     this.waitMode = opts.waitMode ?? false;
     // Tempo-scaled tolerance: 40% of a beat, capped at 400ms (legacy fixed 350ms).
@@ -80,8 +98,34 @@ export class Grader {
     }
   }
 
+  private event(note: TimedNote | null, outcome: GradeEvent["outcome"], midi: number | null = null, now: number | null = null): GradeEvent {
+    return { targetIndex: note ? this.targetIndexes.get(note) ?? null : null, expectedPitch: note?.midi ?? null,
+      startSec: note?.startSec ?? null, hand: note?.hand ?? null, playedPitch: midi, playedSec: now,
+      errorSec: note && now !== null ? now - note.startSec : null, ...(now === null ? {} : { rawSec: this.eventTiming?.rawSec ?? now, offsetMs: this.eventTiming?.offsetMs ?? 0 }), outcome };
+  }
+  private recordTarget(note: TimedNote, outcome: "hit" | "late", midi: number, now: number): void {
+    const index = this.targetIndexes.get(note);
+    if (index !== undefined) this.targetEvents.set(index, this.event(note, outcome, midi, now));
+  }
+  private recordInput(note: TimedNote | null, outcome: "wrong" | "unmatched", midi: number, now: number): void {
+    // ponytail: retain 2,000 expected targets and 200 extra inputs; counts remain complete for longer runs.
+    if (this.inputEvents.length < 200) this.inputEvents.push(this.event(note, outcome, midi, now));
+    else this.omittedInputs++;
+  }
+
+  private consumeTarget(index: number): void {
+    if (index < this.remainingStart) {
+      this.reconciledMisses.add(index);
+      this.missed--;
+    } else {
+      this.remaining.splice(index, 1);
+      this.remainingCount--;
+    }
+  }
+
   /** Feed a played note (midi) at the given time. Returns true if accepted in wait mode. */
-  play(midi: number, now: number): boolean {
+  play(midi: number, now: number, timing?: { rawSec: number; offsetMs: number }): boolean {
+    this.eventTiming = timing;
     const waitingFor = this.currentWait;
     if (waitingFor) {
       const onset = waitingFor.startSec;
@@ -89,6 +133,7 @@ export class Grader {
         && Math.abs(note.startSec - onset) <= 1e-6 && note.midi === midi);
       if (index < 0) {
         this.wrongs++;
+        this.recordInput(waitingFor, "wrong", midi, now);
         return false;
       }
       // In wait mode the transport is paused and time does not advance,
@@ -96,6 +141,7 @@ export class Grader {
       // Accept any correct-pitch press immediately.
       this.hits++;
       this.lastAcceptedNote = this.remaining[index]!;
+      this.recordTarget(this.lastAcceptedNote, "hit", midi, now);
       this.remaining.splice(index, 1);
       this.remainingCount--;
       this.waitingFor = null;
@@ -105,41 +151,54 @@ export class Grader {
     const upper = now + this.tolerance;
     let exactIndex = -1;
     let hasWindow = false;
-    // Expected notes are sorted by start time. Skip the stale prefix and stop
-    // at the first future note beyond the input window instead of filtering
-    // the entire queue for every key press.
-    for (let i = this.remainingStart; i < this.remaining.length; i++) {
+    let windowTarget: TimedNote | null = null;
+    // Search the complete timestamp window, including missed notes retained
+    // in the prefix. Binary search keeps the scan bounded to overlapping notes.
+    let low = 0;
+    let high = this.remaining.length;
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (this.remaining[mid]!.startSec < lower) low = mid + 1;
+      else high = mid;
+    }
+    for (let i = low; i < this.remaining.length; i++) {
       const n = this.remaining[i]!;
       if (n.startSec > upper) break;
+      if (i < this.remainingStart && this.reconciledMisses.has(i)) continue;
       if (n.startSec >= lower) {
         hasWindow = true;
+        windowTarget ??= n;
         if (exactIndex < 0 && n.midi === midi) exactIndex = i;
       }
     }
     if (exactIndex >= 0) {
       this.hits++;
-      this.remaining.splice(exactIndex, 1);
-      this.remainingCount--;
+      this.recordTarget(this.remaining[exactIndex]!, "hit", midi, now);
+      this.consumeTarget(exactIndex);
       return true;
     }
     if (hasWindow) {
       this.wrongs++;
+      this.recordInput(windowTarget, "wrong", midi, now);
       return true;
     }
     let pastIdx = -1;
-    for (let i = this.remainingStart; i < this.remaining.length; i++) {
+    // ponytail: O(n) prior-target scan per late input (O(n²) run); add a pitch index if profiling warrants it.
+    for (let i = 0; i < low; i++) {
       const n = this.remaining[i]!;
-      if (n.startSec >= lower) break;
+      if (i < this.remainingStart && this.reconciledMisses.has(i)) continue;
       if (n.midi === midi) {
         pastIdx = i;
         break;
       }
     }
-    if (pastIdx >= this.remainingStart) {
+    if (pastIdx >= 0) {
       this.late++;
-      this.remaining.splice(pastIdx, 1);
-      this.remainingCount--;
+      this.recordTarget(this.remaining[pastIdx]!, "late", midi, now);
+      this.consumeTarget(pastIdx);
+      return true;
     }
+    this.recordInput(null, "unmatched", midi, now);
     return true;
   }
 
@@ -184,7 +243,9 @@ export class Grader {
     else if (accuracyPct >= 70) summary = "Good work. A few spots to polish.";
     else if (missed > this.wrongs) summary = "Most mistakes were missed notes.";
     else summary = "Many notes were technically right but off the beat.";
-    return { total, hit: this.hits, missed, wrong: this.wrongs, late: this.late, accuracyPct, summary };
+    const diagnostics = { events: [ ...this.diagnosticTargets.map((note, index) => this.targetEvents.get(index) ?? this.event(note, "missed")), ...this.inputEvents ],
+      omitted: this.remainingCount + this.hits + this.late + this.missed - this.diagnosticTargets.length + this.omittedInputs };
+    return { total, hit: this.hits, missed, wrong: this.wrongs, late: this.late, accuracyPct, summary, diagnostics };
   }
 }
 
@@ -230,4 +291,34 @@ export function detectPitch(buf: Float32Array, sampleRate: number): number | nul
   const refinedLag = Math.max(minLag, bestLag + Math.max(-0.5, Math.min(0.5, delta)));
   const freq = sampleRate / refinedLag;
   return Math.round(69 + 12 * Math.log2(freq / 440));
+}
+
+/** Group target errors into the existing measured passage ranges; never infer physical hand. */
+export function gradeProblemWindows(result: GradeResult, measures: readonly { startBeat: number; endBeat: number }[], bpm: number, speed: number): Array<{ startBeat: number; endBeat: number; count: number }> {
+  const windows = new Map<number, { startBeat: number; endBeat: number; count: number }>();
+  for (const event of result.diagnostics?.events ?? []) {
+    if (event.outcome === "hit" || event.outcome === "unmatched") continue;
+    const seconds = event.startSec ?? event.playedSec;
+    if (seconds === null) continue;
+    const beat = seconds / secPerBeat(bpm, speed);
+    const index = measures.findIndex(measure => beat >= measure.startBeat && beat < measure.endBeat);
+    const measure = measures[index];
+    if (!measure) continue;
+    const window = windows.get(index) ?? { ...measure, count: 0 };
+    window.count++; windows.set(index, window);
+  }
+  return [...windows.values()].sort((a, b) => a.startBeat - b.startBeat).slice(0, 12);
+}
+
+/** The current microphone detector observes one pitch, never a polyphonic target. */
+export function microphoneEligibility(notes: readonly TimedNote[], range: { startSec: number; endSec: number }): { eligible: boolean; reason: string } {
+  const targets = notes.filter(note => note.startSec < range.endSec && note.startSec + note.durSec > range.startSec).sort((a, b) => a.startSec - b.startSec);
+  if (!targets.some(note => note.startSec >= range.startSec)) return { eligible: false, reason: "No note attacks in this passage. Choose another passage or keyboard/MIDI." };
+  const active = new Map<number, number>();
+  for (const note of targets) {
+    for (const [pitch, end] of active) if (end <= note.startSec + 1e-6) active.delete(pitch);
+    if ([...active.keys()].some(pitch => pitch !== note.midi)) return { eligible: false, reason: "Overlapping pitches exceed this monophonic microphone detector. Choose one hand or a monophonic variant, or use keyboard/MIDI." };
+    active.set(note.midi, Math.max(active.get(note.midi) ?? 0, note.startSec + note.durSec));
+  }
+  return { eligible: true, reason: "Monophonic target; microphone pitch and repeated-note timing remain experimental. Use headphones to reduce playback leakage." };
 }

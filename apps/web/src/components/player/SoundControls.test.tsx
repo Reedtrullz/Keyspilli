@@ -13,6 +13,16 @@ function render(style?: "melody-accompaniment" | "bass-chords") {
 }
 
 describe("SoundControls accompaniment styles", () => {
+  it("discloses fallback, pending safe replacement and external samples", () => {
+    const markup = renderToStaticMarkup(createElement(SoundControls, {
+      settings: { ...DEFAULT_SETTINGS, soundSource: "sampled" }, onChange: () => {},
+      sampleStatus: { readiness: "ready", timbre: "fallback", latencyMs: 500 }, sampleBusy: true,
+    }));
+    expect(markup).toContain("synthesis fallback"); expect(markup).toContain("next Play, Practice or Preview");
+    expect(markup).toContain("500 ms"); expect(markup).toContain("external asset service");
+    expect(markup).toMatch(/select[^>]*disabled=""/);
+  });
+
   it("shows the source-backed pilot without unavailable arrangement choices", () => {
     const markup = renderToStaticMarkup(createElement(SoundControls, {
       settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord" },

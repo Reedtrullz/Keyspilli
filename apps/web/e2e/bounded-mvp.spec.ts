@@ -18,7 +18,7 @@ const MUSIC_XML = `<?xml version="1.0" encoding="UTF-8"?>
     <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type></note>
   </measure></part>
 </score-partwise>`;
-const UPLOAD_QUERY = "/api/songs?q=Scratch%20MusicXML&limit=20";
+const UPLOAD_QUERY = "/api/songs?q=Scratch%20MusicXML&limit=20&legacy=1";
 const LONG_MUSIC_XML = MUSIC_XML.replace("</part>", `${Array.from({ length: 79 }, (_, index) =>
   `<measure number="${index + 2}"><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></measure>`
 ).join("")}</part>`);

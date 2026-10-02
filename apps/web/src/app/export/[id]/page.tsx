@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import React from "react";
-import { getSongDetail, getSongDetailShell } from "@/lib/catalog-api";
+import { getSongDetail, getSongDetailShell, PublicationRevisionConflictError } from "@/lib/catalog-api";
 import { SimplifyScore } from "@/components/export/SimplifyScore";
-import { ClassicScore } from "@/components/export/ClassicScore";
+import { SheetMusicView } from "@/components/player/SheetMusicView";
 
 export const dynamic = "force-dynamic";
 
@@ -11,29 +11,45 @@ export default async function ExportPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ layout?: string }>;
+  searchParams: Promise<{ layout?: string; revision?: string }>;
 }) {
   const { id } = await params;
-  const { layout } = await searchParams;
+  const { layout, revision: revisionValue } = await searchParams;
+  const revision = revisionValue === undefined ? undefined : revisionValue === "unpinned" ? null : revisionValue;
   if (layout !== undefined && layout !== "simplify" && layout !== "classic") notFound();
-  // A classic export is a MusicXML-backed surface. Do not silently downgrade
-  // a direct classic request to the simplified score: callers (including the
-  // PDF worker) need a deterministic unavailable response instead. The
-  // ClassicScore client only needs identity plus the XML artifact id, so keep
-  // the large notes/chords payload out of its RSC flight data.
+  const publicationConflict = () => (
+    <html lang="en"><body><main data-publication-conflict style={{ padding: 40, fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+      This publication changed while the export was loading. Reload the page to continue.
+    </main></body></html>
+  );
   if (layout === "classic") {
-    const shell = await getSongDetailShell(id);
+    let shell;
+    try {
+      shell = await getSongDetailShell(id, revision);
+    } catch (error) {
+      if (error instanceof PublicationRevisionConflictError) return publicationConflict();
+      throw error;
+    }
     if (!shell || shell.song.hasSheetXml !== 1) notFound();
     return (
       <html lang="en">
         <body style={{ margin: 0, background: "#fff" }}>
-          <ClassicScore songId={id} title={`${shell.song.title} — ${shell.song.artist}`} />
+          <div style={{ padding: 40, fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+            <h1 style={{ fontSize: 20, margin: "0 0 16px" }}>{`${shell.song.title} — ${shell.song.artist}`}</h1>
+            <SheetMusicView songId={id} publicationRevision={revision ?? shell.publicationRevision} renderMode="all" />
+          </div>
         </body>
       </html>
     );
   }
 
-  const detail = await getSongDetail(id);
+  let detail;
+  try {
+    detail = await getSongDetail(id, revision);
+  } catch (error) {
+    if (error instanceof PublicationRevisionConflictError) return publicationConflict();
+    throw error;
+  }
   if (!detail || !detail.data) notFound();
   return (
     <html lang="en">

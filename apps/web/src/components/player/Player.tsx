@@ -12,13 +12,25 @@ import {
   detectPitch,
   filterAccompanimentChords,
   KeyboardInput,
+  isNativeKeyboardEvent,
   MidiInput,
   midiSupported,
   PlaybackEngine,
   loadJson,
   loadStringList,
   loadSettings,
+  loadTimingCalibration,
+  saveTimingCalibration,
+  clearTimingCalibrations,
   loadSongPrefs,
+  loadPracticeState,
+  restoredMelodyChoice,
+  savePracticeState,
+  recordAttempt,
+  savedGradeDiagnostics,
+  gradeProblemWindows,
+  microphoneEligibility,
+  practiceFingerprint,
   measureIndex,
   passageMidiRange,
   playbackMeasures,
@@ -35,6 +47,7 @@ import {
   TRANSPOSE_MIN,
   TRANSPOSE_MAX,
   type LoopRegion,
+  type InputEventMetadata,
   type MelodyPhraseOverride,
   type MelodyAccompanimentResolution,
   type MelodyHarmonicSupportPolicy,
@@ -45,6 +58,9 @@ import {
   type PlayerSettings,
   type ViewMode,
   type SongData,
+  type GradeResult,
+  type PracticeTarget,
+  type PracticeAttempt,
   type Section as SongSection,
 } from "@keyspilli/player-core";
 import { SourceArrangementNotice } from "./SourceArrangementNotice";
@@ -69,11 +85,13 @@ import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction
 import { reviewedSourceBacking } from "./reviewed-source-backing";
 import { bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
 import { melodyArrangementOutcome } from "./melody-arrangement-status";
+import { usePianoInput } from "./usePianoInput";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
 import { PlayerTools, type PlayerTool } from "./PlayerTools";
 import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
+import { PracticeWorkspace } from "./PracticeWorkspace";
 import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
@@ -86,6 +104,7 @@ import {
 } from "./chord-sources";
 
 export interface PlayerDetail {
+  publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   data: SongData;
@@ -97,6 +116,7 @@ export interface PlayerDetail {
 
 /** Metadata-only payload used while a direct sheet route loads its player data. */
 export interface PlayerShell {
+  publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   variants: SongRow[];
@@ -375,6 +395,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const practiceSetupRef = useRef(practiceSetup);
   practiceSetupRef.current = practiceSetup;
   const lastAttemptRef = useRef<{ setup: PracticeSetup; range: LoopRegion } | null>(null);
+  const gradedTimingRef = useRef({ bpm: initial.data.tempoBpm, speed: 1 });
+  const storedAttemptRef = useRef<PracticeAttempt | null>(null);
+  const [practiceSaveNotice, setPracticeSaveNotice] = useState("");
   const repeatRangeRef = useRef<LoopRegion | null>(null);
   const [practiceError, setPracticeError] = useState("");
   const [countIn, setCountIn] = useState<number | null>(null);
@@ -392,7 +415,39 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const [waitMode, setWaitMode] = useState(false);
   const [gradeResult, setGradeResult] = useState<{ summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Map<number, number>>(new Map());
+  const interruptRef = useRef<(reason: string) => void>(() => {});
+  const [micSignal, setMicSignal] = useState("Unknown signal quality");
   const [midiConnected, setMidiConnected] = useState(false);
+  const [midiDevices, setMidiDevices] = useState<Array<{ id: string; name: string }>>([]);
+  const [midiSelection, setMidiSelection] = useState<{ device: string | null; channel: number | null }>({ device: null, channel: null });
+  const [timingOffsets, setTimingOffsets] = useState<{ keyboard: number | null; midi: number | null }>({ keyboard: null, midi: null });
+  const [samplePolicy, setSamplePolicy] = useState<"fallback" | "wait">("fallback");
+  const samplePolicyRef = useRef(samplePolicy); samplePolicyRef.current = samplePolicy;
+  const [sampleStatus, setSampleStatus] = useState({ readiness: "uninitialized", timbre: "fallback", latencyMs: null as number | null });
+  const inputSoundBinding = `${settings.soundSource}:${settings.organStyle}:${settings.organRegistration}`;
+  const timingBindings = { keyboard: `keyboard:${inputSoundBinding}`, midi: midiSelection.device ? `midi:${midiSelection.device}:${midiSelection.channel ?? "*"}:${inputSoundBinding}` : "" };
+  const liveTimingRef = useRef({ selection: midiSelection, bindings: timingBindings });
+  liveTimingRef.current = { selection: midiSelection, bindings: timingBindings };
+  function effectiveTimingBinding(input: "keyboard" | "midi") {
+    const binding = liveTimingRef.current.bindings[input];
+    const audio = engineRef.current?.audio;
+    return binding && audio instanceof SamplerAudioEngine ? `${binding}:${audio.playbackTimbre}` : binding;
+  }
+  useEffect(() => { setTimingOffsets({ keyboard: loadTimingCalibration(effectiveTimingBinding("keyboard")), midi: timingBindings.midi ? loadTimingCalibration(effectiveTimingBinding("midi")) : null }); }, [timingBindings.keyboard, timingBindings.midi, sampleStatus.timbre]);
+  useEffect(() => {
+    const invalidate = () => { clearTimingCalibrations(); setTimingOffsets({ keyboard: null, midi: null }); interruptRef.current("Input/output device setup changed. Timing calibration reset."); };
+    navigator.mediaDevices?.addEventListener?.("devicechange", invalidate);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", invalidate);
+  }, []);
+  function selectMidi(device: string | null, channel: number | null) {
+    midiInputRef.current?.select(device, channel); heldInputRef.current?.releaseAll();
+    setMidiSelection({ device, channel }); setMidiConnected((midiInputRef.current?.connectedCount ?? 0) > 0);
+  }
+  function setTimingOffset(input: "keyboard" | "midi", value: number | null) {
+    const binding = effectiveTimingBinding(input);
+    if (!binding || !saveTimingCalibration(binding, value)) { setPracticeSaveNotice("Timing calibration could not be saved."); return; }
+    setTimingOffsets(current => ({ ...current, [input]: value }));
+  }
   const [inputOctave, setInputOctave] = useState(2);
   const [midiPending, setMidiPending] = useState(false);
   const [midiError, setMidiError] = useState("");
@@ -442,6 +497,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       setMelodyPhraseOverrides(phraseOverrides);
       setMelodySelectionSaved(sourceMatches || phraseOverrides.length > 0);
       return;
+    }
+    const restored = restoredMelodyChoice(initial.song.id, melodySourceFingerprint);
+    if (restored) {
+      setMelodySelection(restored.selection); setMelodySourceBackingMode(restored.sourceBackingMode);
+      setMelodyPhraseOverrides(validPhraseOverrides(restored.phraseOverrides)); setMelodySelectionSaved(true); return;
     }
     // v1 provenance is deliberately ignored. A matching old whole-RH choice
     // remains a user preference, while the current producer recomputes v2.
@@ -761,6 +821,74 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     () => resolveTimedNotes(guidanceData, settings.speed, settings.transpose),
     [guidanceData, settings.speed, settings.transpose],
   );
+  const practiceDescriptor = useMemo(() => ({
+    publicationRevision: initial.publicationRevision, sourceFingerprint: melodySourceFingerprint, source: activeData, data: guidanceData,
+    chordSource: selectedChordSource.source,
+    hand: settings.hand, backgroundMode: settings.backgroundMode, accompanimentStyle: settings.accompanimentStyle,
+  }), [initial.publicationRevision, melodySourceFingerprint, activeData, guidanceData, selectedChordSource.source, settings.hand, settings.backgroundMode, settings.accompanimentStyle]);
+  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(null);
+  useEffect(() => {
+    let current = true;
+    setPracticeTarget(null);
+    void practiceFingerprint(practiceDescriptor).then(fingerprint => {
+      if (current) setPracticeTarget({ baseId: initial.song.baseId, variantId: initial.song.id, fingerprint });
+    }).catch(() => { if (current) setPracticeSaveNotice("Saved passages and history are unavailable in this browser. Playback still works."); });
+    return () => { current = false; };
+  }, [practiceDescriptor, initial.song.baseId, initial.song.id]);
+
+  function storeAttemptEnd(outcome: PracticeAttempt["outcome"], result: GradeResult | null) {
+    const attempt = storedAttemptRef.current;
+    if (!attempt) return;
+    storedAttemptRef.current = null;
+    const counts = result ? { total: result.total, hit: result.hit, missed: result.missed, wrong: result.wrong, late: result.late, accuracyPct: result.accuracyPct, diagnostics: savedGradeDiagnostics(result.diagnostics) } : null;
+    if (!recordAttempt({ ...attempt, outcome, result: counts, finishedAt: new Date().toISOString() })) {
+      setPracticeSaveNotice("Practice history could not be saved. Browser storage may be unavailable or full.");
+    }
+    const state = loadPracticeState();
+    if (state.resume?.target.fingerprint === attempt.target.fingerprint && state.resume.target.variantId === attempt.target.variantId) {
+      state.resume.positionBeat = (engineRef.current?.time ?? 0) / secPerBeat(attempt.context.bpm, attempt.context.speed);
+      state.resume.updatedAt = new Date().toISOString();
+      if (!savePracticeState(state)) setPracticeSaveNotice("Saved position could not be updated.");
+    }
+  }
+  function interruptPlayback(reason: string) {
+    const engine = engineRef.current;
+    const active = gradingRef.current || engine?.playing || countInRef.current !== null || soundPreviewStatus?.phase === "playing" || micReady;
+    if (!active) return;
+    const wasCounting = countInRef.current !== null;
+    gradingRef.current = false;
+    cancelCountIn(); cancelSoundPreview();
+    engine?.stop();
+    const result = engine?.finishGrading() ?? null;
+    storeAttemptEndRef.current("interrupted", wasCounting ? null : result);
+    setGrading(false); setWaitMode(false); setGradeResult(null);
+    keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
+    releaseMicrophone(); syncTransportState();
+    if (active) setPracticeSaveNotice(`${reason} Resume deliberately from the saved position.`);
+  }
+  interruptRef.current = interruptPlayback;
+  const storeAttemptEndRef = useRef(storeAttemptEnd);
+  storeAttemptEndRef.current = storeAttemptEnd;
+  useEffect(() => {
+    const pageHide = () => interruptRef.current("Page navigation interrupted playback/practice.");
+    window.addEventListener("pagehide", pageHide);
+    return () => {
+      window.removeEventListener("pagehide", pageHide);
+      storeAttemptEndRef.current("interrupted", engineRef.current?.grader?.result() ?? null);
+    };
+  }, []);
+  const positionBindingRef = useRef({ target: practiceTarget, bpm: activeData.tempoBpm, speed: settings.speed });
+  positionBindingRef.current = { target: practiceTarget, bpm: activeData.tempoBpm, speed: settings.speed };
+  const savePosition = useCallback(() => {
+    const binding = positionBindingRef.current, state = loadPracticeState();
+    if (!binding.target || !state.resume || state.resume.target.fingerprint !== binding.target.fingerprint
+        || state.resume.target.variantId !== binding.target.variantId) return;
+    state.resume.positionBeat = Math.max(0, (engineRef.current?.time ?? 0) / secPerBeat(binding.bpm, binding.speed));
+    state.resume.updatedAt = new Date().toISOString();
+    if (!savePracticeState(state)) setPracticeSaveNotice("Saved position could not be updated.");
+  }, []);
+  useEffect(() => { if (!playing) savePosition(); }, [playing, seekVersion, savePosition]);
+  useEffect(() => () => savePosition(), [savePosition]);
 
   // Preview notes are scheduled directly on the audio graph, outside the
   // transport timeline. Tear that graph down whenever its source, routing,
@@ -874,6 +1002,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       timeRef.current = snap.time;
       playingRef.current = snap.playing;
       if (gradingRef.current && !engine.grader && engine.gradeResult) {
+        storeAttemptEndRef.current("completed", engine.gradeResult);
         gradingRef.current = false;
         setGrading(false);
         setWaitMode(false);
@@ -883,8 +1012,16 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         releaseMicrophone();
       }
     };
+    audio.onStateChange = state => {
+      if (engineRef.current === engine && state !== "running" && (gradingRef.current || engine.playing || countInRef.current !== null)) interruptRef.current("Audio output was interrupted.");
+    };
     engine.audio.sustainPedal = settings.sustainPedal;
     engineRef.current = engine;
+    if (audio instanceof SamplerAudioEngine) {
+      audio.samplePolicy = samplePolicyRef.current;
+      const refresh = () => { if (engineRef.current === engine) setSampleStatus({ readiness: audio.readiness, timbre: audio.playbackTimbre, latencyMs: audio.loadLatencyMs }); };
+      audio.onReadinessChange = refresh; refresh();
+    }
     setEngineReady(true);
     if (previous) {
       engine.seek(previous.time);
@@ -896,6 +1033,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       audioSwapStateRef.current = { time: engine.time, playing: engine.playing };
       keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
       engineRef.current = null;
+      audio.onStateChange = null;
+      if (audio instanceof SamplerAudioEngine) audio.onReadinessChange = null;
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -947,6 +1086,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       last = now;
       const eng = engineRef.current;
       if (!eng) return;
+      if (eng.audio.state && eng.audio.state !== "running") { interruptRef.current("Audio output was interrupted."); return; }
       eng.tick(dt);
       if (now - lastSync >= 100) {
         lastSync = now;
@@ -968,7 +1108,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const startPlayback = useCallback(() => {
     if (chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
     cancelSoundPreview();
+    heldInputRef.current?.releaseAll();
     engineRef.current?.start();
+    if (!engineRef.current?.playing && engineRef.current?.audio instanceof SamplerAudioEngine) setPracticeError("Piano samples are not ready. Wait or choose synthesis fallback in Sound.");
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
   }, [chordPracticeActive, initial.song.id]);
@@ -994,15 +1136,18 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const togglePlayRef = useRef(togglePlay);
   togglePlayRef.current = togglePlay;
 
-  // Keyboard + MIDI input (one keydown listener; Escape handled first).
-  useEffect(() => {
-    const ki = new KeyboardInput({
-      onNoteOn: (m, identity) => handleNote(m, true, "keyboard", identity),
-      onNoteOff: (m, identity) => handleNote(m, false, "keyboard", identity),
-    }, setInputOctave);
-    keyboardInputRef.current = ki;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.type === "keyup") { ki.handleKey(e); return; }
+  usePianoInput({ keyboardRef: keyboardInputRef, midiRef: midiInputRef,
+    onNote: handleNote, onOctaveChange: setInputOctave,
+    onPedal: (down, scope) => heldInputRef.current?.setPedal(scope, down),
+    onRelease: () => heldInputRef.current?.releaseAll(),
+    onInterrupt: reason => interruptRef.current(reason),
+    onState: (devices, count) => {
+      setMidiConnected(count > 0);
+      setMidiDevices(current => JSON.stringify(devices) === JSON.stringify(current) ? current : devices);
+      if (!count && gradingRef.current && practiceSetupRef.current.input === "midi") interruptRef.current("Selected MIDI input disconnected.");
+    },
+    onKey: (e, ki) => {
+      if (isNativeKeyboardEvent(e)) return;
       if (showPracticeSetupRef.current || toolOpenRef.current || showDownloadRef.current) return;
       if (e.key === "Escape") {
         if (showModeMenuRef.current) {
@@ -1032,30 +1177,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
           ki.handleKey(e);
         }
       }
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("keyup", onKey);
-    const mi = new MidiInput({
-      onNoteOn: (m, identity) => handleNote(m, true, "midi", identity),
-      onNoteOff: (m, identity) => handleNote(m, false, "midi", identity),
-    });
-    midiInputRef.current = mi;
-    const release = () => { ki.releaseAll(); mi.releaseAll(); heldInputRef.current?.releaseAll(); };
-    const hidden = () => { if (document.hidden) release(); };
-    window.addEventListener("blur", release);
-    document.addEventListener("visibilitychange", hidden);
-    const midiStatusTimer = window.setInterval(() => setMidiConnected(mi.connectedCount > 0), 1000);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("keyup", onKey);
-      release();
-      keyboardInputRef.current = null; midiInputRef.current = null;
-      window.removeEventListener("blur", release);
-      document.removeEventListener("visibilitychange", hidden);
-      window.clearInterval(midiStatusTimer);
-      mi.disconnect();
-    };
-  }, []);
+    },
+  });
 
   // Outside-click closes the mode menu.
   useEffect(() => {
@@ -1139,7 +1262,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     setMidiPending(true); setMidiError("");
     const connected = await input.connect();
     if (midiInputRef.current !== input) return;
-    setMidiPending(false); setMidiConnected(connected);
+    setMidiPending(false); setMidiConnected(input.connectedCount > 0); setMidiDevices(input.devices);
     if (!connected) setMidiError("No MIDI keyboard available. Check its connection and browser permission, then retry.");
   }
 
@@ -1147,15 +1270,17 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
   }, [openTool, showPracticeSetup, settings.soundSource, settings.organStyle, settings.organRegistration, grading]);
 
-  function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`) {
+  function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`, event?: InputEventMetadata) {
     if (!on) { heldInputRef.current?.release(identity); return; }
     if (showPracticeSetupRef.current || toolOpenRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.input !== source)) return;
-    if (heldInputRef.current?.press(identity, midi)) syncTransportState();
+    if (heldInputRef.current?.press(identity, midi, event)) syncTransportState();
   }
 
-  function soundInputNote(midi: number): boolean {
+  function soundInputNote(midi: number, event?: InputEventMetadata): boolean {
     const eng = engineRef.current;
-    if (!eng || !eng.handleNoteOn(midi)) return false;
+    const timing = liveTimingRef.current;
+    const binding = event?.deviceId ? (event.deviceId === timing.selection.device ? effectiveTimingBinding("midi") : "") : event ? effectiveTimingBinding("keyboard") : "";
+    if (!eng || !eng.handleNoteOn(midi, event, binding ? loadTimingCalibration(binding) ?? 0 : 0)) return false;
     if (chordPracticeRef.current) {
       chordPracticeRef.current.play(midi);
       setChordPracticeSnapshot(chordPracticeRef.current.snapshot());
@@ -1191,11 +1316,17 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       let raf = 0;
       let lastMidi: number | null = null;
       let lastFire = 0;
+      let lastSignalUpdate = 0;
       const tick = () => {
         if (request !== micRequestRef.current) return;
         analyser.getFloatTimeDomainData(buffer);
         const midi = detectPitch(buffer, ctx!.sampleRate);
         const now = performance.now();
+        if (now - lastSignalUpdate >= 250) {
+          lastSignalUpdate = now;
+          const rms = Math.sqrt(buffer.reduce((sum, value) => sum + value * value, 0) / buffer.length);
+          setMicSignal(rms < 0.01 ? "Quiet / no reliable pitch" : midi === null ? "Signal present; pitch unresolved" : "Single pitch detected (beta)");
+        }
         const edge = microphonePitchEdge(midi, lastMidi, now - lastFire);
         lastMidi = edge.lastMidi;
         if (edge.fire && midi !== null) {
@@ -1216,7 +1347,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         if (request !== micRequestRef.current) return;
         releaseMicrophone();
         setMicError("Microphone disconnected.");
-        if (gradingRef.current) finishGrading();
+        if (gradingRef.current) interruptRef.current("Microphone disconnected; this run is incomplete.");
       }, { once: true }));
       raf = requestAnimationFrame(tick);
       setMicReady(true);
@@ -1311,6 +1442,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     syncTransportState();
     eng.audio.cancelAll();
     eng.audio.ensure();
+    heldInputRef.current?.releaseAll();
+    if (eng.audio.prepareTimbre?.() === false) { setPracticeError("Piano samples are not ready. Wait or choose synthesis fallback."); return; }
     const secondsPerBeat = secPerBeat(activeData.tempoBpm, settings.speed);
     const previewMeasureIndex = measureIndex(
       eng.time,
@@ -1580,9 +1713,33 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
       resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, eng.time, duration, activeData.tempoBpm, settings.speed, loop);
     if (!range) { setPracticeError(setup.scope === "loop" ? "Select a loop before practicing it." : "No measured passage is available here."); return; }
+    if (setup.input === "microphone") {
+      const eligibility = microphoneEligibility(guidanceNotes, range);
+      if (!eligibility.eligible) { setPracticeError(eligibility.reason); return; }
+    }
     cancelSoundPreview();
+    heldInputRef.current?.releaseAll();
     try { eng.startGrading(setup.wait, range); }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
+    gradedTimingRef.current = { bpm: activeData.tempoBpm, speed: settings.speed };
+    if (practiceTarget) {
+      const spb = secPerBeat(activeData.tempoBpm, settings.speed);
+      const attempt: PracticeAttempt = {
+        id: crypto.randomUUID(), target: practiceTarget, startBeat: range.startSec / spb, endBeat: range.endSec / spb,
+        startedAt: new Date().toISOString(), finishedAt: null, outcome: "incomplete", countInCompleted: false, result: null,
+        context: { mode: settings.mode, difficulty: initial.song.difficulty, input: setup.input, wait: setup.wait,
+          speed: settings.speed, transpose: settings.transpose, hand: settings.hand, soundSource: settings.soundSource,
+          backgroundMode: settings.backgroundMode, accompanimentStyle: settings.accompanimentStyle, bpm: activeData.tempoBpm,
+          timingCalibrationMs: setup.input === "microphone" ? null : effectiveTimingBinding(setup.input) ? loadTimingCalibration(effectiveTimingBinding(setup.input)) : null,
+          effectiveTimbre: eng.audio instanceof SamplerAudioEngine ? eng.audio.playbackTimbre : settings.soundSource,
+          midiDevice: setup.input === "midi" ? midiSelection.device : null, midiChannel: setup.input === "midi" ? midiSelection.channel : null },
+      };
+      storedAttemptRef.current = attempt;
+      const saved = recordAttempt(attempt);
+      const state = loadPracticeState();
+      state.resume = { target: practiceTarget, positionBeat: attempt.startBeat, updatedAt: attempt.startedAt };
+      if (!savePracticeState(state) || !saved) setPracticeSaveNotice("Practice history could not be saved. Browser storage may be unavailable or full.");
+    } else setPracticeSaveNotice("This run has no saved history; its arrangement could not yet be checked.");
     setGradeResult(null);
     setPracticeError("");
     setPracticeSetup(setup);
@@ -1596,6 +1753,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     setWaitMode(setup.wait);
     syncTransportState();
     const ready = () => {
+      if (storedAttemptRef.current) {
+        storedAttemptRef.current.countInCompleted = true;
+        if (!recordAttempt(storedAttemptRef.current)) setPracticeSaveNotice("Practice history could not be saved.");
+      }
       countInRef.current = null;
       countInTimerRef.current = null;
       setCountIn(null);
@@ -1624,6 +1785,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     gradingRef.current = false;
     cancelCountIn();
     const result = engineRef.current?.finishGrading();
+    storeAttemptEnd(wasCounting ? "cancelled" : "incomplete", wasCounting ? null : result ?? null);
     if (!wasCounting && result) setGradeResult(result);
     else setGradeResult(null);
     releaseMicrophone();
@@ -1887,7 +2049,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
               Sheet Music shows the stored Original arrangement while Chord mode is selected. Use Fall Down or Note letters for the active guidance.
             </p>
           )}
-          <SheetMusicView songId={initial.song.id} initialPosition={sheetPosition} />
+          <SheetMusicView publicationRevision={initial.publicationRevision} songId={initial.song.id} initialPosition={sheetPosition} />
         </div>
       )}
     </>
@@ -2172,6 +2334,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
 
               <p className="mb-3 text-xs text-zinc-600">Visual bar progress is always available. Metronome clicks follow the active arrangement.</p>
               <SoundControls settings={settings} onChange={updateSettings} onPreview={previewSound}
+                sampleStatus={sampleStatus} samplePolicy={samplePolicy} sampleBusy={grading || playing || countIn !== null || soundPreviewStatus?.phase === "playing"}
+                onSamplePolicy={policy => { if (gradingRef.current) return; setSamplePolicy(policy); const audio = engineRef.current?.audio; if (audio instanceof SamplerAudioEngine) audio.samplePolicy = policy; }}
+                onSampleRetry={() => { const audio = engineRef.current?.audio; if (audio instanceof SamplerAudioEngine && !audio.retrySamples()) setPracticeError("Sample retries are exhausted. Choose synthesis fallback or reload."); }}
                 previewStatus={soundPreviewStatus} onPreviewStop={stopSoundPreview}
                 chordUnavailableReason={initial.chordUnavailableReason}
                 sourceBacking={Boolean(sourceBackingNotes)}
@@ -2189,7 +2354,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
                 onMelodyPhraseOverrideChange={updateMelodyPhraseOverride}
                 onSourceBackingModeChange={updateSourceBackingMode}
                 onMelodySelectionReset={resetMelodySelection} />
-            </fieldset> : <InputStatus octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} />}
+            </fieldset> : <InputStatus octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} devices={midiDevices} selection={midiSelection} onSelection={selectMidi} offsets={timingOffsets} onTimingOffset={setTimingOffset} />}
           </PlayerTools>
 
           <button className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setOpenTool(null); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
@@ -2280,6 +2445,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         </div>
         {(grading || gradeResult) && <GradingPanel waitMode={waitMode} waitNotes={waitNotes} result={gradeResult}
           countIn={countIn} input={practiceSetup.input} onExit={finishGrading} onRepeat={repeatPractice}
+          problems={gradeResult ? gradeProblemWindows(gradeResult, navigationMeasures, gradedTimingRef.current.bpm, gradedTimingRef.current.speed) : []}
+          onRevisit={range => { engineRef.current?.stop(); setLoopBeats(range); engineRef.current?.seek(range.startBeat * secPerBeat(activeData.tempoBpm, settings.speed)); setGradeResult(null); setSeekVersion(version => version + 1); syncTransportState(); }}
           onDismiss={() => { setGradeResult(null); if (engineRef.current) engineRef.current.gradeResult = null; }} />}
 
         <div className="player-stage-status" aria-label="Playback status">
@@ -2359,6 +2526,12 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
 
       </div>
 
+        <PracticeWorkspace target={practiceTarget} variantId={initial.song.id} range={loopBeats}
+          endBeat={duration / secPerBeat(activeData.tempoBpm, settings.speed)} positionBeat={time / secPerBeat(activeData.tempoBpm, settings.speed)} disabled={grading || showPracticeSetup}
+          onSelect={passage => { engineRef.current?.stop(); setLoopBeats({ startBeat: passage.startBeat, endBeat: passage.endBeat }); seek(passage.startBeat * secPerBeat(activeData.tempoBpm, settings.speed)); syncTransportState(); }}
+          onResume={beat => { engineRef.current?.stop(); seek(beat * secPerBeat(activeData.tempoBpm, settings.speed)); syncTransportState(); }} />
+        {practiceSaveNotice && <p role="status" className="px-4 text-xs">{practiceSaveNotice}</p>}
+
       {displayVariants.length > 1 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 mb-2">Same song, other levels</h2>
@@ -2377,10 +2550,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       )}
 
       {showPracticeSetup && <PracticeSetupDialog describeSetup={describePracticeSetup} onChordPractice={chordPracticeTargets.length ? () => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); } : undefined} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
-        midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
+        midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError} micSignal={micSignal}
+        microphoneTarget={setup => { const range = resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, engineRef.current?.time ?? time, duration, activeData.tempoBpm, settings.speed, loop); return range ? microphoneEligibility(guidanceNotes, range) : { eligible: false, reason: "Choose a measured passage." }; }}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose} onClose={() => {
+      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}
@@ -2554,7 +2728,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/songs/${encodeURIComponent(initial.song.id)}`, {
+      const response = await fetch(`/api/songs/${encodeURIComponent(initial.song.id)}?revision=${encodeURIComponent(initial.publicationRevision ?? "unpinned")}`, {
         signal: controller.signal,
         cache: "no-store",
         headers: { Accept: "application/json" },
@@ -2563,7 +2737,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
       const value = await response.json().catch(() => null) as Partial<PlayerDetail> | null;
       if (controller.signal.aborted || loadRequestRef.current !== controller) return;
       if (!response.ok || !value || !value.song || !value.data || !Array.isArray(value.variants)) {
-        throw new Error("The player arrangement could not be loaded.");
+        throw new Error(response.status === 409 ? "This arrangement changed. Reload the page before continuing." : "The player arrangement could not be loaded.");
       }
       const score = document.querySelector<HTMLElement>(".sheet-svg");
       const page = Number(score?.dataset.activePage ?? 1);
@@ -2716,7 +2890,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
           {savedTranspose !== 0 && <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
             Sheet Music stays in the original key; playback is transposed {savedTranspose > 0 ? `+${savedTranspose}` : savedTranspose} semitones.
           </p>}
-          <SheetMusicView songId={initial.song.id} />
+          <SheetMusicView publicationRevision={initial.publicationRevision} songId={initial.song.id} />
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">Sheet Music view active</p>
         </div>
       </div>
@@ -2738,7 +2912,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
         </section>
       )}
 
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} transpose={savedTranspose} onClose={() => {
+      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} transpose={savedTranspose} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}

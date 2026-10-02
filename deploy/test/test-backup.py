@@ -77,8 +77,12 @@ def make_docker(root: Path, states: dict[str, str] | None = None) -> tuple[Path,
             echo "running false"
             exit 0
           fi
-          if [[ "$format" == *Config.Image* ]]; then
+          if [[ "$format" == *org.opencontainers.image.revision* ]]; then
+            echo bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          elif [[ "$format" == *Config.Image* ]]; then
             echo fake-image
+          elif [[ "$format" == *Image* ]]; then
+            echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           else
             cat "{state_dir}/$name" 2>/dev/null || echo "running false"
           fi
@@ -100,6 +104,10 @@ def make_docker(root: Path, states: dict[str, str] | None = None) -> tuple[Path,
         if [ "$1" = run ]; then
           if printf '%s\n' "$@" | grep -q 'docker.sock'; then exit 91; fi
           if [ "${{FAKE_DOCKER_HANG:-0}}" = 1 ]; then trap 'exit 143' TERM INT; sleep 30; fi
+          while [ "$#" -gt 0 ]; do
+            if [ "$1" = -e ]; then shift; if [[ "$1" == KEYSPILLI_BACKUP_*IMAGE_ID=* || "$1" == KEYSPILLI_BACKUP_*REVISION=* ]]; then export "$1"; fi; fi
+            shift
+          done
           bash "$KEYSPILLI_BACKUP_SCRIPT"
           exit $?
         fi
@@ -150,6 +158,9 @@ def test_runner_pauses_pair_and_restores_only_its_pauses() -> None:
         assert "--user 0:0" in next(line for line in lines if line.startswith("run "))
         manifest = json.loads(manifests(backups)[0].read_text())
         assert manifest["complete"] is True
+        assert manifest["catalogSchemaEpoch"] == 0
+        assert manifest["images"]["web"]["id"] == "sha256:" + "a" * 64
+        assert manifest["images"]["web"]["revision"] == "b" * 40
         assert hashlib.sha256((backups / manifest["dbFile"]).read_bytes()).hexdigest() == manifest["dbSha256"]
         with tarfile.open(backups / manifest["archiveFile"], "r:gz") as archive:
             names = archive.getnames()
@@ -276,7 +287,12 @@ def test_restore_drill_is_non_destructive() -> None:
         drill = subprocess.run(["bash", str(RESTORE), str(manifest), str(destination)], capture_output=True, text=True, timeout=30)
         assert drill.returncode == 0, drill.stderr
         assert (destination / json.loads(manifest.read_text())["dbFile"]).exists()
-        assert (destination / "artifacts" / ".test.reconciliation.json").exists()
+        assert (destination / "runtime" / "db.sqlite").exists()
+        assert (destination / "runtime" / "artifacts" / ".test.reconciliation.json").exists()
+        report = json.loads((destination / "restore-report.json").read_text())
+        assert report["archiveValidation"] == "passed" and report["applicationVerification"] == "not_run"
+        assert report["catalogSchemaEpoch"] == 0
+        assert report["elapsedSeconds"] >= 0
         again = subprocess.run(["bash", str(RESTORE), str(manifest), str(destination)], capture_output=True, text=True, timeout=30)
         assert again.returncode != 0
         print("  PASS: restore drill verifies a fresh destination without mutating source backups")

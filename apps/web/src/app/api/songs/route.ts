@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listSongs, listSongsGroupedWithTotal, countSongs, projectPublicGroupedSongs, type SongFilters } from "@keyspilli/catalog";
+import { listSongs, listSongsGroupedWithTotal, countSongs, projectPublicGroupedSongs, type SongFilters } from "@keyspilli/catalog/runtime";
+import { readJsonObject } from "../../../lib/bounded-body";
 
 export const dynamic = "force-dynamic";
 
 function includesLegacyVeryEasy(sp: URLSearchParams): boolean {
-  return sp.get("legacy") === "1" || sp.get("legacy") === "true" || sp.get("difficulty") === "very-easy";
+  return sp.get("legacy") === "1" || sp.get("legacy") === "true" || ["very-easy", "very-beginner"].includes(sp.get("difficulty") ?? "");
 }
 
 /** Normalize pagination: positive integer limit capped at 200, non-negative integer offset. */
@@ -19,8 +20,33 @@ function safePage(sp: URLSearchParams) {
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
+  const rawIds = sp.get("ids");
+  const ids = rawIds === null ? undefined : rawIds === "" ? [] : [...new Set(rawIds.split(","))];
+  if (rawIds !== null && (rawIds.length > 32_768 || ids!.length > 500 || ids!.some(id => !/^[a-zA-Z0-9_-]{1,128}$/.test(id)))) {
+    return NextResponse.json({ error: "Select at most 500 valid song IDs." }, { status: 400 });
+  }
+  return songResponse(sp, ids);
+}
+
+/** Read-only selection query: same private-edge read contract as GET, no catalog mutation. */
+export async function POST(req: NextRequest) {
+  const input = await readJsonObject(req, 1_048_576);
+  if (input.response) return input.response;
+  const selected = input.body.ids;
+  // ponytail: 5,000 local favorites per query; a server-owned list is needed above this ceiling.
+  if (Object.keys(input.body).some(key => key !== "ids") || !Array.isArray(selected) || selected.length > 5000
+      || selected.some(id => typeof id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(id))) {
+    return NextResponse.json({ error: "Select at most 5,000 valid song IDs." }, { status: 400 });
+  }
+  return songResponse(req.nextUrl.searchParams, [...new Set(selected)]);
+}
+
+function songResponse(sp: URLSearchParams, ids: string[] | undefined) {
   const { limit, offset } = safePage(sp);
   const f: SongFilters = {
+    publicOnly: !includesLegacyVeryEasy(sp),
+    ids,
+    artist: sp.get("artist") ?? undefined,
     importMethod: sp.get("importMethod") ?? undefined,
     difficulty: sp.get("difficulty") ?? undefined,
     key: sp.get("key") ?? undefined,
@@ -50,7 +76,7 @@ export async function GET(req: NextRequest) {
         totalPlays,
         lastCreatedAt,
       })),
-      total: groups.length === songs.length ? total : groups.length,
+      total,
     });
   }
   return NextResponse.json({ songs: listSongs(f), total: countSongs(f) });

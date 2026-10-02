@@ -1,0 +1,15 @@
+[Unit]
+Description=Replicate a coherent Keyspilli backup off host
+After=network-online.target keyspilli-backup.service
+Wants=network-online.target
+ConditionPathExists=/etc/keyspilli/replication.env
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/keyspilli/replication.env
+ExecStart=/usr/bin/flock -n /run/lock/keyspilli-replication.lock /usr/bin/python3 {{ app_dir }}/replicate-backup.py --latest /backups
+TimeoutStartSec=1900
+TimeoutStopSec=15
+Nice=10
+IOSchedulingClass=best-effort
+PrivateTmp=true

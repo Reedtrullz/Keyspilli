@@ -7,6 +7,8 @@ import argparse
 import glob
 import hashlib
 import json
+import math
+import time
 import os
 import re
 import socket
@@ -119,6 +121,44 @@ def event_count(logs: str, event: str) -> int:
     return len(re.findall(rf"event\s*[:=]\s*['\"]?{re.escape(event)}\b", logs))
 
 
+def worker_heartbeat() -> dict[str, Any]:
+    try:
+        checked = subprocess.run([
+            "docker", "exec", "keyspilli-worker", "node", "--import", "tsx",
+            "services/transcribe/src/worker-health-check.ts",
+        ], capture_output=True, text=True, timeout=5)
+        if len(checked.stdout) > 32768:
+            raise ValueError("oversized heartbeat")
+        result = json.loads(checked.stdout)
+        state = result.get("state")
+        if state not in {"starting", "polling", "idle", "busy", "stale", "draining", "unfinished", "stopped", "health-error", "missing", "invalid"}:
+            raise ValueError("unknown heartbeat state")
+        queue = result.get("snapshot", {}).get("queue", {})
+        return {"heartbeatState": state, "heartbeatHealthy": result.get("healthy") is True,
+                "heartbeatAgeMs": result.get("heartbeatAgeMs"),
+                "queuedSample": queue.get("sampled"), "oldestQueuedAgeMs": queue.get("oldestAgeMs")}
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return {"heartbeatState": "unknown", "heartbeatHealthy": False}
+
+
+def offhost_status(path: Path, enabled: bool) -> dict[str, Any]:
+    if not enabled:
+        return {"enabled": False, "state": "disabled"}
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(32769)
+        if len(raw) > 32768:
+            raise ValueError("oversized status")
+        value = json.loads(raw)
+        if not isinstance(value, dict) or value.get("schemaVersion") != 1 or value.get("state") not in {"running", "success", "failed"}:
+            raise ValueError("invalid status")
+        finished = value.get("finishedAt")
+        age = (time.time() - finished) / 3600 if isinstance(finished, (float, int)) and not isinstance(finished, bool) and math.isfinite(finished) else None
+        return {"enabled": True, "state": value["state"], "verified": value.get("verified") is True, "ageHours": age}
+    except (OSError, ValueError, TypeError):
+        return {"enabled": True, "state": "unknown", "verified": False, "ageHours": None}
+
+
 def collect(mode: str) -> dict[str, Any]:
     web = inspect("keyspilli")
     worker = inspect("keyspilli-worker")
@@ -155,6 +195,7 @@ def collect(mode: str) -> dict[str, Any]:
             "running": worker.get("State", {}).get("Status") == "running",
             "restarts": worker.get("RestartCount"),
             "image": worker.get("Config", {}).get("Image"),
+            **worker_heartbeat(),
         },
         "backup": {
             "timerEnabled": run("systemctl", "is-enabled", "keyspilli-backup.timer") == "enabled",
@@ -167,6 +208,7 @@ def collect(mode: str) -> dict[str, Any]:
             "latestArchive": Path(latest_archive).name if latest_archive else None,
             "latestArchiveAgeHours": age_hours(latest_archive),
         },
+        "offHost": offhost_status(Path("/backups/keyspilli-replication-status.json"), "keyspilli-replication.service" in run("systemctl", "show", "keyspilli-backup.service", "-p", "OnSuccess", "--value")),
         "tlsDaysRemaining": tls_days("keys.reidar.tech"),
         "caddyValid": subprocess.run(
             ["caddy", "validate", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"],
@@ -234,8 +276,13 @@ def evaluate(snapshot: dict[str, Any], mode: str) -> dict[str, Any]:
     if isinstance(web.get("restarts"), int) and web["restarts"] > 0: warnings.append("web_restart_count_nonzero")
 
     worker = snapshot.get("worker", {})
-    checks["worker"] = {"status": "healthy" if worker.get("running") is True else "failed", **worker}
-    if worker.get("running") is not True: failures.append("worker_not_running")
+    worker_ok = worker.get("running") is True and worker.get("heartbeatHealthy") is True
+    checks["worker"] = {"status": "healthy" if worker_ok else "failed", **worker}
+    if worker.get("running") is not True:
+        failures.append("worker_not_running")
+        if isinstance(worker.get("queuedSample"), int) and worker["queuedSample"] > 0:
+            failures.append("queued_without_worker")
+    if worker.get("heartbeatHealthy") is not True: failures.append("worker_heartbeat_unavailable")
     if isinstance(worker.get("restarts"), int) and worker["restarts"] > 0: warnings.append("worker_restart_count_nonzero")
 
     backup = snapshot.get("backup", {})
@@ -257,6 +304,16 @@ def evaluate(snapshot: dict[str, Any], mode: str) -> dict[str, Any]:
         failures.append("no_coherent_backup_pair")
     elif not backup_ok and not any(value.startswith("latest_") for value in failures):
         failures.append("backup_timer_or_last_result_failed")
+
+    offhost = snapshot.get("offHost", {"enabled": False})
+    if offhost.get("enabled") is True:
+        age = offhost.get("ageHours")
+        verified = offhost.get("state") == "success" and offhost.get("verified") is True and isinstance(age, (int, float)) and not isinstance(age, bool) and math.isfinite(age) and 0 <= age <= BACKUP_FAIL_HOURS
+        checks["offHost"] = {"status": "healthy" if verified else "failed", **offhost}
+        if not verified:
+            failures.append("offhost_backup_unverified_or_stale")
+    else:
+        checks["offHost"] = {"status": "disabled", "enabled": False}
 
     tls = snapshot.get("tlsDaysRemaining")
     tls_status = "failed" if not isinstance(tls, (int, float)) or tls < TLS_FAIL_DAYS else "warning" if tls < TLS_WARN_DAYS else "healthy"

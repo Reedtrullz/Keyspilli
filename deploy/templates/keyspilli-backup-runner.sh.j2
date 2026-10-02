@@ -80,6 +80,13 @@ image="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{.Config.Ima
   || die "keyspilli-worker image is unavailable"
 [[ -n "$image" ]] || die "keyspilli-worker image is empty"
 
+web_image_id="$("$DOCKER_BIN" inspect keyspilli --format '{% raw %}{{.Image}}{% endraw %}')"
+worker_image_id="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{.Image}}{% endraw %}')"
+web_revision="$("$DOCKER_BIN" inspect keyspilli --format '{% raw %}{{index .Config.Labels "org.opencontainers.image.revision"}}{% endraw %}')"
+worker_revision="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{index .Config.Labels "org.opencontainers.image.revision"}}{% endraw %}')"
+[[ "$web_image_id" =~ ^sha256:[a-f0-9]{64}$ && "$worker_image_id" =~ ^sha256:[a-f0-9]{64}$ ]] \
+  || die "immutable image IDs are unavailable"
+
 # The one-shot backup writes root-owned host backups; do not inherit the worker UID.
 "$TIMEOUT_BIN" --foreground --signal=TERM --kill-after=30s "$BACKUP_TIMEOUT" \
   "$DOCKER_BIN" run --rm --name "$BACKUP_CONTAINER" \
@@ -90,6 +97,10 @@ image="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{.Config.Ima
   -v "$BACKUP_SCRIPT:/usr/local/bin/keyspilli-backup:ro" \
   -e KEYSPILLI_DATA_DIR=/data \
   -e KEYSPILLI_BACKUP_DIR=/backups \
+  -e "KEYSPILLI_BACKUP_WEB_IMAGE_ID=$web_image_id" \
+  -e "KEYSPILLI_BACKUP_WORKER_IMAGE_ID=$worker_image_id" \
+  -e "KEYSPILLI_BACKUP_WEB_REVISION=$web_revision" \
+  -e "KEYSPILLI_BACKUP_WORKER_REVISION=$worker_revision" \
   --entrypoint /bin/bash \
   "$image" /usr/local/bin/keyspilli-backup
 

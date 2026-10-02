@@ -46,6 +46,7 @@ function storage(): Storage | null {
     return null;
   }
 }
+export { storage as preferenceStorage };
 
 function clampNum(v: unknown, min: number, max: number, fallback: number): number {
   if (typeof v !== "number" || !Number.isFinite(v)) return fallback;
@@ -183,3 +184,24 @@ export function saveSongPrefs(songId: string, prefs: Partial<SongPrefs>): void {
   const current = loadSongPrefs(songId);
   saveJson(SONG_KEY_PREFIX + songId, { ...current, ...prefs });
 }
+
+export const TIMING_CALIBRATION_KEY = "keyspilli.timing.v1";
+/** Owner-entered offset, not a measurement of device latency. Unknown remains null. */
+export function loadTimingCalibration(binding: string): number | null {
+  const state = loadJson<unknown>(TIMING_CALIBRATION_KEY, {});
+  if (!state || typeof state !== "object" || Array.isArray(state) || Object.keys(state).length > 20) return null;
+  const value = (state as Record<string, unknown>)[binding];
+  return typeof value === "number" && Number.isFinite(value) && value >= -250 && value <= 250 ? value : null;
+}
+export function saveTimingCalibration(binding: string, offset: number | null): boolean {
+  if (!binding || binding.length > 256 || offset !== null && (!Number.isFinite(offset) || Math.abs(offset) > 250)) return false;
+  try {
+    const raw = loadJson<unknown>(TIMING_CALIBRATION_KEY, {});
+    const entries = raw && typeof raw === "object" && !Array.isArray(raw) ? Object.entries(raw) : [];
+    const next = Object.fromEntries(entries.filter(([key, value]) => key !== binding && key.length <= 256 && typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 250).slice(-19));
+    if (offset !== null) Object.defineProperty(next, binding, { value: offset, enumerable: true, configurable: true });
+    const s = storage(); if (!s) return false;
+    s.setItem(TIMING_CALIBRATION_KEY, JSON.stringify(next)); return true;
+  } catch { return false; }
+}
+export function clearTimingCalibrations(): void { try { storage()?.removeItem(TIMING_CALIBRATION_KEY); } catch { /* playback remains available */ } }

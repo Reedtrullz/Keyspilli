@@ -1,6 +1,6 @@
 /**
- * Conversion status is intentionally public so the no-login learner page can
- * poll its own job. Never return raw subprocess errors here: they can contain
+ * The owner browser polls status behind the required private edge.
+ * Never return raw subprocess errors here: they can contain
  * command arguments, local paths, or proxy credentials.
  */
 export function publicJobError(error: unknown): string | null {

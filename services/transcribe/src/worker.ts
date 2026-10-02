@@ -34,7 +34,6 @@ import {
   filterTranscription,
   AUDIO_ONSET_DETECTOR_CONFIG,
   MAX_YOUTUBE_IMPORT_DUR_BEATS,
-  ONSET_MATCH_SEC,
   TRANSCRIPTION_PIPELINE_CONFIG,
   TRANSCRIPTION_POST_PROCESSING_DEFAULTS,
   type TranscriptionProvenance,
@@ -44,6 +43,9 @@ import {
 import { buildMetalArrangement, parseMidi, transcriptionMaxDurationBeats, writeMidi } from "@keyspilli/midi";
 import { assessMetalRouting } from "./metal-routing.js";
 import { stemPipelineConfigFromEnv, transcribePitchedStems } from "./stem-pipeline.js";
+import { finiteNumberSetting, workerNumericConfigFromEnv } from "./worker-config.js";
+import { runWorkerLoop, type WorkerProgress } from "./worker-runtime.js";
+import { invalidateWorkerHealthSnapshot, workerHealthFilePath, writeWorkerHealthSnapshot } from "./worker-health.js";
 import { metalArrangementTracks } from "./metal-midi.js";
 import { normalizeYoutubeImportUrl, ytNetworkFlags } from "./youtube-url.js";
 import {
@@ -53,24 +55,25 @@ import {
 } from "./errors.js";
 
 const execFileP = promisify(execFile);
-const POLL_MS = Number(process.env.KEYSPILLI_POLL_MS ?? 5000);
-const MAX_ATTEMPTS = Number(process.env.KEYSPILLI_MAX_ATTEMPTS ?? 2);
-const BP_TIMEOUT_MS = Number(process.env.KEYSPILLI_BP_TIMEOUT_MS ?? 900_000);
-const MAX_VIDEO_DURATION_SEC = Number(process.env.KEYSPILLI_MAX_VIDEO_DURATION_SEC ?? "600");
+const WORKER_NUMERIC = workerNumericConfigFromEnv(process.env);
+const POLL_MS = WORKER_NUMERIC.pollMs;
+const MAX_ATTEMPTS = WORKER_NUMERIC.maxAttempts;
+const MAX_VIDEO_DURATION_SEC = WORKER_NUMERIC.maxVideoDurationSec;
 const TEMPO_TIMEOUT_MS = 60_000;
 const PYTHON = process.env.KEYSPILLI_PYTHON ?? join(ROOT, "services", "transcribe", ".venv", "bin", "python");
 const BASIC_PITCH = join(dirname(PYTHON), "basic-pitch");
 const TEMPO_PY = join(ROOT, "services", "transcribe", "src", "tempo.py");
-const TEMPO_OVERRIDE = process.env.KEYSPILLI_TEMPO_OVERRIDE?.trim() || undefined;
+const TEMPO_OVERRIDE = WORKER_NUMERIC.tempoOverride;
 const BASIC_PITCH_SERIALIZATION = process.env.KEYSPILLI_BP_SERIALIZATION ?? "";
 const BASIC_PITCH_VERSION = process.env.KEYSPILLI_BP_VERSION ?? process.env.BASIC_PITCH_VERSION ?? "unknown";
-const ONSET_THRESHOLD = process.env.KEYSPILLI_ONSET ?? "0.65";
-const FRAME_THRESHOLD = process.env.KEYSPILLI_FRAME ?? "0.45";
 const STEM_PIPELINE_CONFIG = stemPipelineConfigFromEnv(process.env, {
   root: ROOT,
   python: PYTHON,
   basicPitch: BASIC_PITCH,
 });
+const BP_TIMEOUT_MS = STEM_PIPELINE_CONFIG.basicPitchTimeoutMs;
+const ONSET_THRESHOLD = STEM_PIPELINE_CONFIG.onsetThreshold;
+const FRAME_THRESHOLD = STEM_PIPELINE_CONFIG.frameThreshold;
 
 async function persistMetalArrangement(dir: string, midi: Uint8Array): Promise<void> {
   const arrangedDir = join(dir, "arranged");
@@ -110,21 +113,13 @@ function getOverride(jobId: string): TranscriptionOverride {
   }
 }
 
-// Validate numeric env vars at startup to fail fast on misconfiguration
-function requirePositiveFloat(name: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`Environment variable ${name} must be a positive number, got "${value}"`);
-  }
-  return parsed;
-}
-requirePositiveFloat("KEYSPILLI_ONSET_MATCH_SEC", process.env.KEYSPILLI_ONSET_MATCH_SEC ?? "0.15");
-requirePositiveFloat("KEYSPILLI_ONSET", ONSET_THRESHOLD);
-requirePositiveFloat("KEYSPILLI_FRAME", FRAME_THRESHOLD);
-
-async function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<string> {
+async function run(cmd: string, args: string[], timeoutMs = 300_000, signal?: AbortSignal): Promise<string> {
   try {
-    const { stdout } = await execFileP(cmd, args, { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
+    const { stdout } = await execFileP(cmd, args, {
+      timeout: timeoutMs,
+      maxBuffer: 32 * 1024 * 1024,
+      ...(signal ? { signal } : {}),
+    });
     return stdout;
   } catch (error) {
     throw sanitizeProcessError(error);
@@ -145,7 +140,7 @@ interface YoutubeMeta {
   acquisition: "downloaded" | "pre-seeded";
 }
 
-async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
+async function ytDlp(args: string[], timeoutMs = 300_000, signal?: AbortSignal): Promise<string> {
   if (!args.includes("--")) {
     throw new Error("yt-dlp invocation must include an end-of-options marker");
   }
@@ -156,6 +151,7 @@ async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
   const YT_CLIENTS = ["", "youtube:player_client=android", "youtube:player_client=tv"];
   let lastError: unknown = null;
   for (const client of YT_CLIENTS) {
+    if (signal?.aborted) throw new Error("worker shutdown cancelled yt-dlp");
     try {
       const full = ["--js-runtimes", "node", ...ytNetworkFlags()];
       if (client) full.push("--extractor-args", client);
@@ -164,8 +160,9 @@ async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
       // also prevents yt-dlp from interpreting a future URL-like argument as
       // an option; --no-playlist avoids accidental playlist expansion.
       full.push(...args);
-      return await run("yt-dlp", full, timeoutMs);
+      return await run("yt-dlp", full, timeoutMs, signal);
     } catch (e) {
+      if (signal?.aborted) throw e;
       if (isYoutubeBotChallenge(e)) throw new Error(YOUTUBE_BOT_BLOCK_MESSAGE);
       lastError = e;
     }
@@ -173,7 +170,7 @@ async function ytDlp(args: string[], timeoutMs = 300_000): Promise<string> {
   throw lastError instanceof Error ? lastError : new Error("yt-dlp failed on all clients");
 }
 
-async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string): Promise<YoutubeMeta> {
+async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string, signal?: AbortSignal): Promise<YoutubeMeta> {
   // Operator escape hatch for datacenter IPs that YouTube bot-blocks:
   // stage audio.mp3 plus a meta.json sidecar and the worker skips yt-dlp
   // entirely. The sidecar is validated so incomplete metadata cannot enter
@@ -183,7 +180,7 @@ async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string):
     console.log(`[worker] ${jobId} using pre-seeded audio + meta.json`);
     return { ...sidecar, acquisition: "pre-seeded" };
   }
-  const info = await ytDlp(["--no-playlist", "--skip-download", "--print", "%(title)s\u001f%(uploader)s\u001f%(duration)s", "--", youtubeUrl], 60_000);
+  const info = await ytDlp(["--no-playlist", "--skip-download", "--print", "%(title)s\u001f%(uploader)s\u001f%(duration)s", "--", youtubeUrl], 60_000, signal);
   const parts = info.trim().split("\u001f").map((s) => s?.trim() ?? "");
   const title = parts[0] ?? "";
   const uploader = parts[1] ?? "";
@@ -195,7 +192,14 @@ async function fetchYoutubeMeta(jobId: string, dir: string, youtubeUrl: string):
   return { title: title || "YouTube conversion", uploader: uploader || "YouTube", durationSec: duration, acquisition: "downloaded" };
 }
 
-export async function processJob(jobId: string): Promise<void> {
+export async function processJob(
+  jobId: string,
+  options: {
+    signal?: AbortSignal;
+    onProgress?: (stage: WorkerProgress) => void;
+    registerGraceExpired?: (handler: (stage: WorkerProgress | null) => void) => void;
+  } = {},
+): Promise<void> {
   const job = getJob(jobId);
   if (!job) return;
   // Atomic claim: another worker may have taken it while we read metadata.
@@ -219,7 +223,26 @@ export async function processJob(jobId: string): Promise<void> {
     }
   }, 60_000);
   heartbeat.unref();
+  let publicationFencePassed = false;
+  // Before the swap fence, expiry clears this owner's lease and requeues
+  // without consuming an attempt. If the atomic swap was already authorized,
+  // keep its processing row fenced from another claimant until it completes
+  // or its lease expires into the existing journal recovery path.
+  options.registerGraceExpired?.((stage) => {
+    clearInterval(heartbeat);
+    if (stage === "publishing" && publicationFencePassed) return;
+    if (!ownsJobLease(jobId, owner)) return;
+    if (!updateJob(jobId, { status: "queued", error: null }, owner) && ownsJobLease(jobId, owner)) {
+      throw new Error("worker shutdown lease fence failed");
+    }
+  });
+  let publishing = false;
+  const checkNotShuttingDown = () => {
+    if (options.signal?.aborted) throw new Error("worker shutdown requested");
+  };
   try {
+    checkNotShuttingDown();
+    options.onProgress?.("checking-disk");
     await mkdir(dir, { recursive: true });
     const disk = await statfs(dir);
     if (disk.bavail * disk.bsize < STEM_PIPELINE_CONFIG.minFreeBytes) {
@@ -237,8 +260,12 @@ export async function processJob(jobId: string): Promise<void> {
         const progressPath = join(dir, "progress.json");
         writeFileSync(progressPath + ".tmp", JSON.stringify({stage}));
         renameSync(progressPath + ".tmp", progressPath);
+        options.onProgress?.(stage === "publishing" ? "publishing"
+          : stage.includes("download") || stage === "identifying" ? "downloading"
+            : stage.includes("extract") || stage.includes("separat") ? "extracting"
+              : stage === "validating" ? "finalizing" : "transcribing");
       };
-      const candidate = await resolveTutorialLink(normalizeYoutubeImportUrl(job.youtubeUrl), join(dir, "tutorial-" + randomUUID()), {checkActive,onProgress});
+      const candidate = await resolveTutorialLink(normalizeYoutubeImportUrl(job.youtubeUrl), join(dir, "tutorial-" + randomUUID()), {checkActive,onProgress,signal: options.signal});
       if (candidate.status !== "local-listening-candidate") throw new Error(candidate.attempts?.length ? "SOURCE_REVIEW_REQUIRED: tutorial extraction failed" : "SOURCE_REVIEW_REQUIRED: no matching tutorial found");
       const buf = await readFile(candidate.midiPath);
       const evidence = JSON.parse(await readFile(candidate.midiPath.replace(/\.mid$/, ".json"), "utf8"));
@@ -252,18 +279,23 @@ export async function processJob(jobId: string): Promise<void> {
         candidateSetDigest: createHash("sha256").update(JSON.stringify(candidate.candidates)).digest("hex"),
       };
       onProgress("publishing");
+      checkNotShuttingDown();
+      publishing = true;
       const imported = await ingestSource({buf, baseId, title: candidate.identity.title, artist: candidate.identity.artist,
         category: "Tutorial preview", contentType: "youtube", acquiredVia: "colored-keyboard-video",
         sourceRef: candidate.selectedUrl, sourceArtifactHash: evidence.sourceSha256, sourceArrangement,
         cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source",
       }, {job: {id: jobId, owner}, beforeReplace: () => {
+        checkNotShuttingDown();
         if (!ownsJobLease(jobId, owner) || getJob(jobId)?.status !== "processing" || getSongsByBase(baseId).length)
           throw new Error("tutorial publication cancelled or already exists");
+        publicationFencePassed = true;
       }});
       if (imported.error) throw new Error(imported.code ? `${imported.code}: ${imported.error}` : imported.error);
       return;
     }
     if (process.env.KEYSPILLI_SOURCE_ASSISTED_BETA === "1") {
+      options.onProgress?.("transcribing");
       if (existing) throw new Error("SOURCE_REVIEW_REQUIRED: beta imports cannot replace an existing song");
       const indexPath = process.env.KEYSPILLI_VERIFIED_SOURCE_INDEX;
       if (!indexPath) throw new Error("SOURCE_REVIEW_REQUIRED: no verified source index is configured");
@@ -289,13 +321,18 @@ export async function processJob(jobId: string): Promise<void> {
       const canonical = native.arrangement.canonical!;
       const buf = writeMidi(canonical.notes, { tempoBpm: canonical.tempoBpm, timeSig: canonical.timeSig,
         tracks: metalArrangementTracks(canonical.notes) });
+      options.onProgress?.("publishing");
+      checkNotShuttingDown();
+      publishing = true;
       const imported = await ingestSource({ buf, baseId, sourceArtifactHash: native.provenance.sourceSha256,
         title: native.provenance.arrangementTitle, artist: native.provenance.artist, category: "Source-assisted beta",
         contentType: "youtube", acquiredVia: "verified-native-midi", sourceRef: `indexed:${native.provenance.sourceSha256}`,
         cleanTranscription: false, maxDurBeats: null, arrangementProfile: "source", sourceArrangement: native.provenance,
       }, { job: {id: jobId, owner}, beforeReplace: () => {
+        checkNotShuttingDown();
         const latest = getJob(jobId);
         if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId || getSongsByBase(baseId).length) throw new Error("native publication cancelled or already exists");
+        publicationFencePassed = true;
       } });
       if (imported.error) throw new Error(imported.code ? `${imported.code}: ${imported.error}` : imported.error);
       return;
@@ -303,16 +340,21 @@ export async function processJob(jobId: string): Promise<void> {
 
     const ov = getOverride(jobId);
     const dense = ov.denseBand === true;
-    const onsetTh = requirePositiveFloat("override.onsetThreshold", String(ov.onsetThreshold ?? (dense ? 0.4 : ONSET_THRESHOLD)));
-    const frameTh = requirePositiveFloat("override.frameThreshold", String(ov.frameThreshold ?? (dense ? 0.25 : FRAME_THRESHOLD)));
-    const onsetMatch = requirePositiveFloat("override.onsetMatchSec", String(ov.onsetMatchSec ?? (dense ? 0.35 : ONSET_MATCH_SEC)));
+    const onsetTh = finiteNumberSetting("override.onsetThreshold", String(ov.onsetThreshold ?? (dense ? 0.4 : ONSET_THRESHOLD)), { min: 0, max: 1 });
+    const frameTh = finiteNumberSetting("override.frameThreshold", String(ov.frameThreshold ?? (dense ? 0.25 : FRAME_THRESHOLD)), { min: 0, max: 1 });
+    const onsetMatch = finiteNumberSetting("override.onsetMatchSec", String(ov.onsetMatchSec ?? (dense ? 0.35 : WORKER_NUMERIC.onsetMatchSec)), { min: 0.001, max: 10 });
+    const tempoOverride = ov.tempoBpm == null ? TEMPO_OVERRIDE : finiteNumberSetting("override.tempoBpm", String(ov.tempoBpm), { min: 20, max: 400 });
+    if (ov.trimIntroBeats != null) finiteNumberSetting("override.trimIntroBeats", String(ov.trimIntroBeats), { min: 0, max: 32 });
+    if (ov.thinBassMinGapBeats != null) finiteNumberSetting("override.thinBassMinGapBeats", String(ov.thinBassMinGapBeats), { min: 0, max: 16 });
     const youtubeUrl = normalizeYoutubeImportUrl(job.youtubeUrl);
-    const meta = await fetchYoutubeMeta(jobId, dir, youtubeUrl);
+    checkNotShuttingDown();
+    options.onProgress?.("downloading");
+    const meta = await fetchYoutubeMeta(jobId, dir, youtubeUrl, options.signal);
     if (meta.durationSec > MAX_VIDEO_DURATION_SEC) {
       throw new Error(`video longer than ${MAX_VIDEO_DURATION_SEC}s (${meta.durationSec}s)`);
     }
     if (meta.acquisition === "downloaded") {
-      await ytDlp(["--no-playlist", "-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), "--", youtubeUrl]);
+      await ytDlp(["--no-playlist", "-x", "--audio-format", "mp3", "--max-filesize", "80M", "-o", join(dir, "audio.%(ext)s"), "--", youtubeUrl], 300_000, options.signal);
     }
     // Do not feed a partially downloaded `audio.mp3.part` (or a stale
     // sidecar) to tempo detection/Basic Pitch after a retried yt-dlp run.
@@ -327,12 +369,14 @@ export async function processJob(jobId: string): Promise<void> {
     // publish. The hash is streamed so an 80 MB download does not become a
     // second full in-memory buffer on the worker.
     const sourceArtifactHash = await sha256File(audioPath);
-    const tempo = ov.tempoBpm != null ? String(ov.tempoBpm) : ((TEMPO_OVERRIDE ?? (await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS).catch((e) => {
+    options.onProgress?.("transcribing");
+    const tempo = tempoOverride != null ? String(tempoOverride) : ((await run(PYTHON, [TEMPO_PY, audioPath], TEMPO_TIMEOUT_MS, options.signal).catch((e) => {
       console.warn(`[worker] ${jobId} tempo detection failed: ${(e as Error).message}`);
       return "";
-    })))).trim();
+    }))).trim();
     const transcribedAt = new Date().toISOString();
-    const detectedTempo = tempo ? Number(tempo) : undefined;
+    checkNotShuttingDown();
+    const detectedTempo = tempo ? finiteNumberSetting("detected tempo", tempo, { min: 20, max: 400 }) : undefined;
     let midi: Uint8Array | undefined;
     let chords: ReturnType<typeof buildMetalArrangement>["chords"] | undefined;
     let separation: TranscriptionProvenance["separation"] | undefined;
@@ -351,6 +395,7 @@ export async function processJob(jobId: string): Promise<void> {
           ...(typeof detectedTempo === "number" && Number.isFinite(detectedTempo) ? { tempo: detectedTempo } : {}),
         }, {
           basicPitchVersion: BASIC_PITCH_VERSION,
+          signal: options.signal,
         });
         const parsedStems = stemResult.stems.map((stem) => ({
           role: stem.role,
@@ -439,9 +484,9 @@ export async function processJob(jobId: string): Promise<void> {
 
     if (!midi) {
       const bpArgs = [dir, audioPath, "--save-midi", "--onset-threshold", String(onsetTh), "--frame-threshold", String(frameTh)];
-      if (tempo) bpArgs.push("--midi-tempo", tempo);
+      if (tempo) bpArgs.push("--midi-tempo", String(detectedTempo));
       if (BASIC_PITCH_SERIALIZATION) bpArgs.push("--model-serialization", BASIC_PITCH_SERIALIZATION);
-      await run(BASIC_PITCH, bpArgs, BP_TIMEOUT_MS);
+      await run(BASIC_PITCH, bpArgs, BP_TIMEOUT_MS, options.signal);
       // Validate the root candidate through the shared resolver. This keeps a
       // retry from ingesting a corrupt/partial sidecar and gives the worker the
       // same candidate semantics as catalog rebuilds.
@@ -495,6 +540,9 @@ export async function processJob(jobId: string): Promise<void> {
     };
     // If the job points at an existing song, replace that base (stable URLs)
     // and keep its metadata; otherwise create a fresh entry from the video.
+    options.onProgress?.("publishing");
+    checkNotShuttingDown();
+    publishing = true;
     const result = await ingestSource({
       buf: new Uint8Array(midi),
       sourceArtifactHash,
@@ -529,10 +577,12 @@ export async function processJob(jobId: string): Promise<void> {
       // Re-check the owned lease under the artifact lock before swapping, so
       // cancellation or deletion cannot resurrect a base.
       beforeReplace: () => {
+        checkNotShuttingDown();
         const latest = getJob(jobId);
         if (!ownsJobLease(jobId, owner) || !latest || latest.status !== "processing" || latest.songId !== job.songId) {
           throw new Error("conversion job was deleted or cancelled before publication");
         }
+        publicationFencePassed = true;
       },
     });
     if (result.error) throw new Error(result.code ? `${result.code}: ${result.error}` : result.error);
@@ -543,6 +593,15 @@ export async function processJob(jobId: string): Promise<void> {
   } catch (e) {
     if (!ownsJobLease(jobId, owner)) {
       console.warn(`[worker] ${jobId} no longer owns the job; retained current owner and status`);
+      return;
+    }
+    if (options.signal?.aborted && !publishing) {
+      try {
+        updateOwnedJob({ status: "queued", error: null });
+        console.warn(`[worker] ${jobId} released for shutdown without consuming an attempt`);
+      } catch {
+        console.warn(`[worker] ${jobId} shutdown recovery deferred to lease expiry`);
+      }
       return;
     }
     const attempts = (job.attempts ?? 0) + 1;
@@ -564,25 +623,73 @@ export async function processJob(jobId: string): Promise<void> {
 }
 
 async function loop(): Promise<void> {
-  const orphaned = requeueOrphaned();
-  if (orphaned) console.log(`[worker] requeued ${orphaned} orphaned job(s)`);
+  const capabilityRevision = createHash("sha256").update(JSON.stringify({
+    mode: STEM_PIPELINE_CONFIG.mode,
+    device: STEM_PIPELINE_CONFIG.demucsDevice,
+    tutorial: process.env.KEYSPILLI_TUTORIAL_BETA === "1" || process.env.KEYSPILLI_TUTORIAL_PREVIEW === "1",
+    sourceAssisted: process.env.KEYSPILLI_SOURCE_ASSISTED_BETA === "1",
+    numeric: WORKER_NUMERIC,
+  })).digest("hex").slice(0, 16);
+  const controller = new AbortController();
+  const sigterm = () => controller.abort();
+  const sigint = () => controller.abort();
+  process.once("SIGTERM", sigterm);
+  process.once("SIGINT", sigint);
   try {
-    const version = await run("yt-dlp", ["--version"], 10_000);
-    console.log(`[worker] yt-dlp version: ${version.trim()}`);
-  } catch {
-    console.warn("[worker] could not determine yt-dlp version");
-  }
-  console.log(`[worker] polling every ${POLL_MS}ms`);
-  for (;;) {
-    try {
-      requeueOrphaned();
-      const jobs = getQueuedJobs();
-      for (const j of jobs) await processJob(j.id);
-    } catch (e) {
-      console.error("[worker] poll error:", (e as Error).message);
-    }
-    await new Promise((r) => setTimeout(r, POLL_MS));
+    const outcome = await runWorkerLoop({
+      signal: controller.signal,
+      pollMs: POLL_MS,
+      heartbeatMs: WORKER_NUMERIC.heartbeatMs,
+      shutdownGraceMs: WORKER_NUMERIC.shutdownGraceMs,
+      capabilityRevision,
+      startup: async (signal) => {
+        const orphaned = requeueOrphaned();
+        if (orphaned) console.log(`[worker] requeued ${orphaned} orphaned job(s)`);
+        try {
+          const version = await run("yt-dlp", ["--version"], 10_000, signal);
+          console.log(`[worker] yt-dlp version: ${version.trim()}`);
+        } catch {
+          if (!signal.aborted) console.warn("[worker] could not determine yt-dlp version");
+        }
+        console.log(`[worker] polling every ${POLL_MS}ms`);
+      },
+      getQueuedJobs: () => {
+        requeueOrphaned();
+        return getQueuedJobs().map(({ id, createdAt }) => ({ id, createdAt }));
+      },
+      processJob: (job, signal, progress, registerGraceExpired) => processJob(job.id, {
+        signal,
+        onProgress: progress,
+        registerGraceExpired,
+      }),
+      onHealth: (snapshot) => {
+        const healthPath = workerHealthFilePath(dirname(transcribedDir()));
+        try {
+          writeWorkerHealthSnapshot(healthPath, snapshot);
+        } catch {
+          invalidateWorkerHealthSnapshot(healthPath);
+          throw new Error("worker health snapshot write failed");
+        }
+        console.log(`[worker-health] ${JSON.stringify(snapshot)}`);
+      },
+      onError: (kind) => console.error(kind === "shutdown grace expired"
+        ? "[worker] shutdown grace expired; owned job recovery is pending"
+        : kind === "health"
+          ? "[worker] health snapshot write failed"
+          : kind === "grace fence"
+            ? "[worker] shutdown lease fence failed"
+            : `[worker] ${kind} failed`),
+    });
+    if (outcome !== "stopped") process.exitCode = 1;
+  } finally {
+    process.removeListener("SIGTERM", sigterm);
+    process.removeListener("SIGINT", sigint);
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) void loop();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void loop().catch(() => {
+    console.error("[worker] stopped after startup failure");
+    process.exitCode = 1;
+  });
+}

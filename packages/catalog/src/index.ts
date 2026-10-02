@@ -1,3 +1,5 @@
+export * from "./catalog-schema.js";
+export * from "./readiness.js";
 export * from "./db.js";
 export * from "./paths.js";
 export * from "./ingest.js";

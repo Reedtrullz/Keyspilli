@@ -15,14 +15,44 @@ import { SplendidGrandPiano, type Smplr } from "smplr";
  */
 export class SamplerAudioEngine implements AudioLike {
   private ctx: AudioContext | null = null;
+  onStateChange: ((state: string) => void) | null = null;
+  get state(): string { return (this.playbackTimbre === "fallback" ? this.fallbackEngine?.state : undefined) ?? this.ctx?.state ?? "uninitialized"; }
   private compressor: DynamicsCompressorNode | null = null;
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
   private pianoGainNode: GainNode | null = null;
   private piano: Smplr | null = null;
   private voicePiano: Smplr | null = null;
+  /** Physical holds/pedal are owned by the input adapter, separately from playback CC64. */
+  private inputPiano: Smplr | null = null;
   private clicks = new Set<{ osc: OscillatorNode; gain: GainNode }>();
   private pianoReady = false;
+  private chosenTimbre: "sampled" | "fallback" | null = null;
+  samplePolicy: "fallback" | "wait" = "fallback";
+  loadLatencyMs: number | null = null;
+  private loadStartMs = 0;
+  private retryCount = 0;
+  onReadinessChange: (() => void) | null = null;
+  get readiness(): "uninitialized" | "loading" | "ready" | "failed" { return !this.loadStarted ? "uninitialized" : this.pianoFailed ? "failed" : this.pianoReady ? "ready" : "loading"; }
+  get playbackTimbre(): "sampled" | "fallback" { return this.chosenTimbre ?? (this.pianoReady ? "sampled" : "fallback"); }
+  /** Called only at deliberate boundaries; readiness alone never changes the current timbre. */
+  prepareTimbre(): boolean {
+    this.ensure();
+    if (this.samplePolicy === "wait" && !this.pianoReady) return false;
+    const next = this.pianoReady ? "sampled" : "fallback";
+    if (next !== this.chosenTimbre) this.cancelAll();
+    this.chosenTimbre = next; this.onReadinessChange?.();
+    return true;
+  }
+  retrySamples(): boolean {
+    if (!this.ctx || this.ctx.state === "closed" || !this.pianoFailed || this.retryCount >= 2) return false;
+    this.retryCount++; this.pianoFailed = false; this.loadStarted = false; this.pianoLoadPromise = null;
+    this.ensure(); return true;
+  }
+  private useSamples(): boolean {
+    if (this.chosenTimbre === null) { this.chosenTimbre = this.pianoReady ? "sampled" : "fallback"; this.onReadinessChange?.(); }
+    return this.chosenTimbre === "sampled" && this.pianoReady;
+  }
   private pianoFailed = false;
   private loadStarted = false;
   /** One shared load promise prevents duplicate sample graphs/fetches. */
@@ -64,13 +94,19 @@ export class SamplerAudioEngine implements AudioLike {
       this.pianoLoadPromise = null;
       this.loadStarted = false;
       this.pianoReady = false;
+      this.chosenTimbre = null;
       this.pianoFailed = false;
+      this.retryCount = 0; this.loadLatencyMs = null;
+      this.inputPiano?.dispose();
+      this.inputPiano = null;
       this.voicePiano?.dispose();
       this.piano?.dispose();
       this.voicePiano = null;
       this.piano = null;
       configurePlaybackSession();
       this.ctx = new AudioContext();
+      const observed = this.ctx;
+      observed.onstatechange = () => { if (this.ctx === observed && (this.playbackTimbre === "sampled" || this.clicks.size > 0)) this.onStateChange?.(observed.state); };
       this.compressor = this.ctx.createDynamicsCompressor();
       this.compressor.threshold.value = -24;
       this.compressor.knee.value = 12;
@@ -91,6 +127,8 @@ export class SamplerAudioEngine implements AudioLike {
     // play uses the sampler rather than falling back to oscillators.
     if (!this.loadStarted && !this.pianoLoadPromise && !this.pianoFailed) {
       this.loadStarted = true;
+      this.loadStartMs = performance.now();
+      this.onReadinessChange?.();
       const generation = this.loadGeneration;
       const context = this.ctx;
       const load = this.loadPiano(context, generation);
@@ -113,40 +151,51 @@ export class SamplerAudioEngine implements AudioLike {
     if (this.loadGeneration !== generation || this.ctx !== ctx || !this.pianoGainNode || !this.voiceGainNode) return;
     let voice: Smplr | null = null;
     let piano: Smplr | null = null;
+    let input: Smplr | null = null;
     try {
       voice = SplendidGrandPiano(ctx, { destination: this.voiceGainNode });
       piano = SplendidGrandPiano(ctx, { destination: this.pianoGainNode });
-      await Promise.all([voice.ready, piano.ready]);
+      input = SplendidGrandPiano(ctx, { destination: this.voiceGainNode });
+      await Promise.all([voice.ready, piano.ready, input.ready]);
       // Dispose an instrument that completed after this engine moved to a new
       // context. Without this guard, a late load could resurrect audio after
       // `dispose()` and retain the old context graph.
       if (this.loadGeneration !== generation || this.ctx !== ctx) {
+        input.dispose();
         voice.dispose();
         piano.dispose();
         return;
       }
+      this.inputPiano = input; input.setCC(64, 0);
       this.voicePiano = voice;
       this.piano = piano;
       this.pianoReady = true;
+      this.loadLatencyMs = performance.now() - this.loadStartMs;
       // Sync pedal state now that the sampler can receive CC64.
       this.syncPedal();
+      this.onReadinessChange?.();
     } catch (e) {
+      input?.dispose();
       voice?.dispose();
       piano?.dispose();
       if (this.loadGeneration !== generation || this.ctx !== ctx) return;
       console.warn("[SamplerAudioEngine] sample loading failed; falling back to oscillator mode", e);
       this.pianoFailed = true;
+      this.loadLatencyMs = performance.now() - this.loadStartMs;
+      this.onReadinessChange?.();
     }
   }
 
   noteOn(n: TimedNote, when = 0): void {
     const ctx = this.ensure();
+    if (this.samplePolicy === "wait" && !this.pianoReady && this.chosenTimbre === null) return;
     const t = ctx.currentTime + when;
-    const instrument = n.hand === "L" ? this.piano : this.voicePiano;
-    if (instrument && this.pianoReady) {
+    const instrument = n.fromInput ? this.inputPiano : n.hand === "L" ? this.piano : this.voicePiano;
+    if (instrument && this.useSamples()) {
       instrument.start({ note: n.midi, time: t, duration: n.fromInput ? undefined : n.durSec, velocity: n.vel, ...(n.fromInput ? { stopId: `input:${n.midi}` } : {}) });
       return;
     }
+    this.useSamples();
     // Samples not ready yet: use fallback oscillator for immediate response.
     this.fallback().noteOn(n, when);
   }
@@ -154,6 +203,7 @@ export class SamplerAudioEngine implements AudioLike {
   private fallback(): AudioEngine {
     if (!this.fallbackEngine) {
       this.fallbackEngine = new AudioEngine();
+      this.fallbackEngine.onStateChange = state => { if (this.playbackTimbre === "fallback") this.onStateChange?.(state); };
       this.fallbackEngine.setGains(this.voiceGain, this.pianoGain);
       this.fallbackEngine.sustainPedal = this.sustainPedal;
     }
@@ -161,7 +211,7 @@ export class SamplerAudioEngine implements AudioLike {
   }
 
   noteOff(midi: number): void {
-    if (this.pianoReady) for (const instrument of [this.voicePiano, this.piano]) instrument?.stop({ stopId: `input:${midi}` });
+    if (this.pianoReady) this.inputPiano?.stop({ stopId: `input:${midi}` });
     this.fallbackEngine?.noteOff(midi);
   }
 
@@ -187,19 +237,21 @@ export class SamplerAudioEngine implements AudioLike {
   playChord(midiNotes: number[], when: number, durationSec: number): void {
     if (!Number.isFinite(durationSec) || durationSec <= 0) return;
     const ctx = this.ensure();
-    if (this.piano && this.pianoReady) {
+    if (this.samplePolicy === "wait" && !this.pianoReady && this.chosenTimbre === null) return;
+    if (this.piano && this.useSamples()) {
       const t = ctx.currentTime + when;
       for (const midi of [...new Set(midiNotes)]) {
         this.piano.start({ note: midi, time: t, duration: durationSec });
       }
       return;
     }
+    this.useSamples();
     // Fallback chord synthesis mirrors AudioEngine.playChord behavior.
     this.fallback().playChord(midiNotes, when, durationSec);
   }
 
   cancelAll(): void {
-    if (this.pianoReady) for (const instrument of [this.voicePiano, this.piano]) instrument?.stop();
+    if (this.pianoReady) for (const instrument of [this.voicePiano, this.piano, this.inputPiano]) instrument?.stop();
     this.fallbackEngine?.cancelAll();
     const now = this.ctx?.currentTime ?? 0;
     for (const click of this.clicks) {
@@ -230,9 +282,14 @@ export class SamplerAudioEngine implements AudioLike {
     this.loadGeneration++;
     this.pianoLoadPromise = null;
     this.loadStarted = false;
+    this.chosenTimbre = null;
     this.cancelAll();
     this.pianoReady = false;
     this.pianoFailed = false;
+    if (this.inputPiano) {
+      try { this.inputPiano.dispose(); } catch { /* already disposed */ }
+      this.inputPiano = null;
+    }
     if (this.piano) {
       try { this.piano.dispose(); } catch { /* already disposed */ }
       this.piano = null;
@@ -243,7 +300,7 @@ export class SamplerAudioEngine implements AudioLike {
     }
     this.fallbackEngine?.dispose();
     this.fallbackEngine = null;
-    if (this.ctx && this.ctx.state !== "closed") void this.ctx.close();
+    if (this.ctx) { this.ctx.onstatechange = null; if (this.ctx.state !== "closed") void this.ctx.close(); }
     this.ctx = null;
     this.compressor = null;
   }

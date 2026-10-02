@@ -43,11 +43,11 @@ done
 
 # The ordinary artifacts/ tree includes hidden reconciliation journals and .old
 # trees without a second, easy-to-forget glob.
-tar -czf "$archive_tmp" -C "$DATA_DIR" "${archive_paths[@]}"
+COPYFILE_DISABLE=1 tar -czf "$archive_tmp" -C "$DATA_DIR" "${archive_paths[@]}"
 tar -tzf "$archive_tmp" >/dev/null
 
 python3 - "$db_tmp" "$archive_tmp" "$manifest_tmp" "$STAMP" <<'PY'
-import hashlib, json, os, sys
+import hashlib, json, os, re, sqlite3, sys
 
 db, archive, manifest, stamp = sys.argv[1:]
 def sha256(path):
@@ -57,8 +57,19 @@ def sha256(path):
             digest.update(chunk)
     return digest.hexdigest()
 
+with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as database:
+    schema_epoch = database.execute("PRAGMA user_version").fetchone()[0]
+def image_metadata(role):
+    image_id = os.environ.get(f"KEYSPILLI_BACKUP_{role}_IMAGE_ID", "")
+    revision = os.environ.get(f"KEYSPILLI_BACKUP_{role}_REVISION", "")
+    return {
+        "id": image_id if re.fullmatch(r"sha256:[a-f0-9]{64}", image_id) else None,
+        "revision": revision if re.fullmatch(r"[a-f0-9]{40}", revision) else None,
+    }
 payload = {
     "schemaVersion": 1,
+    "catalogSchemaEpoch": schema_epoch,
+    "images": {"web": image_metadata("WEB"), "worker": image_metadata("WORKER")},
     "stamp": stamp,
     "dbFile": os.path.basename(db),
     "dbSha256": sha256(db),

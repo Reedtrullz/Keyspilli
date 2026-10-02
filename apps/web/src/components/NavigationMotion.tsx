@@ -32,7 +32,9 @@ export function NavigationMotion() {
       if (!link || link.target === "_blank" || link.hasAttribute("download") || link.dataset.noViewTransition !== undefined) return;
       const url = new URL(link.href, window.location.href);
       if (url.origin !== window.location.origin || url.pathname.startsWith("/api/")) return;
-      if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) return;
+      // Query/hash changes keep the same route mounted; native/Link handling
+      // avoids taking a transition snapshot before that state has settled.
+      if (url.pathname === window.location.pathname) return;
 
       const documentWithTransition = document as ViewTransitionDocument;
       if (typeof documentWithTransition.startViewTransition !== "function") return;
@@ -49,7 +51,7 @@ export function NavigationMotion() {
               clearTimeout(timeout);
               resolve();
             };
-            const timeout = setTimeout(done, url.pathname === window.location.pathname ? 0 : 1500);
+            const timeout = setTimeout(done, 1500);
             settleNavigation.current = done;
             router.push(`${url.pathname}${url.search}${url.hash}`);
           }),
