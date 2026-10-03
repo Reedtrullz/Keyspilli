@@ -14,6 +14,7 @@ export * from "./owner-state.js";
 export * from "./practice-sets.js";
 export * from "./views/falling.js";
 export * from "./sections.js";
+export * from "./song-form.js";
 export * from "./keyboard-range.js";
 export * from "./intervals.js";
 export * from "./diagnostics.js";

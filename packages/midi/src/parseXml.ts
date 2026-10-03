@@ -1,5 +1,6 @@
 import {SOURCE_PEDAL,readSourcePedal} from "./source-pedal.js";
 import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js";
+import { sectionsFromMarkers } from "./source-sections.js";
 import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 import { mergedNoteLineage } from "./quantize.js";
 
@@ -197,8 +198,10 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       .sort(([left], [right]) => left - right)
       .map(([beat, timeSig]) => ({ beat, timeSig, tick: Math.round(beat * first.division) }));
     const notes = parsedParts.flatMap(({ parsed }) => parsed.notes).sort((a, b) => a.start - b.start || a.midi - b.midi);
+    const sections=sectionsFromMarkers(parsedParts.flatMap(({parsed})=>(parsed.sections??[]).map(s=>({beat:s.startBeat,label:s.label}))),notes.reduce((end,n)=>Math.max(end,n.start+n.dur),0));
     return {
       ...first,
+      sections,
       notes,
       trackNames: parsedParts.map(({ name }) => name),
       sourceParts: parsedParts.map(({ parsed, id, name }) => ({
@@ -248,6 +251,7 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
   const fifths = parseInt(firstMatch(xml, /<fifths>(-?\d+)<\/fifths>/), 10) || 0;
   const mode = firstMatch(xml, /<mode>(major|minor)<\/mode>/);
   const notes: ParsedXmlNote[] = [];
+  const sectionMarkers:Array<{beat:number;label:string}>=[];
   // This helper receives one isolated source part; the public parser handles
   // named multi-part MusicXML above before selecting this part's body.
   const partMatches = xml.match(/<part(?![-\w])[^>]*>/g) ?? [];
@@ -266,8 +270,15 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
     let cursor = 0;
     let measureEnd = 0;
     let lastStart = 0;
-    const els = m.match(/<(note|backup|forward|attributes)\b[^>]*>[\s\S]*?<\/(?:note|backup|forward|attributes)>/g) ?? [];
+    const els = m.match(/<(note|backup|forward|attributes|direction)\b[^>]*>[\s\S]*?<\/(?:note|backup|forward|attributes|direction)>/g) ?? [];
     for (const el of els) {
+      if(el.startsWith("<direction")) {
+        const offset=Number(firstMatch(el,/<offset\b[^>]*>\s*(-?[0-9]+(?:\.[0-9]+)?)\s*<\/offset>/))||0;
+        for(const match of el.matchAll(/<(?:rehearsal|words)\b[^>]*>([^<]*)<\/(?:rehearsal|words)>/g)) {
+          if(sectionMarkers.length<4097) sectionMarkers.push({beat:measureStart+cursor+offset/divisions,label:decodeXmlEntities(match[1]!)});
+        }
+        continue;
+      }
       if (el.startsWith("<attributes")) {
         const division = firstMatch(el, /<divisions>\s*([0-9.]+)\s*<\/divisions>/);
         if (division) {
@@ -384,9 +395,11 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
   if(pedals.length>1 || order && pedals.length)throw new Error("ambiguous source pedal metadata");
   const sourcePedal=pedals[0]?readSourcePedal(decodeXmlEntities(pedals[0][2]!),mergedNotes):undefined;
   const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), order ? measureStart : 0);
+  const sections=sectionsFromMarkers(sectionMarkers,durationBeats);
   if (order && Math.ceil(durationBeats/.25)*mergedNotes.length > 200_000_000) throw new Error("repeat source workload exceeds supported limits");
   return {
     format: 0,
+    ...(sections.length ? {sections} : {}),
     division: divisions,
     tempoBpm: tempo,
     tempoMetaPresent,

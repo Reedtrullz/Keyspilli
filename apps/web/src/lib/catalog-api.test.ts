@@ -1072,3 +1072,21 @@ describe("catalog chart timeline merge", () => {
     }]);
   });
 });
+
+
+it("keeps named form consistent across sparse and full arrangements on the same clock", async()=>{
+  const measures=Array.from({length:32},(_,index)=>({index,startBeat:index*4,endBeat:(index+1)*4}));
+  const notes=[1,2,1,2].flatMap((theme,block)=>Array.from({length:theme===2?64:32},(_,index)=>({midi:60+theme*3+index%3,start:block*32+index/(theme===2?2:1),dur:.5,vel:80,hand:"R"})));
+  const advanced={notes,chords:[],measures,key:"C",tempoBpm:120,timeSig:[4,4]};
+  const easy={...advanced,notes:[{midi:60,start:0,dur:1,vel:80,hand:"R"}]};
+  const easyRow={...song(),id:"catalog-api-song-e",level:"e",difficulty:"easy"};
+  upsertSong(easyRow);
+  await mkdir(join(dataRoot,"artifacts","catalog-api-song","e"),{recursive:true});
+  await writeFile(join(dataRoot,"artifacts","catalog-api-song","a","notes.json"),JSON.stringify(advanced));
+  await writeFile(join(dataRoot,"artifacts","catalog-api-song","e","notes.json"),JSON.stringify(easy));
+  const full=await getSongDetail("catalog-api-song-a");
+  const reduced=await getSongDetail(easyRow.id);
+  expect(full?.data?.sections?.map(s=>s.label)).toEqual(["Verse 1 · estimated","Chorus 1 · estimated","Verse 2 · estimated","Chorus 2 · estimated"]);
+  expect(reduced?.data?.sections).toEqual(full?.data?.sections);
+  expect(reduced?.data?.notes).toEqual(easy.notes);
+});

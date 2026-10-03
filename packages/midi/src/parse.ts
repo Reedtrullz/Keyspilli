@@ -1,5 +1,6 @@
 import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js";
 import {validSourcePedal} from "./source-pedal.js";
+import { sectionsFromMarkers } from "./source-sections.js";
 import { tutorialSourceLane } from "./source-hand-lanes.js";
 import { Hand, MidiTempoEvent, MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 
@@ -70,6 +71,7 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   const pedalChanges: NonNullable<ParsedMidi["sourcePedal"]>["changes"] = [];
   let fileEndBeat=0;
   let occurrences:ParsedMidi["notationMeasures"];
+  const sectionMarkers: Array<{beat:number;label:string}> = [];
 
   for (let t = 0; t < ntrks; t++) {
     if (pos + 8 > buf.length || readStr(buf, { v: pos }, 4, buf.length) !== "MTrk") throw new Error("bad track header");
@@ -143,6 +145,8 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
               if(occurrences || tick!==0)throw new Error("ambiguous source occurrence map");
               occurrences=readSourceOccurrences(payload.slice(SOURCE_OCCURRENCES.length+1));
             }
+          } else if ((type === 0x06 || type === 0x07) && len2 <= 160) {
+            if(sectionMarkers.length<4097) sectionMarkers.push({beat:tick/division,label:new TextDecoder().decode(buf.subarray(pos,pos+len2))});
           } else if (type === 0x01 || type === 0x02) {
             const s = readStr(buf, { v: pos }, len2);
             if (!title && s.trim()) title = s.trim();
@@ -267,9 +271,11 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   if(sourcePedal && !validSourcePedal(sourcePedal))throw new Error("Invalid or ambiguous source CC64 timeline");
   const tempoBpm = tempos.find((event) => event.tick === 0)?.bpm ?? 120;
   const durationBeats = valid.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
+  const sections=sectionsFromMarkers(sectionMarkers,durationBeats);
   if(occurrences && durationBeats>occurrences.at(-1)!.endBeat+1/division+1e-9)throw new Error("source occurrence map differs from MIDI");
   return {
     format,
+    ...(sections.length ? {sections} : {}),
     division,
     tempoBpm,
     tempoMetaPresent: tempos.length > 0,
