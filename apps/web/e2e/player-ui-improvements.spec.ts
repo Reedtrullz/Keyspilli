@@ -23,6 +23,8 @@ test("paused Grand Piano selection prepares one sample set and reuses it after a
     await route.fulfill({ contentType: "audio/wav", body: wav });
   });
   await page.goto(song); await openPlayerTool(page, "Sound");
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
+  expect(requests).toBe(0); // A restored Synth choice must not preload the SSR default.
   try {
     await page.getByRole("radio", { name: "Grand Piano", exact: true }).click();
     await expect.poll(() => requests).toBe(226);
