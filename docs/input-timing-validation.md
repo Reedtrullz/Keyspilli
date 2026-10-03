@@ -62,6 +62,6 @@ the current monotonic playback clock, rejects stale/future events and retains
 are in [`prefs.ts`](../packages/player-core/src/prefs.ts); input/device/sound binding
 and invalidation are in
 [`Player.tsx`](../apps/web/src/components/player/Player.tsx). Existing
-[`engine.test.ts`](../packages/player-core/test/engine.test.ts) covers dispatch delay,
+[`input.test.ts`](../packages/player-core/src/input.test.ts) covers dispatch delay,
 positive/negative offsets and seek/pause boundaries. These automated checks are
 separate from the physical receipt above.
