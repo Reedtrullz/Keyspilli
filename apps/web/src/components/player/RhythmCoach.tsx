@@ -9,8 +9,10 @@ export function RhythmCoach({data,startBeat,endBeat,speed,disabled,onPrepare,onD
  useEffect(()=>{if(running)stop('Rhythm attempt interrupted: passage, tempo or player state changed.');setResult(null);lastRun.current=null;},[data,startBeat,endBeat,speed,disabled]);
  useEffect(()=>{
   const interrupt=()=>{if(run.current||audio.current)stop('Rhythm attempt interrupted. Start again when ready.');};
+  const navigate=(event:Event)=>{if((event as CustomEvent<boolean>).detail)interrupt();};
   const visibility=()=>{if(document.hidden)interrupt();};window.addEventListener('blur',interrupt);document.addEventListener('visibilitychange',visibility);
-  return()=>{generation.current++;cancelAnimationFrame(frame.current);audio.current?.dispose();audio.current=null;run.current=null;onDone();window.removeEventListener('blur',interrupt);document.removeEventListener('visibilitychange',visibility);};
+  window.addEventListener('keyspilli:navigation',navigate);
+  return()=>{generation.current++;cancelAnimationFrame(frame.current);audio.current?.dispose();audio.current=null;run.current=null;onDone();window.removeEventListener('blur',interrupt);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('keyspilli:navigation',navigate);};
  },[]);
  async function start(){
   if(disabled||running)return;setResult(null);lastRun.current=null;

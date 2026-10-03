@@ -12,31 +12,41 @@ export function usePianoInput(options: {
   onRelease: () => void; onInterrupt: (reason: string) => void;
 }) {
   const current = useRef(options); current.current = options;
+  const navigating = useRef(false);
   useEffect(() => {
     let disposed = false;
+    let pendingLinks = 0;
     const keyboard = new KeyboardInput({
-      onNoteOn: (m, identity, event) => current.current.onNote(m, true, "keyboard", identity, event),
+      onNoteOn: (m, identity, event) => { if (!navigating.current) current.current.onNote(m, true, "keyboard", identity, event); },
       onNoteOff: (m, identity, event) => current.current.onNote(m, false, "keyboard", identity, event),
     }, octave => current.current.onOctaveChange(octave));
     const midi = new MidiInput({
-      onNoteOn: (m, identity, event) => current.current.onNote(m, true, "midi", identity, event),
+      onNoteOn: (m, identity, event) => { if (!navigating.current) current.current.onNote(m, true, "midi", identity, event); },
       onNoteOff: (m, identity, event) => current.current.onNote(m, false, "midi", identity, event),
-      onPedal: (down, scope, event) => current.current.onPedal(down, scope, event),
+      onPedal: (down, scope, event) => { if (!navigating.current || !down) current.current.onPedal(down, scope, event); },
       onStateChange: () => { if (!disposed) current.current.onState(midi.devices, midi.connectedCount); },
     });
     current.current.keyboardRef.current = keyboard; current.current.midiRef.current = midi;
-    const key = (event: KeyboardEvent) => { if (event.type === "keyup") keyboard.handleKey(event); else current.current.onKey(event, keyboard); };
+    const key = (event: KeyboardEvent) => { if (event.type === "keyup") keyboard.handleKey(event); else if (!navigating.current) current.current.onKey(event, keyboard); };
     const release = () => { keyboard.releaseAll(); midi.releaseAll(); current.current.onRelease(); };
     const blur = () => { release(); current.current.onInterrupt("Window focus was lost."); };
     const hidden = () => { if (document.hidden) { release(); current.current.onInterrupt("Page was hidden."); } };
+    const navigate = (event: Event) => {
+      const pending = (event as CustomEvent<boolean>).detail;
+      pendingLinks = Math.max(0, pendingLinks + (pending ? 1 : -1)); navigating.current = pendingLinks > 0;
+      if (pending) { release(); current.current.onInterrupt("Page navigation interrupted playback/practice."); }
+    };
     window.addEventListener("keydown", key); window.addEventListener("keyup", key);
     window.addEventListener("blur", blur); document.addEventListener("visibilitychange", hidden);
+    window.addEventListener("keyspilli:navigation", navigate);
     return () => {
       disposed = true;
       window.removeEventListener("keydown", key); window.removeEventListener("keyup", key);
       window.removeEventListener("blur", blur); document.removeEventListener("visibilitychange", hidden);
+      window.removeEventListener("keyspilli:navigation", navigate);
       release(); midi.disconnect();
       current.current.keyboardRef.current = null; current.current.midiRef.current = null;
     };
   }, []);
+  return navigating;
 }

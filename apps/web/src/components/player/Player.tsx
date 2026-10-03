@@ -7,6 +7,7 @@ import {activeExportDigest,activeExportVariant,type ActiveExportSelection} from 
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { NavigationFeedback } from "../NavigationFeedback";
 import { microphonePitchEdge } from "./microphone-pitch";
 import {
   AudioEngine,
@@ -887,10 +888,12 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   function interruptPlayback(reason: string) {
     setRecall(current=>current?{...current,reduced:false}:null);
     const engine = engineRef.current;
-    const active = gradingRef.current || engine?.playing || countInRef.current !== null || soundPreviewStatus?.phase === "playing" || micReady;
+    engine?.audio.cancelAll();
+    const active = gradingRef.current || engine?.playing || countInRef.current !== null || soundPreviewStatus?.phase === "playing" || micReady || chordPracticeRef.current !== null;
     if (!active) return;
     const wasCounting = countInRef.current !== null;
     gradingRef.current = false;
+    exitChordPractice(false);
     cancelCountIn(); cancelSoundPreview();
     engine?.stop();
     const result = engine?.finishGrading() ?? null;
@@ -1141,7 +1144,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }, [playing]);
 
   const startPlayback = useCallback(() => {
-    if (auxiliaryRef.current || chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
+    if (navigationPendingRef.current || auxiliaryRef.current || chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
     cancelSoundPreview();
     heldInputRef.current?.releaseAll();
     engineRef.current?.start();
@@ -1171,7 +1174,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const togglePlayRef = useRef(togglePlay);
   togglePlayRef.current = togglePlay;
 
-  usePianoInput({ keyboardRef: keyboardInputRef, midiRef: midiInputRef,
+  const navigationPendingRef = usePianoInput({ keyboardRef: keyboardInputRef, midiRef: midiInputRef,
     onNote: handleNote, onOctaveChange: setInputOctave,
     onPedal: (down, scope, event) => {if(!takeInputRef.current?.pedal(scope,event))heldInputRef.current?.setPedal(scope,down);},
     onRelease: () => {takeInputRef.current?.interrupt();heldInputRef.current?.releaseAll();if(chordPracticeRef.current instanceof HeldChordGrader){chordPracticeRef.current.clearKeys();setChordPracticeSnapshot(chordPracticeRef.current.snapshot());}},
@@ -1307,6 +1310,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }, [openTool, showPracticeSetup, settings.soundSource, settings.organStyle, settings.organRegistration, grading]);
 
   function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`, event?: InputEventMetadata) {
+    if (on && navigationPendingRef.current) return;
     if(auxiliaryRef.current==="rhythm"||takeInputRef.current?.note(midi,on,source,identity,event))return;
     const heldChord=chordPracticeRef.current instanceof HeldChordGrader?chordPracticeRef.current:null;
     if (!on) {
@@ -1321,6 +1325,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function soundInputNote(midi: number, event?: InputEventMetadata): boolean {
+    if (navigationPendingRef.current) return false;
     const eng = engineRef.current;
     const timing = liveTimingRef.current;
     const binding = event?.deviceId ? (event.deviceId === timing.selection.device ? effectiveTimingBinding("midi") : "") : event ? effectiveTimingBinding("keyboard") : "";
@@ -1476,7 +1481,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function previewSound(role: MelodyAuditionRole = "full") {
-    if(auxiliaryRef.current)return;
+    if(auxiliaryRef.current || navigationPendingRef.current)return;
     const eng = engineRef.current;
     if (!eng) return;
     const previous = soundPreviewRef.current;
@@ -1733,7 +1738,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function openPracticeSetup(scope?:PracticeSetup["scope"]) {
-    if(auxiliaryRef.current)return;
+    if(auxiliaryRef.current || navigationPendingRef.current)return;
     cancelSoundPreview();
     if (chordPracticeActive) exitChordPractice(false);
     engineRef.current?.stop();
@@ -1763,6 +1768,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function beginPractice(setup: PracticeSetup, repeatRange?: LoopRegion) {
+    if (navigationPendingRef.current) return;
     const eng = engineRef.current;
     if (!eng || gradingRef.current || (setup.input === "microphone" && !micReady) || (setup.input === "midi" && !midiConnected)) return;
     const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
@@ -1881,7 +1887,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function startChordPractice() {
-    if(auxiliaryRef.current)return;
+    if(auxiliaryRef.current || navigationPendingRef.current)return;
     heldChordInputRef.current=null;
     cancelSoundPreview();
     if (gradingRef.current) finishGrading(false);
@@ -1900,6 +1906,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function chooseChordExercise(exercise:"discovery"|"held"|"transition",windowMs:number,holdMs:number,input:"keyboard"|"midi"){
+    if (navigationPendingRef.current) return;
     if(exercise!=="discovery"&&input==="midi"&&(!midiSelection.device||midiSelection.channel===null)){setChordPracticeNotice("Select one MIDI device and channel first.");return;}
     try{
       keyboardInputRef.current?.releaseAll();midiInputRef.current?.releaseAll();heldInputRef.current?.releaseAll();
@@ -1938,6 +1945,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function hearChordPractice() {
+    if (navigationPendingRef.current) return;
     const target = chordPracticeRef.current?.currentTarget;
     const audio = engineRef.current?.audio;
     if (!target || !audio?.playChord) return;
@@ -2113,7 +2121,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     })
   );
   const viewReach = useMemo(()=>keyboardReachability(guidanceNotes,{startSec:0,endSec:duration},.25*secPerBeat(activeData.tempoBpm,settings.speed),midiRange,null),[guidanceNotes,duration,activeData.tempoBpm,settings.speed,midiRange]);
-  function prepareAuxiliary(kind:"take"|"rhythm"){if(auxiliaryRef.current)return false;cancelSoundPreview();engineRef.current?.stop();keyboardInputRef.current?.releaseAll();midiInputRef.current?.releaseAll();heldInputRef.current?.releaseAll();releaseMicrophone();syncTransportState();auxiliaryRef.current=kind;setAuxiliary(kind);return true;}
+  function prepareAuxiliary(kind:"take"|"rhythm"){if(auxiliaryRef.current||navigationPendingRef.current)return false;cancelSoundPreview();engineRef.current?.stop();keyboardInputRef.current?.releaseAll();midiInputRef.current?.releaseAll();heldInputRef.current?.releaseAll();releaseMicrophone();syncTransportState();auxiliaryRef.current=kind;setAuxiliary(kind);return true;}
   function releaseAuxiliary(kind:"take"|"rhythm"){if(auxiliaryRef.current===kind){auxiliaryRef.current=null;setAuxiliary(null);}}
   const rhythmRange=loop ?? resolvePracticeRange("bars",navigationMeasures,currentMeasure,time,duration,activeData.tempoBpm,settings.speed,null) ?? {startSec:0,endSec:duration};
   const sheetSource = useMemo(()=>({notes:initial.data.notes,measures:initial.data.measures,sourceFingerprint:initial.data.sourceFingerprint}),[initial.data]);
@@ -2165,7 +2173,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
       <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←</Link>
+        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
         <div className="player-song-identity min-w-0">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
@@ -2675,6 +2683,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
                 className={`px-3 py-2 rounded-full text-sm border ${v.id === initial.song.id ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
               >
                 {levelLabel(v.difficulty)}
+                <NavigationFeedback destination="arrangement" />
               </Link>
             ))}
           </div>
@@ -2900,7 +2909,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
   const shell = (
     <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←</Link>
+        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
         <div className="player-song-identity">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
@@ -3043,6 +3052,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
                 className={`px-3 py-2 rounded-full text-sm border ${variant.id === initial.song.id ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
               >
                 {levelLabel(variant.difficulty)}
+                <NavigationFeedback destination="arrangement" />
               </Link>
             ))}
           </div>

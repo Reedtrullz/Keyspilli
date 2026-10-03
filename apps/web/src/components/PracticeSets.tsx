@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { NavigationFeedback } from "./NavigationFeedback";
 import { useEffect, useState } from "react";
 import { loadPracticeSets, savePracticeSets, loadPracticeState, passageAvailable, PRACTICE_SETS_EVENT, PRACTICE_STATE_EVENT,
   type PracticeSetsState, type PracticeTarget, type SavedPassage } from "@keyspilli/player-core";
@@ -53,14 +54,14 @@ export function PracticeSets({ target = null, endBeat = 0, disabled = false }: {
       {availability && <p role="status">{availability}</p>}
       <ol>{selected.items.map((item,index) => { const info = entry(item), label = info.song?.representative.title ?? item.variantId;
         return <li key={item.id} data-set-item={item.id} className="border-t py-2">
-          {info.available && !disabled ? <Link className="min-h-11 inline-flex items-center underline" href={info.href}>{label}{info.passage ? ` · ${info.passage.name}` : ""}</Link> : <span>{label} · {disabled ? "Finish practice to navigate" : availability ? "Checking availability" : "Unavailable; original reference retained"}</span>}
+          {info.available && !disabled ? <Link className="min-h-11 inline-flex items-center underline" href={info.href}>{label}{info.passage ? ` · ${info.passage.name}` : ""}<NavigationFeedback destination="practice item" /></Link> : <span>{label} · {disabled ? "Finish practice to navigate" : availability ? "Checking availability" : "Unavailable; original reference retained"}</span>}
           <label className="block"><input disabled={disabled} type="checkbox" checked={item.completed} onChange={e => changeItems(selected.items.map(old => old.id === item.id ? { ...old, completed: e.target.checked } : old))} /> Manually completed {label}</label>
           <button disabled={disabled || index === 0} className="min-h-11 underline mr-3" aria-label={`Move ${label} up`} onClick={() => { const items = [...selected.items]; [items[index-1],items[index]] = [items[index]!,items[index-1]!]; changeItems(items); }}>Move up</button>
           <button disabled={disabled || index === selected.items.length-1} className="min-h-11 underline mr-3" aria-label={`Move ${label} down`} onClick={() => { const items = [...selected.items]; [items[index],items[index+1]] = [items[index+1]!,items[index]!]; changeItems(items); }}>Move down</button>
           <button disabled={disabled} className="min-h-11 underline" onClick={() => changeItems(selected.items.filter(old => old.id !== item.id))}>Remove entry</button>
         </li>;
       })}</ol>
-      {next && !disabled && <Link className="min-h-11 inline-flex items-center underline" href={entry(next).href}>Next unfinished item</Link>}
+      {next && !disabled && <Link className="min-h-11 inline-flex items-center underline" href={entry(next).href}>Next unfinished item<NavigationFeedback destination="practice item" /></Link>}
       <button disabled={disabled} className="min-h-11 underline block" onClick={() => { const current = loadPracticeSets(); commit({ ...current, activeSetId: null, sets: current.sets.filter(set => set.id !== selected.id) }); }}>Delete set {selected.name}</button>
     </div>}
     {notice && <p role="status">{notice}</p>}
