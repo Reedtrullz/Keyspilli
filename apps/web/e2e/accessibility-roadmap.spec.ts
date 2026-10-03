@@ -7,14 +7,15 @@ async function tabTo(page: Page, target: Locator, reverse = false) {
   }
   throw new Error("Target is unreachable by forward Tab");
 }
-test("learning views retain keyboard practice, text targets and dialogs at CSS 200% zoom", async ({ page, request }) => {
+for (const reducedMotion of ["reduce", "no-preference"] as const) {
+test(`learning views retain keyboard practice, text targets and dialogs at CSS 200% zoom (${reducedMotion})`, async ({ page, request }) => {
   test.setTimeout(120_000);
   const headers = { Authorization: "Bearer test-token-for-e2e", "Content-Type": "application/xml" };
   const created = await request.post("/api/uploads?title=A%20long%20authored%20accessibility%20fixture%20with%20an%20unusually%20long%20title&artist=Author", { headers, data: Buffer.from(xml) });
   expect(created.ok(), await created.text()).toBe(true);
   const receipt = await created.json(), id = receipt.songIds.find((value: string) => value.endsWith("-a"));
   await page.setViewportSize({ width: 780, height: 844 });
-  await page.emulateMedia({ reducedMotion: "reduce", forcedColors: "active" });
+  await page.emulateMedia({ reducedMotion, forcedColors: "active" });
   await page.addInitScript(() => {
     localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth", hand: "R" }));
     addEventListener("DOMContentLoaded", () => { document.documentElement.style.zoom = "2"; });
@@ -60,6 +61,7 @@ test("learning views retain keyboard practice, text targets and dialogs at CSS 2
     }
   } finally { expect((await request.delete(`/api/songs/${receipt.baseId}`, { headers })).ok()).toBe(true); }
 });
+}
 async function infoSnapshot(page: Page, mode: string) {
   await test.info().attach(`keyboard-${mode}.aria.txt`, { body: await page.locator("main").ariaSnapshot(), contentType: "text/plain" });
 }
