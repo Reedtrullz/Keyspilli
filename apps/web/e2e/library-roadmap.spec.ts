@@ -1,5 +1,22 @@
 import { expect, test } from "@playwright/test";
 
+test("sort alone keeps the empty-library action and URL filters reach the catalog", async ({ page }) => {
+  await page.route("**/api/songs?**", route => route.fulfill({json:{songs:[],total:0}}));
+  await page.goto("/songs?sort=title");
+  await expect(page.getByText("Your library is empty.", {exact:true})).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", {name:"Add a song",exact:true})).toBeVisible();
+  await page.unroute("**/api/songs?**");
+  await page.goto("/songs?style=classical&mood=peaceful&category=Test");
+  await expect(page.getByRole("status")).toHaveText("60 of 250 songs");
+  const filtered = page.waitForRequest(request => new URL(request.url()).pathname === "/api/songs");
+  await page.goto("/songs?style=rock&mood=peaceful&category=Test");
+  const params = new URL((await filtered).url()).searchParams;
+  expect(params.get("style")).toBe("rock");expect(params.get("mood")).toBe("peaceful");expect(params.get("category")).toBe("Test");
+  await expect(page.getByText("No songs match these filters.", {exact:true})).toBeVisible();
+  await page.getByRole("button", {name:"Reset filters",exact:true}).click();
+  await expect(page).toHaveURL("/songs");await expect(page.getByRole("status")).toHaveText("60 of 250 songs");
+});
+
 test("250 groups, off-page favorites, malformed storage and URL navigation stay coherent", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("keyspilli.favorites", JSON.stringify(["roadmap-249-easy", ...Array.from({ length: 600 }, (_, index) => `removed-${index}`)]));

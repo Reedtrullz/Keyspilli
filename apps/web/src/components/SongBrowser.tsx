@@ -17,7 +17,7 @@ const KEYS = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab", "Db", "F#", "
 const BASS = ["block", "octave", "oompah", "walking", "pedal", "arpeggio"];
 
 const PAGE_SIZE = 60;
-const DEFAULT_QUERY = { q: "", importMethod: "", key: "", bass: "", artist: "", difficulty: "", sort: "popular", favorites: false, page: 1 };
+const DEFAULT_QUERY = { q: "", importMethod: "", key: "", bass: "", artist: "", difficulty: "", style: "", mood: "", category: "", sort: "popular", favorites: false, page: 1 };
 type LibraryQuery = typeof DEFAULT_QUERY;
 
 export function readLibraryQuery(params: URLSearchParams): LibraryQuery {
@@ -25,6 +25,7 @@ export function readLibraryQuery(params: URLSearchParams): LibraryQuery {
   const page = Number(params.get("page"));
   return {
     q: (params.get("q") ?? "").slice(0, 256), artist: (params.get("artist") ?? "").slice(0, 256),
+    style: (params.get("style") ?? "").slice(0, 256), mood: (params.get("mood") ?? "").slice(0, 256), category: (params.get("category") ?? "").slice(0, 256),
     importMethod: pick("importMethod", ["midi", "sheet-music", "youtube", "other"]),
     key: pick("key", KEYS), bass: pick("bass", BASS), difficulty: pick("difficulty", PUBLIC_DIFFICULTY_ORDER),
     sort: pick("sort", ["popular", "title", "artist", "difficulty", "newest"], "popular"),
@@ -34,6 +35,7 @@ export function readLibraryQuery(params: URLSearchParams): LibraryQuery {
 
 export function writeLibraryQuery(params: URLSearchParams, query: LibraryQuery): URLSearchParams {
   const next = new URLSearchParams(params);
+  next.delete("legacy"); // This library only displays public levels.
   for (const [key, value] of Object.entries(query)) {
     next.delete(key);
     if (value !== DEFAULT_QUERY[key as keyof LibraryQuery]) next.set(key, key === "favorites" ? "1" : String(value));
@@ -107,7 +109,7 @@ export function SongBrowser() {
     if (!ready) return;
     const controller = new AbortController();
     const params = new URLSearchParams({ sort: query.sort, limit: String(PAGE_SIZE), offset: String((query.page - 1) * PAGE_SIZE), group: "1" });
-    for (const key of ["q", "importMethod", "key", "bass", "difficulty", "artist"] as const) if (query[key]) params.set(key, query[key]);
+    for (const key of ["q", "importMethod", "key", "bass", "difficulty", "artist", "style", "mood", "category"] as const) if (query[key]) params.set(key, query[key]);
     setLoading(true); setError(""); setSongs([]);
     fetch(`/api/songs?${params}`, { signal: controller.signal, ...(query.favorites ? {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: favorites }),
@@ -134,7 +136,7 @@ export function SongBrowser() {
   const visible = songs;
   const experimentLabels = useMemo(() => experimentLabelsForSongs(visible), [visible]);
   const { importMethod, key, bass, difficulty, sort, favorites: favoritesOnly } = query;
-  const activeFilterCount = [importMethod, key, bass, difficulty, query.artist, sort !== "popular" ? sort : "", favoritesOnly ? "favorites" : ""].filter(Boolean).length;
+  const activeFilterCount = [importMethod, key, bass, difficulty, query.artist, query.style, query.mood, query.category, favoritesOnly ? "favorites" : ""].filter(Boolean).length;
   const narrowed = Boolean(activeFilterCount || query.q);
   function reset() { setInput(""); navigate({ ...DEFAULT_QUERY }); }
 
@@ -193,9 +195,10 @@ export function SongBrowser() {
             Favorites only
           </label>
         </div>
-        {narrowed && <button type="button" onClick={reset} className="pressable min-h-11 px-3 underline">Reset filters</button>}
+        {(narrowed || sort !== "popular") && <button type="button" onClick={reset} className="pressable min-h-11 px-3 underline">Reset filters</button>}
         <span className="library-count text-xs text-zinc-600" role="status" aria-live="polite">{loading ? "Loading…" : `${visible.length} of ${total} songs`}</span>
       </div>
+      {(query.style || query.mood || query.category) && <p className="text-xs text-zinc-600 mb-3">{[["Style",query.style],["Mood",query.mood],["Category",query.category]].filter(([,value])=>value).map(([label,value])=>`${label}: ${value}`).join(" · ")}</p>}
       {error && <div role="alert" className="text-red-600 text-sm mb-3">{error} <button type="button" onClick={() => setRetry(value => value + 1)} className="pressable min-h-11 px-3 underline">Retry</button></div>}
       {!loading && !error && visible.length === 0 && <div className="motion-feedback text-zinc-500 py-8 text-center">
         <p>{favoritesOnly ? favorites.length ? "No available songs match your favorites and filters." : "You have no favorites yet. Choose a song and mark a level as a favorite in the player." : narrowed ? "No songs match these filters." : "Your library is empty."}</p>
