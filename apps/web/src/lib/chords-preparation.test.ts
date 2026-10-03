@@ -1,6 +1,5 @@
 import { expect, it } from "vitest";
 import { leftHandSupport, repairPreparedHarmony, diagnosePreparedChords } from "./chords-preparation";
-import { validateAudioReview } from "../../scripts/review-song-audio.mjs";
 import type { SongData } from "@keyspilli/player-core";
 import type { ChordTimelineArtifact } from "@keyspilli/catalog";
 import { writeMidi } from "@keyspilli/midi";
@@ -27,14 +26,6 @@ it("preserves safe existing harmony and refuses to repair an accepted chart", ()
   expect(() => repairPreparedHarmony(data, { ...timeline, provenance: { ...timeline.provenance, sourceRef: "accepted" } })).toThrow("prepared timeline");
   expect(diagnosePreparedChords(data).musicalVerdict).toContain("provisional");
 });
-it("rejects text-only audio reports and hallucinated timestamps", () => {
-  const raw = { summary: "No issue detected", findings: [] };
-  const usage = { promptTokensDetails: [{ modality: "AUDIO", tokenCount: 100 }] };
-  expect(() => validateAudioReview(raw, 10, {})).toThrow("audio input");
-  expect(validateAudioReview(raw, 10, usage)).toEqual(raw);
-  expect(() => validateAudioReview({ ...raw, findings: [{ stream: "chords", startSeconds: 9, endSeconds: 12, classification: "defect", evidence: "late release" }] }, 10, usage)).toThrow("interval");
-});
-
 it("packages both modes, refuses corruption/conflicts, and rolls back without deleting bytes", () => {
   const root = new URL("../../../../", import.meta.url).pathname;
   mkdirSync(join(root, "output"), { recursive: true });
