@@ -6,12 +6,13 @@ import { PracticeSets } from "../PracticeSets";
 import { loadPracticeState, savePracticeState, passageAvailable, PRACTICE_STATE_EVENT, PRACTICE_STATE_KEY,
   type PracticeTarget, type SavedPassage } from "@keyspilli/player-core";
 
-export function PracticeWorkspace({ publicationRevision=null, target, variantId, range, endBeat, positionBeat, disabled, bpm, onRecall, onSelect, onResume, onUseTempoPlan }: {
+export function PracticeWorkspace({ publicationRevision=null, target, variantId, range, endBeat, positionBeat, disabled, bpm, onRecall, onSelect, onSaved, onResume, onUseTempoPlan }: {
   target: PracticeTarget | null; variantId: string; range: { startBeat: number; endBeat: number } | null;
   endBeat: number; positionBeat: number; disabled: boolean;
   publicationRevision?:string|null; bpm: number; onUseTempoPlan: (passage: SavedPassage) => void;
   onRecall?: (passage:SavedPassage)=>void;
   onSelect: (passage: SavedPassage) => void; onResume: (beat: number) => void;
+  onSaved: (passage: SavedPassage) => void;
 }) {
   const [state, setState] = useState<ReturnType<typeof loadPracticeState>>({ version: 1, passages: [], attempts: [], resume: null });
   const [name, setName] = useState(""), [note, setNote] = useState(""), [notice, setNotice] = useState("");
@@ -55,7 +56,7 @@ export function PracticeWorkspace({ publicationRevision=null, target, variantId,
         const passage: SavedPassage = { id: crypto.randomUUID(), target, name: name.trim(), note, sectionId: "full", ...range, createdAt: new Date().toISOString() };
         current.passages.push(passage);
         current.resume = { target, passageId: passage.id, positionBeat: Math.max(0, Math.min(endBeat, positionBeat)), updatedAt: new Date().toISOString() };
-        if (commit(current)) { setName(""); setNote(""); }
+        if (commit(current)) { onSaved(passage); setName(""); setNote(""); }
       }} className="flex flex-wrap gap-2">
         <label>Passage name <input required maxLength={80} value={name} onChange={event => setName(event.target.value)} className="block border rounded p-2" /></label>
         <label>Practice note <textarea maxLength={500} value={note} onChange={event => setNote(event.target.value)} className="block border rounded p-2" /></label>

@@ -33,6 +33,7 @@ import {
   clearTimingCalibrations,
   loadSongPrefs,
   loadPracticeState,
+  passageAvailable,
   restoredMelodyChoice,
   savePracticeState,
   recordAttempt,
@@ -855,6 +856,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     hand: settings.hand, backgroundMode: settings.backgroundMode, accompanimentStyle: settings.accompanimentStyle,
   }), [initial.publicationRevision, melodySourceFingerprint, activeData, guidanceData, selectedChordSource.source, settings.hand, settings.backgroundMode, settings.accompanimentStyle]);
   const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(null);
+  const selectedPassageIdRef = useRef<string | null>(null);
   useEffect(() => {
     let current = true;
     setPracticeTarget(null);
@@ -1765,6 +1767,16 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     return keyboardReachability(guidanceNotes, range ?? {startSec:0,endSec:0}, .25*secPerBeat(activeData.tempoBpm,settings.speed), midiRange, setup.input === "keyboard" ? null : settings.physicalKeyboard ?? null);
   }
 
+  function selectSavedPassage(passage: SavedPassage) {
+    if (!practiceTarget || gradingRef.current || !passageAvailable(passage, practiceTarget, duration / secPerBeat(activeData.tempoBpm, settings.speed))) return false;
+    selectedPassageIdRef.current = passage.id;
+    engineRef.current?.stop();
+    setLoopBeats({ startBeat: passage.startBeat, endBeat: passage.endBeat });
+    seek(passage.startBeat * secPerBeat(activeData.tempoBpm, settings.speed));
+    syncTransportState();
+    return true;
+  }
+
   function beginPractice(setup: PracticeSetup, repeatRange?: LoopRegion) {
     const eng = engineRef.current;
     if (!eng || gradingRef.current || (setup.input === "microphone" && !micReady) || (setup.input === "midi" && !midiConnected)) return;
@@ -1811,7 +1823,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       storedAttemptRef.current = attempt;
       const saved = recordAttempt(attempt);
       const state = loadPracticeState();
-      state.resume = { target: practiceTarget, positionBeat: attempt.startBeat, updatedAt: attempt.startedAt };
+      const passage = state.passages.find(p => p.id === (selectedPassageIdRef.current ?? state.resume?.passageId) && passageAvailable(p, practiceTarget, duration / spb)
+        && Math.abs(p.startBeat - attempt.startBeat) < 1e-6 && Math.abs(p.endBeat - attempt.endBeat) < 1e-6);
+      state.resume = { target: practiceTarget, positionBeat: attempt.startBeat, updatedAt: attempt.startedAt, ...(passage ? {passageId: passage.id} : {}) };
       if (!savePracticeState(state) || !saved) setPracticeSaveNotice("Practice history could not be saved. Browser storage may be unavailable or full.");
     } else setPracticeSaveNotice("This run has no saved history; its arrangement could not yet be checked.");
     setGradeResult(null);
@@ -2644,18 +2658,19 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       <OwnerMetadata song={initial.song} revision={initial.publicationRevision}/>
       <OfflinePackControl id={initial.song.id} revision={initial.publicationRevision}/>
       <OwnerDeletion baseId={initial.song.baseId} revision={initial.publicationRevision} disabled={grading||playing||countIn!==null||auxiliary!==null}/>
-        <PracticeWorkspace onRecall={settings.mode==="beginner"&&settings.backgroundMode==="piano"?passage=>{if(auxiliaryRef.current||gradingRef.current||!practiceTarget||passage.target.fingerprint!==practiceTarget.fingerprint)return;if(passage.endBeat-passage.startBeat>16){setPracticeSaveNotice("Recall trials support up to 16 beats; save a shorter reviewed passage.");return;}engineRef.current?.stop();cancelSoundPreview();setLoopBeats({startBeat:passage.startBeat,endBeat:passage.endBeat});seek(passage.startBeat*secPerBeat(activeData.tempoBpm,settings.speed));activeTempoPlanRef.current=null;setRecall({passage,demonstrated:false,guided:false,reduced:false});}:undefined} publicationRevision={initial.publicationRevision} target={practiceTarget} variantId={initial.song.id} range={loopBeats}
+        <PracticeWorkspace onRecall={settings.mode==="beginner"&&settings.backgroundMode==="piano"?passage=>{if(auxiliaryRef.current||gradingRef.current||!practiceTarget||passage.target.fingerprint!==practiceTarget.fingerprint)return;if(passage.endBeat-passage.startBeat>16){setPracticeSaveNotice("Recall trials support up to 16 beats; save a shorter reviewed passage.");return;}if(!selectSavedPassage(passage))return;cancelSoundPreview();activeTempoPlanRef.current=null;setRecall({passage,demonstrated:false,guided:false,reduced:false});}:undefined} publicationRevision={initial.publicationRevision} target={practiceTarget} variantId={initial.song.id} range={loopBeats}
           bpm={activeData.tempoBpm}
           onUseTempoPlan={passage => {
             if (gradingRef.current || !passage.tempoPlan || passage.tempoPlan.paused || passage.tempoPlan.status !== "active" || passage.target.fingerprint !== practiceTarget?.fingerprint) return;
             const speed=passage.tempoPlan.currentBpm/activeData.tempoBpm;
             if (speed<.25 || speed>4) { setPracticeSaveNotice("Plan tempo no longer fits this arrangement."); return; }
-            engineRef.current?.stop(); setLoopBeats({startBeat:passage.startBeat,endBeat:passage.endBeat}); seek(passage.startBeat*secPerBeat(activeData.tempoBpm,settings.speed));
+            if (!selectSavedPassage(passage)) return;
             updateSettings({speed}); activeTempoPlanRef.current={passageId:passage.id,policyId:passage.tempoPlan.policyId};
             setPracticeSaveNotice(`Tempo plan selected at ${passage.tempoPlan.currentBpm} BPM. Start Play-along Practice when ready; changes apply between runs.`);
           }}
           endBeat={duration / secPerBeat(activeData.tempoBpm, settings.speed)} positionBeat={time / secPerBeat(activeData.tempoBpm, settings.speed)} disabled={grading || showPracticeSetup}
-          onSelect={passage => { engineRef.current?.stop(); setLoopBeats({ startBeat: passage.startBeat, endBeat: passage.endBeat }); seek(passage.startBeat * secPerBeat(activeData.tempoBpm, settings.speed)); syncTransportState(); }}
+          onSelect={selectSavedPassage}
+          onSaved={passage => { selectedPassageIdRef.current = passage.id; }}
           onResume={beat => { engineRef.current?.stop(); seek(beat * secPerBeat(activeData.tempoBpm, settings.speed)); syncTransportState(); }} />
         {activeData.sourcePedal && <p className="px-4 text-xs" role="note">{settings.backgroundMode==="piano"?"Source-file CC64 controls resonance separately from key holds. Simulated background sustain is disabled; your live input pedal stays separate.":"Derived Chords playback omits source-file pedal changes."} MusicXML retains channel-bound pedal metadata for Keyspilli; other score players may ignore it. Musical review remains unverified.</p>}
         <MidiTakePanel inputRef={takeInputRef} target={practiceTarget} revision={initial.publicationRevision} targets={guidanceNotes}
