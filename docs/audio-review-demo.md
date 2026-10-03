@@ -11,13 +11,22 @@ The prepared pack lives under the ignored `output/song-prep/audio-review-demo-20
 - `controls/model-facing/cases.json` and its hash-named WAVs are synthetic blind software controls.
 - `controls/evaluator-only/answer-key.json` contains expected answers. Keep it out of reviewer context.
 
-The completed no-upload run is [`report.md`](../output/song-prep/audio-review-demo-20261003/demo/final-no-upload-20261003/report.md) with its machine-readable [`report.json`](../output/song-prep/audio-review-demo-20261003/demo/final-no-upload-20261003/report.json). It reports two planned dry-run jobs, zero gateway attempts and unestablished musical acceptance. The WAVs, report and evaluator key are local ignored evidence and are not included in Git.
+The completed no-upload run is [`report.md`](../output/song-prep/audio-review-demo-20261003/demo/low-alias-no-upload-20261003/report.md) with its machine-readable [`report.json`](../output/song-prep/audio-review-demo-20261003/demo/low-alias-no-upload-20261003/report.json). It reports two planned dry-run jobs, zero gateway attempts and unestablished musical acceptance. The WAVs, report and evaluator key are local ignored evidence and are not included in Git.
 
 ## Controlled baseline status — 2026-10-03
 
 The parent-owned baseline sent four jobs total: two Pro and two Flash baseline attempts, with zero blind controls. For both routes, the Original response was complete, while the Chords response was partial/truncated and remains refused. The complete Pro Original envelope was separately materialized offline from its retained response with zero additional HTTP attempts; its original ambiguous state is unchanged. Neither baseline route is qualified, and neither should be treated as an audio-review default.
 
-An explicitly low-effort Flash stage is now in progress using requested alias `gemini-3.8-flash-low`, wire canonical `gemini-3.8-flash`, and low reasoning/thinking settings, with a maximum of ten new backend attempts. Its protocol is pinned separately from the baseline. No result or route-qualification claim is made until that stage's retained evidence is reviewed. Provider listening remains unverified even for complete envelopes.
+The separately pinned low-effort Flash stage has completed two integration jobs: both returned complete envelopes and passed ordered-media/model checks, with one backend attempt per job. The observer confirmed requested alias `gemini-3.8-flash-low`, wire canonical `gemini-3.8-flash`, and low reasoning/thinking settings. The retained report is the [parent study report](</Users/reidar/Projectos/anti-keyspilli-music-demo-20261003/listening-report.md>), with machine-readable [JSON](</Users/reidar/Projectos/anti-keyspilli-music-demo-20261003/listening-report.json>). Five predefined synthetic control criteria passed: no audio, silence, speech, ascending-versus-descending, and reversed-order comparison. The contour response also hallucinated an octave range (C4–C5 instead of the fixture's C4–G4); discard that pitch claim. Additional controls remain in progress. Calibration is still unqualified with zero real-song cases. This is integration evidence, not route qualification or a model default. Provider listening remains unverified even for complete envelopes.
+
+## Native adjudication and repair refusal
+
+The native review compared listener claims with the frozen media and symbolic events. Its retained report is the [native agent decision](</Users/reidar/Projectos/anti-keyspilli-music-demo-20261003/agent-decision.md>), with machine-readable [JSON](</Users/reidar/Projectos/anti-keyspilli-music-demo-20261003/agent-decision.json>).
+
+- Original: the reported minor acoustic difference was discarded because the reference and candidate WAV bytes are identical.
+- Chords: the high-severity claim was rejected as an automatic repair. Original and Chords share the exact 39-note accompaniment; the Original also has 41 declared melody notes. Both use the same static C-major harmony, so there are no harmonic changes to lose. The four-beat sparse chord attacks are intentional for this beginner backing. Keep only a density-difference observation.
+
+This demonstrates advisory findings followed by agent-owned source/media adjudication and repair refusal. The fixture remains unchanged. Do not turn this into a routine listening or quality-validation chore for the learner, and do not treat the demonstration as musical acceptance.
 
 ## Fresh offline dry run
 
@@ -36,7 +45,7 @@ PYTHONPATH="/Users/reidar/Projectos/.anti-music-listening-validation-20261003" \
   "$DEMO/demo/manifest.json" "$OUT" \
   --dry-run --max-requests 0 \
   --anti-python "$ANTI_PYTHON" --anti-script "$ANTI_SCRIPT" \
-  --base-url http://127.0.0.1:62823/v1 --model gemini-3.1-pro
+  --base-url http://127.0.0.1:62823/v1 --model gemini-3.8-flash-low
 ```
 
 Open `$OUT/report.md` for the preview or `$OUT/report.json` for the complete receipt. Anti's local `--dry-run` records the planned audio attachments but performs zero gateway requests. This command is specific to the current host's installed runtime and local Anti helper; use the canonical skill's placeholder command on another host.
