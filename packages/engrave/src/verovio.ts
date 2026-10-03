@@ -1,3 +1,4 @@
+import type {MusicXmlWorkerSession} from "./verovio-worker.js";
 let toolkitPromise: Promise<VerovioToolkit> | null = null;
 
 export interface VerovioToolkit {
@@ -5,27 +6,19 @@ export interface VerovioToolkit {
   renderToSVG: (page?: number) => string;
   getPageCount: () => number;
   setOptions?: (o: Record<string, unknown>) => void;
+  getPageWithElement?: (id:string)=>number;
+  destroy?: ()=>void;
 }
 
-/** Lazily load the Verovio WASM toolkit (client-side only). */
-export async function loadVerovio(): Promise<VerovioToolkit> {
-  if (toolkitPromise) return toolkitPromise;
-  toolkitPromise = (async () => {
-    // Load Verovio from the public/ assets (browser ESM build) so webpack
-    // never touches its Node-targeted CJS build or its 7.6 MB wasm bundle.
-    const createVerovioModule = (await import(/* webpackIgnore: true */ ("/verovio/verovio-module.mjs" as string))) as unknown as {
-      default: () => Promise<unknown>;
-    };
-    const { VerovioToolkit } = (await import(/* webpackIgnore: true */ ("/verovio/verovio.mjs" as string))) as unknown as {
-      VerovioToolkit: new (m: unknown) => VerovioToolkit;
-    };
-    const VerovioModule = await createVerovioModule.default();
-    return new VerovioToolkit(VerovioModule);
-  })();
-  // A failed load must not brick the sheet view for the whole session.
-  toolkitPromise.catch(() => {
-    toolkitPromise = null;
-  });
+/** Create an owned toolkit. Browser modules are cached; mutable score state is not shared. */
+async function createToolkit():Promise<VerovioToolkit> {
+  const createVerovioModule=(await import(/* webpackIgnore: true */ ("/verovio/verovio-module.mjs" as string))) as unknown as {default:()=>Promise<unknown>};
+  const {VerovioToolkit}=(await import(/* webpackIgnore: true */ ("/verovio/verovio.mjs" as string))) as unknown as {VerovioToolkit:new(module:unknown)=>VerovioToolkit};
+  return new VerovioToolkit(await createVerovioModule.default());
+}
+/** Lazily load the shared compatibility renderer for existing one-shot callers. */
+export async function loadVerovio():Promise<VerovioToolkit> {
+  if(!toolkitPromise){toolkitPromise=createToolkit();toolkitPromise.catch(()=>{toolkitPromise=null;});}
   return toolkitPromise;
 }
 
@@ -78,7 +71,7 @@ function assertRenderedPage(svg: string, page: number): string {
 
 function setRenderOptions(tk: VerovioToolkit, opts: RenderOptions): void {
   // These are deliberately limited to options supported by the browser build.
-  // In particular, `border` is not a Verovio 4 option and emits a warning.
+  // In particular, `border` is not a supported browser option and emits a warning.
   // Automatic breaks plus fixed page dimensions prevent one giant horizontal
   // SVG, while svgViewBox keeps the intrinsic aspect ratio when CSS scales it.
   tk.setOptions?.({
@@ -92,23 +85,12 @@ function setRenderOptions(tk: VerovioToolkit, opts: RenderOptions): void {
   });
 }
 
-function scoreForVerovio(xml: string): string {
-  // The browser Verovio build imports playback-level <tie> correctly, but
-  // currently leaves notation-level <tied> markers open in dense grand-staff
-  // streams. The source/export MusicXML retains both standards-compliant
-  // markers; strip only the duplicate visual marker for this renderer so a
-  // valid score does not surface a false "ties left open" warning.
-  return xml
-    .replace(/<tied\b[^>]*\/>/gi, "")
-    .replace(/<notations>\s*<\/notations>/gi, "");
-}
-
 /** Render MusicXML to all page SVG documents in score order. */
 export async function renderMusicXmlPages(xml: string, opts: RenderOptions = {}, toolkit?: VerovioToolkit): Promise<string[]> {
   const tk = toolkit ?? (await loadVerovio());
   // Verovio lays out at load time; options must be set first.
   setRenderOptions(tk, opts);
-  if (!tk.loadData(scoreForVerovio(xml))) throw new Error("Verovio loadData failed");
+  if (!tk.loadData(xml)) throw new Error("Verovio loadData failed");
   const pageCount = Math.max(1, Math.floor(tk.getPageCount()));
   const count = opts.pages === "first" ? 1 : pageCount;
   const pages: string[] = [];
@@ -122,4 +104,24 @@ export async function renderMusicXmlPages(xml: string, opts: RenderOptions = {},
 export async function renderMusicXml(xml: string, opts: RenderOptions = {}, toolkit?: VerovioToolkit): Promise<string> {
   const pages = await renderMusicXmlPages(xml, { ...opts, pages: "first" }, toolkit);
   return pages[0]!;
+}
+
+/** The fallback owns one toolkit and renders requested pages, never an eager SVG array.
+ * ponytail: layout still runs on the main thread; use worker support for large scores. */
+export async function openMusicXmlOnMainThread(xml:string,opts:RenderOptions={},injected?:VerovioToolkit):Promise<MusicXmlWorkerSession> {
+ const tk=injected??await createToolkit();let closed=false,first='';
+ try{
+  setRenderOptions(tk,opts);if(!tk.loadData(xml))throw new Error('Verovio loadData failed');
+  const pageCount=tk.getPageCount();if(!Number.isInteger(pageCount)||pageCount<1||pageCount>2048)throw new Error('Sheet layout exceeds 2048 pages');
+  first=assertRenderedPage(tk.renderToSVG(1),1);
+  const width=Number(first.match(SVG_WIDTH_RE)?.[1]),height=Number(first.match(SVG_HEIGHT_RE)?.[1]);
+  const session:MusicXmlWorkerSession={sessionId:-1,pageCount,width,height,
+   async prepare(){if(closed)throw new Error('Verovio session is closed');return session;},
+   async renderPage(page){if(closed)throw new Error('Verovio session is closed');if(!Number.isInteger(page)||page<1||page>pageCount)throw new RangeError('Sheet page is outside the score');
+    if(page===1&&first){const svg=first;first='';return svg;}return assertRenderedPage(tk.renderToSVG(page),page);},
+   async elementPage(id){if(closed)throw new Error('Verovio session is closed');if(!/^keyspilli-score-\d{1,4}$/.test(id))throw new Error('invalid score measure identity');
+    const page=tk.getPageWithElement?.(id);if(!Number.isInteger(page)||page!<1||page!>pageCount)throw new Error('score measure has no rendered page');return page!;},
+   async close(){if(closed)return;closed=true;first='';tk.destroy?.();},
+  };return session;
+ }catch(error){first='';closed=true;tk.destroy?.();throw error;}
 }

@@ -238,6 +238,72 @@ export interface SourceTimingMetadata {
   timeSigEvents?: { beat: number; timeSig: [number, number] }[];
 }
 
+export type SymbolicSourcePartRole = "melody" | "harmony" | "bass" | "other";
+export type SymbolicArrangementIntent = "original" | "backing-only-chords";
+
+export interface SymbolicUploadIntent {
+  schemaVersion: 1;
+  sourceHash: string;
+  rightsAttested: true;
+  arrangementIntent: SymbolicArrangementIntent;
+  selectedParts: Array<{ id: string; name: string; role: SymbolicSourcePartRole }>;
+  study?: {
+    ownerAuthored: true;
+    profile: "source";
+    kind: "one-note" | "triad" | "four-note-phrase";
+    noteCount: 1 | 3 | 4;
+    availableLevels: Array<"beginner" | "easy" | "medium" | "advanced">;
+  };
+}
+
+export function validateSymbolicUploadIntent(value: unknown, path = "symbolicIntent"): string[] {
+  const errors: string[] = [];
+  if (!isRecord(value)) return [`${path} must be an object`];
+  if (value.schemaVersion !== 1) errors.push(`${path}.schemaVersion must be 1`);
+  if (typeof value.sourceHash !== "string" || !/^[a-f0-9]{64}$/.test(value.sourceHash)) errors.push(`${path}.sourceHash must be a SHA-256 digest`);
+  if (value.rightsAttested !== true) errors.push(`${path}.rightsAttested must be confirmed by the owner`);
+  if (value.arrangementIntent !== "original" && value.arrangementIntent !== "backing-only-chords") errors.push(`${path}.arrangementIntent is not recognized`);
+  if (!Array.isArray(value.selectedParts) || value.selectedParts.length < 1 || value.selectedParts.length > 64) {
+    errors.push(`${path}.selectedParts must contain 1-64 selected parts`);
+  } else {
+    const ids = new Set<string>();
+    value.selectedParts.forEach((part, index) => {
+      const prefix = `${path}.selectedParts[${index}]`;
+      if (!isRecord(part)) { errors.push(`${prefix} must be an object`); return; }
+      if (typeof part.id !== "string" || !part.id.trim() || part.id.length > 128) errors.push(`${prefix}.id must be a 1-128 character string`);
+      else if (ids.has(part.id)) errors.push(`${prefix}.id must be unique`);
+      else ids.add(part.id);
+      if (typeof part.name !== "string" || !part.name.trim() || part.name.length > 160) errors.push(`${prefix}.name must be a bounded non-empty string`);
+      if (!new Set(["melody", "harmony", "bass", "other"]).has(String(part.role))) errors.push(`${prefix}.role is not recognized`);
+    });
+    if (value.arrangementIntent === "backing-only-chords"
+      && value.selectedParts.some((part) => isRecord(part) && part.role !== "harmony" && part.role !== "bass")) {
+      errors.push(`${path}.backing-only-chords may select only owner-identified harmony or bass parts`);
+    }
+  }
+  if (value.study !== undefined) {
+    const study = value.study;
+    if (!isRecord(study)) errors.push(`${path}.study must be an object`);
+    else {
+      if (value.arrangementIntent !== "original") errors.push(`${path}.study requires Original arrangement intent`);
+      if (study.ownerAuthored !== true) errors.push(`${path}.study.ownerAuthored must be confirmed`);
+      if (study.profile !== "source") errors.push(`${path}.study.profile must be source`);
+      if (!["one-note", "triad", "four-note-phrase"].includes(String(study.kind))) errors.push(`${path}.study.kind is not recognized`);
+      if (![1, 3, 4].includes(Number(study.noteCount))) errors.push(`${path}.study.noteCount must be 1, 3, or 4`);
+      if ((study.kind === "one-note" && study.noteCount !== 1)
+        || (study.kind === "triad" && study.noteCount !== 3)
+        || (study.kind === "four-note-phrase" && study.noteCount !== 4)) errors.push(`${path}.study kind and noteCount disagree`);
+      const publicLevels = new Set(["beginner", "easy", "medium", "advanced"]);
+      if (!Array.isArray(study.availableLevels) || study.availableLevels.length < 1 || study.availableLevels.length > 4
+        || study.availableLevels.some((level) => !publicLevels.has(String(level)))
+        || new Set(study.availableLevels).size !== study.availableLevels.length) {
+        errors.push(`${path}.study.availableLevels must list unique public levels`);
+      }
+    }
+  }
+  return errors;
+}
+
 export interface ArrangementManifest {
   schemaVersion: typeof ARRANGEMENT_MANIFEST_SCHEMA_VERSION;
   baseId: string;
@@ -254,6 +320,8 @@ export interface ArrangementManifest {
   /** Optional user-mediated discovery lineage; never changes upload timing authority. */
   sourceCandidateHandoff?: SourceCandidateHandoffLink;
   sourceArrangement?: SourceArrangement;
+  /** Owner-confirmed symbolic source selection and study profile. */
+  symbolicIntent?: SymbolicUploadIntent;
   /** Optional per-variant source-validated meter phase for sparse backing. */
   sourceTiming?: Record<string, SourceTimingMetadata>;
   tempo: TempoProvenance;
@@ -798,6 +866,14 @@ export function validateArrangementManifest(value: unknown): string[] {
   if (value.source !== undefined) validateSourceProvenance(value.source, "source", errors);
   if (value.candidate !== undefined) validateCandidateMetadata(value.candidate, "candidate", errors);
   if (value.sourceArrangement !== undefined) errors.push(...validateSourceArrangement(value.sourceArrangement));
+  if (value.symbolicIntent !== undefined) {
+    errors.push(...validateSymbolicUploadIntent(value.symbolicIntent));
+    if (isRecord(value.symbolicIntent) && typeof value.sourceArtifactHash === "string"
+      && value.symbolicIntent.sourceHash !== value.sourceArtifactHash) errors.push("symbolicIntent.sourceHash must match sourceArtifactHash");
+    if (isRecord(value.symbolicIntent) && value.symbolicIntent.study !== undefined && value.transcription !== undefined) {
+      errors.push("symbolic short-study intent cannot be attached to a transcribed source");
+    }
+  }
   if (value.sourceTiming !== undefined) {
     if (!isRecord(value.sourceTiming) || Object.keys(value.sourceTiming).length === 0) {
       errors.push("sourceTiming must be a non-empty per-variant object");

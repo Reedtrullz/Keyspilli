@@ -1,8 +1,19 @@
 export type Hand = "R" | "L";
 
+/** Original MusicXML spelling, retained only when it still matches the MIDI pitch. */
+export interface SourcePitch {
+  step: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  alter: -2 | -1 | 0 | 1 | 2;
+  octave: -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+}
+
 export interface Note {
+  /** Original MIDI channel; independent of assigned hand. */
+  sourceMidiChannel?: number;
   /** MIDI note number (60 = middle C) */
   midi: number;
+  /** Optional original MusicXML pitch spelling; MIDI remains authoritative. */
+  sourcePitch?: SourcePitch;
   /** start time in beats */
   start: number;
   /** duration in beats */
@@ -22,9 +33,25 @@ export interface Note {
 
 export interface SourceNoteOrigin {
   id: string;
+  /** Original source note and finite playback occurrence for unfolded notation. */
+  originalId?: string;
+  measureIndex?: number;
+  occurrence?: 1 | 2;
+  part?: string;
   track?: number;
   staff?: string;
   voice?: string;
+}
+
+export interface SymbolicSourcePart {
+  id: string;
+  name: string;
+  noteCount: number;
+  lowMidi: number | null;
+  highMidi: number | null;
+  startBeat: number | null;
+  endBeat: number | null;
+  percussion?: boolean;
 }
 
 /** Provenance of a chord event; omitted on legacy chord labels. */
@@ -131,7 +158,11 @@ export interface MidiTimeSignatureEvent {
   timeSig: [number, number];
 }
 
+export interface SourcePedalChange {beat:number;channel:number;value:number;source:string}
+export interface SourcePedalTimeline {version:1;endBeat:number;provenance:"midi-file"|"declared-export";changes:SourcePedalChange[]}
+
 export interface ParsedMidi {
+  sourcePedal?: SourcePedalTimeline;
   format: number;
   division: number;
   /** beats per quarter note */
@@ -149,6 +180,12 @@ export interface ParsedMidi {
   timeSigEvents?: MidiTimeSignatureEvent[];
   notes: Note[];
   trackNames: string[];
+  sourceParts?: SymbolicSourcePart[];
+  /** Parsed notation measure spans; these do not infer repeat playback order. */
+  notationMeasures?: MeasureInfo[];
+  /** Unfolded notation is verified; exported occurrence metadata is self-declared provenance. */
+  repeatPlayback?: "unfolded" | "declared";
+  unsupportedControls?: string[];
   durationBeats: number;
   title?: string;
 }
@@ -208,6 +245,7 @@ export interface SongMeta {
 }
 
 export interface Variant {
+  sourcePedal?: SourcePedalTimeline;
   level: DifficultyLevel;
   difficultyScore: number;
   notes: Note[];
@@ -225,6 +263,8 @@ export interface Variant {
 
 export interface MeasureInfo {
   index: number;
+  sourceMeasureIndex?: number;
+  sourceOccurrence?: 1 | 2;
   startBeat: number;
   endBeat: number;
 }

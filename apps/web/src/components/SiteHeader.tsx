@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { NavigationFeedback } from "./NavigationFeedback";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { usePresence } from "./player/player-motion";
@@ -70,8 +71,9 @@ export function SiteHeader() {
   return (
     <header className="site-header relative border-b border-zinc-200 bg-white sticky top-0 z-40">
       <div className="site-header-inner max-w-6xl mx-auto px-4 py-2 flex flex-nowrap items-center gap-x-4 gap-y-1 overflow-x-auto">
-        <Link href="/" className="site-brand pressable shrink-0 font-bold text-lg tracking-tight">
+        <Link href="/" aria-label="Keyspilli" className="site-brand pressable shrink-0 font-bold text-lg tracking-tight">
           Keyspilli
+          <NavigationFeedback destination="Home" />
         </Link>
         <nav className="site-nav flex shrink-0 gap-1 text-sm" aria-label="Main">
           {NAV.map(([href, label], index) => {
@@ -80,10 +82,12 @@ export function SiteHeader() {
               <Link
                 key={href}
                 href={href}
+                aria-label={label}
                 aria-current={active ? "page" : undefined}
                 className={`site-nav-link site-nav-secondary-${index >= 2 ? "item" : "primary"} pressable px-3 py-1.5 rounded-full`}
               >
                 {label}
+                <NavigationFeedback destination={label} />
               </Link>
             );
           })}
@@ -123,11 +127,13 @@ export function SiteHeader() {
                 key={href}
                 href={href}
                 role="menuitem"
+                aria-label={label}
                 aria-current={active ? "page" : undefined}
                 className="site-nav-link pressable block rounded-lg px-3 py-2"
                 onClick={() => setMoreOpen(false)}
               >
                 {label}
+                <NavigationFeedback destination={label} />
               </Link>
             );
           })}

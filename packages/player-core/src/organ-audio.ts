@@ -148,6 +148,8 @@ type Click = { osc: OscillatorNode; gain: GainNode };
 
 export class OrganAudioEngine implements AudioLike {
   private ctx: AudioContext | null = null;
+  onStateChange: ((state: string) => void) | null = null;
+  get state(): string { return this.fallback?.state ?? this.ctx?.state ?? "uninitialized"; }
   private compressor: DynamicsCompressorNode | null = null;
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
@@ -196,6 +198,7 @@ export class OrganAudioEngine implements AudioLike {
         console.warn("[OrganAudioEngine] native organ initialization failed; falling back to oscillator mode", error);
         this.disposeNativeGraph();
         this.fallback = new AudioEngine();
+        this.fallback.onStateChange = state => this.onStateChange?.(state);
         this.fallback.sustainPedal = false;
         this.fallback.setGains(this.voiceGain, this.pianoGain);
         return this.fallback.ensure();
@@ -210,8 +213,11 @@ export class OrganAudioEngine implements AudioLike {
     configurePlaybackSession();
     const ctx = new AudioContext();
     this.ctx = ctx;
+    ctx.onstatechange = () => { if (this.ctx === ctx) this.onStateChange?.(ctx.state); };
     this.voiceGainNode = ctx.createGain();
     this.pianoGainNode = ctx.createGain();
+    this.voiceGainNode.gain.value = this.voiceGain;
+    this.pianoGainNode.gain.value = this.pianoGain;
     this.master = ctx.createGain();
     this.compressor = ctx.createDynamicsCompressor();
 
@@ -505,7 +511,7 @@ export class OrganAudioEngine implements AudioLike {
       this.dryGain, this.wetGain, this.convolver, this.master, this.compressor,
     ]) node?.disconnect();
     if (this.convolver) this.convolver.buffer = null;
-    if (this.ctx && this.ctx.state !== "closed") void this.ctx.close();
+    if (this.ctx) { this.ctx.onstatechange = null; if (this.ctx.state !== "closed") void this.ctx.close(); }
     this.ctx = null;
     this.wave = null;
     this.foundationWave = null;

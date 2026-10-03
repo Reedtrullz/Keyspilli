@@ -145,17 +145,11 @@ function setRenderOptions(toolkit, options) {
   });
 }
 
-function scoreForVerovio(xml) {
-  return xml
-    .replace(/<tied\b[^>]*\/>/gi, "")
-    .replace(/<notations>\s*<\/notations>/gi, "");
-}
-
 async function prepareSession(session) {
   const toolkit = await loadVerovio();
   preparedScoreCache.clear(); // Every entry owns this same mutable toolkit.
   setRenderOptions(toolkit, session.options);
-  if (!toolkit.loadData(scoreForVerovio(session.xml))) throw new Error("Verovio loadData failed");
+  if (!toolkit.loadData(session.xml)) throw new Error("Verovio loadData failed");
   session.toolkit = toolkit;
   session.pageCount = Math.max(1, Math.floor(toolkit.getPageCount()));
   session.prepared = true;
@@ -172,7 +166,7 @@ function assertActiveSession(sessionId, requirePrepared = true) {
   return activeSession;
 }
 
-self.onmessage = async (event) => {
+async function handleMessage(event) {
   const request = event.data ?? {};
   const { id, type } = request;
   if (!Number.isInteger(id) || typeof type !== "string") return;
@@ -198,7 +192,11 @@ self.onmessage = async (event) => {
       // session supersedes a stale one; the main-thread generation token will
       // ignore any replies from a session that is no longer in use.
       activeSession = session;
-      self.postMessage({ id, type: "opened", sessionId: session.sessionId });
+      if (request.prepare) {
+        if (!session.prepared) await prepareSession(session);
+        self.postMessage({id,type:"prepared",sessionId:session.sessionId,pageCount:session.pageCount,
+          width:session.options.pageWidth,height:session.options.pageHeight});
+      } else self.postMessage({ id, type: "opened", sessionId: session.sessionId });
       return;
     }
 
@@ -239,6 +237,15 @@ self.onmessage = async (event) => {
       return;
     }
 
+    if (type === "elementPage") {
+      const session = assertActiveSession(request.sessionId);
+      if (typeof request.elementId !== "string" || !/^keyspilli-score-\d{1,4}$/.test(request.elementId)) throw new Error("invalid score measure identity");
+      const page = session.toolkit.getPageWithElement(request.elementId);
+      if (!Number.isInteger(page) || page < 1 || page > session.pageCount) throw new Error("score measure has no rendered page");
+      self.postMessage({ id, type: "elementPage", sessionId: session.sessionId, elementId: request.elementId, page });
+      return;
+    }
+
     if (type === "close") {
       if (activeSession?.sessionId === request.sessionId) activeSession = null;
       self.postMessage({ id, type: "closed", sessionId: request.sessionId });
@@ -253,4 +260,11 @@ self.onmessage = async (event) => {
       error: error instanceof Error ? error.message : String(error),
     });
   }
+}
+// ponytail: one mutable toolkit; serialize its messages rather than retain a toolkit per view.
+let messageQueue = Promise.resolve();
+self.onmessage = (event) => {
+  const pending = messageQueue.then(() => handleMessage(event));
+  messageQueue = pending.catch(() => {});
+  return pending;
 };

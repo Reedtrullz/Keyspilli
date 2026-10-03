@@ -19,14 +19,14 @@ test.beforeEach(async ({ context }) => {
 
 test("home page shows the catalog", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Play the songs you love/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your practice", exact: true })).toBeVisible();
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
 });
 
 test("song library filters by import method", async ({ page }) => {
   await page.goto("/songs");
   await page.getByLabel("Import method", { exact: true }).selectOption("midi");
-  await expect(page.getByLabel("Difficulty", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Difficulty", { exact: true })).toHaveValue("");
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Beginner level" }).first()).toBeVisible();
   for (const method of ["sheet-music", "youtube", "other", ""]) {
@@ -38,7 +38,7 @@ test("song library filters by import method", async ({ page }) => {
     const result = await response;
     expect(result.status()).toBe(200);
     const body = await result.json();
-    await expect(page.getByRole("status")).toHaveText(`${body.songs.length} songs`);
+    await expect(page.getByRole("status")).toHaveText(`${body.songs.length} of ${body.total} songs`);
     await expect(page.getByRole("group", { name: /Difficulty levels for/ })).toHaveCount(body.songs.length);
   }
 });
@@ -183,7 +183,7 @@ test("sheet warm-up rejection reaches the visible error state", async ({ page })
 test("direct sheet routes start with a metadata shell and load player data on mode switch", async ({ page }) => {
   let detailRequests = 0;
   page.on("request", (request) => {
-    if (request.url().endsWith(`/api/songs/${SONG}`)) detailRequests += 1;
+    if (new URL(request.url()).pathname === `/api/songs/${SONG}`) detailRequests += 1;
   });
 
   await page.goto(`/player/${SONG}/sheet`);
@@ -202,7 +202,7 @@ test("direct sheet routes start with a metadata shell and load player data on mo
 test("direct sheet RSC payload excludes the large player detail", async ({ page }) => {
   const detailRequests: string[] = [];
   page.on("request", (request) => {
-    if (request.method() === "GET" && request.url().endsWith(`/api/songs/${BRAHMS_SONG}`)) {
+    if (request.method() === "GET" && new URL(request.url()).pathname === `/api/songs/${BRAHMS_SONG}`) {
       detailRequests.push(request.url());
     }
   });

@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
-import { pitchColor, type MeasureInfo, type SongData } from "@keyspilli/player-core";
+import { learnerPitch, measureNoteIntervals, intervalSilences, intervalCue, timeSignatureAtBeat, pitchColor, type MeasureInfo, type SongData } from "@keyspilli/player-core";
 import { chordProvenance } from "../player/chord-provenance";
 
-const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 /**
  * Bucket timeline events by measure once instead of filtering the complete
  * arrangement for every measure in the printable score.  Normal catalogue
- * measures are sorted and non-overlapping, so a binary search gives O(N log M)
+ * measures are sorted and non-overlapping, so a binary search gives O(N log M + carried bar spans)
  * preprocessing while preserving each input array's order inside a bucket.
  * The fallback keeps the old inclusive-range semantics for malformed or
  * overlapping measure metadata rather than silently dropping an event.
@@ -18,6 +17,7 @@ function bucketByMeasure<T>(
   items: readonly T[],
   measures: readonly MeasureInfo[],
   beatOf: (item: T) => number,
+  endOf?: (item:T)=>number,
 ): T[][] {
   const buckets = measures.map(() => [] as T[]);
   if (items.length === 0 || measures.length === 0) return buckets;
@@ -29,7 +29,7 @@ function bucketByMeasure<T>(
       const beat = beatOf(item);
       if (!Number.isFinite(beat)) continue;
       measures.forEach((measure, index) => {
-        if (beat >= measure.startBeat && beat < measure.endBeat) buckets[index]!.push(item);
+        if ((endOf?endOf(item)>measure.startBeat:beat>=measure.startBeat) && beat < measure.endBeat) buckets[index]!.push(item);
       });
     }
     return buckets;
@@ -45,8 +45,11 @@ function bucketByMeasure<T>(
       if (measures[middle]!.endBeat <= beat) low = middle + 1;
       else high = middle;
     }
-    const measure = measures[low];
-    if (measure && beat >= measure.startBeat && beat < measure.endBeat) buckets[low]!.push(item);
+    if(endOf) {
+      for(let index=low;index<measures.length&&measures[index]!.startBeat<endOf(item);index++) if(beat<measures[index]!.endBeat) buckets[index]!.push(item);
+    } else {
+      const measure=measures[low];if(measure&&beat>=measure.startBeat&&beat<measure.endBeat)buckets[low]!.push(item);
+    }
   }
   return buckets;
 }
@@ -57,7 +60,7 @@ export function SimplifyScore({ data, title }: { data: SongData; title: string }
   }, []);
   const notes = useMemo(() => data.notes.filter((n) => n.hand !== "L"), [data.notes]);
   const noteBuckets = useMemo(
-    () => bucketByMeasure(notes, data.measures, (note) => note.start),
+    () => bucketByMeasure(notes, data.measures, (note) => note.start, note=>note.start+note.dur),
     [notes, data.measures],
   );
   const chordBuckets = useMemo(
@@ -73,7 +76,7 @@ export function SimplifyScore({ data, title }: { data: SongData; title: string }
         Key {data.key} · {data.tempoBpm} BPM · Color-coded learner score — every note colored by pitch
       </p>
       <p style={{ fontSize: 11, color: "#71717a", margin: "-12px 0 24px" }}>
-        Dotted amber chords are inferred; dotted gray chords have unknown provenance.
+        Dotted amber chords are inferred; dotted gray chords have unknown provenance. Hold and carry cues show intervals, not inferred ties or fingering. Silence is derived from the shown melody intervals.
       </p>
       {Array.from({ length: rows }, (_, row) => {
         const rowStart = row * measuresPerRow;
@@ -82,15 +85,17 @@ export function SimplifyScore({ data, title }: { data: SongData; title: string }
           <div key={row} style={{ display: "flex", gap: 16, marginBottom: 24 }}>
             {ms.map((m, column) => {
               const measureIndex = rowStart + column;
-              const mNotes = noteBuckets[measureIndex] ?? [];
+              const intervals=measureNoteIntervals(noteBuckets[measureIndex]??[],m.startBeat,m.endBeat);
+              const silences=intervalSilences(intervals,m.startBeat,m.endBeat,"all");
               const mChords = chordBuckets[measureIndex] ?? [];
               const beats = m.endBeat - m.startBeat;
               return (
                 <div key={m.index} style={{ flex: 1, border: "1px solid #e4e4e7", borderRadius: 8, padding: 12, minHeight: 220 }}>
                   <div style={{ fontSize: 10, color: "#a1a1aa", marginBottom: 8 }}>{m.index + 1}</div>
                   <div style={{ position: "relative", height: 150 }}>
-                    {mNotes.map((n, i) => {
-                      const x = ((n.start - m.startBeat) / beats) * 100 + 4;
+                    {intervals.map((interval, i) => {
+                      const n=interval.note;
+                      const x = ((interval.startBeat - m.startBeat) / beats) * 100 + 4;
                       const y = 130 - (n.midi - 55) * 5;
                       return (
                         <div key={i} style={{ position: "absolute", left: `${x}%`, top: y, transform: "translateX(-50%)" }}>
@@ -108,13 +113,15 @@ export function SimplifyScore({ data, title }: { data: SongData; title: string }
                               fontWeight: 700,
                             }}
                           >
-                            {LETTERS[n.midi % 12]}
+                            {learnerPitch(n,0,data.key,false).label}
                           </div>
+                          <small style={{fontSize:8,display:"block",maxWidth:100}}>{intervalCue(interval,m.startBeat,timeSignatureAtBeat(m.startBeat,data.timeSig,data.timeSigEvents)[1]/4)}</small>
                           {n.lyrics && <div style={{ fontSize: 10, textAlign: "center", marginTop: 2 }}>{n.lyrics}</div>}
                         </div>
                       );
                     })}
                   </div>
+                  {silences.map(silence=><p key={silence.startBeat} style={{fontSize:9}}>Silence · beats {Number((1+(silence.startBeat-m.startBeat)*timeSignatureAtBeat(m.startBeat,data.timeSig,data.timeSigEvents)[1]/4).toFixed(3))}–{Number((1+(silence.endBeat-m.startBeat)*timeSignatureAtBeat(m.startBeat,data.timeSig,data.timeSigEvents)[1]/4).toFixed(3))}</p>)}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {mChords.map((c, i) => {
                       const provenance = chordProvenance(c);

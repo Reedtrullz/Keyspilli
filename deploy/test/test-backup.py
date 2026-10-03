@@ -6,12 +6,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import tarfile
 import tempfile
 import textwrap
 import time
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,6 +30,10 @@ def make_data(root: Path) -> Path:
     (data / "artifacts" / ".test.old" / "kept").write_text("old")
     (data / "seed-midi").mkdir()
     (data / "seed-midi" / "source.mid").write_bytes(b"MThd" + b"\0" * 20)
+    (data / "review-receipts" / "test-song").mkdir(parents=True)
+    (data / "review-receipts" / "test-song" / "preserved.json").write_text('{"fixture":"review history"}')
+    (data / "harmony-candidates" / "test-song").mkdir(parents=True)
+    (data / "harmony-candidates" / "test-song" / "preserved.json").write_text('{"fixture":"unreviewed candidate"}')
     with sqlite3.connect(data / "db.sqlite") as db:
         db.execute("CREATE TABLE songs (id TEXT PRIMARY KEY, base_id TEXT, tempo INTEGER)")
         db.execute("INSERT INTO songs VALUES ('s1', 'test-song', 120)")
@@ -77,8 +83,12 @@ def make_docker(root: Path, states: dict[str, str] | None = None) -> tuple[Path,
             echo "running false"
             exit 0
           fi
-          if [[ "$format" == *Config.Image* ]]; then
+          if [[ "$format" == *org.opencontainers.image.revision* ]]; then
+            echo bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          elif [[ "$format" == *Config.Image* ]]; then
             echo fake-image
+          elif [[ "$format" == *Image* ]]; then
+            echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           else
             cat "{state_dir}/$name" 2>/dev/null || echo "running false"
           fi
@@ -100,6 +110,10 @@ def make_docker(root: Path, states: dict[str, str] | None = None) -> tuple[Path,
         if [ "$1" = run ]; then
           if printf '%s\n' "$@" | grep -q 'docker.sock'; then exit 91; fi
           if [ "${{FAKE_DOCKER_HANG:-0}}" = 1 ]; then trap 'exit 143' TERM INT; sleep 30; fi
+          while [ "$#" -gt 0 ]; do
+            if [ "$1" = -e ]; then shift; if [[ "$1" == KEYSPILLI_BACKUP_*IMAGE_ID=* || "$1" == KEYSPILLI_BACKUP_*REVISION=* ]]; then export "$1"; fi; fi
+            shift
+          done
           bash "$KEYSPILLI_BACKUP_SCRIPT"
           exit $?
         fi
@@ -150,11 +164,16 @@ def test_runner_pauses_pair_and_restores_only_its_pauses() -> None:
         assert "--user 0:0" in next(line for line in lines if line.startswith("run "))
         manifest = json.loads(manifests(backups)[0].read_text())
         assert manifest["complete"] is True
+        assert manifest["catalogSchemaEpoch"] == 0
+        assert manifest["images"]["web"]["id"] == "sha256:" + "a" * 64
+        assert manifest["images"]["web"]["revision"] == "b" * 40
         assert hashlib.sha256((backups / manifest["dbFile"]).read_bytes()).hexdigest() == manifest["dbSha256"]
         with tarfile.open(backups / manifest["archiveFile"], "r:gz") as archive:
             names = archive.getnames()
         assert "artifacts/.test.reconciliation.json" in names
         assert "artifacts/.test.old/kept" in names
+        assert "review-receipts/test-song/preserved.json" in names
+        assert "harmony-candidates/test-song/preserved.json" in names
         print("  PASS: host runner pauses pair, runs socket-free backup, and commits checksummed pair")
 
 
@@ -266,6 +285,106 @@ def test_retention_rejects_traversal_manifest_paths() -> None:
         print("  PASS: retention rejects traversal manifest paths")
 
 
+def test_retention_preserves_ambiguous_and_recent_cohort_members() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        backups = root / "backups"
+        backups.mkdir()
+        old_time = time.time() - 3 * 86400
+        kept = []
+        for index, change in enumerate((
+            {"complete": "yes"}, {"schemaVersion": 99}, {"dbBytes": 99},
+            {"archiveBytes": True}, {"dbSha256": "0" * 64}, {"complete": False},
+            {"recent": True}, {"symlink": True},
+        )):
+            stamp = f"2020-01-01-00000{index}"
+            db = backups / f"db-{stamp}.sqlite"
+            archive = backups / f"artifacts-{stamp}.tar.gz"
+            manifest = backups / f"backup-manifest-{stamp}.json"
+            db.write_bytes(b"preserve-db")
+            archive.write_bytes(b"preserve-archive")
+            document = {"schemaVersion": 1, "stamp": stamp, "complete": True,
+                "dbFile": db.name, "archiveFile": archive.name,
+                "dbBytes": db.stat().st_size, "archiveBytes": archive.stat().st_size,
+                "dbSha256": hashlib.sha256(db.read_bytes()).hexdigest(),
+                "archiveSha256": hashlib.sha256(archive.read_bytes()).hexdigest()}
+            document.update({key: value for key, value in change.items() if key not in ("recent", "symlink")})
+            manifest.write_text(json.dumps(document))
+            for path in (db, archive, manifest):
+                os.utime(path, (old_time, old_time))
+            if change.get("recent"):
+                os.utime(db, None)
+            if change.get("symlink"):
+                outside = root / "preserved.sqlite"
+                db.rename(outside)
+                db.symlink_to(outside)
+                kept.append(outside)
+            kept.extend((db, archive, manifest))
+        data = make_data(root)
+        before = (data / "seed-midi/source.mid").read_bytes()
+        result, _backups, _log = run_runner(root, retention_days=1)
+        assert result.returncode == 0, result.stderr
+        assert all(path.exists() for path in kept), "ambiguous or recent cohort was deleted"
+        assert (data / "seed-midi/source.mid").read_bytes() == before
+        assert (data / "artifacts/.test.old/kept").read_text() == "old"
+        report = next(json.loads(line) for line in result.stderr.splitlines() if line.startswith('{"backupRetention"'))
+        assert report["backupRetention"]["prunedCohorts"] == 0
+        assert report["backupRetention"]["preservedAmbiguousCohorts"] == 8
+        assert report["backupRetention"]["elapsedSeconds"] >= 0
+        print("  PASS: ambiguous, symlinked and recently changed cohort members and live sources are preserved")
+
+
+def test_invalid_retention_refuses_before_creating_backup() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        make_data(root)
+        for value in ("0", "-1", "1.5", "invalid"):
+            result, backups, _log = run_runner(root, extra_env={"KEYSPILLI_RETENTION_DAYS": value})
+            assert result.returncode != 0, value
+            assert not manifests(backups), value
+        print("  PASS: invalid retention cannot create or expire a backup")
+
+
+def test_retention_unlink_failure_preserves_marker_and_reports_failure() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        result, backups, _log = run_runner(root, retention_days=1)
+        assert result.returncode == 0, result.stderr
+        marker = manifests(backups)[0]
+        old = json.loads(marker.read_text())
+        archive = backups / old["archiveFile"]
+        for path in (marker, backups / old["dbFile"], archive):
+            os.utime(path, (time.time() - 3 * 86400,) * 2)
+        # Inject one filesystem failure into the actual retention program;
+        # the other backup Python calls still use the real interpreter.
+        wrapper = root / "python3"
+        wrapper.write_text(f'''#!{sys.executable}
+import os, sys
+from pathlib import Path
+if len(sys.argv) == 5 and sys.argv[1] == "-" and sys.argv[2] == {str(backups)!r}:
+    original = Path.unlink
+    def unlink(path, *args, **kwargs):
+        if str(path) == {str(archive)!r}: raise PermissionError("injected unlink failure")
+        return original(path, *args, **kwargs)
+    Path.unlink = unlink
+    source = sys.stdin.read()
+    sys.argv = sys.argv[1:]
+    exec(compile(source, "backup-retention", "exec"))
+else:
+    os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])
+''')
+        wrapper.chmod(0o755)
+        time.sleep(1.1)
+        result, _backups, _log = run_runner(root, retention_days=1)
+        assert result.returncode != 0
+        assert marker.exists() and archive.exists()
+        report = next(json.loads(line)["backupRetention"] for line in result.stderr.splitlines() if line.startswith('{"backupRetention"'))
+        assert report["partialDeletionFailures"] == 1
+        assert report["preservedAmbiguousCohorts"] == 0
+        assert report["prunedCohorts"] == 0
+        print("  PASS: failed payload deletion keeps its marker and cannot report success or preservation")
+
+
 def test_restore_drill_is_non_destructive() -> None:
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
@@ -276,7 +395,14 @@ def test_restore_drill_is_non_destructive() -> None:
         drill = subprocess.run(["bash", str(RESTORE), str(manifest), str(destination)], capture_output=True, text=True, timeout=30)
         assert drill.returncode == 0, drill.stderr
         assert (destination / json.loads(manifest.read_text())["dbFile"]).exists()
-        assert (destination / "artifacts" / ".test.reconciliation.json").exists()
+        assert (destination / "runtime" / "db.sqlite").exists()
+        assert (destination / "runtime" / "artifacts" / ".test.reconciliation.json").exists()
+        assert (destination / "runtime" / "review-receipts" / "test-song" / "preserved.json").read_text() == '{"fixture":"review history"}'
+        assert (destination / "runtime" / "harmony-candidates" / "test-song" / "preserved.json").read_text() == '{"fixture":"unreviewed candidate"}'
+        report = json.loads((destination / "restore-report.json").read_text())
+        assert report["archiveValidation"] == "passed" and report["applicationVerification"] == "not_run"
+        assert report["catalogSchemaEpoch"] == 0
+        assert report["elapsedSeconds"] >= 0
         again = subprocess.run(["bash", str(RESTORE), str(manifest), str(destination)], capture_output=True, text=True, timeout=30)
         assert again.returncode != 0
         print("  PASS: restore drill verifies a fresh destination without mutating source backups")
@@ -303,6 +429,35 @@ def test_restore_rejects_archive_links() -> None:
         print("  PASS: restore rejects archive links outside the fresh destination")
 
 
+def test_restore_refuses_destination_created_during_startup() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        result, backups, _log = run_runner(root)
+        assert result.returncode == 0, result.stderr
+        destination = root / "restore"
+        real_mkdir = shutil.which("mkdir")
+        # Create another writer's destination after the shell's existence check.
+        mkdir = root / "mkdir"
+        mkdir.write_text(textwrap.dedent(f"""\
+            #!/usr/bin/env python3
+            import os, sys
+            from pathlib import Path
+            if sys.argv[-1] == {str(destination)!r}:
+                runtime = Path(sys.argv[-1]) / "runtime"
+                runtime.mkdir(parents=True)
+                (runtime / "db.sqlite").write_bytes(b"another writer's database")
+            os.execv({real_mkdir!r}, [{real_mkdir!r}, *sys.argv[1:]])
+        """))
+        mkdir.chmod(0o755)
+        drill = subprocess.run(["bash", str(RESTORE), str(manifests(backups)[0]), str(destination)],
+                               env={**os.environ, "PATH": f"{root}:{os.environ['PATH']}"},
+                               capture_output=True, text=True, timeout=30)
+        assert drill.returncode != 0
+        assert (destination / "runtime" / "db.sqlite").read_bytes() == b"another writer's database"
+        assert list(destination.iterdir()) == [destination / "runtime"]
+        print("  PASS: restore atomically refuses another writer's destination")
+
+
 if __name__ == "__main__":
     print("Running F08 backup tests...")
     test_runner_pauses_pair_and_restores_only_its_pauses()
@@ -315,4 +470,5 @@ if __name__ == "__main__":
     test_retention_rejects_traversal_manifest_paths()
     test_restore_drill_is_non_destructive()
     test_restore_rejects_archive_links()
+    test_restore_refuses_destination_created_during_startup()
     print("All F08 backup tests passed.")

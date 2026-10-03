@@ -1,3 +1,4 @@
+import { readJsonObject } from "../../../../lib/bounded-body";
 import { tutorialImportsEnabled } from "@keyspilli/catalog";
 import { NextRequest, NextResponse } from "next/server";
 import {canonicalYoutubeUrl,getDb} from "@keyspilli/catalog";
@@ -13,7 +14,9 @@ export async function POST(_request: Request) {
   if (tutorialImportsEnabled()) {
     const {checkMutationAuth}=await import("../../../../lib/mutation-auth");
     const denied=checkMutationAuth(_request);if(denied)return denied;
-    const body=await _request.json().catch(()=>null);
+    const input = await readJsonObject(_request);
+    if (input.response) return input.response;
+    const body = input.body;
     if(!body || typeof body.url!=="string" || Object.keys(body).some(key=>key!=="url"))
       return NextResponse.json({error:"Supply only a YouTube URL"},{status:400});
     const {POST:queue}=await (queueModule ??= import("../route"));

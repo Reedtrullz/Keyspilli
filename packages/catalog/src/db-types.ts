@@ -35,6 +35,10 @@ export interface JobRow {
 }
 
 export interface SongFilters {
+  /** Project learner-facing levels before filtering, ordering and pagination. */
+  publicOnly?: boolean;
+  /** Match bases containing one of these exact physical song IDs. Empty means none. */
+  ids?: readonly string[];
   importMethod?: string;
   difficulty?: string;
   key?: string;

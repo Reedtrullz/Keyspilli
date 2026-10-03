@@ -1,3 +1,4 @@
+import { validKeyboardRange } from "./keyboard-range.js";
 import type { PlayerSettings } from "./types.js";
 import type { AccompanimentStyle } from "./accompaniment.js";
 
@@ -34,6 +35,9 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   transpose: 0,
   mode: "falling",
   showAllKeys: true,
+  physicalKeyboard: null,
+  audibleSupport: false,
+  renderedExpression: "source",
   keyboardLabels: "notes",
   showKeyBindings: false,
   stageTheme: "light",
@@ -46,6 +50,7 @@ function storage(): Storage | null {
     return null;
   }
 }
+export { storage as preferenceStorage };
 
 function clampNum(v: unknown, min: number, max: number, fallback: number): number {
   if (typeof v !== "number" || !Number.isFinite(v)) return fallback;
@@ -107,6 +112,9 @@ export function loadSettings(): PlayerSettings {
       transpose: clampNum(Math.trunc(Number(raw.transpose)), TRANSPOSE_MIN, TRANSPOSE_MAX, DEFAULT_SETTINGS.transpose),
       mode: pickEnum(raw.mode, VIEW_MODES, DEFAULT_SETTINGS.mode),
       showAllKeys: pickBool(raw.showAllKeys, DEFAULT_SETTINGS.showAllKeys),
+      audibleSupport: pickBool(raw.audibleSupport, false),
+      renderedExpression: pickEnum(raw.renderedExpression,["source","meter-accents"] as const,"source"),
+      physicalKeyboard: validKeyboardRange(raw.physicalKeyboard) ? raw.physicalKeyboard : null,
       keyboardLabels: pickEnum(raw.keyboardLabels, ["notes", "octaves", "off"] as const, DEFAULT_SETTINGS.keyboardLabels),
       showKeyBindings: pickBool(raw.showKeyBindings, DEFAULT_SETTINGS.showKeyBindings),
       stageTheme: pickEnum(raw.stageTheme, ["light", "charcoal"] as const, DEFAULT_SETTINGS.stageTheme),
@@ -183,3 +191,24 @@ export function saveSongPrefs(songId: string, prefs: Partial<SongPrefs>): void {
   const current = loadSongPrefs(songId);
   saveJson(SONG_KEY_PREFIX + songId, { ...current, ...prefs });
 }
+
+export const TIMING_CALIBRATION_KEY = "keyspilli.timing.v1";
+/** Owner-entered offset, not a measurement of device latency. Unknown remains null. */
+export function loadTimingCalibration(binding: string): number | null {
+  const state = loadJson<unknown>(TIMING_CALIBRATION_KEY, {});
+  if (!state || typeof state !== "object" || Array.isArray(state) || Object.keys(state).length > 20) return null;
+  const value = (state as Record<string, unknown>)[binding];
+  return typeof value === "number" && Number.isFinite(value) && value >= -250 && value <= 250 ? value : null;
+}
+export function saveTimingCalibration(binding: string, offset: number | null): boolean {
+  if (!binding || binding.length > 256 || offset !== null && (!Number.isFinite(offset) || Math.abs(offset) > 250)) return false;
+  try {
+    const raw = loadJson<unknown>(TIMING_CALIBRATION_KEY, {});
+    const entries = raw && typeof raw === "object" && !Array.isArray(raw) ? Object.entries(raw) : [];
+    const next = Object.fromEntries(entries.filter(([key, value]) => key !== binding && key.length <= 256 && typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 250).slice(-19));
+    if (offset !== null) Object.defineProperty(next, binding, { value: offset, enumerable: true, configurable: true });
+    const s = storage(); if (!s) return false;
+    s.setItem(TIMING_CALIBRATION_KEY, JSON.stringify(next)); return true;
+  } catch { return false; }
+}
+export function clearTimingCalibrations(): void { try { storage()?.removeItem(TIMING_CALIBRATION_KEY); } catch { /* playback remains available */ } }

@@ -1,12 +1,12 @@
 import { afterAll, expect, it } from "vitest";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeMidi } from "@keyspilli/midi";
 import { ingestSource } from "../src/ingest.js";
-import { claimJob, getDb, getJob, getSongsByBase, insertJob } from "../src/db.js";
-import { reconcileBaseArtifact } from "../src/publish.js";
-import { commitCatalogPublication } from "../src/reconcile.js";
+import { deleteBaseRows, claimJob, getDb, getJob, getSongsByBase, insertJob } from "../src/db.js";
+import { deleteBaseArtifact, reconcileBaseArtifact } from "../src/publish.js";
+import { catalogDeletionSnapshot, commitCatalogPublication } from "../src/reconcile.js";
 const previous = process.env.KEYSPILLI_DATA_DIR;
 const root = mkdtempSync(join(tmpdir(), "keyspilli-reconcile-"));
 process.env.KEYSPILLI_DATA_DIR = root;
@@ -47,4 +47,27 @@ it("links a replacement publication for a job already bound to that base", async
   expect(result.error).toBeUndefined();
   expect(getJob("replacement-job")).toMatchObject({ status: "done", songId: `${baseId}-e` });
   expect(getSongsByBase(baseId).map(row => row.title)).toEqual(Array(6).fill("Replaced"));
+});
+
+it("replays the recorded source ownership after a deletion crashes beyond the DB commit", async () => {
+  const baseId = "delete-source-retry", jobId = "delete-source-job";
+  const source = writeMidi(Array.from({length:16},(_,i)=>({midi:60+i%7,start:i,dur:1,vel:80})),{tempoBpm:120});
+  expect((await ingestSource({baseId,buf:source,title:"Synthetic",artist:"Test",contentType:"upload"})).error).toBeUndefined();
+  insertJob({id:jobId,youtubeUrl:"https://www.youtube.com/watch?v=abcdefghijk",status:"done",songId:`${baseId}-e`,error:null,createdAt:new Date().toISOString(),finishedAt:null});
+  mkdirSync(join(root,"transcribed",jobId),{recursive:true});
+  writeFileSync(join(root,"transcribed",jobId,"owned.mid"),source);
+  writeFileSync(join(root,"transcribed",`${jobId}-stems.json`),"synthetic");
+  writeFileSync(join(root,"transcribed",`${jobId}other.mid`),"unowned");
+  await expect(deleteBaseArtifact(baseId,{artifactsRoot:join(root,"artifacts"),prepareRecoveryData:()=>catalogDeletionSnapshot(baseId),afterFilesystemDelete:()=>{deleteBaseRows(baseId);throw new Error("crash after DB commit");}})).rejects.toThrow("crash after DB commit");
+  expect(getSongsByBase(baseId)).toHaveLength(0);expect(getJob(jobId)).toBeUndefined();
+  expect(existsSync(join(root,"uploads",`${baseId}.mid`))).toBe(true);
+  const bytes=readFileSync(join(root,"artifacts",`.${baseId}.reconciliation.json`));
+  expect(JSON.parse(bytes.toString()).recoveryData).toEqual({baseId,jobIds:[jobId]});
+  const {createHash}=await import("node:crypto"),{recoverCatalogPublication}=await import("../src/recovery.js");
+  const receipt=await recoverCatalogPublication(baseId,createHash("sha256").update(bytes).digest("hex"));
+  expect(receipt?.disposition).toBe("deleted");
+  expect(existsSync(join(root,"uploads",`${baseId}.mid`))).toBe(false);
+  expect(existsSync(join(root,"transcribed",jobId))).toBe(false);
+  expect(existsSync(join(root,"transcribed",`${jobId}-stems.json`))).toBe(false);
+  expect(readFileSync(join(root,"transcribed",`${jobId}other.mid`),"utf8")).toBe("unowned");
 });

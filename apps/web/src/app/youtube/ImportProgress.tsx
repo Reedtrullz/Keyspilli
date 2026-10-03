@@ -14,8 +14,8 @@ export function stagePercent(stage: string): number {
   return STAGES.find((item) => item.id === stage)?.percent ?? 0;
 }
 
-export default function ImportProgress({ status, stage, furthest, elapsedSeconds, cancelled, reconciliationRequired = false }: {
-  status: string; stage: string; furthest: number; elapsedSeconds: number | null; cancelled: boolean; reconciliationRequired?: boolean;
+export default function ImportProgress({ status, stage, furthest, elapsedSeconds, cancelled, reconciliationRequired = false, resultUnavailable = false }: {
+  status: string; stage: string; furthest: number; elapsedSeconds: number | null; cancelled: boolean; reconciliationRequired?: boolean; resultUnavailable?: boolean;
 }) {
   if (!status) return null;
   const current = STAGES.find((item) => item.id === stage);
@@ -23,10 +23,10 @@ export default function ImportProgress({ status, stage, furthest, elapsedSeconds
   const active = status === "processing";
   const percent = done ? 100 : active && current ? Math.min(95, Math.max(current.percent, furthest)) : null;
   const retrying = active && current && current.percent < furthest;
-  const title = done ? "Your piano lesson is ready" : failed ? (cancelled ? "Preview cancelled" : "We couldn’t create this preview")
+  const title = done ? resultUnavailable ? "Import finished; result unavailable" : "Your piano lesson is ready" : failed ? (cancelled ? "Preview cancelled" : "We couldn’t create this preview")
     : status === "queued" ? "Waiting for your turn" : current && active ? current.title
     : status === "Submitting" ? "Sending your link" : "Checking your preview";
-  const detail = done ? "Choose a difficulty and start playing." : failed ? reconciliationRequired
+  const detail = done ? resultUnavailable ? "Check the library or ask the owner to inspect this saved publication." : "Choose a difficulty and start playing." : failed ? reconciliationRequired
     ? "A saved artifact needs operator reconciliation. Do not retry this job."
     : cancelled ? "The request was cancelled; check the saved job before starting again."
     : "You can try another link."

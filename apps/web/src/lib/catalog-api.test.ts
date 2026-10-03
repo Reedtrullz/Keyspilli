@@ -1,11 +1,14 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import filesystem from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ChordLabel } from "@keyspilli/midi";
-import { createLegacyBootstrapManifest, arrangementManifestPath, deleteSongsByBase, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
+import * as catalog from "@keyspilli/catalog";
+import { createLegacyBootstrapManifest, arrangementManifestPath, deleteSongsByBase, replaceSongsByBase, upsertSong, writeArrangementManifestFile, type SongRow, type SourceTimingMetadata } from "@keyspilli/catalog";
 import { writeMidi, writeMusicXml } from "@keyspilli/midi";
 import type { SongData } from "@keyspilli/player-core";
 import { replayChordsBacking } from "../components/player/chords-backing";
@@ -282,15 +285,48 @@ describe("catalog artifact manifest read boundary", () => {
   it("builds a metadata-only player shell without reading notes.json", async () => {
     await rm(join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json"));
     const shell = await getSongDetailShell(song().id);
-    expect(shell).toEqual({ song: song(), variants: [song()] });
+    expect(shell).toEqual({ song: song(), variants: [song()], publicationRevision: null });
     expect(shell).not.toHaveProperty("data");
     expect(shell).not.toHaveProperty("artifact");
+  });
+
+  it("retries the complete detail when a publication swaps between reads", async () => {
+    const notesPath = join(dataRoot, "artifacts", "catalog-api-song", "a", "notes.json");
+    const identityPath = join(dataRoot, "artifacts", "catalog-api-song", ".publication-id");
+    await writeFile(identityPath, "revision-one\n");
+    const swapAtChartRead = vi.spyOn(catalog, "loadChordTimeline").mockImplementationOnce(async () => {
+      await writeFile(notesPath, JSON.stringify({
+        notes: [{ midi: 67, start: 0, dur: 1, vel: 80, hand: "R" }],
+        chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }],
+        key: "C", tempoBpm: 120, timeSig: [4, 4],
+      }));
+      replaceSongsByBase(song().baseId, [{ ...song(), title: "Revision two" }]);
+      await writeFile(identityPath, "revision-two\n");
+      return null;
+    });
+
+    try {
+      const detail = await getSongDetail(song().id);
+      expect(detail?.publicationRevision).toBe("revision-two");
+      expect(detail?.song.title).toBe("Revision two");
+      expect(detail?.data?.notes.map((note) => note.midi)).toEqual([67]);
+      expect(swapAtChartRead).toHaveBeenCalledTimes(2);
+    } finally {
+      swapAtChartRead.mockRestore();
+    }
   });
 
   it("allows an explicit legacy read from the selected notes.json only", async () => {
     const loaded = await loadSongArtifact(song(120));
     expect(loaded.artifact).toEqual({ status: "legacy", errors: [] });
     expect(loaded.data?.tempoBpm).toBe(120);
+  });
+
+  it("keeps a legacy detail explicitly unpinned and rejects pinning it after publication", async () => {
+    const legacy = await getSongDetail(song().id);
+    expect(legacy?.publicationRevision).toBeNull();
+    await writeFile(join(dataRoot, "artifacts", "catalog-api-song", ".publication-id"), "revision-a\n");
+    await expect(getSongDetail(song().id, null)).rejects.toMatchObject({ name: "PublicationRevisionConflictError" });
   });
 
   it("exposes selected source metadata in both full and sheet-only player payloads", async () => {
@@ -708,7 +744,7 @@ describe("catalog artifact export validation", () => {
     const journal = join(dataRoot, "artifacts", `.${song().baseId}.reconciliation.json`);
     await writeFile(journal, "{}");
     try {
-      expect(await getArtifactFile(song().id, "variant.mid")).toBeNull();
+      await expect(getArtifactFile(song().id, "variant.mid")).rejects.toMatchObject({ name: "PublicationRevisionConflictError" });
       expect((await loadSongArtifact(song())).artifact.errors).toContain("ARTIFACT_RECONCILIATION_REQUIRED");
     } finally { await rm(journal); }
     expect(await getArtifactFile(song().id, "variant.mid")).toBeInstanceOf(Buffer);
@@ -726,6 +762,23 @@ describe("catalog artifact export validation", () => {
       midiNotes: [{ midi: 62, start: 1, dur: 2, vel: 90, hand: "R" }],
     });
     await expect(getArtifactFile(song().id, "variant.mid")).resolves.toBeNull();
+  });
+
+  it("rejects a legacy cache hit if its file changes between the key and metadata reads", async () => {
+    await writeExportFixture();
+    await getArtifactFile(song().id, "variant.mid");
+    const midiPath = join(dataRoot, "artifacts", song().baseId, song().level, "variant.mid");
+    const original = filesystem.statSync;
+    let swapped = false;
+    const barrier = vi.spyOn(filesystem, "statSync").mockImplementation(((path: filesystem.PathLike, options?: unknown) => {
+      const result = original(path, options as never);
+      if (String(path) === midiPath && !swapped) { swapped = true; filesystem.writeFileSync(midiPath, Buffer.from("MThd-corrupt replacement")); }
+      return result;
+    }) as typeof filesystem.statSync);
+    syncBuiltinESMExports();
+    try { await expect(getArtifactFile(song().id, "variant.mid")).rejects.toMatchObject({ name: "PublicationRevisionConflictError" }); }
+    finally { barrier.mockRestore(); syncBuiltinESMExports(); }
+    expect(swapped).toBe(true);
   });
 
   it("does not expose mutable cache buffers to callers", async () => {

@@ -179,11 +179,11 @@ describe("timeline", () => {
     expect(authored[0]!.notes).toEqual([48, 60, 64, 67]);
   });
 
-  it("accents downbeats with a velocity curve", () => {
+  it("preserves flat source velocities without a hidden accent curve", () => {
     const tn = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
-    expect(tn[0]!.vel).toBe(115);
+    expect(tn[0]!.vel).toBe(100);
     const off = resolveTimedNotes({ ...song, notes: [{ midi: 60, start: 0.25, dur: 1, vel: 100, hand: "R" as const }] }, 1, 0);
-    expect(off[0]!.vel).toBe(80);
+    expect(off[0]!.vel).toBe(100);
   });
 
   it("passes real velocities through when source dynamics vary", () => {

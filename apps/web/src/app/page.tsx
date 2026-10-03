@@ -1,19 +1,23 @@
 import Link from "next/link";
-import { listSongsGrouped, countSongs, getDb, projectPublicGroupedSongs, type GroupedSong } from "@keyspilli/catalog";
+import { listSongsGrouped, publicCatalogSummary, type GroupedSong } from "@keyspilli/catalog/runtime";
 import { LEVEL_LABEL, LEVEL_SHORT } from "../components/level-labels";
+import { OwnerStateTools } from "../components/OwnerStateTools";
+import { HomePractice } from "../components/HomePractice";
+import { PracticeSets } from "../components/PracticeSets";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  const popular = projectPublicGroupedSongs(listSongsGrouped({ sort: "popular", limit: 12 }));
-  const recent = projectPublicGroupedSongs(listSongsGrouped({ sort: "newest", limit: 12 }));
-  const plays = (getDb().prepare("SELECT COALESCE(SUM(plays),0) AS s FROM songs").get() as { s: number }).s;
-  const total = countSongs();
+  const popular = listSongsGrouped({ publicOnly: true, sort: "popular", limit: 12 });
+  const recent = listSongsGrouped({ publicOnly: true, sort: "newest", limit: 12 });
+  const { plays, arrangements: total } = publicCatalogSummary();
 
   return (
     <div className="page-shell max-w-6xl mx-auto px-4 py-8">
+      <HomePractice publicTotal={total} />
+      <PracticeSets />
       <section className="home-hero mb-8 text-center py-5 sm:py-6 motion-rise-in">
-        <h1 className="page-title text-3xl sm:text-4xl font-bold tracking-tight mb-2">Play the songs you love, in hours.</h1>
+        <h2 className="page-title text-xl font-semibold tracking-tight mb-2">Explore your library</h2>
         <p className="text-zinc-600 mb-6">
           Color-coded notes, falling keys, and sheet music — built for one pianist. No accounts, no paywalls.
         </p>
@@ -29,7 +33,7 @@ export default function HomePage() {
           {total} arrangements · {plays.toLocaleString()} plays
         </p>
       </section>
-
+      <OwnerStateTools />
       <section className="mb-8 motion-rise-in">
         <h2 className="page-title text-xl font-semibold mb-3">Most played</h2>
         <SongGrid songs={popular} />

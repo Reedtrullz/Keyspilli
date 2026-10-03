@@ -3,6 +3,9 @@ Description=Keyspilli catalogue backup
 Requires=docker.service
 After=docker.service
 ConditionPathExists={{ app_dir }}/backup.sh
+{% if keyspilli_offhost_replication | default(false) | bool %}
+OnSuccess=keyspilli-replication.service
+{% endif %}
 
 [Service]
 Type=oneshot

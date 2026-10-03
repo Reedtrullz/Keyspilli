@@ -1,0 +1,36 @@
+"use client";
+import Link from "next/link";
+import {useEffect,useRef,useState} from "react";
+import type {OwnerReviewList} from "@/lib/owner-review";
+export function OwnerReview(){
+ const [data,setData]=useState<OwnerReviewList|null>(null),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[receipt,setReceipt]=useState("");
+ const controllerRef=useRef<AbortController|null>(null);useEffect(()=>()=>controllerRef.current?.abort(),[]);
+ async function load(after=""){
+  if(busy)return;const controller=new AbortController();controllerRef.current=controller;setBusy(true);setNotice("");const timer=setTimeout(()=>controller.abort(),30000);
+  try{const response=await fetch(`/api/catalog/review?after=${encodeURIComponent(after)}`,{signal:controller.signal});const result=await response.json();if(!response.ok)throw new Error(result.error??"Review unavailable.");if(!controller.signal.aborted)setData(result);}
+  catch(error){if(controllerRef.current===controller){setData(null);setNotice(controller.signal.aborted?"Review timed out. Try refreshing.":error instanceof Error?error.message:"Review unavailable.");}}
+  finally{clearTimeout(timer);if(controllerRef.current===controller)setBusy(false);}
+ }
+ async function importReceipt(){
+  if(busy)return;const controller=new AbortController();controllerRef.current=controller;setBusy(true);setNotice("");const timer=setTimeout(()=>controller.abort(),30000);
+  try{JSON.parse(receipt);const response=await fetch('/api/catalog/review',{method:'POST',headers:{'Content-Type':'application/json'},body:receipt,signal:controller.signal});const result=await response.json();if(!response.ok)throw new Error(result.error??"Review import refused.");if(!controller.signal.aborted){setData(null);setNotice(`Receipt stored: ${result.receiptSha256}. Decision ${result.summary.status}. Refresh to inspect current versions. Music and visibility are unchanged.`);}}
+  catch(error){if(controllerRef.current===controller)setNotice(controller.signal.aborted?"Import response timed out. Refresh to see whether the receipt was stored before retrying.":error instanceof Error?error.message:"Review import refused.");}
+  finally{clearTimeout(timer);if(controllerRef.current===controller)setBusy(false);}
+ }
+ function template(decision:OwnerReviewList['entries'][number]['variants'][number]['decisions'][number]){
+  if(!decision.identity)return;const value={schemaVersion:1,kind:'musical-review-receipt',...decision.identity,reviewer:{id:'',role:'owner',independent:false},reviewedAt:'',coverage:[],decision:'pending',rationale:'',checks:{source:{result:'pending',evidence:[]},listening:{result:'pending',evidence:[]},keyboard:{result:'pending',evidence:[]}}};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download=`${decision.identity.variantId}-${decision.mode.toLowerCase()}-pending-review.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
+ return <section className="space-y-4" aria-label="Owner musical review"><h2 className="text-xl font-semibold">Musical review inventory</h2>
+ <p>Inspect exact versions, including excluded lessons. Notes and manifest checks do not establish listening or keyboard acceptance. Import completed human review receipts for the exact output. Partial reviews remain partial; independent keyboard evidence is separate. Receipt import leaves music and lesson visibility unchanged.</p>
+ <button className="min-h-11 border rounded px-3" disabled={busy} onClick={()=>void load()}>Refresh musical review</button>{notice&&<p role="status">{notice}</p>}
+ {data?.entries.length===0&&<p>No versions on this page.</p>}
+ {data?.entries.map(entry=><article key={entry.baseId} className="border rounded p-3 space-y-2" aria-label={`Review ${entry.baseId}`}><h3 className="font-semibold">{entry.title}</h3><p>{entry.artist} · {entry.excluded?"Excluded from learner catalog":"Catalog policy allows visibility"} · {entry.state}</p><p className="break-all text-xs">Version: {entry.publicationRevision??"unavailable or legacy unpinned"}</p>
+ {entry.variants.map(variant=><details key={variant.id}><summary className="min-h-11">{variant.tier} · {variant.structural}</summary><p className="break-all text-xs">Source: {variant.sourceHash??"unknown"}<br/>Output: {variant.sourceFingerprint??"unknown"}</p><p>{variant.noteCount??"Unknown"} notes · {variant.profile??"unknown profile"} · {variant.sourceKind??"unknown source"} · rights {variant.rightsAttested?"owner attested":"unknown"}</p>{variant.decisions.map(decision=><div key={decision.mode}><p>{decision.mode}: {decision.status} · source {decision.source} · listening {decision.listening} · keyboard {decision.keyboard} · {decision.receiptCount} current / {decision.staleCount} stale receipts</p>{decision.identity&&<><p className="break-all text-xs">Reviewed input: {decision.identity.variantId} · playback {decision.identity.playbackSha256} · {decision.endBeat} beats</p><button className="min-h-11 underline" onClick={()=>template(decision)}>Download {decision.mode} pending review template</button></>}</div>)}{entry.publicationRevision&&variant.sourceFingerprint&&variant.id.endsWith('-a')&&<Link className="min-h-11 inline-flex items-center underline" href={`/maintenance/harmony?id=${encodeURIComponent(variant.id)}&revision=${encodeURIComponent(entry.publicationRevision)}`}>Preview owner harmony</Link>}</details>)}
+ {entry.receipts.length>0&&<details><summary className="min-h-11">Retained review receipts ({entry.receipts.length})</summary>{entry.receipts.map(record=><div key={record.receiptSha256} className="border rounded p-2"><p className="break-all text-xs">{record.receiptSha256} · {record.variantId} · {record.mode} · version {record.publicationRevision}</p><p>{record.reviewer.id} ({record.reviewer.role}, {record.reviewer.independent?'independent':'independence not attested'}) · {record.reviewedAt} · {record.decision}</p><p>Reviewed beats: {record.coverage.map(span=>`${span.startBeat}–${span.endBeat}`).join(', ')}</p><p>{record.rationale}</p></div>)}</details>}
+ {entry.publicationBinding&&<p className="text-xs break-all">Publication links unchanged Chords output to {entry.publicationBinding.receiptSha256s.length} retained reviews from version {entry.publicationBinding.reviewedPublicationRevision}. Owner authorization: {entry.publicationBinding.ownerStatement}</p>}
+ </article>)}
+ {data?.next&&<button className="min-h-11 border rounded px-3" disabled={busy} onClick={()=>void load(data.next!)}>Next review page</button>}
+ <form className="space-y-2" onSubmit={event=>{event.preventDefault();void importReceipt();}}><label className="block">Completed review receipt JSON<textarea aria-label="Completed review receipt JSON" className="block w-full min-h-32 border rounded p-2 font-mono text-sm" value={receipt} maxLength={32768} disabled={busy} onChange={event=>setReceipt(event.target.value)}/></label><p>Complete the pending template only with actual reviewed ranges, reviewer identity and evidence hashes. Do not import preparation receipts as musical acceptance.</p><button className="min-h-11 border rounded px-3" disabled={busy||!receipt.trim()}>Import exact review receipt</button></form>
+ </section>;
+}

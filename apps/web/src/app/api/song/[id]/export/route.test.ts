@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const launch = vi.hoisted(() => vi.fn());
 const getSongDetailShell = vi.hoisted(() => vi.fn());
+const getArtifactFileWithRevision = vi.hoisted(() => vi.fn());
+const PublicationRevisionConflictError = vi.hoisted(() => class extends Error {});
 
 vi.mock("playwright", () => ({ chromium: { launch } }));
-vi.mock("@/lib/catalog-api", () => ({ getArtifactFile: vi.fn(), getSongDetailShell }));
+vi.mock("@/lib/catalog-api", () => ({ getArtifactFileWithRevision, getSongDetailShell, PublicationRevisionConflictError }));
 
 let GET: typeof import("./route").GET;
 
@@ -17,7 +19,8 @@ describe("song export route PDF failures", () => {
     vi.resetModules();
     ({ GET } = await import("./route"));
     launch.mockReset();
-    getSongDetailShell.mockReset().mockResolvedValue({ song: { hasSheetXml: 1 }, variants: [] });
+    getSongDetailShell.mockReset().mockResolvedValue({ song: { hasSheetXml: 1 }, variants: [], publicationRevision: null });
+    getArtifactFileWithRevision.mockReset();
   });
 
   it("rejects unknown layouts before starting Chromium", async () => {
@@ -26,6 +29,23 @@ describe("song export route PDF failures", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "unknown PDF layout" });
     expect(launch).not.toHaveBeenCalled();
+  });
+
+  it("requires and returns the requested publication for MIDI exports", async () => {
+    getArtifactFileWithRevision.mockResolvedValueOnce({ data: Buffer.from("midi"), publicationRevision: "revision-a" });
+    const response = await GET(requestFor("type=midi&revision=revision-a"), { params });
+
+    expect(response.status).toBe(200);
+    expect(getArtifactFileWithRevision).toHaveBeenCalledWith("song-a", "variant.mid", "revision-a");
+    expect(response.headers.get("x-publication-revision")).toBe("revision-a");
+  });
+
+  it("returns a recoverable conflict when an export revision is stale", async () => {
+    getArtifactFileWithRevision.mockRejectedValueOnce(new PublicationRevisionConflictError());
+    const response = await GET(requestFor("type=musicxml&revision=revision-old"), { params });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ code: "PUBLICATION_REVISION_CONFLICT" });
   });
 
   it("returns a stable safe error when Chromium cannot launch", async () => {
@@ -53,6 +73,41 @@ describe("song export route PDF failures", () => {
       code: "CLASSIC_PDF_UNAVAILABLE",
     });
     expect(launch).not.toHaveBeenCalled();
+  });
+
+  it("pins the rendered PDF page to its shell revision", async () => {
+    getSongDetailShell.mockResolvedValueOnce({ song: { hasSheetXml: 1 }, variants: [], publicationRevision: "revision-a" });
+    const page = {
+      close: vi.fn().mockResolvedValue(undefined),
+      goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+      waitForFunction: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue({ ready: true, hasContent: true, publicationConflict: false }),
+      pdf: vi.fn().mockResolvedValue(new Uint8Array([37, 80, 68, 70])),
+    };
+    launch.mockResolvedValue({ isConnected: () => true, newPage: vi.fn().mockResolvedValue(page) });
+
+    const response = await GET(requestFor("type=pdf&layout=classic"), { params });
+
+    expect(page.goto).toHaveBeenCalledWith(expect.stringContaining("revision=revision-a"), { waitUntil: "networkidle" });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-publication-revision")).toBe("revision-a");
+  });
+
+  it("returns a recoverable conflict when the pinned PDF page detects a publication change", async () => {
+    getSongDetailShell.mockResolvedValueOnce({ song: { hasSheetXml: 1 }, variants: [], publicationRevision: "revision-a" });
+    const page = {
+      close: vi.fn().mockResolvedValue(undefined), goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+      waitForFunction: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue({ ready: false, hasContent: false, publicationConflict: true }),
+      pdf: vi.fn(),
+    };
+    launch.mockResolvedValue({ isConnected: () => true, newPage: vi.fn().mockResolvedValue(page) });
+
+    const response = await GET(requestFor("type=pdf&layout=classic"), { params });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ code: "PUBLICATION_REVISION_CONFLICT" });
+    expect(page.pdf).not.toHaveBeenCalled();
   });
   it("preflights missing simplify songs before launching a browser", async () => {
     getSongDetailShell.mockResolvedValueOnce(null);

@@ -40,9 +40,23 @@ services:
         max-file: "3"
 
   worker:
+    # Runtime drains for at most 120 seconds before lease recovery is required.
+    stop_grace_period: 125s
+    healthcheck:
+      test: ["CMD", "node", "--import", "tsx", "services/transcribe/src/worker-health-check.ts"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 2
     image: "{{ compose_worker_image | default(worker_image) }}"
     container_name: "{{ worker_container_name }}"
     restart: unless-stopped
+{% if keyspilli_worker_budget | default({}) | length > 0 and keyspilli_worker_budget.image == (compose_worker_image | default(worker_image)) %}
+    cpus: {{ keyspilli_worker_budget.cpus | float }}
+    mem_limit: "{{ keyspilli_worker_budget.memory_mib | int }}m"
+    memswap_limit: "{{ keyspilli_worker_budget.memory_mib | int }}m"
+    pids_limit: {{ keyspilli_worker_budget.pids | int }}
+{% endif %}
     # The SSH download relay listens only on host loopback.
     network_mode: host
     # Match the existing managed volume owner without changing catalogue files.

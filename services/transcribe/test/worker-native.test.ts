@@ -7,7 +7,7 @@ import { sha256Hex } from "@keyspilli/catalog/src/fixture-evidence.js";
 
 // Only the remote byte transport is substituted; resolver, parser, builder,
 // queue, worker, publication and database are the production implementations.
-const transport = vi.hoisted(() => ({ bytes: new Uint8Array(), status: 200, lowDisk: false, failure: undefined as Error | undefined, beforeResponse: undefined as (() => void) | undefined }));
+const transport = vi.hoisted(() => ({ bytes: new Uint8Array(), status: 200, lowDisk: false, failure: undefined as Error | undefined, beforeResponse: undefined as (() => void) | undefined, stemFailure: undefined as Error | undefined }));
 vi.mock("@keyspilli/catalog/src/external-retrieval.js", async (original) => {
   const actual = await original<typeof import("@keyspilli/catalog/src/external-retrieval.js")>();
   return { ...actual, retrieveExternalSource: (input: Parameters<typeof actual.retrieveExternalSource>[0], options: Parameters<typeof actual.retrieveExternalSource>[1]) => actual.retrieveExternalSource(input, { ...options, fetch: async () => { transport.beforeResponse?.(); if (transport.failure) throw transport.failure; return new Response(transport.bytes, { status: transport.status, headers: { "content-type": "audio/midi" } }); } }) };
@@ -21,7 +21,7 @@ vi.mock("node:fs/promises", async (original) => {
 });
 vi.mock("../src/stem-pipeline.js", async (original) => ({
   ...await original<typeof import("../src/stem-pipeline.js")>(),
-  transcribePitchedStems: async () => { throw new Error("separator unavailable fixture"); },
+  transcribePitchedStems: async () => { throw transport.stemFailure??new Error("separator unavailable fixture"); },
 }));
 vi.mock("node:child_process", () => ({ execFile: (...args: unknown[]) => {
   const callback = args.at(-1) as (error: Error) => void;
@@ -33,6 +33,62 @@ vi.stubEnv("KEYSPILLI_DATA_DIR", dir);
 vi.stubEnv("KEYSPILLI_SOURCE_ASSISTED_BETA", "1");
 vi.stubEnv("KEYSPILLI_VERIFIED_SOURCE_INDEX", join(dir, "index.json"));
 afterAll(() => { vi.unstubAllEnvs(); rmSync(dir, { recursive: true, force: true }); });
+
+it("releases an owned job for shutdown without incrementing attempts", async () => {
+  const { insertJob, getJob } = await import("@keyspilli/catalog");
+  const { processJob } = await import("../src/worker.js");
+  insertJob({ id: "shutdown-before-work", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: null, error: null, attempts: 1, createdAt: new Date().toISOString(), finishedAt: null });
+  const controller = new AbortController();
+  controller.abort();
+
+  await processJob("shutdown-before-work", { signal: controller.signal });
+
+  expect(getJob("shutdown-before-work")).toMatchObject({ status: "queued", attempts: 1, error: null });
+});
+
+it("fences the owned lease when shutdown grace expires during publication", async () => {
+  const { insertJob, getJob } = await import("@keyspilli/catalog");
+  const { processJob } = await import("../src/worker.js");
+  insertJob({ id: "shutdown-grace-fence", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: null, error: null, attempts: 1, createdAt: new Date().toISOString(), finishedAt: null });
+  const controller = new AbortController();
+  controller.abort();
+  let fenceRegistered = false;
+
+  await processJob("shutdown-grace-fence", {
+    signal: controller.signal,
+    registerGraceExpired: (fence) => {
+      fenceRegistered = true;
+      fence("publishing");
+    },
+  });
+
+  expect(fenceRegistered).toBe(true);
+  expect(getJob("shutdown-grace-fence")).toMatchObject({ status: "queued", attempts: 1, error: null });
+});
+
+it("does not begin publication when shutdown arrives at the publication boundary", async () => {
+  const { insertJob, getJob, getSongsByBase } = await import("@keyspilli/catalog");
+  const { processJob } = await import("../src/worker.js");
+  transport.bytes = writeMidi(Array.from({ length: 64 }, (_, i) => ({ midi: 60 + i % 5, start: i, dur: .75, vel: 90, hand: "R" as const })), { tempoBpm: 90 });
+  const hash = sha256Hex(transport.bytes);
+  const baseId = `beta-native-${hash.slice(0, 24)}`;
+  writeFileSync(join(dir, "index.json"), JSON.stringify([{
+    id: "shutdown-fixture", recordingIds: ["abcdefghijk"], artist: "Synthetic", title: "Shutdown Fixture",
+    arrangementTitle: "Shutdown Fixture Piano", sourceUrl: "https://scores.example/fixture.mid", sourceSha256: hash,
+    license: "CC0-1.0", licenseEvidenceUrl: "https://scores.example/license",
+    verificationEvidenceUrl: "https://scores.example/fixture", containsMelody: true, completeArrangement: true,
+  }]));
+  insertJob({ id: "shutdown-before-publish", youtubeUrl: "https://www.youtube.com/watch?v=abcdefghijk", status: "queued", songId: null, error: null, attempts: 1, createdAt: new Date().toISOString(), finishedAt: null });
+  const controller = new AbortController();
+
+  await processJob("shutdown-before-publish", {
+    signal: controller.signal,
+    onProgress: (stage) => { if (stage === "publishing") controller.abort(); },
+  });
+
+  expect(getJob("shutdown-before-publish")).toMatchObject({ status: "queued", attempts: 1, error: null });
+  expect(getSongsByBase(baseId)).toHaveLength(0);
+});
 
 it("runs a queued requested recording through native resolution and publishes all five public levels", async () => {
   const { insertJob, getJob, getSongsByBase } = await import("@keyspilli/catalog");
@@ -97,6 +153,14 @@ it("returns review after separator failure without deleting diagnostics or using
   expect(getJob("failed-separator")?.error).toMatch(/SOURCE_REVIEW_REQUIRED.*separator unavailable/);
   expect(getJob("failed-separator")?.songId).toBeNull();
   expect(readFileSync(join(jobDir, "stem-midi", "diagnostic.json"), "utf8")).toBe("retained");
+});
+
+it("retains inputs and terminates a resource-blocked job without automatic retries or publication",async()=>{
+ const {insertJob,getJob,getDb}=await import("@keyspilli/catalog");const {processJob}=await import("../src/worker.js");const {RESOURCE_BLOCKED_MESSAGE}=await import("../src/errors.js");
+ vi.stubEnv("KEYSPILLI_SOURCE_ASSISTED_BETA","0");const jobDir=join(dir,"transcribed","resource-blocked");mkdirSync(join(jobDir,"stem-midi"),{recursive:true});writeFileSync(join(jobDir,"audio.mp3"),new Uint8Array(2048));writeFileSync(join(jobDir,"meta.json"),JSON.stringify({title:"Synthetic",uploader:"Fixture",durationSec:30}));writeFileSync(join(jobDir,"stem-midi","diagnostic.json"),"retained");const before=getDb().prepare("SELECT * FROM songs ORDER BY id").all();
+ insertJob({id:"resource-blocked",youtubeUrl:"https://www.youtube.com/watch?v=abcdefghijk",status:"queued",songId:null,error:null,createdAt:new Date().toISOString(),finishedAt:null});transport.stemFailure=Error(RESOURCE_BLOCKED_MESSAGE);
+ try{await processJob("resource-blocked");}finally{transport.stemFailure=undefined;vi.stubEnv("KEYSPILLI_SOURCE_ASSISTED_BETA","1");}
+ expect(getJob("resource-blocked")).toMatchObject({status:"error",attempts:1,songId:null,error:"attempt 1: "+RESOURCE_BLOCKED_MESSAGE});expect(getDb().prepare("SELECT * FROM songs ORDER BY id").all()).toEqual(before);expect(readFileSync(join(jobDir,"stem-midi","diagnostic.json"),"utf8")).toBe("retained");
 });
 
 it.each(["404", "timeout", "corrupt-midi", "invalid-duration", "no-melody", "wrong-song", "unsupported-tutorial", "missing-backend", "low-disk"])("preserves prior catalog on %s", async (failure) => {

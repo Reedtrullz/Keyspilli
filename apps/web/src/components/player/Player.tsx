@@ -1,7 +1,13 @@
 "use client";
+import type { MeasureInfo } from "@keyspilli/midi";
+import { MidiTakePanel,type MidiTakeInput } from "./MidiTakePanel";
+import { RhythmCoach } from "./RhythmCoach";
+import { LearningInspection } from "./LearningInspection";
+import {activeExportDigest,activeExportVariant,type ActiveExportSelection} from "./active-arrangement-export";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { NavigationFeedback } from "../NavigationFeedback";
 import { microphonePitchEdge } from "./microphone-pitch";
 import {
   AudioEngine,
@@ -12,18 +18,36 @@ import {
   detectPitch,
   filterAccompanimentChords,
   KeyboardInput,
+  keyboardReachability,
+  noteLabel,
+  noteMatchesHand,
+  selectHandNotes,
+  isNativeKeyboardEvent,
   MidiInput,
   midiSupported,
   PlaybackEngine,
   loadJson,
   loadStringList,
   loadSettings,
+  loadTimingCalibration,
+  saveTimingCalibration,
+  clearTimingCalibrations,
   loadSongPrefs,
+  loadPracticeState,
+  passageAvailable,
+  restoredMelodyChoice,
+  savePracticeState,
+  recordAttempt,
+  savedGradeDiagnostics,
+  gradeProblemWindows,
+  microphoneEligibility,
+  practiceFingerprint,
   measureIndex,
   passageMidiRange,
   playbackMeasures,
   playbackTiming,
   resolveTimedNotes,
+  resolveSourcePedalNotes,
   sourceNoteIds,
   validateSparseBackingTiming,
   saveJson,
@@ -35,16 +59,22 @@ import {
   TRANSPOSE_MIN,
   TRANSPOSE_MAX,
   type LoopRegion,
+  type InputEventMetadata,
   type MelodyPhraseOverride,
   type MelodyAccompanimentResolution,
   type MelodyHarmonicSupportPolicy,
   type MelodySelection,
   type SourceBackingMode,
   type SparseBackingTiming,
+  HeldChordGrader,
   type ChordPracticeSnapshot,
   type PlayerSettings,
   type ViewMode,
   type SongData,
+  type GradeResult,
+  type PracticeTarget,
+  type PracticeAttempt,
+  type SavedPassage,
   type Section as SongSection,
 } from "@keyspilli/player-core";
 import { SourceArrangementNotice } from "./SourceArrangementNotice";
@@ -64,16 +94,22 @@ import {
 } from "./melody-arrangement-runtime";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
+import { OwnerDeletion } from "../OwnerDeletion";
+import { OfflinePackControl } from "../OfflinePack";
+import { OwnerMetadata } from "../OwnerMetadata";
 import { SheetMusicView, type SheetReaderPosition } from "./SheetMusicView";
 import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction, type MelodyPreviewStatus } from "./SoundControls";
 import { reviewedSourceBacking } from "./reviewed-source-backing";
 import { bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
 import { melodyArrangementOutcome } from "./melody-arrangement-status";
+import { usePianoInput } from "./usePianoInput";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
 import { PlayerTools, type PlayerTool } from "./PlayerTools";
 import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
+import { PracticeWorkspace } from "./PracticeWorkspace";
+import { KeyboardRangeControls } from "./KeyboardRangeControls";
 import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
@@ -86,6 +122,7 @@ import {
 } from "./chord-sources";
 
 export interface PlayerDetail {
+  publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   data: SongData;
@@ -97,6 +134,7 @@ export interface PlayerDetail {
 
 /** Metadata-only payload used while a direct sheet route loads its player data. */
 export interface PlayerShell {
+  publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
   variants: SongRow[];
@@ -110,10 +148,6 @@ const MODES: { id: ViewMode; label: string; hint: string }[] = [
   { id: "sheet", label: "Sheet Music", hint: "Engraved score" },
   { id: "leadsheet", label: "Lead Sheet", hint: "Melody and available chords or lyrics" },
 ];
-
-function noteMatchesHand(note: { hand?: "L" | "R" }, hand: PlayerSettings["hand"]): boolean {
-  return hand === "both" || note.hand === hand;
-}
 
 type SoundPreviewSession = MelodyPreviewStatus & {
   token: number;
@@ -279,6 +313,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     ...DEFAULT_SETTINGS,
     ...(mode ? { mode } : {}),
   }));
+  const [settingsRestored, setSettingsRestored] = useState(false);
   const activeData = settings.backgroundMode === "chord" ? initial.chordData ?? initial.data : initial.data;
   const sourceBackingNotes = useMemo(
     () => reviewedSourceBacking(initial.chordData ?? initial.data),
@@ -312,6 +347,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     if (songPrefs.hand !== undefined) s.hand = songPrefs.hand;
     if (mode) s.mode = mode;
     setSettings(s);
+    setSettingsRestored(true);
   }, [initial.chordData, initial.song.id, mode, sourceBackingNotes]);
   useEffect(() => {
     const syncTheme = () => setSettings(current => ({ ...current, stageTheme: document.documentElement.dataset.theme === "charcoal" ? "charcoal" : "light" }));
@@ -375,6 +411,12 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const practiceSetupRef = useRef(practiceSetup);
   practiceSetupRef.current = practiceSetup;
   const lastAttemptRef = useRef<{ setup: PracticeSetup; range: LoopRegion } | null>(null);
+  const gradedInputOffsetRef = useRef(0);
+  const gradedTimingRef = useRef({ bpm: initial.data.tempoBpm, speed: 1 });
+  const storedAttemptRef = useRef<PracticeAttempt | null>(null);
+  const [recall,setRecall]=useState<{passage:SavedPassage;demonstrated:boolean;guided:boolean;reduced:boolean}|null>(null);
+  const activeTempoPlanRef = useRef<{ passageId: string; policyId: string } | null>(null);
+  const [practiceSaveNotice, setPracticeSaveNotice] = useState("");
   const repeatRangeRef = useRef<LoopRegion | null>(null);
   const [practiceError, setPracticeError] = useState("");
   const [countIn, setCountIn] = useState<number | null>(null);
@@ -390,9 +432,43 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const [modeMenuIdx, setModeMenuIdx] = useState(-1);
   const [chordPracticeSnapshot, setChordPracticeSnapshot] = useState<ChordPracticeSnapshot | null>(null);
   const [waitMode, setWaitMode] = useState(false);
-  const [gradeResult, setGradeResult] = useState<{ summary: string; accuracyPct: number; hit: number; missed: number; wrong: number; late: number; total: number } | null>(null);
+  const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Map<number, number>>(new Map());
+  const interruptRef = useRef<(reason: string) => void>(() => {});
+  const [micSignal, setMicSignal] = useState("Unknown signal quality");
   const [midiConnected, setMidiConnected] = useState(false);
+  const [midiDevices, setMidiDevices] = useState<Array<{ id: string; name: string }>>([]);
+  const [midiSelection, setMidiSelection] = useState<{ device: string | null; channel: number | null }>({ device: null, channel: null });
+  const [timingOffsets, setTimingOffsets] = useState<{ keyboard: number | null; midi: number | null }>({ keyboard: null, midi: null });
+  const [samplePolicy, setSamplePolicy] = useState<"fallback" | "wait">("fallback");
+  const samplePolicyRef = useRef(samplePolicy); samplePolicyRef.current = samplePolicy;
+  const [sampleStatus, setSampleStatus] = useState({ readiness: "uninitialized", timbre: "fallback", latencyMs: null as number | null });
+  const inputSoundBinding = `${settings.soundSource}:${settings.organStyle}:${settings.organRegistration}`;
+  const timingBindings = { keyboard: `keyboard:${inputSoundBinding}`, midi: midiSelection.device ? `midi:${midiSelection.device}:${midiSelection.channel ?? "*"}:${inputSoundBinding}` : "" };
+  const liveTimingRef = useRef({ selection: midiSelection, bindings: timingBindings });
+  liveTimingRef.current = { selection: midiSelection, bindings: timingBindings };
+  function effectiveTimingBinding(input: "keyboard" | "midi") {
+    const binding = liveTimingRef.current.bindings[input];
+    const audio = engineRef.current?.audio;
+    return binding && audio instanceof SamplerAudioEngine ? `${binding}:${audio.playbackTimbre}` : binding;
+  }
+  useEffect(() => { setTimingOffsets({ keyboard: loadTimingCalibration(effectiveTimingBinding("keyboard")), midi: timingBindings.midi ? loadTimingCalibration(effectiveTimingBinding("midi")) : null }); }, [timingBindings.keyboard, timingBindings.midi, sampleStatus.timbre]);
+  useEffect(() => {
+    const invalidate = () => { clearTimingCalibrations(); setTimingOffsets({ keyboard: null, midi: null }); interruptRef.current("Input/output device setup changed. Timing calibration reset."); };
+    navigator.mediaDevices?.addEventListener?.("devicechange", invalidate);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", invalidate);
+  }, []);
+  function selectMidi(device: string | null, channel: number | null) {
+    if (gradingRef.current) return;
+    midiInputRef.current?.select(device, channel); heldInputRef.current?.releaseAll();
+    setMidiSelection({ device, channel }); setMidiConnected((midiInputRef.current?.connectedCount ?? 0) > 0);
+  }
+  function setTimingOffset(input: "keyboard" | "midi", value: number | null) {
+    if (gradingRef.current) return;
+    const binding = effectiveTimingBinding(input);
+    if (!binding || !saveTimingCalibration(binding, value)) { setPracticeSaveNotice("Timing calibration could not be saved."); return; }
+    setTimingOffsets(current => ({ ...current, [input]: value }));
+  }
   const [inputOctave, setInputOctave] = useState(2);
   const [midiPending, setMidiPending] = useState(false);
   const [midiError, setMidiError] = useState("");
@@ -442,6 +518,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       setMelodyPhraseOverrides(phraseOverrides);
       setMelodySelectionSaved(sourceMatches || phraseOverrides.length > 0);
       return;
+    }
+    const restored = restoredMelodyChoice(initial.song.id, melodySourceFingerprint);
+    if (restored) {
+      setMelodySelection(restored.selection); setMelodySourceBackingMode(restored.sourceBackingMode);
+      setMelodyPhraseOverrides(validPhraseOverrides(restored.phraseOverrides)); setMelodySelectionSaved(true); return;
     }
     // v1 provenance is deliberately ignored. A matching old whole-RH choice
     // remains a user preference, while the current producer recomputes v2.
@@ -519,13 +600,16 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       endSec: session.endSec,
     });
   }, []);
+  const takeInputRef=useRef<MidiTakeInput|null>(null);
+  const auxiliaryRef=useRef<"take"|"rhythm"|null>(null),[auxiliary,setAuxiliary]=useState<"take"|"rhythm"|null>(null);
   const heldInputRef = useRef<ReturnType<typeof createHeldInput> | null>(null);
   if (!heldInputRef.current) heldInputRef.current = createHeldInput(soundInputNote, midi => {
     engineRef.current?.handleNoteOff(midi);
     setPressedKeys(current => { const next = new Map(current); next.delete(midi); return next; });
   });
   const audioSwapStateRef = useRef<{ time: number; playing: boolean } | null>(null);
-  const chordPracticeRef = useRef<ChordGrader | null>(null);
+  const chordPracticeRef = useRef<ChordGrader | HeldChordGrader | null>(null);
+  const heldChordInputRef=useRef<{input:"keyboard"|"midi";binding:string}|null>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const chordPracticeActiveRef = useRef(chordPracticeActive);
   const skipChordPracticeRef = useRef(skipChordPractice);
@@ -545,9 +629,14 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     () => playbackTiming({ ...activeData, sourceTiming: sparseBackingTiming }),
     [activeData, sparseBackingTiming],
   );
+  const [verifiedScoreMap, setVerifiedScoreMap] = useState<{ fingerprint: string; revision: string; measures: MeasureInfo[] } | null>(null);
   const navigationMeasures = useMemo(
-    () => playbackMeasures({ ...activeData, sourceTiming: playbackTimingForPlayer }),
-    [activeData, playbackTimingForPlayer],
+    () => settings.backgroundMode === "piano" && settings.transpose === 0
+      && verifiedScoreMap?.fingerprint === initial.data.sourceFingerprint
+      && verifiedScoreMap?.revision === initial.publicationRevision
+      ? verifiedScoreMap.measures
+      : playbackMeasures({ ...activeData, sourceTiming: playbackTimingForPlayer }),
+    [activeData, playbackTimingForPlayer, verifiedScoreMap, initial.data.sourceFingerprint, initial.publicationRevision, settings.backgroundMode, settings.transpose],
   );
 
   const chordSources = useMemo(
@@ -741,26 +830,107 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   );
   const audioChords = useMemo(
     () => settings.accompanimentStyle === "bass-chords"
-      ? actionableChords
+      ? settings.audibleSupport ? accompaniment.chords : actionableChords
       : [],
-    [actionableChords, settings.accompanimentStyle],
+    [actionableChords, accompaniment.chords, settings.accompanimentStyle, settings.audibleSupport],
   );
   const guidanceData = useMemo(() => ({
     ...activeData,
-    notes: accompaniment.guidanceNotes.filter((note) => noteMatchesHand(note, settings.hand)),
+    notes: selectHandNotes(accompaniment.guidanceNotes, settings.hand),
   }), [accompaniment.guidanceNotes, activeData, settings.hand]);
   const notes = useMemo(
     () =>
-      resolveTimedNotes({ ...activeData, notes: accompaniment.notes }, settings.speed, settings.transpose).filter((n) => {
-        return noteMatchesHand(n, settings.hand);
-      }),
-    [accompaniment.notes, activeData, settings.speed, settings.transpose, settings.hand],
+      selectHandNotes((settings.backgroundMode==="piano"?resolveSourcePedalNotes:resolveTimedNotes)({ ...activeData, notes: accompaniment.notes }, settings.speed, settings.transpose, settings.renderedExpression), settings.hand, settings.audibleSupport),
+    [accompaniment.notes, activeData, settings.speed, settings.transpose, settings.hand, settings.audibleSupport, settings.renderedExpression, settings.backgroundMode],
   );
 
   const guidanceNotes = useMemo(
-    () => resolveTimedNotes(guidanceData, settings.speed, settings.transpose),
-    [guidanceData, settings.speed, settings.transpose],
+    () => resolveTimedNotes(guidanceData, settings.speed, settings.transpose, settings.renderedExpression),
+    [guidanceData, settings.speed, settings.transpose, settings.renderedExpression],
   );
+  const activeExportSelection:ActiveExportSelection={backgroundMode:settings.backgroundMode,accompanimentStyle:settings.accompanimentStyle,
+    hand:settings.hand,audibleSupport:settings.audibleSupport??false,speed:settings.speed,transpose:settings.transpose,renderedExpression:settings.renderedExpression??"source",
+    chordSource:chordSourcePreference,melodySelection,sourceBackingMode:melodySourceBackingMode,phraseOverrides:melodyPhraseOverrides};
+  const practiceDescriptor = useMemo(() => ({
+    publicationRevision: initial.publicationRevision, sourceFingerprint: melodySourceFingerprint, source: activeData, data: guidanceData,
+    chordSource: selectedChordSource.source,
+    hand: settings.hand, backgroundMode: settings.backgroundMode, accompanimentStyle: settings.accompanimentStyle,
+  }), [initial.publicationRevision, melodySourceFingerprint, activeData, guidanceData, selectedChordSource.source, settings.hand, settings.backgroundMode, settings.accompanimentStyle]);
+  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(null);
+  const selectedPassageIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    let current = true;
+    setPracticeTarget(null);
+    void practiceFingerprint(practiceDescriptor).then(fingerprint => {
+      if (current) setPracticeTarget({ baseId: initial.song.baseId, variantId: initial.song.id, fingerprint });
+    }).catch(() => { if (current) setPracticeSaveNotice("Saved passages and history are unavailable in this browser. Playback still works."); });
+    return () => { current = false; };
+  }, [practiceDescriptor, initial.song.baseId, initial.song.id]);
+
+  useEffect(()=>{setRecall(null);},[practiceTarget?.fingerprint,settings.mode,settings.speed,settings.transpose,settings.hand,settings.backgroundMode,settings.accompanimentStyle,settings.soundSource]);
+  useEffect(()=>{if(soundPreviewStatus?.phase==="complete" && soundPreviewStatus.role==="full")setRecall(current=>current&&Math.abs(soundPreviewStatus.startSec-current.passage.startBeat*secPerBeat(activeData.tempoBpm,settings.speed))<1e-6&&Math.abs(soundPreviewStatus.endSec-current.passage.endBeat*secPerBeat(activeData.tempoBpm,settings.speed))<1e-6?{...current,demonstrated:true}:current);},[soundPreviewStatus,activeData.tempoBpm,settings.speed]);
+  function revealRecall(){
+    if(storedAttemptRef.current?.context.assistance && recall?.reduced){const assistance=storedAttemptRef.current.context.assistance;assistance.reveals=Math.min(1000,assistance.reveals+1);if(!recordAttempt(storedAttemptRef.current))setPracticeSaveNotice("Recall history could not be saved.");}
+    setRecall(current=>current?{...current,reduced:false}:null);
+  }
+  function storeAttemptEnd(outcome: PracticeAttempt["outcome"], result: GradeResult | null) {
+    const attempt = storedAttemptRef.current;
+    if (!attempt) return;
+    storedAttemptRef.current = null;
+    if(attempt.context.assistance)setRecall(current=>current?{...current,reduced:false,guided:current.guided||outcome==="completed"&&attempt.context.assistance?.mode==="guided"}:null);
+    const counts = result ? { total: result.total, hit: result.hit, missed: result.missed, wrong: result.wrong, late: result.late, accuracyPct: result.accuracyPct, diagnostics: savedGradeDiagnostics(result.diagnostics), ...(result.articulation?{articulation:result.articulation}:{}) } : null;
+    if (!recordAttempt({ ...attempt, outcome, result: counts, finishedAt: new Date().toISOString() })) {
+      setPracticeSaveNotice("Practice history could not be saved. Browser storage may be unavailable or full.");
+    }
+    const state = loadPracticeState();
+    if (state.resume?.target.fingerprint === attempt.target.fingerprint && state.resume.target.variantId === attempt.target.variantId) {
+      state.resume.positionBeat = (engineRef.current?.time ?? 0) / secPerBeat(attempt.context.bpm, attempt.context.speed);
+      state.resume.updatedAt = new Date().toISOString();
+      if (!savePracticeState(state)) setPracticeSaveNotice("Saved position could not be updated.");
+    }
+  }
+  function interruptPlayback(reason: string) {
+    setRecall(current=>current?{...current,reduced:false}:null);
+    const engine = engineRef.current;
+    engine?.audio.cancelAll();
+    const active = gradingRef.current || engine?.playing || countInRef.current !== null || soundPreviewStatus?.phase === "playing" || micReady || chordPracticeRef.current !== null;
+    if (!active) return;
+    const wasCounting = countInRef.current !== null;
+    gradingRef.current = false;
+    exitChordPractice(false);
+    cancelCountIn(); cancelSoundPreview();
+    engine?.stop();
+    const result = engine?.finishGrading() ?? null;
+    storeAttemptEndRef.current("interrupted", wasCounting ? null : result);
+    setGrading(false); setWaitMode(false); setGradeResult(null);
+    keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
+    releaseMicrophone(); syncTransportState();
+    if (active) setPracticeSaveNotice(`${reason} Resume deliberately from the saved position.`);
+  }
+  interruptRef.current = interruptPlayback;
+  const storeAttemptEndRef = useRef(storeAttemptEnd);
+  storeAttemptEndRef.current = storeAttemptEnd;
+  useEffect(() => {
+    const pageHide = () => interruptRef.current("Page navigation interrupted playback/practice.");
+    window.addEventListener("pagehide", pageHide);
+    return () => {
+      window.removeEventListener("pagehide", pageHide);
+      gradingRef.current=false;
+      storeAttemptEndRef.current("interrupted", engineRef.current?.finishGrading() ?? null);
+    };
+  }, []);
+  const positionBindingRef = useRef({ target: practiceTarget, bpm: activeData.tempoBpm, speed: settings.speed });
+  positionBindingRef.current = { target: practiceTarget, bpm: activeData.tempoBpm, speed: settings.speed };
+  const savePosition = useCallback(() => {
+    const binding = positionBindingRef.current, state = loadPracticeState();
+    if (!binding.target || !state.resume || state.resume.target.fingerprint !== binding.target.fingerprint
+        || state.resume.target.variantId !== binding.target.variantId) return;
+    state.resume.positionBeat = Math.max(0, (engineRef.current?.time ?? 0) / secPerBeat(binding.bpm, binding.speed));
+    state.resume.updatedAt = new Date().toISOString();
+    if (!savePracticeState(state)) setPracticeSaveNotice("Saved position could not be updated.");
+  }, []);
+  useEffect(() => { if (!playing) savePosition(); }, [playing, seekVersion, savePosition]);
+  useEffect(() => () => savePosition(), [savePosition]);
 
   // Preview notes are scheduled directly on the audio graph, outside the
   // transport timeline. Tear that graph down whenever its source, routing,
@@ -774,7 +944,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     settings.hand, settings.mode, settings.metronome, settings.organDrive,
     settings.organRotary, settings.organSpace, settings.organStyle, settings.organRegistration, settings.pianoGain,
     settings.soundSource, settings.speed, settings.sustainPedal, settings.transpose,
-    settings.voiceGain, seekVersion]);
+    settings.voiceGain, settings.audibleSupport, settings.renderedExpression, seekVersion]);
 
   const duration = useMemo(
     () => Math.max(
@@ -847,6 +1017,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
+    if (!settingsRestored) return;
     const previous = audioSwapStateRef.current;
     audioSwapStateRef.current = null;
     const audio = settings.soundSource === "sampled"
@@ -874,6 +1045,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       timeRef.current = snap.time;
       playingRef.current = snap.playing;
       if (gradingRef.current && !engine.grader && engine.gradeResult) {
+        storeAttemptEndRef.current("completed", engine.gradeResult);
         gradingRef.current = false;
         setGrading(false);
         setWaitMode(false);
@@ -883,8 +1055,16 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         releaseMicrophone();
       }
     };
-    engine.audio.sustainPedal = settings.sustainPedal;
+    audio.onStateChange = state => {
+      if (engineRef.current === engine && state !== "running" && (gradingRef.current || engine.playing || countInRef.current !== null)) interruptRef.current("Audio output was interrupted.");
+    };
     engineRef.current = engine;
+    if (audio instanceof SamplerAudioEngine) {
+      audio.samplePolicy = samplePolicyRef.current;
+      const refresh = () => { if (engineRef.current === engine) setSampleStatus({ readiness: audio.readiness, timbre: audio.playbackTimbre, latencyMs: audio.loadLatencyMs }); };
+      audio.onReadinessChange = refresh; refresh();
+      audio.ensure(false);
+    }
     setEngineReady(true);
     if (previous) {
       engine.seek(previous.time);
@@ -896,10 +1076,12 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       audioSwapStateRef.current = { time: engine.time, playing: engine.playing };
       keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
       engineRef.current = null;
+      audio.onStateChange = null;
+      if (audio instanceof SamplerAudioEngine) audio.onReadinessChange = null;
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.soundSource, settings.organStyle, settings.organRegistration, activeData.tempoBpm]);
+  }, [settingsRestored, settings.soundSource, settings.organStyle, settings.organRegistration, activeData.tempoBpm]);
 
   useEffect(() => {
     const engine = engineRef.current;
@@ -947,6 +1129,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       last = now;
       const eng = engineRef.current;
       if (!eng) return;
+      if (eng.audio.state && eng.audio.state !== "running") { interruptRef.current("Audio output was interrupted."); return; }
       eng.tick(dt);
       if (now - lastSync >= 100) {
         lastSync = now;
@@ -966,9 +1149,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }, [playing]);
 
   const startPlayback = useCallback(() => {
-    if (chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
+    if (!engineRef.current || navigationPendingRef.current || auxiliaryRef.current || chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
     cancelSoundPreview();
+    heldInputRef.current?.releaseAll();
     engineRef.current?.start();
+    if (!engineRef.current?.playing && engineRef.current?.audio instanceof SamplerAudioEngine) setPracticeError("Piano samples are not ready. Wait or choose synthesis fallback in Sound.");
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
   }, [chordPracticeActive, initial.song.id]);
@@ -980,7 +1165,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }, [cancelSoundPreview]);
 
   const seek = useCallback((t: number) => {
-    if (gradingRef.current || showPracticeSetupRef.current) return;
+    if (auxiliaryRef.current || gradingRef.current || showPracticeSetupRef.current) return;
     cancelSoundPreview();
     engineRef.current?.seek(t);
     setSeekVersion(version => version + 1);
@@ -994,15 +1179,19 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const togglePlayRef = useRef(togglePlay);
   togglePlayRef.current = togglePlay;
 
-  // Keyboard + MIDI input (one keydown listener; Escape handled first).
-  useEffect(() => {
-    const ki = new KeyboardInput({
-      onNoteOn: (m, identity) => handleNote(m, true, "keyboard", identity),
-      onNoteOff: (m, identity) => handleNote(m, false, "keyboard", identity),
-    }, setInputOctave);
-    keyboardInputRef.current = ki;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.type === "keyup") { ki.handleKey(e); return; }
+  const navigationPendingRef = usePianoInput({ keyboardRef: keyboardInputRef, midiRef: midiInputRef,
+    onNote: handleNote, onOctaveChange: setInputOctave,
+    onPedal: (down, scope, event) => {if(!takeInputRef.current?.pedal(scope,event))heldInputRef.current?.setPedal(scope,down);},
+    onRelease: () => {takeInputRef.current?.interrupt();heldInputRef.current?.releaseAll();if(chordPracticeRef.current instanceof HeldChordGrader){chordPracticeRef.current.clearKeys();setChordPracticeSnapshot(chordPracticeRef.current.snapshot());}},
+    onInterrupt: reason => interruptRef.current(reason),
+    onState: (devices, count) => {
+      setMidiConnected(count > 0);
+      setMidiDevices(current => JSON.stringify(devices) === JSON.stringify(current) ? current : devices);
+      if(!count)takeInputRef.current?.interrupt();
+      if (!count && gradingRef.current && practiceSetupRef.current.input === "midi") interruptRef.current("Selected MIDI input disconnected.");
+    },
+    onKey: (e, ki) => {
+      if (isNativeKeyboardEvent(e)) return;
       if (showPracticeSetupRef.current || toolOpenRef.current || showDownloadRef.current) return;
       if (e.key === "Escape") {
         if (showModeMenuRef.current) {
@@ -1032,30 +1221,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
           ki.handleKey(e);
         }
       }
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("keyup", onKey);
-    const mi = new MidiInput({
-      onNoteOn: (m, identity) => handleNote(m, true, "midi", identity),
-      onNoteOff: (m, identity) => handleNote(m, false, "midi", identity),
-    });
-    midiInputRef.current = mi;
-    const release = () => { ki.releaseAll(); mi.releaseAll(); heldInputRef.current?.releaseAll(); };
-    const hidden = () => { if (document.hidden) release(); };
-    window.addEventListener("blur", release);
-    document.addEventListener("visibilitychange", hidden);
-    const midiStatusTimer = window.setInterval(() => setMidiConnected(mi.connectedCount > 0), 1000);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("keyup", onKey);
-      release();
-      keyboardInputRef.current = null; midiInputRef.current = null;
-      window.removeEventListener("blur", release);
-      document.removeEventListener("visibilitychange", hidden);
-      window.clearInterval(midiStatusTimer);
-      mi.disconnect();
-    };
-  }, []);
+    },
+  });
 
   // Outside-click closes the mode menu.
   useEffect(() => {
@@ -1139,7 +1306,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     setMidiPending(true); setMidiError("");
     const connected = await input.connect();
     if (midiInputRef.current !== input) return;
-    setMidiPending(false); setMidiConnected(connected);
+    setMidiPending(false); setMidiConnected(input.connectedCount > 0); setMidiDevices(input.devices);
     if (!connected) setMidiError("No MIDI keyboard available. Check its connection and browser permission, then retry.");
   }
 
@@ -1147,16 +1314,28 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
   }, [openTool, showPracticeSetup, settings.soundSource, settings.organStyle, settings.organRegistration, grading]);
 
-  function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`) {
-    if (!on) { heldInputRef.current?.release(identity); return; }
+  function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`, event?: InputEventMetadata) {
+    if (on && navigationPendingRef.current) return;
+    if(auxiliaryRef.current==="rhythm"||takeInputRef.current?.note(midi,on,source,identity,event))return;
+    const heldChord=chordPracticeRef.current instanceof HeldChordGrader?chordPracticeRef.current:null;
+    if (!on) {
+      if(heldChord && source===heldChordInputRef.current?.input){if(event?.timingSource==="event")heldChord.release(identity,event.timestampMs);else heldChord.clearKeys();setChordPracticeSnapshot(heldChord.snapshot());}
+      if(source==="midi"&&practiceSetupRef.current.articulation)engineRef.current?.observeKeyRelease(identity,event); heldInputRef.current?.release(identity); return; }
     if (showPracticeSetupRef.current || toolOpenRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.input !== source)) return;
-    if (heldInputRef.current?.press(identity, midi)) syncTransportState();
+    if(heldChord && source===heldChordInputRef.current?.input && event?.timingSource==="event"){heldChord.press(midi,identity,event.timestampMs);setChordPracticeSnapshot(heldChord.snapshot());}
+    if (heldInputRef.current?.press(identity, midi, event)) {
+      if(source==="midi"&&practiceSetupRef.current.articulation)engineRef.current?.observeKeyPress(identity,event,gradedInputOffsetRef.current);
+      syncTransportState();
+    }
   }
 
-  function soundInputNote(midi: number): boolean {
+  function soundInputNote(midi: number, event?: InputEventMetadata): boolean {
+    if (navigationPendingRef.current) return false;
     const eng = engineRef.current;
-    if (!eng || !eng.handleNoteOn(midi)) return false;
-    if (chordPracticeRef.current) {
+    const timing = liveTimingRef.current;
+    const binding = event?.deviceId ? (event.deviceId === timing.selection.device ? effectiveTimingBinding("midi") : "") : event ? effectiveTimingBinding("keyboard") : "";
+    if (!eng || !eng.handleNoteOn(midi, event, gradingRef.current ? gradedInputOffsetRef.current : binding ? loadTimingCalibration(binding) ?? 0 : 0)) return false;
+    if (chordPracticeRef.current instanceof ChordGrader) {
       chordPracticeRef.current.play(midi);
       setChordPracticeSnapshot(chordPracticeRef.current.snapshot());
     }
@@ -1191,11 +1370,17 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       let raf = 0;
       let lastMidi: number | null = null;
       let lastFire = 0;
+      let lastSignalUpdate = 0;
       const tick = () => {
         if (request !== micRequestRef.current) return;
         analyser.getFloatTimeDomainData(buffer);
         const midi = detectPitch(buffer, ctx!.sampleRate);
         const now = performance.now();
+        if (now - lastSignalUpdate >= 250) {
+          lastSignalUpdate = now;
+          const rms = Math.sqrt(buffer.reduce((sum, value) => sum + value * value, 0) / buffer.length);
+          setMicSignal(rms < 0.01 ? "Quiet / no reliable pitch" : midi === null ? "Signal present; pitch unresolved" : "Single pitch detected (beta)");
+        }
         const edge = microphonePitchEdge(midi, lastMidi, now - lastFire);
         lastMidi = edge.lastMidi;
         if (edge.fire && midi !== null) {
@@ -1216,7 +1401,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         if (request !== micRequestRef.current) return;
         releaseMicrophone();
         setMicError("Microphone disconnected.");
-        if (gradingRef.current) finishGrading();
+        if (gradingRef.current) interruptRef.current("Microphone disconnected; this run is incomplete.");
       }, { once: true }));
       raf = requestAnimationFrame(tick);
       setMicReady(true);
@@ -1301,6 +1486,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function previewSound(role: MelodyAuditionRole = "full") {
+    if(auxiliaryRef.current || navigationPendingRef.current)return;
     const eng = engineRef.current;
     if (!eng) return;
     const previous = soundPreviewRef.current;
@@ -1311,6 +1497,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     syncTransportState();
     eng.audio.cancelAll();
     eng.audio.ensure();
+    heldInputRef.current?.releaseAll();
+    if (eng.audio.prepareTimbre?.() === false) { setPracticeError("Piano samples are not ready. Wait or choose synthesis fallback."); return; }
     const secondsPerBeat = secPerBeat(activeData.tempoBpm, settings.speed);
     const previewMeasureIndex = measureIndex(
       eng.time,
@@ -1366,10 +1554,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
           ? eng.previewPlan(boundedStartSec, boundedEndSec).chords
           : [];
         return {
-          notes: resolveTimedNotes({ ...activeData, notes: auditionNotes }, settings.speed, settings.transpose)
+          notes: (role==="original"?resolveSourcePedalNotes:resolveTimedNotes)({ ...activeData, ...(role==="original"?{sourcePedal:initial.data.sourcePedal}:{}), notes: auditionNotes }, settings.speed, settings.transpose)
             .filter((note) => noteMatchesHand(note, settings.hand) && Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127)
             .flatMap((note) => {
-              const noteEnd = note.startSec + note.durSec;
+              const noteEnd = note.startSec + (note.soundingDurSec ?? note.durSec);
               const visibleStart = Math.max(boundedStartSec, note.startSec);
               const visibleEnd = Math.min(boundedEndSec, noteEnd);
               return visibleEnd > visibleStart + 1e-6
@@ -1391,14 +1579,14 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function updateSettings(p: Partial<PlayerSettings>) {
-    if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined || p.organRegistration !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined)) return;
+    if (gradingRef.current && (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.soundSource !== undefined || p.organStyle !== undefined || p.organRegistration !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined || p.physicalKeyboard !== undefined || p.audibleSupport !== undefined || p.renderedExpression !== undefined)) return;
     if (p.mode !== undefined && p.mode !== settings.mode) {
       if (gradingRef.current) finishGrading(false);
       releaseMicrophone();
       cancelCountIn();
       setShowPracticeSetup(false);
     }
-    if (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined) {
+    if (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.physicalKeyboard !== undefined) {
       setGradeResult(null);
       lastAttemptRef.current = null;
       if (engineRef.current) engineRef.current.gradeResult = null;
@@ -1406,12 +1594,13 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     if (p.backgroundMode === "chord" && initial.chordUnavailableReason) return;
     if (p.accompanimentStyle === "melody-accompaniment" && sourceBackingNotes) return;
     const next = { ...settings, ...p };
+    if (p.speed !== undefined || p.hand !== undefined || p.transpose !== undefined || p.backgroundMode !== undefined || p.accompanimentStyle !== undefined || p.audibleSupport !== undefined || p.renderedExpression !== undefined) activeTempoPlanRef.current = null;
     if (p.transpose !== undefined) next.transpose = Number.isFinite(p.transpose)
       ? Math.max(TRANSPOSE_MIN, Math.min(TRANSPOSE_MAX, Math.trunc(p.transpose))) : settings.transpose;
     if (next.backgroundMode === "chord" && sourceBackingNotes) next.accompanimentStyle = "bass-chords";
     setSettings(next);
     engineRef.current?.audio.setGains(next.voiceGain, next.pianoGain);
-    if (engineRef.current) engineRef.current.audio.sustainPedal = next.sustainPedal;
+    // The timeline effect needs the old speed to preserve the musical position.
     if (p.accompanimentStyle !== undefined) saveAccompanimentStyleIntent(p.accompanimentStyle);
     saveSettings(next);
     if (p.stageTheme !== undefined) applyAppTheme(next.stageTheme);
@@ -1425,6 +1614,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function updateChordSource(source: ChordSourceId) {
+    if (gradingRef.current) return;
     setChordSourcePreference(source);
     saveJson("keyspilli.chordSource", source);
   }
@@ -1552,7 +1742,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     });
   }
 
-  function openPracticeSetup() {
+  function openPracticeSetup(scope?:PracticeSetup["scope"]) {
+    if(auxiliaryRef.current || navigationPendingRef.current)return;
     cancelSoundPreview();
     if (chordPracticeActive) exitChordPractice(false);
     engineRef.current?.stop();
@@ -1562,27 +1753,87 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     setPracticeError("");
     setMicError("");
     repeatRangeRef.current = null;
-    setPracticeSetup(defaultPracticeSetup);
+    setPracticeSetup(scope ? {...defaultPracticeSetup,scope} : activeTempoPlanRef.current ? { ...defaultPracticeSetup, scope: "loop", wait: false } : defaultPracticeSetup);
     showPracticeSetupRef.current = true;
     setShowPracticeSetup(true);
   }
 
   function closePracticeSetup() {
+    revealRecall();
     releaseMicrophone();
     showPracticeSetupRef.current = false;
     setShowPracticeSetup(false);
     window.requestAnimationFrame(() => practiceTriggerRef.current?.focus());
   }
 
+  function practiceKeyboardTarget(setup: PracticeSetup, repeatRange?: LoopRegion) {
+    const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
+      resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, engineRef.current?.time ?? time, duration, activeData.tempoBpm, settings.speed, loop);
+    return keyboardReachability(guidanceNotes, range ?? {startSec:0,endSec:0}, .25*secPerBeat(activeData.tempoBpm,settings.speed), midiRange, setup.input === "keyboard" ? null : settings.physicalKeyboard ?? null);
+  }
+
+  function selectSavedPassage(passage: SavedPassage) {
+    if (!practiceTarget || gradingRef.current || !passageAvailable(passage, practiceTarget, duration / secPerBeat(activeData.tempoBpm, settings.speed))) return false;
+    selectedPassageIdRef.current = passage.id;
+    engineRef.current?.stop();
+    setLoopBeats({ startBeat: passage.startBeat, endBeat: passage.endBeat });
+    seek(passage.startBeat * secPerBeat(activeData.tempoBpm, settings.speed));
+    syncTransportState();
+    return true;
+  }
+
   function beginPractice(setup: PracticeSetup, repeatRange?: LoopRegion) {
+    if (navigationPendingRef.current) return;
     const eng = engineRef.current;
     if (!eng || gradingRef.current || (setup.input === "microphone" && !micReady) || (setup.input === "midi" && !midiConnected)) return;
     const range = repeatRange ?? (repeatRangeRef.current && setup.scope === practiceSetupRef.current.scope ? repeatRangeRef.current : null) ??
       resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, eng.time, duration, activeData.tempoBpm, settings.speed, loop);
     if (!range) { setPracticeError(setup.scope === "loop" ? "Select a loop before practicing it." : "No measured passage is available here."); return; }
+    const recallRange=recall && loadPracticeState().passages.some(p=>p.id===recall.passage.id&&p.target.fingerprint===recall.passage.target.fingerprint&&p.startBeat===recall.passage.startBeat&&p.endBeat===recall.passage.endBeat) && recall.passage.target.fingerprint===practiceTarget?.fingerprint && settings.mode==="beginner" && settings.backgroundMode==="piano" && Math.abs(range.startSec/secPerBeat(activeData.tempoBpm,settings.speed)-recall.passage.startBeat)<1e-6 && Math.abs(range.endSec/secPerBeat(activeData.tempoBpm,settings.speed)-recall.passage.endBeat)<1e-6;
+    if(recall && (!recallRange || !recall.demonstrated)){setPracticeError("Demonstrate the exact saved recall passage, then choose Selected loop (once).");return;}
+    const reach = practiceKeyboardTarget(setup, range);
+    if ((reach.overflow || reach.physicalUnavailable) && !setup.allowUnsupportedRange) { setPracticeError("Review the targets outside your keyboard range before starting."); return; }
+    if (setup.input === "microphone") {
+      const eligibility = microphoneEligibility(guidanceNotes, range);
+      if (!eligibility.eligible) { setPracticeError(eligibility.reason); return; }
+    }
     cancelSoundPreview();
-    try { eng.startGrading(setup.wait, range); }
+    heldInputRef.current?.releaseAll();
+    gradedInputOffsetRef.current=setup.input==="microphone"?0:loadTimingCalibration(effectiveTimingBinding(setup.input))??0;
+    if(setup.articulation&&(setup.input!=="midi"||setup.wait||!midiSelection.device||midiSelection.channel===null)){setPracticeError("Hold/release assessment requires timed practice on one selected MIDI device and channel.");return;}
+    try { eng.startGrading(setup.wait, range, setup.articulation?setup.articulationToleranceMs??150:undefined); }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
+    gradedTimingRef.current = { bpm: activeData.tempoBpm, speed: settings.speed };
+    const tempoPassage = loadPracticeState().passages.find(p => p.id === activeTempoPlanRef.current?.passageId);
+    const tempoPlan = tempoPassage?.tempoPlan;
+    const planContext = tempoPassage && tempoPlan && !tempoPlan.paused && tempoPlan.status === "active" && tempoPlan.policyId === activeTempoPlanRef.current?.policyId
+      && tempoPassage.target.fingerprint === practiceTarget?.fingerprint && tempoPassage.target.variantId === initial.song.id
+      && Math.abs(range.startSec/secPerBeat(activeData.tempoBpm,settings.speed)-tempoPassage.startBeat)<1e-6
+      && Math.abs(range.endSec/secPerBeat(activeData.tempoBpm,settings.speed)-tempoPassage.endBeat)<1e-6
+      && Math.abs(activeData.tempoBpm*settings.speed-tempoPlan.currentBpm)<1e-6 ? activeTempoPlanRef.current! : null;
+    if (practiceTarget) {
+      const spb = secPerBeat(activeData.tempoBpm, settings.speed);
+      const attempt: PracticeAttempt = {
+        id: crypto.randomUUID(), target: practiceTarget, startBeat: range.startSec / spb, endBeat: range.endSec / spb,
+        startedAt: new Date().toISOString(), finishedAt: null, outcome: "incomplete", countInCompleted: false, result: null,
+        context: { mode: settings.mode, difficulty: initial.song.difficulty, input: setup.input, wait: setup.wait,
+          speed: settings.speed, transpose: settings.transpose, hand: settings.hand, soundSource: settings.soundSource,
+          backgroundMode: settings.backgroundMode, accompanimentStyle: settings.accompanimentStyle, bpm: activeData.tempoBpm,
+          timingCalibrationMs: setup.input === "microphone" ? null : effectiveTimingBinding(setup.input) ? loadTimingCalibration(effectiveTimingBinding(setup.input)) : null,
+          assessment:setup.articulation?"key-hold":"onset", articulationToleranceMs:setup.articulation?setup.articulationToleranceMs??150:undefined, renderedExpression: settings.renderedExpression ?? "source", audibleSupport: settings.audibleSupport ?? false, physicalKeyboard: settings.physicalKeyboard ?? null, rangeAcknowledged: setup.allowUnsupportedRange ?? false,
+          effectiveTimbre: eng.audio instanceof SamplerAudioEngine ? eng.audio.playbackTimbre : settings.soundSource,
+          ...(recallRange?{assistance:{mode:recall.reduced?"reduced-pitch" as const:"guided" as const,passageId:recall.passage.id,reveals:0,review:"owner-confirmed-trial" as const}}:{}),
+          ...(planContext && !recallRange ? { tempoPlan: planContext } : {}),
+          midiDevice: setup.input === "midi" ? midiSelection.device : null, midiChannel: setup.input === "midi" ? midiSelection.channel : null },
+      };
+      storedAttemptRef.current = attempt;
+      const saved = recordAttempt(attempt);
+      const state = loadPracticeState();
+      const passage = state.passages.find(p => p.id === (selectedPassageIdRef.current ?? state.resume?.passageId) && passageAvailable(p, practiceTarget, duration / spb)
+        && Math.abs(p.startBeat - attempt.startBeat) < 1e-6 && Math.abs(p.endBeat - attempt.endBeat) < 1e-6);
+      state.resume = { target: practiceTarget, positionBeat: attempt.startBeat, updatedAt: attempt.startedAt, ...(passage ? {passageId: passage.id} : {}) };
+      if (!savePracticeState(state) || !saved) setPracticeSaveNotice("Practice history could not be saved. Browser storage may be unavailable or full.");
+    } else setPracticeSaveNotice("This run has no saved history; its arrangement could not yet be checked.");
     setGradeResult(null);
     setPracticeError("");
     setPracticeSetup(setup);
@@ -1596,12 +1847,18 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     setWaitMode(setup.wait);
     syncTransportState();
     const ready = () => {
+      if (storedAttemptRef.current) {
+        storedAttemptRef.current.countInCompleted = true;
+        if (!recordAttempt(storedAttemptRef.current)) setPracticeSaveNotice("Practice history could not be saved.");
+      }
       countInRef.current = null;
       countInTimerRef.current = null;
       setCountIn(null);
       if (!setup.wait) { eng.start(); syncTransportState(); }
-      // Leave focus on the stage so computer keys immediately play notes.
-      document.querySelector<HTMLElement>(".player-stage")?.focus();
+      // React must unmount the modal before the stage ceases to be inert.
+      window.requestAnimationFrame(() => {
+        if (gradingRef.current && countInRef.current === null) document.querySelector<HTMLElement>(".player-stage")?.focus();
+      });
     };
     if (setup.countInBeats === 4) {
       let remaining = 4;
@@ -1624,6 +1881,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     gradingRef.current = false;
     cancelCountIn();
     const result = engineRef.current?.finishGrading();
+    storeAttemptEnd(wasCounting ? "cancelled" : "incomplete", wasCounting ? null : result ?? null);
     if (!wasCounting && result) setGradeResult(result);
     else setGradeResult(null);
     releaseMicrophone();
@@ -1646,6 +1904,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function startChordPractice() {
+    if(auxiliaryRef.current || navigationPendingRef.current)return;
+    heldChordInputRef.current=null;
     cancelSoundPreview();
     if (gradingRef.current) finishGrading(false);
     releaseMicrophone();
@@ -1662,7 +1922,30 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     window.requestAnimationFrame(() => document.querySelector<HTMLElement>(".player-stage")?.focus());
   }
 
+  function chooseChordExercise(exercise:"discovery"|"held"|"transition",windowMs:number,holdMs:number,input:"keyboard"|"midi"){
+    if (navigationPendingRef.current) return;
+    if(exercise!=="discovery"&&input==="midi"&&(!midiSelection.device||midiSelection.channel===null)){setChordPracticeNotice("Select one MIDI device and channel first.");return;}
+    try{
+      keyboardInputRef.current?.releaseAll();midiInputRef.current?.releaseAll();heldInputRef.current?.releaseAll();
+      const session=exercise==="discovery"?new ChordGrader(chordPracticeTargets):new HeldChordGrader(chordPracticeTargets,exercise,windowMs,holdMs);
+      heldChordInputRef.current={input,binding:JSON.stringify(midiSelection)};chordPracticeRef.current=session;setChordPracticeSnapshot(session.snapshot());
+      setChordPracticeNotice(exercise==="discovery"?"Chord-tone discovery restarted.":`Physical ${input} exercise restarted. Exact pitches are owner-selected reference targets; playability is unverified.`);
+      window.requestAnimationFrame(()=>document.querySelector<HTMLElement>(".player-stage")?.focus());
+    }catch{setChordPracticeNotice("Choose at most 256 bounded voicings and valid rolling/hold durations.");}
+  }
+  useEffect(()=>{
+    if(!chordPracticeActive)return;
+    const timer=window.setInterval(()=>{const session=chordPracticeRef.current;if(session instanceof HeldChordGrader){session.tick(performance.now());setChordPracticeSnapshot(session.snapshot());}},50);
+    return ()=>window.clearInterval(timer);
+  },[chordPracticeActive]);
+  useEffect(()=>{
+    if(chordPracticeRef.current instanceof HeldChordGrader && heldChordInputRef.current?.input==="midi" && heldChordInputRef.current.binding!==JSON.stringify(midiSelection)){
+      chordPracticeRef.current=new ChordGrader(chordPracticeTargets);setChordPracticeSnapshot(chordPracticeRef.current.snapshot());setChordPracticeNotice("MIDI selection changed; held-shape exercise stopped. Confirm the new input and targets again.");
+    }
+  },[midiSelection,chordPracticeTargets]);
+
   function exitChordPractice(restoreFocus = true) {
+    heldChordInputRef.current=null;
     chordPracticeRef.current = null;
     chordPracticeTargetsRef.current = null;
     setChordPracticeActive(false);
@@ -1679,6 +1962,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }
 
   function hearChordPractice() {
+    if (navigationPendingRef.current) return;
     const target = chordPracticeRef.current?.currentTarget;
     const audio = engineRef.current?.audio;
     if (!target || !audio?.playChord) return;
@@ -1853,10 +2137,16 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       );
     })
   );
+  const viewReach = useMemo(()=>keyboardReachability(guidanceNotes,{startSec:0,endSec:duration},.25*secPerBeat(activeData.tempoBpm,settings.speed),midiRange,null),[guidanceNotes,duration,activeData.tempoBpm,settings.speed,midiRange]);
+  function prepareAuxiliary(kind:"take"|"rhythm"){if(auxiliaryRef.current||navigationPendingRef.current)return false;cancelSoundPreview();engineRef.current?.stop();keyboardInputRef.current?.releaseAll();midiInputRef.current?.releaseAll();heldInputRef.current?.releaseAll();releaseMicrophone();syncTransportState();auxiliaryRef.current=kind;setAuxiliary(kind);return true;}
+  function releaseAuxiliary(kind:"take"|"rhythm"){if(auxiliaryRef.current===kind){auxiliaryRef.current=null;setAuxiliary(null);}}
+  const rhythmRange=loop ?? resolvePracticeRange("bars",navigationMeasures,currentMeasure,time,duration,activeData.tempoBpm,settings.speed,null) ?? {startSec:0,endSec:duration};
+  const sheetSource = useMemo(()=>({notes:initial.data.notes,measures:initial.data.measures,sourceFingerprint:initial.data.sourceFingerprint}),[initial.data]);
   const renderModeView = (viewMode: ViewMode) => (
     <>
+      {viewReach.overflow > 0 && <p role="status" aria-label="Piano view overflow" className="text-xs text-amber-800">{viewReach.overflow} arrangement onset targets are outside the piano view: {viewReach.overflowPitches.map(pitch=>noteLabel(pitch,true)).join(", ")}. They remain in practice grading. Review range or transpose in View.</p>}
       {viewMode === "falling" && (
-        <FallingCanvas readingWindow={readingWindow} showLyrics={showLyrics} timeSig={activeData.timeSig} measures={navigationMeasures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
+        <FallingCanvas sourceKey={activeData.key} readingWindow={readingWindow} showLyrics={showLyrics} timeSig={activeData.timeSig} measures={navigationMeasures} countIn={countIn} inputEnabled={!openTool && !showPracticeSetup && countIn === null && (!grading || practiceSetup.input === "keyboard")}
                 onKeyDown={(pointerId, midi) => handleNote(midi, true, "keyboard", `pointer:${pointerId}`)}
                 onKeyUp={pointerId => heldInputRef.current?.release(`pointer:${pointerId}`)} inputOctave={inputOctave} midiConnected={midiConnected} onResetOctave={() => keyboardInputRef.current?.setOctave(2)}
           notes={guidanceNotes}
@@ -1873,7 +2163,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
           waitNotes={waitNotes}
         />
       )}
-      {viewMode === "beginner" && <BeginnerView data={guidanceData} time={time} settings={settings} chords={displayChords} provisionalTempo={provisionalTempo} />}
+      {viewMode === "beginner" && <BeginnerView data={guidanceData} time={time} settings={settings} chords={displayChords} provisionalTempo={provisionalTempo} pitchCues={!recall?.reduced} />}
       {viewMode === "leadsheet" && <LeadSheetView data={guidanceData} time={time} settings={settings} chords={displayChords} />}
       {viewMode === "sheet" && (
         <div>
@@ -1887,7 +2177,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
               Sheet Music shows the stored Original arrangement while Chord mode is selected. Use Fall Down or Note letters for the active guidance.
             </p>
           )}
-          <SheetMusicView songId={initial.song.id} initialPosition={sheetPosition} />
+          <SheetMusicView publicationRevision={initial.publicationRevision} songId={initial.song.id} initialPosition={sheetPosition}
+            interaction={{source:sheetSource,enabled:settings.backgroundMode==="piano"&&settings.transpose===0,canNavigate:!grading&&countIn===null,beat:currentBeat,
+              onVerifiedMeasures:measures=>{if(!gradingRef.current&&countInRef.current===null&&initial.data.sourceFingerprint&&initial.publicationRevision)setVerifiedScoreMap(current=>current?.measures===measures?current:{fingerprint:initial.data.sourceFingerprint!,revision:initial.publicationRevision!,measures});},
+              onSeek:beat=>seek(beat*secPerBeat(activeData.tempoBpm,settings.speed)),onLoop:(startBeat,endBeat)=>{setLoopBeats({startBeat,endBeat});seek(startBeat*secPerBeat(activeData.tempoBpm,settings.speed));}}} />
         </div>
       )}
     </>
@@ -1897,7 +2190,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
       <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←</Link>
+        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
         <div className="player-song-identity min-w-0">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
@@ -2019,11 +2312,12 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       <div className="player-surface rounded-2xl border border-zinc-200 bg-white mb-4">
         <div className="player-toolbar">
         <div className="player-control-strip flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
-          <button onClick={togglePlay} disabled={chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
+          <button onClick={togglePlay} disabled={!engineReady || auxiliary!==null || chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
             <span aria-hidden="true">{playing ? "❚❚" : "▶"}</span>
           </button>
           <button
             ref={practiceTriggerRef}
+            disabled={auxiliary!==null}
             onClick={() => grading ? finishGrading() : openPracticeSetup()}
             className={`pressable player-practice-button min-h-11 px-3 py-1.5 rounded-full border font-medium text-sm ${grading ? "bg-amber-100 border-amber-300" : "border-zinc-300 hover:bg-zinc-100"}`}
           >
@@ -2156,12 +2450,13 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
               <label className="w-full text-sm">Key labels<select aria-label="Key labels" value={settings.keyboardLabels} onChange={event => updateSettings({ keyboardLabels: event.target.value as PlayerSettings["keyboardLabels"] })}><option value="notes">Note names</option><option value="octaves">Octaves only</option><option value="off">Off</option></select></label>
               <label className="flex items-center gap-2 min-h-11 text-sm"><input type="checkbox" checked={settings.showKeyBindings} onChange={event => updateSettings({ showKeyBindings: event.target.checked })} />Computer-key hints</label>
               </>}
+              <KeyboardRangeControls value={settings.physicalKeyboard??null} disabled={grading} onChange={physicalKeyboard=>updateSettings({physicalKeyboard})}/>
               <label className="w-full text-sm">App appearance<select aria-label="App appearance" value={settings.stageTheme} onChange={event => updateSettings({ stageTheme: event.target.value as PlayerSettings["stageTheme"] })}><option value="light">Light</option><option value="charcoal">Charcoal</option></select></label>
               {settings.mode === "sheet" && <button className="min-h-11 px-3 border border-zinc-300 rounded-md text-sm" onClick={() => {
                 setOpenTool(null);
                 window.requestAnimationFrame(() => document.querySelector<HTMLSelectElement>('.player-mode-layer-enter [aria-label="Score zoom"]')?.focus());
               }}>Score zoom &amp; fit width</button>}
-            </div> : tool === "sound" ? <fieldset disabled={grading}>
+            </div> : tool === "sound" ? <fieldset disabled={grading||auxiliary!==null}>
                         <button
             onClick={() => updateSettings({ metronome: !settings.metronome })}
             aria-pressed={settings.metronome}
@@ -2172,6 +2467,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
 
               <p className="mb-3 text-xs text-zinc-600">Visual bar progress is always available. Metronome clicks follow the active arrangement.</p>
               <SoundControls settings={settings} onChange={updateSettings} onPreview={previewSound}
+                sampleStatus={sampleStatus} samplePolicy={samplePolicy} sampleBusy={grading || playing || countIn !== null || soundPreviewStatus?.phase === "playing"}
+                onSamplePolicy={policy => { if (gradingRef.current) return; setSamplePolicy(policy); const audio = engineRef.current?.audio; if (audio instanceof SamplerAudioEngine) audio.samplePolicy = policy; }}
+                onSampleRetry={() => { const audio = engineRef.current?.audio; if (audio instanceof SamplerAudioEngine && !audio.retrySamples()) setPracticeError("Sample retries are exhausted. Choose synthesis fallback or reload."); }}
                 previewStatus={soundPreviewStatus} onPreviewStop={stopSoundPreview}
                 chordUnavailableReason={initial.chordUnavailableReason}
                 sourceBacking={Boolean(sourceBackingNotes)}
@@ -2189,10 +2487,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
                 onMelodyPhraseOverrideChange={updateMelodyPhraseOverride}
                 onSourceBackingModeChange={updateSourceBackingMode}
                 onMelodySelectionReset={resetMelodySelection} />
-            </fieldset> : <InputStatus octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} />}
+            </fieldset> : <InputStatus locked={grading} octave={inputOctave} midiConnected={midiConnected} pending={midiPending} error={midiError} supported={midiSupported()} onOctaveChange={octave => keyboardInputRef.current?.setOctave(octave)} onConnectMidi={connectMidi} devices={midiDevices} selection={midiSelection} onSelection={selectMidi} offsets={timingOffsets} onTimingOffset={setTimingOffset} />}
           </PlayerTools>
 
-          <button className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setOpenTool(null); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
+          <button disabled={auxiliary!==null} className="min-h-11 rounded-full border border-zinc-300 px-3 text-sm" aria-pressed={focusMode} onClick={() => { setFocusMode(!focusMode); setOpenTool(null); window.scrollTo({ top: 0 }); }}>{focusMode ? "Exit focus" : "Focus"}</button>
         </div>
 
       </div>
@@ -2278,8 +2576,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
         )}
 
         </div>
-        {(grading || gradeResult) && <GradingPanel waitMode={waitMode} waitNotes={waitNotes} result={gradeResult}
+        {recall && <section className="border rounded-xl p-3 text-sm" aria-label="Passage recall trial"><p>{recall.passage.name}: {recall.reduced?"Reduced pitch cues":"Guidance visible"}. Source uncertainty and failure feedback remain visible. This owner-confirmed trial does not establish memory or mastery.</p><button disabled={auxiliary!==null||grading||showPracticeSetup||playing} className="min-h-11 underline mr-3" onClick={()=>previewSound("full")}>1. Demonstrate saved passage</button><button disabled={auxiliary!==null||grading||!recall.demonstrated||showPracticeSetup||playing} className="min-h-11 underline mr-3" onClick={()=>{setRecall({...recall,reduced:false});openPracticeSetup("loop");}}>2. Guided passage attempt</button><button disabled={auxiliary!==null||grading||!recall.guided||showPracticeSetup||playing} className="min-h-11 underline mr-3" onClick={()=>{setRecall({...recall,reduced:true});openPracticeSetup("loop");}}>3. Try reduced pitch cues</button><button className="min-h-11 underline mr-3" onClick={revealRecall}>Reveal / Restore guidance</button><button className="min-h-11 underline" onClick={()=>{if(gradingRef.current)finishGrading(false);cancelSoundPreview();engineRef.current?.stop();syncTransportState();setRecall(null);}}>End recall trial</button></section>}
+        {(grading || gradeResult) && <GradingPanel pitchCues={!recall?.reduced} waitMode={waitMode} waitNotes={waitNotes} result={gradeResult}
           countIn={countIn} input={practiceSetup.input} onExit={finishGrading} onRepeat={repeatPractice}
+          problems={gradeResult ? gradeProblemWindows(gradeResult, navigationMeasures, gradedTimingRef.current.bpm, gradedTimingRef.current.speed) : []}
+          onRevisit={range => { engineRef.current?.stop(); setLoopBeats(range); engineRef.current?.seek(range.startBeat * secPerBeat(activeData.tempoBpm, settings.speed)); setGradeResult(null); setSeekVersion(version => version + 1); syncTransportState(); }}
           onDismiss={() => { setGradeResult(null); if (engineRef.current) engineRef.current.gradeResult = null; }} />}
 
         <div className="player-stage-status" aria-label="Playback status">
@@ -2324,6 +2625,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
               notice={chordPracticeNotice}
               active={chordPracticeActive}
               onStart={startChordPractice}
+            onExercise={chooseChordExercise} midiShapeEligible={!!midiSelection.device&&midiSelection.channel!==null}
               onHear={hearChordPractice}
               onSkip={skipChordPractice}
               onExit={exitChordPractice}
@@ -2359,6 +2661,35 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
 
       </div>
 
+      <div className="player-secondary-tools">
+      <LearningInspection songId={initial.song.id} revision={initial.publicationRevision}/>
+      <OwnerMetadata song={initial.song} revision={initial.publicationRevision}/>
+      <OfflinePackControl id={initial.song.id} revision={initial.publicationRevision}/>
+      <OwnerDeletion baseId={initial.song.baseId} revision={initial.publicationRevision} disabled={grading||playing||countIn!==null||auxiliary!==null}/>
+        <PracticeWorkspace onRecall={settings.mode==="beginner"&&settings.backgroundMode==="piano"?passage=>{if(auxiliaryRef.current||gradingRef.current||!practiceTarget||passage.target.fingerprint!==practiceTarget.fingerprint)return;if(passage.endBeat-passage.startBeat>16){setPracticeSaveNotice("Recall trials support up to 16 beats; save a shorter reviewed passage.");return;}if(!selectSavedPassage(passage))return;cancelSoundPreview();activeTempoPlanRef.current=null;setRecall({passage,demonstrated:false,guided:false,reduced:false});}:undefined} publicationRevision={initial.publicationRevision} target={practiceTarget} variantId={initial.song.id} range={loopBeats}
+          bpm={activeData.tempoBpm}
+          onUseTempoPlan={passage => {
+            if (gradingRef.current || !passage.tempoPlan || passage.tempoPlan.paused || passage.tempoPlan.status !== "active" || passage.target.fingerprint !== practiceTarget?.fingerprint) return;
+            const speed=passage.tempoPlan.currentBpm/activeData.tempoBpm;
+            if (speed<.25 || speed>4) { setPracticeSaveNotice("Plan tempo no longer fits this arrangement."); return; }
+            if (!selectSavedPassage(passage)) return;
+            updateSettings({speed}); activeTempoPlanRef.current={passageId:passage.id,policyId:passage.tempoPlan.policyId};
+            setPracticeSaveNotice(`Tempo plan selected at ${passage.tempoPlan.currentBpm} BPM. Start Play-along Practice when ready; changes apply between runs.`);
+          }}
+          endBeat={duration / secPerBeat(activeData.tempoBpm, settings.speed)} positionBeat={time / secPerBeat(activeData.tempoBpm, settings.speed)} disabled={grading || showPracticeSetup}
+          onSelect={selectSavedPassage}
+          onSaved={passage => { selectedPassageIdRef.current = passage.id; }}
+          onResume={beat => { engineRef.current?.stop(); seek(beat * secPerBeat(activeData.tempoBpm, settings.speed)); syncTransportState(); }} />
+        {activeData.sourcePedal && <p className="px-4 text-xs" role="note">{settings.backgroundMode==="piano"?"Source-file CC64 controls resonance separately from key holds. Simulated background sustain is disabled; your live input pedal stays separate.":"Derived Chords playback omits source-file pedal changes."} MusicXML retains channel-bound pedal metadata for Keyspilli; other score players may ignore it. Musical review remains unverified.</p>}
+        <MidiTakePanel inputRef={takeInputRef} target={practiceTarget} revision={initial.publicationRevision} targets={guidanceNotes}
+          startBeat={rhythmRange.startSec/secPerBeat(activeData.tempoBpm,settings.speed)} endBeat={rhythmRange.endSec/secPerBeat(activeData.tempoBpm,settings.speed)} bpm={activeData.tempoBpm} speed={settings.speed} transpose={settings.transpose}
+          device={midiConnected?midiSelection.device:null} channel={midiSelection.channel} disabled={grading||showPracticeSetup||chordPracticeActive||playing||auxiliary==="rhythm"}
+          onPrepare={()=>prepareAuxiliary("take")} onDone={()=>releaseAuxiliary("take")}/>
+        <RhythmCoach data={guidanceData} startBeat={rhythmRange.startSec/secPerBeat(activeData.tempoBpm,settings.speed)}
+          endBeat={rhythmRange.endSec/secPerBeat(activeData.tempoBpm,settings.speed)} speed={settings.speed} disabled={grading||showPracticeSetup||chordPracticeActive||playing||auxiliary==="take"} onPrepare={()=>prepareAuxiliary("rhythm")} onDone={()=>releaseAuxiliary("rhythm")}/>
+        {practiceSaveNotice && <p role="status" className="px-4 text-xs">{practiceSaveNotice}</p>}
+      </div>
+
       {displayVariants.length > 1 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 mb-2">Same song, other levels</h2>
@@ -2370,17 +2701,21 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
                 className={`px-3 py-2 rounded-full text-sm border ${v.id === initial.song.id ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
               >
                 {levelLabel(v.difficulty)}
+                <NavigationFeedback destination="arrangement" />
               </Link>
             ))}
           </div>
         </section>
       )}
 
-      {showPracticeSetup && <PracticeSetupDialog describeSetup={describePracticeSetup} onChordPractice={chordPracticeTargets.length ? () => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); } : undefined} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
-        midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError}
+      {showPracticeSetup && <PracticeSetupDialog articulationEligible={!!midiSelection.device&&midiSelection.channel!==null} keyboardTarget={practiceKeyboardTarget} describeSetup={describePracticeSetup} onChordPractice={chordPracticeTargets.length ? () => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); } : undefined} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
+        midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError} micSignal={micSignal}
+        microphoneTarget={setup => { const range = resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, engineRef.current?.time ?? time, duration, activeData.tempoBpm, settings.speed, loop); return range ? microphoneEligibility(guidanceNotes, range) : { eligible: false, reason: "Choose a measured passage." }; }}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose} onClose={() => {
+      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose}
+        activeExport={melodyArrangementRequested&&(melodyArrangementPending||melodyArrangementFailed)?undefined:{selection:activeExportSelection,sourceFingerprint:melodySourceFingerprint,
+          digest:()=>activeExportDigest(activeExportVariant(activeData,{...accompaniment,displayChords},activeExportSelection))}} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}
@@ -2554,7 +2889,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/songs/${encodeURIComponent(initial.song.id)}`, {
+      const response = await fetch(`/api/songs/${encodeURIComponent(initial.song.id)}?revision=${encodeURIComponent(initial.publicationRevision ?? "unpinned")}`, {
         signal: controller.signal,
         cache: "no-store",
         headers: { Accept: "application/json" },
@@ -2563,7 +2898,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
       const value = await response.json().catch(() => null) as Partial<PlayerDetail> | null;
       if (controller.signal.aborted || loadRequestRef.current !== controller) return;
       if (!response.ok || !value || !value.song || !value.data || !Array.isArray(value.variants)) {
-        throw new Error("The player arrangement could not be loaded.");
+        throw new Error(response.status === 409 ? "This arrangement changed. Reload the page before continuing." : "The player arrangement could not be loaded.");
       }
       const score = document.querySelector<HTMLElement>(".sheet-svg");
       const page = Number(score?.dataset.activePage ?? 1);
@@ -2592,7 +2927,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
   const shell = (
     <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←</Link>
+        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
         <div className="player-song-identity">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
@@ -2604,6 +2939,9 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
         </div>
       </div>
 
+      <LearningInspection songId={initial.song.id} revision={initial.publicationRevision}/>
+      <OwnerMetadata song={initial.song} revision={initial.publicationRevision}/>
+      <OwnerDeletion baseId={initial.song.baseId} revision={initial.publicationRevision}/>
       <div className="player-secondary-controls flex flex-wrap items-center gap-2 mb-4">
         <div className="relative" ref={modeMenuRef}>
           <button
@@ -2716,7 +3054,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
           {savedTranspose !== 0 && <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
             Sheet Music stays in the original key; playback is transposed {savedTranspose > 0 ? `+${savedTranspose}` : savedTranspose} semitones.
           </p>}
-          <SheetMusicView songId={initial.song.id} />
+          <SheetMusicView suspended={detail !== null} publicationRevision={initial.publicationRevision} songId={initial.song.id} />
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">Sheet Music view active</p>
         </div>
       </div>
@@ -2732,13 +3070,14 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
                 className={`px-3 py-2 rounded-full text-sm border ${variant.id === initial.song.id ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
               >
                 {levelLabel(variant.difficulty)}
+                <NavigationFeedback destination="arrangement" />
               </Link>
             ))}
           </div>
         </section>
       )}
 
-      {showDownload && <DownloadDialog songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} transpose={savedTranspose} onClose={() => {
+      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} transpose={savedTranspose} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}

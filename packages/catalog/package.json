@@ -85,5 +85,13 @@
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^4.1.11"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime.ts",
+    "./research": "./src/research.ts",
+    "./*": "./*",
+    "./src/*.js": "./src/*.ts",
+    "./src/*": "./src/*.ts"
   }
 }

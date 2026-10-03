@@ -24,6 +24,11 @@ function previewLabel(role: MelodyAuditionRole, backgroundMode: PlayerSettings["
 export function SoundControls({
   settings,
   onChange,
+  sampleStatus,
+  samplePolicy = "fallback",
+  sampleBusy = false,
+  onSamplePolicy,
+  onSampleRetry,
   chordSource = "auto",
   chordSources,
   chordSourceStatus = null,
@@ -48,6 +53,11 @@ export function SoundControls({
 }: {
   settings: PlayerSettings;
   onChange: (p: Partial<PlayerSettings>) => void;
+  sampleStatus?: { readiness: string; timbre: string; latencyMs: number | null };
+  samplePolicy?: "fallback" | "wait";
+  sampleBusy?: boolean;
+  onSamplePolicy?: (policy: "fallback" | "wait") => void;
+  onSampleRetry?: () => void;
   chordSource?: ChordSourceId;
   chordSources?: { ug: ChordSourceOption | null; generated: ChordSourceOption; auto: ChordSourceOption };
   chordSourceStatus?: string | null;
@@ -86,6 +96,9 @@ export function SoundControls({
     <>
       <section aria-label="Arrangement settings" className="player-settings-section">
         <h2 className="text-sm font-semibold mb-3">Arrangement</h2>
+        <label className="flex items-center gap-2 mb-2 text-sm"><input type="checkbox" checked={settings.audibleSupport??false} onChange={event=>onChange({audibleSupport:event.target.checked})}/>Keep the other hand audible</label>
+        <p className="text-xs text-zinc-600 mb-3">Practice targets follow your hand choice. Support uses the existing hand volume controls; it adds no assessed targets. Chords keeps your chosen backing arrangement.</p>
+        <label className="block mb-3">Rendered expression <select aria-label="Rendered expression" value={settings.renderedExpression??"source"} onChange={event=>onChange({renderedExpression:event.target.value as "source"|"meter-accents"})}><option value="source">Preserve source velocity</option><option value="meter-accents">Meter accents for flat velocities</option></select><small className="block">Accents require validated source measure phase. Unknown phase and varying source dynamics keep source velocity.</small></label>
         <div className="mb-4">
           <h3 className="text-sm font-medium mb-2">Background sound</h3>
           <div className="flex gap-2" role="radiogroup" aria-label="Background sound">
@@ -427,13 +440,22 @@ export function SoundControls({
           </div>
           <p className="text-xs text-zinc-500 mt-1">
             {settings.soundSource === "sampled"
-              ? "Realistic multi-layer piano samples (loads on first play)"
+              ? "Piano samples load from an external asset service when selected; your song and input are not sent."
               : settings.soundSource === "organ"
                 ? settings.organStyle === "rock"
                   ? "Native tonewheel organ with rotary speaker"
                   : "Native pipe organ with large cathedral acoustics"
                 : "Lightweight oscillator tone; works instantly on slow connections"}
           </p>
+          {settings.soundSource === "sampled" && sampleStatus && <div className="mt-2 text-sm">
+            <p role="status">Samples: {sampleStatus.readiness}. Current sound: {sampleStatus.timbre === "sampled" ? "sampled piano" : "synthesis fallback"}.
+              {sampleStatus.latencyMs !== null && ` Load settled in ${Math.round(sampleStatus.latencyMs)} ms.`}
+              {sampleStatus.readiness === "ready" && sampleStatus.timbre === "fallback" && " Samples apply on the next Play, Practice or Preview start."}</p>
+            <label>Before starting <select aria-label="Piano sample policy" disabled={sampleBusy} value={samplePolicy} onChange={e => onSamplePolicy?.(e.target.value as "fallback" | "wait")}>
+              <option value="fallback">Use synthesis while samples load</option><option value="wait">Wait for samples</option>
+            </select></label>
+            {sampleStatus.readiness === "failed" && <button className="min-h-11 underline" disabled={sampleBusy} onClick={onSampleRetry}>Retry sample loading (up to twice)</button>}
+          </div>}
         </div>
 
         {settings.soundSource === "organ" && (

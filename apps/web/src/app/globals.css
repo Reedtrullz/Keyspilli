@@ -841,6 +841,10 @@ body {
 
 /* Virtual sheet mode keeps a bounded page window mounted. The placeholders
  * retain the page aspect ratio so scrolling does not jump as SVGs arrive. */
+.sheet-svg[data-sheet-render-mode="virtual"] .sheet-svg__page:not(.sheet-svg__page--placeholder) {
+  content-visibility: visible;
+}
+
 .sheet-svg__page--placeholder {
   aspect-ratio: var(--sheet-page-aspect, 1600 / 2200);
   min-height: 15rem;
@@ -1002,6 +1006,7 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
 .player-focus .player-workspace { flex: 1; min-height: 0; height: auto; display: flex; flex-direction: column; }
 .player-focus .player-workspace[data-falling="true"] { min-height: 0; }
 .player-focus .player-workspace .falling-canvas { min-height: 150px; }
+.player-focus .player-secondary-tools { display: none; }
 .chord-progression-details { min-width: 0; }
 @media (max-width: 640px) {
   .player-song-actions { margin-left: 0; }
@@ -1243,3 +1248,5 @@ body:has(.player-focus) :where(.site-header, .site-footer) { display: none; }
   html[data-theme="charcoal"] :is(.library-toolbar, .helper-callout, .job-row:hover, .dropzone:focus-within) { background: #202025; border-color: #50505b; }
   html[data-theme="charcoal"] .loading-skeleton { background: #29292f; }
 }
+
+.sheet-svg g.measure[role="button"]:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }

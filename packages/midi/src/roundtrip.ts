@@ -1,3 +1,4 @@
+import {sourcePedalErrors} from "./source-pedal.js";
 import { keySignature } from "./analyze.js";
 import { parseMidi } from "./parse.js";
 import { parseMusicXmlNotes } from "./parseXml.js";
@@ -91,6 +92,8 @@ function compareTimeSigEvents(
 export function writeVariantArtifacts(variant: Variant, title: string, artist: string): VariantArtifacts {
   const sig = keySignature(variant.key);
   const midi = writeMidi(variant.notes, {
+    sourcePedal:variant.sourcePedal,
+    measures: variant.measures,
     tempoBpm: variant.tempoBpm,
     timeSig: variant.timeSig,
     timeSigEvents: variant.timeSigEvents,
@@ -122,6 +125,7 @@ export function validateArtifactRoundtrip(variant: Variant, title: string, artis
 /** Validate already-rendered bytes/markup (used by catalog verification). */
 export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifacts): string[] {
   const issues: string[] = [];
+  if(variant.sourcePedal){const errors=sourcePedalErrors(variant.notes,variant.sourcePedal);if(errors.length)return errors;}
   // The canonical notes are compared against both renderings. Normalize that
   // shared side once instead of sorting the same source array twice for large
   // arrangements.
@@ -131,6 +135,7 @@ export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifa
     issues.push(...compareTempo(variant.tempoBpm, parsedMidi.tempoBpm, parsedMidi.tempoMetaPresent === true, "midi roundtrip"));
     issues.push(...compareTimeSigEvents(expectedTimeSigEvents(variant), parsedMidi.timeSigEvents, "midi roundtrip"));
     issues.push(...compareNotes(expectedNotes, parsedMidi.notes, "midi roundtrip"));
+    issues.push(...comparePedal(variant,parsedMidi,"midi roundtrip"));
   } catch (e) {
     issues.push(`midi roundtrip parse failed: ${(e as Error).message}`);
   }
@@ -139,8 +144,17 @@ export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifa
     issues.push(...compareTempo(variant.tempoBpm, parsedXml.tempoBpm, parsedXml.tempoMetaPresent === true, "xml roundtrip"));
     issues.push(...compareTimeSigEvents(expectedTimeSigEvents(variant), parsedXml.timeSigEvents, "xml roundtrip"));
     issues.push(...compareNotes(expectedNotes, parsedXml.notes, "xml roundtrip"));
+    issues.push(...comparePedal(variant,parsedXml,"xml roundtrip"));
   } catch (e) {
     issues.push(`xml roundtrip parse failed: ${(e as Error).message}`);
   }
   return issues;
+}
+
+function comparePedal(expected:Variant,actual:Pick<Variant,"notes"|"sourcePedal">,label:string):string[]{
+ const a=expected.sourcePedal,b=actual.sourcePedal;if(!a&&!b)return [];if(!a||!b)return [`${label}: source pedal timeline missing or unexpected`];
+ if(Math.abs(a.endBeat-b.endBeat)>.01||a.changes.length!==b.changes.length||a.changes.some((e,i)=>{const got=b.changes[i]!;return Math.abs(e.beat-got.beat)>.01||e.channel!==got.channel||e.value!==got.value;}))return [`${label}: source pedal events differ`];
+ const shape=(notes:Note[])=>[...notes].sort((a,b)=>a.midi-b.midi||a.sourceMidiChannel!-b.sourceMidiChannel!||a.start-b.start||a.dur-b.dur);
+ const left=shape(expected.notes),right=shape(actual.notes);
+ return left.length===right.length && left.every((n,i)=>{const got=right[i]!;return n.midi===got.midi&&n.sourceMidiChannel===got.sourceMidiChannel&&Math.abs(n.start-got.start)<=.01&&Math.abs(n.dur-got.dur)<=.01;})?[]:[`${label}: source pedal note channels differ`];
 }

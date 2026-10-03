@@ -54,6 +54,32 @@ export interface VariantValidationOptions {
    * human-authored sources; omission keeps the legacy safety default.
    */
   maxDurBeats?: number | null;
+  /** Only set after the catalog intake has authenticated an owner-authored study. */
+  shortStudy?: boolean;
+}
+
+export type ShortStudyKind = "one-note" | "triad" | "four-note-phrase";
+
+export function shortStudyKind(notes: Note[]): ShortStudyKind | undefined {
+  if (notes.length === 1) return "one-note";
+  if (notes.length === 3) {
+    const pitches = new Set(notes.map((note) => note.midi));
+    return pitches.size === 3 && notes.every((note) => note.start === notes[0]!.start) ? "triad" : undefined;
+  }
+  if (notes.length === 4 && new Set(notes.map((note) => note.start)).size > 1) return "four-note-phrase";
+  return undefined;
+}
+
+export function validateShortStudySource(notes: Note[]): string[] {
+  const errors: string[] = [];
+  if (!shortStudyKind(notes)) errors.push("authored study must be one note, a three-note triad, or a four-note phrase");
+  for (const [index, note] of notes.entries()) {
+    if (!Number.isInteger(note.midi) || note.midi < 21 || note.midi > 108) errors.push(`study note ${index + 1}: MIDI pitch must be within piano range 21-108`);
+    if (!Number.isFinite(note.start) || note.start < 0) errors.push(`study note ${index + 1}: start must be non-negative`);
+    if (!Number.isFinite(note.dur) || note.dur <= 0) errors.push(`study note ${index + 1}: duration must be positive`);
+    if (!Number.isInteger(note.vel) || note.vel < 0 || note.vel > 127) errors.push(`study note ${index + 1}: velocity must be between 0 and 127`);
+  }
+  return errors;
 }
 
 function validateVariant(v: Variant, opts: VariantValidationOptions): string[] {
@@ -73,7 +99,9 @@ function validateVariant(v: Variant, opts: VariantValidationOptions): string[] {
   ) {
     out.push(`${v.level}: bad time signature ${num}/${den}`);
   }
-  if (v.notes.length < 8) out.push(`${v.level}: only ${v.notes.length} notes`);
+  if (opts.shortStudy) {
+    if (!shortStudyKind(v.notes)) out.push(`${v.level}: study must be one note, a three-note triad, or a four-note phrase`);
+  } else if (v.notes.length < 8) out.push(`${v.level}: only ${v.notes.length} notes`);
 
   const byStart = new Map<string, number>();
   const starts: number[] = [];

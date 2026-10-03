@@ -5,7 +5,7 @@ import {
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile, statfs } from "node:fs/promises";
 import { resolve, join } from "node:path";
-import { sanitizeProcessError } from "./errors.js";
+import { sanitizeProcessError,withResourceAccounting,isResourceBlocked,RESOURCE_BLOCKED_MESSAGE } from "./errors.js";
 import { normalizeYoutubeImportUrl, ytNetworkFlags } from "./youtube-url.js";
 import {
   cleanCatalogTitle,
@@ -185,6 +185,7 @@ const failureMessages = [
   "tutorial subprocess failed",
 ];
 export function tutorialFailure(error: unknown) {
+  if(isResourceBlocked(error))return {reason:RESOURCE_BLOCKED_MESSAGE};
   const message = error instanceof Error ? error.message : "";
   const reason =
     failureMessages
@@ -226,8 +227,9 @@ export async function runTutorialProcess(
   hooks: TutorialHooks = {},
 ): Promise<string> {
   checkTutorialActive(hooks);
-  return new Promise((resolve, reject) => {
+  return withResourceAccounting(()=>new Promise<string>((resolve, reject) => {
     let stopped = "";
+    let finished=false;
     const child = spawn(cmd, args, {
       detached: process.platform !== "win32",
       stdio: ["ignore", "pipe", "pipe"],
@@ -243,11 +245,13 @@ export async function runTutorialProcess(
       if (bytes > 16 * 1024 ** 2) stop("tutorial output limit exceeded");
       else chunks.push(chunk);
     });
-    const finish = (failed: boolean) => {
+    const finish = (failed: boolean,error?:unknown) => {
+      if(finished)return;finished=true;
       clearInterval(poll);
       clearTimeout(deadline);
       hooks.signal?.removeEventListener("abort", cancel);
-      if (stopped || failed)
+      if(error && typeof error==="object" && "code" in error && ["EAGAIN","ENOMEM"].includes(String(error.code)))reject(Error(RESOURCE_BLOCKED_MESSAGE));
+      else if (stopped || failed)
         reject(
           Object.assign(
             Error(
@@ -259,7 +263,7 @@ export async function runTutorialProcess(
         );
       else resolve(Buffer.concat(chunks).toString("utf8"));
     };
-    child.once("error", () => finish(true));
+    child.once("error", (error) => finish(true,error));
     child.once("close", (code) => finish(code !== 0));
     const stop = (reason: string) => {
       stopped ||= reason;
@@ -285,7 +289,7 @@ export async function runTutorialProcess(
     );
     hooks.signal?.addEventListener("abort", cancel, { once: true });
     if (hooks.signal?.aborted) cancel();
-  });
+  }),hooks.signal);
 }
 
 export async function resolveTutorialLink(
@@ -519,6 +523,7 @@ export async function resolveTutorialLink(
           status: "failed",
           ...tutorialFailure(error),
         });
+        if(isResourceBlocked(error))throw error;
         active();
       } finally {
         await writeFile(

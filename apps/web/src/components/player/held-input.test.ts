@@ -21,3 +21,15 @@ it("does not retain rejected notes or release a pitch it never acquired", () => 
   held.release("pointer:1"); held.releaseAll();
   expect(off).not.toHaveBeenCalled();
 });
+
+it("holds only pedal-owned input voices until pedal-up and force releases on cleanup", () => {
+  const on = vi.fn(() => true), off = vi.fn();
+  const held = createHeldInput(on, off);
+  held.setPedal("midi:a:0:", true);
+  held.press("midi:a:0:60", 60); held.release("midi:a:0:60");
+  held.press("key:a", 64); held.release("key:a");
+  expect(off.mock.calls).toEqual([[64]]);
+  held.setPedal("midi:a:0:", false); expect(off.mock.calls).toEqual([[64], [60]]);
+  held.setPedal("midi:a:0:", true); held.press("midi:a:0:62", 62); held.release("midi:a:0:62");
+  held.releaseAll(); expect(off.mock.calls).toEqual([[64], [60], [62]]);
+});

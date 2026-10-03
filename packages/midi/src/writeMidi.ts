@@ -1,4 +1,6 @@
-import { MidiTimeSignatureEvent, Note } from "./types.js";
+import {SOURCE_OCCURRENCES,writeSourceOccurrences} from "./source-occurrences.js";
+import {sourcePedalErrors} from "./source-pedal.js";
+import { MeasureInfo, MidiTimeSignatureEvent, Note, SourcePedalTimeline } from "./types.js";
 
 function varint(n: number): number[] {
   const out = [n & 0x7f];
@@ -82,6 +84,10 @@ function allocateChannels(notes: Note[]): Map<Note, number> {
 }
 
 export interface WriteMidiOptions {
+  sourcePedal?: SourcePedalTimeline;
+  /** Explicit CC64 events; key intervals remain unchanged. */
+  pedalChanges?: readonly {beat:number;channel:number;value:number}[];
+  measures?: readonly MeasureInfo[];
   tempoBpm: number;
   timeSig?: [number, number];
   /** Optional source meter changes in absolute quarter-note beats. */
@@ -89,6 +95,8 @@ export interface WriteMidiOptions {
   keySig?: number;
   keyMode?: 0 | 1;
   title?: string;
+  /** Opt-in chord-name markers; note tracks remain the sounding arrangement. */
+  chordMarkers?: readonly { beat: number; name: string }[];
   /** notes grouped by hand; if empty, all notes go to one track */
   tracks?: { name: string; notes: Note[]; channel?: number; program?: number; percussion?: boolean }[];
   division?: number;
@@ -96,6 +104,9 @@ export interface WriteMidiOptions {
 
 /** Write a type-1 SMF (one track per hand) from notes in beats. */
 export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
+  if(opts.pedalChanges && (opts.pedalChanges.length>4096 || opts.pedalChanges.some(event=>!Number.isFinite(event.beat)||event.beat<0||event.beat>1e7||!Number.isInteger(event.channel)||event.channel<0||event.channel>15||!Number.isInteger(event.value)||event.value<0||event.value>127)))throw new Error("Invalid or excessive MIDI pedal changes");
+  if(opts.sourcePedal){const errors=sourcePedalErrors(notes,opts.sourcePedal);if(errors.length)throw new Error(errors.join(" "));if(opts.pedalChanges)throw new Error("Choose source or performed pedal events, not both");}
+  const occurrences=writeSourceOccurrences(opts.measures ?? []);
   const division = opts.division ?? 480;
   const [num, den] = opts.timeSig ?? [4, 4];
   const timeSigEvents = (opts.timeSigEvents ?? [])
@@ -113,11 +124,19 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
   const trackBytes: Uint8Array[] = [];
   for (const track of tracks) {
     const events: TrackEvent[] = [];
+    if (!trackBytes.length && occurrences) {const bytes=strBytes(`${SOURCE_OCCURRENCES}:${occurrences}`);events.push({tick:0,bytes:[0xff,0x7f,...varint(bytes.length),...bytes]});}
     if (track.name) {
       const name = strBytes(track.name);
       events.push({ tick: 0, bytes: [0xff, 0x03, name.length, ...name] });
     }
     if (track === tracks[0]) {
+      if(opts.sourcePedal)events.push({tick:Math.round(opts.sourcePedal.endBeat*division),bytes:[0xff,0x01,0]});
+      for(const event of opts.sourcePedal?.changes ?? opts.pedalChanges ?? [])events.push({tick:Math.round(event.beat*division),order:2,bytes:[0xb0|event.channel,64,event.value]});
+      for (const chord of opts.chordMarkers ?? []) {
+        if (!Number.isFinite(chord.beat) || chord.beat < 0 || typeof chord.name !== "string" || chord.name.length > 256) throw new Error("Invalid chord marker");
+        const name = strBytes(chord.name);
+        events.push({ tick: Math.round(chord.beat * division), bytes: [0xff, 0x06, ...varint(name.length), ...name] });
+      }
       events.push(
         { tick: 0, bytes: [0xff, 0x51, 0x03, (tempoUs >>> 16) & 0xff, (tempoUs >>> 8) & 0xff, tempoUs & 0xff] },
         { tick: 0, bytes: [0xff, 0x58, 0x04, initialTimeSig[0]!, Math.round(Math.log2(initialTimeSig[1]!)), 24, 8] },
@@ -138,7 +157,9 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
     if (track.program !== undefined && (!Number.isInteger(track.program) || track.program < 0 || track.program > 127)) {
       throw new Error(`invalid MIDI program ${String(track.program)}`);
     }
-    const channels = explicitChannel === undefined
+    const channels = opts.sourcePedal
+      ? new Map(track.notes.map(note=>[note,note.sourceMidiChannel!]))
+      : explicitChannel === undefined
       ? allocateChannels(track.notes)
       : new Map(track.notes.map((note) => [note, explicitChannel]));
     const usedChannels = [...new Set(channels.values())].sort((a, b) => a - b);

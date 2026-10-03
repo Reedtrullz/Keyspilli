@@ -53,6 +53,35 @@ describe("stemPipelineConfigFromEnv", () => {
       basicPitch: "/app/basic-pitch",
     })).toThrow("KEYSPILLI_IMPORT_MODE must be auto, legacy, or metal");
   });
+
+  it.each([
+    ["KEYSPILLI_DEMUCS_TIMEOUT_MS", "NaN"],
+    ["KEYSPILLI_DEMUCS_TIMEOUT_MS", "Infinity"],
+    ["KEYSPILLI_BP_TIMEOUT_MS", "999999999"],
+    ["KEYSPILLI_STEM_MIN_FREE_GIB", "1e99"],
+    ["KEYSPILLI_ONSET", "1.01"],
+  ])("rejects out-of-bounds %s without echoing its value", (name, value) => {
+    try {
+      stemPipelineConfigFromEnv({ [name]: value }, {
+        root: "/app",
+        python: "/app/python",
+        basicPitch: "/app/basic-pitch",
+      });
+      throw new Error("expected invalid configuration to throw");
+    } catch (error) {
+      expect((error as Error).message).toContain(name);
+      expect((error as Error).message).not.toContain(`got "${value}"`);
+    }
+  });
+
+  it("accepts zero-valued threshold boundaries", () => {
+    const value = stemPipelineConfigFromEnv({ KEYSPILLI_ONSET: "0", KEYSPILLI_FRAME: "0" }, {
+      root: "/app",
+      python: "/app/python",
+      basicPitch: "/app/basic-pitch",
+    });
+    expect(value).toMatchObject({ onsetThreshold: 0, frameThreshold: 0 });
+  });
 });
 
 describe("transcribePitchedStems", () => {

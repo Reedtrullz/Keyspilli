@@ -42,6 +42,12 @@ describe("loadSettings", () => {
     expect(loadSettings()).toEqual({ ...DEFAULT_SETTINGS, speed: 1, voiceGain: 0.5, metronome: true });
   });
 
+  it("keeps physical ranges independent and rejects malformed device guesses",()=>{
+    store.set(KEY,JSON.stringify({physicalKeyboard:{lowMidi:36,highMidi:96},showAllKeys:true}));
+    expect(loadSettings().physicalKeyboard).toEqual({lowMidi:36,highMidi:96});expect(loadSettings().showAllKeys).toBe(true);
+    store.set(KEY,JSON.stringify({physicalKeyboard:{lowMidi:96,highMidi:36}}));expect(loadSettings().physicalKeyboard).toBeNull();
+  });
+
   it("clamps numbers into range", () => {
     store.set(KEY, JSON.stringify({ voiceGain: 99, transpose: -100 }));
     const s = loadSettings();
@@ -184,4 +190,18 @@ it("rejects corrupt saved lists and per-song view modes", () => {
   expect(loadStringList("keyspilli.learned")).toEqual(["song-e"]);
   store.set("keyspilli.song-prefs.v1:song-1", '{"mode":"bogus","speed":0.5}');
   expect(loadSongPrefs("song-1")).toEqual({ speed: 0.5 });
+});
+
+it("keeps unknown timing distinct from zero and binds bounded offsets to the selected setup", async () => {
+  const { loadTimingCalibration, saveTimingCalibration, clearTimingCalibrations, TIMING_CALIBRATION_KEY } = await import("../src/prefs.js");
+  expect(loadTimingCalibration("keyboard:synth")).toBeNull();
+  expect(saveTimingCalibration("keyboard:synth", 0)).toBe(true);
+  expect(loadTimingCalibration("keyboard:synth")).toBe(0);
+  expect(loadTimingCalibration("keyboard:sampled")).toBeNull();
+  expect(saveTimingCalibration("keyboard:synth", 251)).toBe(false);
+  for (let i = 0; i < 25; i++) saveTimingCalibration(`midi:${i}`, -50);
+  expect(Object.keys(JSON.parse(store.get(TIMING_CALIBRATION_KEY)!))).toHaveLength(20);
+  store.set(TIMING_CALIBRATION_KEY, JSON.stringify({ "midi:24": "0" }));
+  expect(loadTimingCalibration("midi:24")).toBeNull();
+  clearTimingCalibrations(); expect(loadTimingCalibration("midi:24")).toBeNull();
 });

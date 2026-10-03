@@ -4,7 +4,7 @@ test("mobile viewport: home, library and player render", async ({ browser }) => 
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
   const page = await ctx.newPage();
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Play the songs you love/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your practice", exact: true })).toBeVisible();
   await page.goto("/songs");
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
   await page.goto("/player/f-f-chopin-nocturne-m");

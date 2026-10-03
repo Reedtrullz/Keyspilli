@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@keyspilli/midi": "*",
-    "verovio": "^4.0.0"
+    "verovio": "6.3.0"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
