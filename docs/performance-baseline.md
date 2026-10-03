@@ -63,3 +63,5 @@ Worker sheet readiness ranged 5.03–8.77 seconds, main-thread fallback 3.91–6
 seconds, and classic PDF 5.18–8.35 seconds. Both paths retained at most five pages
 and stayed within the same 4 MiB interactive string ceiling. This reaches the
 beat/measure limits without pretending every combination of source limits fits.
+
+For a physical input trial, use the [input timing validation protocol](input-timing-validation.md). Its manual offsets retain raw results and do not measure hardware latency.
