@@ -13,6 +13,7 @@ import tarfile
 import tempfile
 import textwrap
 import time
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -276,6 +277,106 @@ def test_retention_rejects_traversal_manifest_paths() -> None:
         assert result.returncode == 0, result.stderr
         assert manifest.exists() and db.exists() and archive.exists()
         print("  PASS: retention rejects traversal manifest paths")
+
+
+def test_retention_preserves_ambiguous_and_recent_cohort_members() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        backups = root / "backups"
+        backups.mkdir()
+        old_time = time.time() - 3 * 86400
+        kept = []
+        for index, change in enumerate((
+            {"complete": "yes"}, {"schemaVersion": 99}, {"dbBytes": 99},
+            {"archiveBytes": True}, {"dbSha256": "0" * 64}, {"complete": False},
+            {"recent": True}, {"symlink": True},
+        )):
+            stamp = f"2020-01-01-00000{index}"
+            db = backups / f"db-{stamp}.sqlite"
+            archive = backups / f"artifacts-{stamp}.tar.gz"
+            manifest = backups / f"backup-manifest-{stamp}.json"
+            db.write_bytes(b"preserve-db")
+            archive.write_bytes(b"preserve-archive")
+            document = {"schemaVersion": 1, "stamp": stamp, "complete": True,
+                "dbFile": db.name, "archiveFile": archive.name,
+                "dbBytes": db.stat().st_size, "archiveBytes": archive.stat().st_size,
+                "dbSha256": hashlib.sha256(db.read_bytes()).hexdigest(),
+                "archiveSha256": hashlib.sha256(archive.read_bytes()).hexdigest()}
+            document.update({key: value for key, value in change.items() if key not in ("recent", "symlink")})
+            manifest.write_text(json.dumps(document))
+            for path in (db, archive, manifest):
+                os.utime(path, (old_time, old_time))
+            if change.get("recent"):
+                os.utime(db, None)
+            if change.get("symlink"):
+                outside = root / "preserved.sqlite"
+                db.rename(outside)
+                db.symlink_to(outside)
+                kept.append(outside)
+            kept.extend((db, archive, manifest))
+        data = make_data(root)
+        before = (data / "seed-midi/source.mid").read_bytes()
+        result, _backups, _log = run_runner(root, retention_days=1)
+        assert result.returncode == 0, result.stderr
+        assert all(path.exists() for path in kept), "ambiguous or recent cohort was deleted"
+        assert (data / "seed-midi/source.mid").read_bytes() == before
+        assert (data / "artifacts/.test.old/kept").read_text() == "old"
+        report = next(json.loads(line) for line in result.stderr.splitlines() if line.startswith('{"backupRetention"'))
+        assert report["backupRetention"]["prunedCohorts"] == 0
+        assert report["backupRetention"]["preservedAmbiguousCohorts"] == 8
+        assert report["backupRetention"]["elapsedSeconds"] >= 0
+        print("  PASS: ambiguous, symlinked and recently changed cohort members and live sources are preserved")
+
+
+def test_invalid_retention_refuses_before_creating_backup() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        make_data(root)
+        for value in ("0", "-1", "1.5", "invalid"):
+            result, backups, _log = run_runner(root, extra_env={"KEYSPILLI_RETENTION_DAYS": value})
+            assert result.returncode != 0, value
+            assert not manifests(backups), value
+        print("  PASS: invalid retention cannot create or expire a backup")
+
+
+def test_retention_unlink_failure_preserves_marker_and_reports_failure() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        result, backups, _log = run_runner(root, retention_days=1)
+        assert result.returncode == 0, result.stderr
+        marker = manifests(backups)[0]
+        old = json.loads(marker.read_text())
+        archive = backups / old["archiveFile"]
+        for path in (marker, backups / old["dbFile"], archive):
+            os.utime(path, (time.time() - 3 * 86400,) * 2)
+        # Inject one filesystem failure into the actual retention program;
+        # the other backup Python calls still use the real interpreter.
+        wrapper = root / "python3"
+        wrapper.write_text(f'''#!{sys.executable}
+import os, sys
+from pathlib import Path
+if len(sys.argv) == 5 and sys.argv[1] == "-" and sys.argv[2] == {str(backups)!r}:
+    original = Path.unlink
+    def unlink(path, *args, **kwargs):
+        if str(path) == {str(archive)!r}: raise PermissionError("injected unlink failure")
+        return original(path, *args, **kwargs)
+    Path.unlink = unlink
+    source = sys.stdin.read()
+    sys.argv = sys.argv[1:]
+    exec(compile(source, "backup-retention", "exec"))
+else:
+    os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])
+''')
+        wrapper.chmod(0o755)
+        time.sleep(1.1)
+        result, _backups, _log = run_runner(root, retention_days=1)
+        assert result.returncode != 0
+        assert marker.exists() and archive.exists()
+        report = next(json.loads(line)["backupRetention"] for line in result.stderr.splitlines() if line.startswith('{"backupRetention"'))
+        assert report["partialDeletionFailures"] == 1
+        assert report["preservedAmbiguousCohorts"] == 0
+        assert report["prunedCohorts"] == 0
+        print("  PASS: failed payload deletion keeps its marker and cannot report success or preservation")
 
 
 def test_restore_drill_is_non_destructive() -> None:

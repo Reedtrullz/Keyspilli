@@ -393,6 +393,20 @@ latest coherent pair, restore drill, duration, and actual free space on the host
 before relying on this rule. None of the checks below activates live-data
 deletion.
 
+Retention preserves malformed, incomplete, hash-mismatched, symlinked and
+recently changed cohorts. All three files must have aged past the cutoff; the
+completion manifest must declare schema 1, literal `complete: true`, exact
+filenames, byte counts and matching hashes. Invalid retention settings fail
+before creating a backup. No live tutorial/source directory is deleted.
+Each successful script run emits a `backupRetention` JSON line to stderr with
+elapsed seconds, bytes checked, pruned cohorts/bytes and ambiguous cohorts kept.
+Payload deletion failures keep the remaining completion marker and fail the run;
+the report counts them separately rather than claiming the cohort was preserved.
+Elapsed time covers the data-only script, including archive and retention work;
+it excludes Docker startup and host pause/unpause. Measure the complete host
+service separately using `ExecMainStartTimestampMonotonic` and
+`ExecMainExitTimestampMonotonic`.
+
 | Class | Owner and references | Retention decision |
 | --- | --- | --- |
 | Active or retryable jobs | SQLite job state, lease, and `transcribed/<job id>` | Keep source and attempt bytes through completion, retry, or cancellation reconciliation. |
@@ -419,6 +433,18 @@ were deleted. The method used a temporary fixture, timed `tar`, `tar -tzf`,
 streaming SHA-256, then verified manifest hashes. These numbers do not predict
 the host's pause length, production media volume, backup freshness, or retention
 activation; measure those on the live host before broadening tutorial imports.
+
+On 3 October 2026 the existing production backup service completed successfully
+(exit 0) from 03:03:40 to 03:05:06 UTC. Its monotonic timestamps show **85.596 s**
+for the host runner, including pause, archive/checks and unpause. The committed
+pair contains a 1,409,024-byte database and a 489,959,394-byte archive. The host
+has 27 GiB available. These are observed costs at the current media volume,
+not a forecast for broader imports. The fourteen current backup cohorts are
+younger than fourteen days; no naturally expired production cohort was removed.
+The isolated backup-script tests exercise actual whole-cohort deletion and
+preservation of incomplete/corrupt/recent members, orphans and live sources.
+The policy and current-cost requirement can be assessed without forcing expiry
+of a live backup. Re-measure after any material increase in retained media.
 
 Restore:
 
