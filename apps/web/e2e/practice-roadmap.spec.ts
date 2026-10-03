@@ -186,9 +186,13 @@ test("version-bound passages reload and cancelled/completed/interrupted runs sta
     dialog = page.getByRole("dialog", { name: "Set up practice" });
     await dialog.getByLabel("Behavior").selectOption("along");
     await dialog.getByLabel("Count-in", { exact: true }).selectOption("0");
-    await dialog.getByRole("button", { name: "Start practice", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Start practice", exact: true })).toBeEnabled();
     const scheduled = targets.map((note: { start: number; midi: number }) => ({ beat: note.start, key: Object.entries(KEYMAP).find(([,midi]) => midi === note.midi)![0] }));
-    await page.evaluate(async ({ notes, bpm }) => {
+    await dialog.getByRole("button", { name: "Start practice", exact: true }).evaluate(async (start, { notes, bpm }) => {
+      if (!(start instanceof HTMLButtonElement) || start.disabled) throw Error("Practice start is unavailable");
+      // Start and timestamp the synthetic performance in the same browser turn;
+      // a later automation round-trip can miss the passage's first attack.
+      start.click();
       const began = performance.now();
       for (const note of notes) {
         await new Promise(resolve => setTimeout(resolve, Math.max(0,note.beat*60_000/bpm-(performance.now()-began))));
