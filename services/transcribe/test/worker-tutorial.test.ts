@@ -13,7 +13,9 @@ vi.mock("node:fs/promises",async original=>{
   return actual.rm(...args);
  },writeFile:async(...args:Parameters<typeof actual.writeFile>)=>{
   await actual.writeFile(...args);
-  if(String(args[0]).endsWith("/.publication-id") && publication.afterFence){const hook=publication.afterFence;publication.afterFence=null;await hook();}
+  // The final ownership fence now follows the marker write. Hold only once
+  // the journal exists, so this exercises shutdown after that fence.
+  if(String(args[0]).endsWith(".reconciliation.json") && publication.afterFence){const hook=publication.afterFence;publication.afterFence=null;await hook();}
  }};
 });
 const dir=mkdtempSync(join(tmpdir(),"keyspilli-tutorial-worker-"));

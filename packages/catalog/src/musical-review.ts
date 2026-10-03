@@ -87,6 +87,12 @@ export function parseMusicalReviewReceipt(value: unknown): MusicalReviewReceipt 
 export function sameMusicalOutput(left: MusicalOutputIdentity, right: MusicalOutputIdentity): boolean {
   return identityKeys.every(key => left[key] === right[key]);
 }
+export function parseMusicalOutputIdentity(value:unknown):MusicalOutputIdentity {
+  const raw=object(value,identityKeys),baseId=text(raw.baseId,120,ID),variantId=text(raw.variantId,126,ID),mode=choice(raw.mode,["Original","Chords"]);
+  if(!variantId.startsWith(`${baseId}-`)||(mode==="Chords"&&variantId!==`${baseId}-a`))throw new Error("Invalid musical output identity");
+  return {baseId,variantId,mode,publicationRevision:text(raw.publicationRevision,128,/^[A-Za-z0-9_-]+$/),
+    sourceArtifactSha256:text(raw.sourceArtifactSha256,64,HASH),sourceFingerprint:text(raw.sourceFingerprint,1024),playbackSha256:text(raw.playbackSha256,64,HASH)};
+}
 function fullCoverage(spans: MusicalReviewReceipt["coverage"], endBeat: number): boolean {
   let through = 0;
   for (const span of [...spans].sort((a,b)=>a.startBeat-b.startBeat)) {
@@ -110,4 +116,38 @@ export function summarizeMusicalReviews(receipts: readonly MusicalReviewReceipt[
     : [source,listening,keyboard].every(r=>r === "passed") ? "accepted"
     : positive.length ? "partial" : "pending";
   return {mode:identity.mode,status,source,listening,keyboard,receiptCount:current.length,staleCount:relevant.length-current.length};
+}
+
+/** Publisher's binding to unchanged, reviewed candidate bytes; never a new human verdict. */
+export interface MusicalPublicationBinding extends MusicalOutputIdentity {
+  schemaVersion: 1;
+  kind: "musical-publication-binding";
+  reviewedPublicationRevision: string;
+  candidateSha256: string;
+  receiptSha256s: string[];
+  ownerStatement: string;
+  approvedModes: ["Chords"];
+}
+export function parseMusicalPublicationBinding(value: unknown): MusicalPublicationBinding {
+  const raw=object(value,[...identityKeys,"schemaVersion","kind","reviewedPublicationRevision","candidateSha256","receiptSha256s","ownerStatement","approvedModes"]);
+  if(raw.schemaVersion!==1||raw.kind!=="musical-publication-binding"||raw.mode!=="Chords"
+    ||!Array.isArray(raw.approvedModes)||raw.approvedModes.length!==1||raw.approvedModes[0]!=="Chords"
+    ||!Array.isArray(raw.receiptSha256s)||!raw.receiptSha256s.length||raw.receiptSha256s.length>16
+    ||new Set(raw.receiptSha256s).size!==raw.receiptSha256s.length)throw new Error("Invalid musical publication binding");
+  const baseId=text(raw.baseId,120,ID),variantId=text(raw.variantId,126,ID);
+  if(variantId!==`${baseId}-a`)throw new Error("Invalid Chords binding identity");
+  return {schemaVersion:1,kind:"musical-publication-binding",baseId,variantId,mode:"Chords",
+    publicationRevision:text(raw.publicationRevision,128,/^[A-Za-z0-9_-]+$/),
+    reviewedPublicationRevision:text(raw.reviewedPublicationRevision,128,/^[A-Za-z0-9_-]+$/),
+    sourceArtifactSha256:text(raw.sourceArtifactSha256,64,HASH),sourceFingerprint:text(raw.sourceFingerprint,1024),
+    playbackSha256:text(raw.playbackSha256,64,HASH),candidateSha256:text(raw.candidateSha256,64,HASH),
+    receiptSha256s:raw.receiptSha256s.map(value=>text(value,64,HASH)),
+    ownerStatement:text(raw.ownerStatement,4096),approvedModes:["Chords"]};
+}
+export function bindMusicalReviews(records: readonly {receiptSha256:string;receipt:MusicalReviewReceipt}[], identity:MusicalOutputIdentity, binding:MusicalPublicationBinding|null) {
+  return records.map(({receiptSha256,receipt})=>{
+    if(!binding||!sameMusicalOutput(binding,identity)||!binding.receiptSha256s.includes(receiptSha256))return receipt;
+    const reviewed={...binding,publicationRevision:binding.reviewedPublicationRevision};
+    return sameMusicalOutput(receipt,reviewed)?{...receipt,publicationRevision:identity.publicationRevision}:receipt;
+  });
 }

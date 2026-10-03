@@ -33,7 +33,7 @@ PY
 
 archive_paths=(artifacts)
 source_dir_count=0
-for candidate in seed-midi transcribed uploads manifest.json learner-review.json review-receipts; do
+for candidate in seed-midi transcribed uploads manifest.json learner-review.json review-receipts harmony-candidates; do
   if [[ -e "$DATA_DIR/$candidate" ]]; then
     archive_paths+=("$candidate")
     [[ -d "$DATA_DIR/$candidate" ]] && source_dir_count=$((source_dir_count + 1))

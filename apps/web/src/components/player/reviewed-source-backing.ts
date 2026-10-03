@@ -4,6 +4,7 @@ const fixYouFingerprint = "variant:katherine-cordova-coldplay-fix-you-advanced-p
 
 /** Backing lanes from the exact user-reviewed colored-key tutorials. */
 export function reviewedSourceBacking(data: SongData): SongData["notes"] | null {
+  if (data.chordProvenance?.provider === "owner-candidate") return null;
   if (data.sourceFingerprint === fixYouFingerprint && data.tempoBpm === 68) {
     return data.notes.filter((note) => note.sourceLane === "blue keys" || note.sourceLane === "green keys");
   }

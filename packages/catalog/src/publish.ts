@@ -107,7 +107,7 @@ export async function withBaseArtifactLock<T>(
  */
 export async function publishBaseArtifact<T>(
   baseId: string,
-  writer: (stagingDir: string) => Promise<T> | T,
+  writer: (stagingDir: string, publicationId: string) => Promise<T> | T,
   options: PublishBaseArtifactOptions<T>,
 ): Promise<T> {
   const root = options.artifactsRoot;
@@ -125,7 +125,8 @@ export async function publishBaseArtifact<T>(
     try {
       await rm(newRoot, { recursive: true, force: true });
       await mkdir(newRoot, { recursive: true });
-      const result = await writer(newRoot);
+      const token = randomUUID();
+      const result = await writer(newRoot, token);
       const manifestPath = join(newRoot, "manifest.json");
       if (!existsSync(manifestPath)) {
         throw new Error("staged artifact set is missing manifest.json commit marker");
@@ -143,9 +144,10 @@ export async function publishBaseArtifact<T>(
       }
 
       await rm(oldRoot, { recursive: true, force: true });
-      await options.beforeSwap?.();
-      const token = randomUUID();
       await writeFile(join(newRoot, ".publication-id"), token, { flush: true });
+      // Marker writing is asynchronous: recheck cancellation/ownership after it,
+      // immediately before creating the durable publication intent.
+      await options.beforeSwap?.();
       await writeFile(journal, JSON.stringify({ version: 1, operation: "publish", token, requiresCommit: Boolean(options.afterSwap), recoveryData: options.recoveryData }), { flag: "wx", flush: true });
       journalWritten = true;
       if (existsSync(finalRoot)) await rename(finalRoot, oldRoot);

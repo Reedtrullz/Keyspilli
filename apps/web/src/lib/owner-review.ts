@@ -1,6 +1,6 @@
-import { blockedLearnerBases, disabledManifestBases, getDb, getSongsByBase, quarantinedBaseIds, summarizeMusicalReviews, type MusicalReviewMode } from "@keyspilli/catalog";
+import { blockedLearnerBases, disabledManifestBases, getDb, getSongsByBase, quarantinedBaseIds, summarizeMusicalReviews, bindMusicalReviews, type MusicalReviewMode } from "@keyspilli/catalog";
 import { loadSongArtifact, withStablePublication } from "./catalog-api";
-import {musicalOutput,readMusicalReviews} from "./owner-admission";
+import {musicalOutput,readMusicalReviews,readMusicalBinding} from "./owner-admission";
 
 /** Read-only inventory; admission imports never change learner visibility. */
 export async function ownerReviewList(after = "") {
@@ -14,12 +14,13 @@ export async function ownerReviewList(after = "") {
       const snapshot = await withStablePublication(baseId,undefined,async()=> {
         const rows = getSongsByBase(baseId);
         const records=await readMusicalReviews(baseId);
+        const publicationBinding=await readMusicalBinding(baseId);
         const revision=(await withStablePublication(baseId,undefined,async()=>null)).publicationRevision;
         async function decision(id:string,mode:MusicalReviewMode) {
           try {
             if (!revision) throw new Error("Unpinned publication");
             const output=await musicalOutput(baseId,id,mode,revision);
-            return {...summarizeMusicalReviews(records.map(r=>r.receipt),output.identity,output.endBeat),identity:output.identity,endBeat:output.endBeat};
+            return {...summarizeMusicalReviews(bindMusicalReviews(records,output.identity,publicationBinding),output.identity,output.endBeat),identity:output.identity,endBeat:output.endBeat};
           } catch {return {mode,status:"unavailable" as const,source:"pending" as const,listening:"pending" as const,keyboard:"pending" as const,receiptCount:0,staleCount:0,identity:null,endBeat:null};}
         }
         const chords=await decision(`${baseId}-a`,"Chords");
@@ -34,11 +35,11 @@ export async function ownerReviewList(after = "") {
             sourceKind:manifest?.source?.kind ?? null, rightsAttested:manifest?.symbolicIntent?.rightsAttested ?? null,
             decisions:[await decision(row.id,"Original"),chords] });
         }
-        return {title:rows[0]?.title ?? baseId,artist:rows[0]?.artist ?? "",variants,receipts:records.map(({receiptSha256,receipt})=>({receiptSha256,...receipt}))};
+        return {title:rows[0]?.title ?? baseId,artist:rows[0]?.artist ?? "",variants,receipts:records.map(({receiptSha256,receipt})=>({receiptSha256,...receipt})),publicationBinding};
       });
       entries.push({baseId,excluded:blocked.has(baseId)||disabled.has(baseId)||quarantined.has(baseId),state:"inspectable" as const,publicationRevision:snapshot.publicationRevision,...snapshot.value});
     } catch {
-      entries.push({baseId,excluded:blocked.has(baseId)||disabled.has(baseId)||quarantined.has(baseId),state:"unavailable" as const,publicationRevision:null,title:baseId,artist:"",variants:[],receipts:[]});
+      entries.push({baseId,excluded:blocked.has(baseId)||disabled.has(baseId)||quarantined.has(baseId),state:"unavailable" as const,publicationRevision:null,title:baseId,artist:"",variants:[],receipts:[],publicationBinding:null});
     }
   }
   return {entries,next:bases.length>25?bases[24]!.base_id:null,admissionImport:"available" as const};

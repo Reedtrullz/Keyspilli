@@ -434,6 +434,21 @@ async function loadStoredVariants(baseId: string, rows: SongRow[], manifest: Awa
   };
 }
 
+/** Verify the one retained upload backing an existing symbolic intent. */
+export async function retainedUploadForManifest(baseId:string, manifest:ArrangementManifest):Promise<CatalogPublication["upload"]> {
+  if (!manifest.symbolicIntent) return undefined;
+  const names:string[]=[];
+  for (const ext of ["mid","xml","mxl"]) {
+    const name=`${baseId}.${ext}`;
+    try {
+      const bytes=await readRecoveryDocument(join(uploadsDir(),name),10*1024*1024);
+      if(createHash("sha256").update(bytes).digest("hex")!==manifest.symbolicIntent.sourceHash)throw new SongUpdateError(409,"retained upload changed; source review required");
+      names.push(name);
+    } catch(error) {if((error as NodeJS.ErrnoException).code!=="ENOENT")throw error;}
+  }
+  if(names.length!==1)throw new SongUpdateError(409,"retained upload missing or ambiguous; source review required");
+  return {final:names[0]!,sha256:manifest.symbolicIntent.sourceHash};
+}
 /**
  * Apply metadata to all six variants of a song and publish their artifacts as
  * one complete base-level swap. `tempo` remains a playback alias. Explicit
@@ -586,23 +601,7 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
   );
   // A descriptive edit reuses the exact retained source; it must not invent
   // a staging move or drop the upload's validated short-study intent.
-  let upload: CatalogPublication["upload"];
-  if (nextManifest.symbolicIntent) {
-    const names: string[] = [];
-    for (const ext of ["mid", "xml", "mxl"]) {
-      const name = `${baseId}.${ext}`;
-      try {
-        const bytes = await readRecoveryDocument(join(uploadsDir(), name), 10 * 1024 * 1024);
-        if (createHash("sha256").update(bytes).digest("hex") !== nextManifest.symbolicIntent.sourceHash)
-          throw new SongUpdateError(409, "retained upload changed; source review required");
-        names.push(name);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      }
-    }
-    if (names.length !== 1) throw new SongUpdateError(409, "retained upload missing or ambiguous; source review required");
-    upload = { final: names[0]!, sha256: nextManifest.symbolicIntent.sourceHash };
-  }
+  const upload = await retainedUploadForManifest(baseId,nextManifest);
   const recoveryData: CatalogPublication = { baseId,
     ...(nextManifest.symbolicIntent ? { symbolicIntent: nextManifest.symbolicIntent, upload } : {}), rows: rows.map(row => ({ ...row,
     ...rowPatch,

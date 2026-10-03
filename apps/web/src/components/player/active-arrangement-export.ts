@@ -38,7 +38,7 @@ export function resolveActiveExport(data:SongData,selection:ActiveExportSelectio
   sparseBackingTiming:playbackTiming({...data,sourceTiming:validateSparseBackingTiming(data.sourceTiming,data.sourceFingerprint??null)})}));
 }
 /** Materializes symbolic note endpoints, independent of timbre, pedal tails and mix volume. */
-export function activeExportVariant(data:SongData,resolution:AccompanimentResolution,selection:ActiveExportSelection):Variant {
+export function activeExportVariant(data:SongData,resolution:AccompanimentResolution,selection:ActiveExportSelection,options:{allowSilence?:boolean}={}):Variant {
  const end=playerArrangementEnd(data),timed=resolveTimedNotes({...data,notes:resolution.notes},selection.speed,selection.transpose,selection.renderedExpression);
  const selected=selectHandNotes(resolution.notes.map((n,index)=>({...n,midi:timed[index]!.midi,vel:timed[index]!.vel})),selection.hand,selection.audibleSupport);
  const chords=selection.backgroundMode==="chord"&&selection.accompanimentStyle==="bass-chords"
@@ -48,7 +48,7 @@ export function activeExportVariant(data:SongData,resolution:AccompanimentResolu
   const duration=Math.min(chord.durationBeats,end-chord.beat);
   return duration>0?[...new Set(chord.notes)].sort((a,b)=>a-b).map(midi=>({midi:midi+selection.transpose,start:chord.beat,dur:duration,vel:100,hand:"L" as const})):[];
  })].sort((a,b)=>a.start-b.start||a.midi-b.midi||a.dur-b.dur);
- if(!notes.length||notes.length>100000||notes.some(n=>!Number.isInteger(n.midi)||n.midi<0||n.midi>127||!Number.isFinite(n.start)||n.start<0||!Number.isFinite(n.dur)||n.dur<=0))throw new ActiveExportUnsupportedError("Active notes are empty or outside the supported MIDI range.");
+ if((!notes.length&&!options.allowSilence)||notes.length>100000||notes.some(n=>!Number.isInteger(n.midi)||n.midi<0||n.midi>127||!Number.isFinite(n.start)||n.start<0||!Number.isFinite(n.dur)||n.dur<=0))throw new ActiveExportUnsupportedError("Active notes are empty or outside the supported MIDI range.");
  const key=selection.transpose?transposeChordSymbol(data.key.replace(/\s+major$/i,"").replace(/\s+minor$/i,"m"),selection.transpose):data.key;
  const labels=resolution.displayChords.map(chord=>({...chord,name:selection.transpose&&chord.name!=="N.C."?transposeChordSymbol(chord.name,selection.transpose):chord.name,notes:chord.notes.map(midi=>midi+selection.transpose)}));
  return {level:"advanced",difficultyScore:0,bassPattern:"active-selection",notes,...(selection.backgroundMode==="piano"&&data.sourcePedal?{sourcePedal:data.sourcePedal}:{}),chords:labels,key,tempoBpm:data.tempoBpm*selection.speed,timeSig:data.timeSig,timeSigEvents:data.timeSigEvents,measures:data.measures};

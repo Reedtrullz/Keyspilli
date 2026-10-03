@@ -1137,10 +1137,46 @@ by the form. A timed-out response may have persisted a receipt; refresh before
 retrying. Exact duplicates are idempotent.
 
 Harmony drafts preview unchanged Original versus bounded chord/rest/unknown
-events, and download an explicitly unreviewed timeline/MIDI/XML candidate.
-Unsupported symbols are silent/display-only. A candidate replacement still
-requires exact source/listening/keyboard review and separate owner publication
-authorization; importing a receipt alone cannot replace accepted backing.
+events. Gaps become explicit unknown spans; unsupported symbols are
+silent/display-only. Preview and download use the actual default Chords Player
+replay at the original clock. The short Plain Synth audition can start at a
+chosen beat and is not a full listening or keyboard review.
+
+Save review candidate freezes a provisional preparation receipt plus timeline,
+MIDI, MusicXML and the previous complete Player snapshot under
+`data/harmony-candidates/<base>/<candidate SHA-256>/`. The receipt binds the
+current source/publication, complete candidate playback hash and every frozen
+file hash. Reopening, review import and publication recompile against current
+Original and verify those hashes. Export, discard and incomplete/rejected
+reviews leave accepted backing untouched. Saved history is retained, including
+stale candidates, and included in backup/restore. Stores allow 16 candidates per
+base and 32 scanned entries; fixed files are bounded to 64 KiB receipt, 128 KiB
+timeline, 1 MiB MIDI, 4 MiB XML and 8 MiB previous Player snapshot. Malformed or
+changed packages fail closed and are preserved for investigation.
+
+`/api/catalog/harmony/candidates` uses existing owner mutation authorization:
+GET lists/reopens, POST saves, PATCH imports the same canonical human review
+receipt, and PUT publishes. Saving a preparation receipt does not satisfy a
+musical check. Publication requires full source/listening/independent keyboard
+coverage without contradictory current verdicts, exact selected review receipt
+hashes and a separate typed owner statement approving Chords. Checks are human
+attestations; the form does not authenticate reviewer qualifications or inspect
+external evidence.
+
+Publication uses the existing locked manifest-last publisher and catalog
+reconciliation journal. It preserves all Original artifacts, retained source
+intent/upload and exclusions, replaces only the chord timeline, and retains the
+previous backing snapshot. A publisher-owned `.musical-review-binding.json`
+links the new publication token and unchanged candidate playback to the exact
+older human receipts. It records the owner statement and approved mode without
+rewriting dates, reviewer identities or human decisions. Subsequent changed
+versions/outputs are stale. Failed post-swap catalog commits retain installed
+artifacts, rollback tree and journal for Maintenance recovery. Recovery checks
+both recorded sidecar hashes and the binding/publication token before committing
+or deleting rollback evidence. Cancellation is checked after the asynchronous
+publication-marker write immediately before journaling. A canceled or
+timed-out request is not proof of rollback. Refresh current version before
+retrying. Exact already-installed publication retries are idempotent.
 
 Owner quarantine requires a fresh version preview, a typed base and explicit per-action 7/14/30-day policy acknowledgment. It retains complete owned artifact/source bytes under the existing writer lock, hides public reads and keeps a durable restartable receipt. Maintenance offers explicit finish/undo; expiry disables undo and permits only an explicit bounded purge. It never auto-purges, resurrects jobs, overwrites newer files or transfers owner data. Inventory ceilings are 20 retained bases, 512 MiB total, 128 MiB/2,048 files per base and 100 total receipts. Ambiguous ownership or storage failure keeps the base hidden for inspection.
 

@@ -4,7 +4,8 @@ import { createHash } from "node:crypto";
 import { basename, join } from "node:path";
 import { getDb, getBaseJobIds, deleteBaseRows, replaceSongsByBase, type SongRow } from "./db.js";
 import { readRecoveryDocument } from "./publish.js";
-import { uploadsDir, transcribedDir } from "./paths.js";
+import { uploadsDir, transcribedDir, dataDir } from "./paths.js";
+import {parseMusicalPublicationBinding} from "./musical-review.js";
 import { validateSymbolicUploadIntent, type SymbolicUploadIntent } from "./artifact-manifest.js";
 
 export interface CatalogPublication {
@@ -13,6 +14,7 @@ export interface CatalogPublication {
   symbolicIntent?: SymbolicUploadIntent;
   job?: { id: string; owner: string };
   upload?: { final: string; sha256: string; staged?: string; backup?: string };
+  harmony?: { timelineSha256:string; bindingSha256:string; publicationRevision:string };
 }
 
 /** Idempotent across source swap, database commit, and cleanup interruptions. */
@@ -56,6 +58,20 @@ export async function commitCatalogPublication(raw: unknown): Promise<void> {
       await rename(staged, final);
     }
     if (createHash("sha256").update(await (movesSource ? readFile(final) : readRecoveryDocument(final, 10 * 1024 * 1024))).digest("hex") !== sha256) throw new Error("published upload hash mismatch");
+  }
+  if(data.harmony!==undefined){
+    const proof=data.harmony;
+    if(!proof||typeof proof!=="object"||Array.isArray(proof)||Object.keys(proof).sort().join(" ")!=="bindingSha256 publicationRevision timelineSha256"
+      || !/^[a-f0-9]{64}$/.test(proof.timelineSha256) || !/^[a-f0-9]{64}$/.test(proof.bindingSha256)
+      || typeof proof.publicationRevision!=="string" || !/^[A-Za-z0-9_-]{1,128}$/.test(proof.publicationRevision))throw new Error("invalid harmony recovery proof");
+    const root=join(dataDir(),"artifacts",data.baseId);
+    const timeline=await readRecoveryDocument(join(root,"chord-timeline.json"),131072);
+    const bindingBytes=await readRecoveryDocument(join(root,".musical-review-binding.json"),32768);
+    if(createHash("sha256").update(timeline).digest("hex")!==proof.timelineSha256
+      ||createHash("sha256").update(bindingBytes).digest("hex")!==proof.bindingSha256)throw new Error("harmony publication sidecar hash mismatch; preserve recovery evidence");
+    const binding=parseMusicalPublicationBinding(JSON.parse(bindingBytes.toString("utf8")));
+    const token=(await readRecoveryDocument(join(root,".publication-id"),256)).toString("utf8").trim();
+    if(binding.baseId!==data.baseId||binding.publicationRevision!==proof.publicationRevision||token!==proof.publicationRevision)throw new Error("harmony publication identity mismatch");
   }
   const db = getDb();
   db.transaction(() => {

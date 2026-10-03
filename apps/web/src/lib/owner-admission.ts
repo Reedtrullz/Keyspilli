@@ -4,13 +4,17 @@ import {join} from "node:path";
 import {
   dataDir,blockedLearnerBases,disabledManifestBases,parseMusicalReviewReceipt,
   readRecoveryDocument,sameMusicalOutput,summarizeMusicalReviews,withBaseArtifactLock,
-  type MusicalOutputIdentity,type MusicalReviewMode,type MusicalReviewReceipt,
+  bindMusicalReviews,parseMusicalPublicationBinding,type MusicalOutputIdentity,type MusicalReviewMode,type MusicalReviewReceipt,
 } from "@keyspilli/catalog";
 import {getOwnerSongDetail,withStablePublication,PublicationRevisionConflictError} from "./catalog-api";
 import {playerArrangementEnd,replayChordsBacking} from "../components/player/chords-backing";
 import {snapshotChordsBacking} from "./chords-evaluation";
 
 export const musicalHash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+export async function readMusicalBinding(baseId:string) {
+  try {const binding=parseMusicalPublicationBinding(JSON.parse((await readRecoveryDocument(join(dataDir(),"artifacts",baseId,".musical-review-binding.json"),16384)).toString("utf8")));if(binding.baseId!==baseId)throw new Error("Review binding identity mismatch");return binding;}
+  catch(error){if((error as NodeJS.ErrnoException).code==="ENOENT")return null;throw error;}
+}
 export async function musicalOutput(baseId: string, variantId: string, mode: MusicalReviewMode, revision: string) {
   if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(baseId) || !variantId.startsWith(`${baseId}-`)
     || (mode === "Chords" && variantId !== `${baseId}-a`)) throw new Error("Invalid musical output identity");
@@ -86,7 +90,7 @@ export async function importMusicalReview(raw: unknown, signal?: AbortSignal) {
       if (signal?.aborted) throw new PublicationRevisionConflictError();
       const receiptSha256=await storeMusicalReview(receipt);
       const records=await readMusicalReviews(receipt.baseId);
-      return {receiptSha256,summary:summarizeMusicalReviews(records.map(r=>r.receipt),output.identity,output.endBeat)};
+      return {receiptSha256,summary:summarizeMusicalReviews(bindMusicalReviews(records,output.identity,await readMusicalBinding(receipt.baseId)),output.identity,output.endBeat)};
     });
     return stable.value;
   });

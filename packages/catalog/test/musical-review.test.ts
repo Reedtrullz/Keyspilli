@@ -1,5 +1,5 @@
 import {expect, it} from "vitest";
-import {parseMusicalReviewReceipt, summarizeMusicalReviews} from "../src/musical-review.js";
+import {parseMusicalReviewReceipt, summarizeMusicalReviews,parseMusicalPublicationBinding,bindMusicalReviews} from "../src/musical-review.js";
 
 const identity = {baseId:"fixture",variantId:"fixture-a",mode:"Chords" as const,publicationRevision:"version1",sourceArtifactSha256:"a".repeat(64),sourceFingerprint:"source:v1",playbackSha256:"b".repeat(64)};
 const evidence = [{id:"review-session",sha256:"c".repeat(64)}];
@@ -15,6 +15,16 @@ it("keeps partial, stale, rejected and separate mode receipts distinct from full
  const rejected=parseMusicalReviewReceipt({...receipt(),decision:"rejected"});
  expect(summarizeMusicalReviews([rejected],identity,8).status).toBe("rejected");
  expect(summarizeMusicalReviews([full,rejected],identity,8).status).toBe("conflict");
+});
+it("links unchanged reviewed candidate bytes without rewriting human receipts or accepting changed output",()=>{
+ const original=parseMusicalReviewReceipt(receipt()),before=JSON.stringify(original),current={...identity,publicationRevision:"published-version"};
+ const sha="d".repeat(64),records=[{receiptSha256:sha,receipt:original}];
+ const binding=parseMusicalPublicationBinding({...current,schemaVersion:1,kind:"musical-publication-binding",reviewedPublicationRevision:identity.publicationRevision,candidateSha256:"e".repeat(64),receiptSha256s:[sha],ownerStatement:"Publish this exact reviewed backing.",approvedModes:["Chords"]});
+ expect(summarizeMusicalReviews(bindMusicalReviews(records,current,binding),current,8).status).toBe("accepted");
+ expect(JSON.stringify(original)).toBe(before);
+ const changed={...current,playbackSha256:"f".repeat(64)};
+ expect(summarizeMusicalReviews(bindMusicalReviews(records,changed,binding),changed,8).status).toBe("pending");
+ expect(()=>parseMusicalPublicationBinding({...binding,approvedModes:["Original"]})).toThrow();
 });
 
 it("refuses malformed attestations and cannot promote unqualified or automated checks",()=>{
