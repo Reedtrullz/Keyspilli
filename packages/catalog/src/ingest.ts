@@ -622,7 +622,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         acquiredVia: inp.acquiredVia ?? null,
         sourceYoutubeUrl: inp.sourceYoutubeUrl ?? null,
         hasSheetXml: 1,
-        sections: null,
+        sections: v.sections?.length ? JSON.stringify(v.sections) : null,
         plays: previous?.plays ?? 0,
         level: code,
         createdAt: previous?.createdAt ?? createdAt,
@@ -644,6 +644,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         : [];
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
+        ...(v.sections?.length ? {sections:v.sections} : {}),
         ...(v.sourcePedal?{sourcePedal:v.sourcePedal}:{}),
         ...(beginnerOffGridRh.length ? { beginnerOffGridRh } : {}),
       warnings: [

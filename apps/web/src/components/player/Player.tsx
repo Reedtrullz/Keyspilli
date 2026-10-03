@@ -2552,7 +2552,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
           />
           </div>
         </div>
-        {sections.length > 1 && (
+        {sections.length > 0 && (
           <div role="navigation" aria-label="Song sections" className="player-section-navigation px-4 py-2 border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto">
             <button
               onClick={toggleSectionsCollapsed}

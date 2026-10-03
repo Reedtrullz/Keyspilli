@@ -322,6 +322,17 @@ describe("catalog artifact manifest read boundary", () => {
     expect(loaded.data?.tempoBpm).toBe(120);
   });
 
+  it("never exposes malformed optional sections from an otherwise playable artifact", async()=>{
+    const dir=join(dataRoot,"artifacts","catalog-api-song","a");
+    const notes=[{midi:60,start:0,dur:1,vel:80}];
+    for(const measures of [[],[{index:0,startBeat:0,endBeat:4}]]) {
+      await writeFile(join(dir,"notes.json"),JSON.stringify({notes,chords:[],measures,key:"C",tempoBpm:120,timeSig:[4,4],sections:[null]}));
+      const loaded=await loadSongArtifact(song());
+      expect(loaded.data?.notes).toEqual(notes);
+      expect(loaded.data?.sections).toEqual(measures.length ? [expect.objectContaining({evidence:"estimated"})] : []);
+    }
+  });
+
   it("keeps a legacy detail explicitly unpinned and rejects pinning it after publication", async () => {
     const legacy = await getSongDetail(song().id);
     expect(legacy?.publicationRevision).toBeNull();
@@ -1071,4 +1082,22 @@ describe("catalog chart timeline merge", () => {
       sourceKind: "authored",
     }]);
   });
+});
+
+
+it("keeps named form consistent across sparse and full arrangements on the same clock", async()=>{
+  const measures=Array.from({length:32},(_,index)=>({index,startBeat:index*4,endBeat:(index+1)*4}));
+  const notes=[1,2,1,2].flatMap((theme,block)=>Array.from({length:theme===2?64:32},(_,index)=>({midi:60+theme*3+index%3,start:block*32+index/(theme===2?2:1),dur:.5,vel:80,hand:"R"})));
+  const advanced={notes,chords:[],measures,key:"C",tempoBpm:120,timeSig:[4,4]};
+  const easy={...advanced,notes:[{midi:60,start:0,dur:1,vel:80,hand:"R"}]};
+  const easyRow={...song(),id:"catalog-api-song-e",level:"e",difficulty:"easy"};
+  upsertSong(easyRow);
+  await mkdir(join(dataRoot,"artifacts","catalog-api-song","e"),{recursive:true});
+  await writeFile(join(dataRoot,"artifacts","catalog-api-song","a","notes.json"),JSON.stringify(advanced));
+  await writeFile(join(dataRoot,"artifacts","catalog-api-song","e","notes.json"),JSON.stringify(easy));
+  const full=await getSongDetail("catalog-api-song-a");
+  const reduced=await getSongDetail(easyRow.id);
+  expect(full?.data?.sections?.map(s=>s.label)).toEqual(["Verse 1 · estimated","Chorus 1 · estimated","Verse 2 · estimated","Chorus 2 · estimated"]);
+  expect(reduced?.data?.sections).toEqual(full?.data?.sections);
+  expect(reduced?.data?.notes).toEqual(easy.notes);
 });
