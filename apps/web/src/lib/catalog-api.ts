@@ -579,11 +579,12 @@ export async function withChordSources(source: SongData, baseId: string, level: 
  * server render (for example `generateMetadata` followed by the page) share
  * one result.
  */
-async function loadSongDetailUncached(id: string, requiredRevision?: string | null): Promise<SongDetail | null> {
-  const song = getSong(id);
+async function loadSongDetailUncached(id: string, requiredRevision?: string | null, inspectedBaseId?: string): Promise<SongDetail | null> {
+  const lookup = () => inspectedBaseId ? getSongsByBase(inspectedBaseId).find(row=>row.id === id) : getSong(id);
+  const song = lookup();
   if (!song) return null;
   const stable = await withStablePublication(song.baseId, requiredRevision, async () => {
-  const currentSong = getSong(id);
+  const currentSong = lookup();
   if (!currentSong || currentSong.baseId !== song.baseId) return null;
   const loaded = await loadSongArtifact(currentSong);
   let data = loaded.data;
@@ -664,7 +665,12 @@ async function loadSongDetailUncached(id: string, requiredRevision?: string | nu
  * cache, so mutable catalog/policy changes remain visible on the next
  * request. This is intentionally not `unstable_cache`/a persistent cache.
  */
-export const getSongDetail = cache(loadSongDetailUncached);
+export const getSongDetail = cache((id: string, revision?: string | null) => loadSongDetailUncached(id,revision));
+
+/** Owner-authorized inspection only; never used by public song/player routes. */
+export function getOwnerSongDetail(baseId: string, id: string, revision: string) {
+  return loadSongDetailUncached(id,revision,baseId);
+}
 
 async function loadSongDetailShellUncached(id: string, requiredRevision?: string | null): Promise<SongDetailShell | null> {
   const song = getSong(id);

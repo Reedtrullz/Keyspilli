@@ -1105,7 +1105,42 @@ Deletion journals now record owned job IDs before removal, so explicit recovery 
 
 ## Owner harmony candidates and reversible quarantine
 
-Maintenance privately inspects exact publication versions, including excluded lessons. Harmony drafts preview unchanged Original versus bounded chord/rest/unknown events, and download an explicitly unreviewed timeline/MIDI/XML candidate. Unsupported symbols are silent/display-only. Source listening, keyboard review and the canonical musical-admission importer remain publication requirements; this workspace cannot approve or replace accepted backing.
+Maintenance privately inspects exact publication versions, including excluded
+lessons. The pending review template binds base/variant, mode, publication,
+source hash/fingerprint and complete canonical playback hash. Fill reviewer,
+date, actual reviewed beat ranges, decision/rationale and separate source,
+listening and keyboard checks from real evidence before importing it. Each
+completed check requires an evidence ID and SHA-256. Keyboard passes require an
+explicit independent pianist/teacher attestation; entering those fields does
+not independently authenticate that person's credentials or verify an external
+evidence document. Automated preparation receipts cannot satisfy this schema.
+The hash describes the canonical output at its original tempo/key, with default
+Chords source selection; user transpose/speed/instrument preferences are separate.
+
+`POST /api/catalog/review` uses existing owner mutation authorization, a strict
+32 KiB receipt schema and the per-base artifact lock. Exact output/source/coverage
+and current revision are checked before an atomic immutable sidecar write.
+Original reviews apply only to their tier; Chords identifies Advanced and is
+shared across the tier list. Partial coverage stays partial. Changed versions
+are stale; contradictory current verdicts are conflicts and cannot authorize
+replacement. Historical owner ratings/legacy golden hashes are unchanged.
+Import changes neither music nor exclusions; it is an attestation record, not
+an automatic music judge or a release-gate certification.
+
+Receipts live in `data/review-receipts/<base>/<receipt SHA-256>.json`, included in
+backup and isolated restore. Re-ingest/deletion does not erase that history.
+Stores are bounded to 128 receipts per base, 32 KiB per receipt and 160 scanned
+entries. Malformed or oversized stores fail closed without cleanup. Preserve
+them for operator review. Owner inventory displays current/stale counts and
+retained review scope; private source bytes and asset paths are never uploaded
+by the form. A timed-out response may have persisted a receipt; refresh before
+retrying. Exact duplicates are idempotent.
+
+Harmony drafts preview unchanged Original versus bounded chord/rest/unknown
+events, and download an explicitly unreviewed timeline/MIDI/XML candidate.
+Unsupported symbols are silent/display-only. A candidate replacement still
+requires exact source/listening/keyboard review and separate owner publication
+authorization; importing a receipt alone cannot replace accepted backing.
 
 Owner quarantine requires a fresh version preview, a typed base and explicit per-action 7/14/30-day policy acknowledgment. It retains complete owned artifact/source bytes under the existing writer lock, hides public reads and keeps a durable restartable receipt. Maintenance offers explicit finish/undo; expiry disables undo and permits only an explicit bounded purge. It never auto-purges, resurrects jobs, overwrites newer files or transfers owner data. Inventory ceilings are 20 retained bases, 512 MiB total, 128 MiB/2,048 files per base and 100 total receipts. Ambiguous ownership or storage failure keeps the base hidden for inspection.
 

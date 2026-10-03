@@ -8,6 +8,7 @@ export * from "./group.js";
 export * from "./public-difficulty.js";
 export * from "./transcribe.js";
 export * from "./learner-review.js";
+export * from "./musical-review.js";
 export * from "./manifest.js";
 export * from "./artifact-manifest.js";
 export * from "./provenance.js";

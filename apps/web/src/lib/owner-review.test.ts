@@ -14,7 +14,7 @@ it("inspects excluded exact versions without approval, exposes changed revision,
  await writeFile(join(root,"learner-review.json"),JSON.stringify({verdicts:{"owner-review":{blocked:true}}}));
  expect(getSong("owner-review-a")).toBeUndefined();
  const inventory=await ownerReviewList(),entry=inventory.entries[0]!;expect(entry.excluded).toBe(true);expect(entry.variants).toHaveLength(6);
- expect(entry.variants[0]!.decisions).toEqual([{mode:"Original",status:"unavailable",listening:"unknown",keyboard:"unknown"},{mode:"Chords",status:"unavailable",listening:"unknown",keyboard:"unknown"}]);
+ expect(entry.variants[0]!.decisions.map(d=>[d.mode,d.status,d.listening,d.keyboard])).toEqual([["Original","pending","pending","pending"],["Chords","pending","pending","pending"]]);
  expect(entry.variants.every(v=>v.sourceFingerprint?.includes(':notes:')&&v.structural==="notes-and-manifest-validated")).toBe(true);
  expect(JSON.stringify(inventory)).not.toContain(root);expect(getSong("owner-review-a")).toBeUndefined();
  await writeFile(join(root,"artifacts","owner-review",".publication-id"),"changed-revision");expect((await ownerReviewList()).entries[0]!.publicationRevision).toBe("changed-revision");

@@ -29,6 +29,8 @@ def make_data(root: Path) -> Path:
     (data / "artifacts" / ".test.old" / "kept").write_text("old")
     (data / "seed-midi").mkdir()
     (data / "seed-midi" / "source.mid").write_bytes(b"MThd" + b"\0" * 20)
+    (data / "review-receipts" / "test-song").mkdir(parents=True)
+    (data / "review-receipts" / "test-song" / "preserved.json").write_text('{"fixture":"review history"}')
     with sqlite3.connect(data / "db.sqlite") as db:
         db.execute("CREATE TABLE songs (id TEXT PRIMARY KEY, base_id TEXT, tempo INTEGER)")
         db.execute("INSERT INTO songs VALUES ('s1', 'test-song', 120)")
@@ -167,6 +169,7 @@ def test_runner_pauses_pair_and_restores_only_its_pauses() -> None:
             names = archive.getnames()
         assert "artifacts/.test.reconciliation.json" in names
         assert "artifacts/.test.old/kept" in names
+        assert "review-receipts/test-song/preserved.json" in names
         print("  PASS: host runner pauses pair, runs socket-free backup, and commits checksummed pair")
 
 
@@ -290,6 +293,7 @@ def test_restore_drill_is_non_destructive() -> None:
         assert (destination / json.loads(manifest.read_text())["dbFile"]).exists()
         assert (destination / "runtime" / "db.sqlite").exists()
         assert (destination / "runtime" / "artifacts" / ".test.reconciliation.json").exists()
+        assert (destination / "runtime" / "review-receipts" / "test-song" / "preserved.json").read_text() == '{"fixture":"review history"}'
         report = json.loads((destination / "restore-report.json").read_text())
         assert report["archiveValidation"] == "passed" and report["applicationVerification"] == "not_run"
         assert report["catalogSchemaEpoch"] == 0

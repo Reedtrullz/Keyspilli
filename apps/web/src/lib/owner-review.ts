@@ -1,7 +1,8 @@
-import { blockedLearnerBases, disabledManifestBases, getDb, getSongsByBase, quarantinedBaseIds } from "@keyspilli/catalog";
+import { blockedLearnerBases, disabledManifestBases, getDb, getSongsByBase, quarantinedBaseIds, summarizeMusicalReviews, type MusicalReviewMode } from "@keyspilli/catalog";
 import { loadSongArtifact, withStablePublication } from "./catalog-api";
+import {musicalOutput,readMusicalReviews} from "./owner-admission";
 
-/** Read-only triage. The canonical version-admission import contract is not installed. */
+/** Read-only inventory; admission imports never change learner visibility. */
 export async function ownerReviewList(after = "") {
   if (after && !/^[a-z0-9][a-z0-9-]{0,119}$/.test(after)) throw new Error("invalid review cursor");
   const blocked = blockedLearnerBases(), disabled = disabledManifestBases(), quarantined = quarantinedBaseIds();
@@ -12,6 +13,16 @@ export async function ownerReviewList(after = "") {
     try {
       const snapshot = await withStablePublication(baseId,undefined,async()=> {
         const rows = getSongsByBase(baseId);
+        const records=await readMusicalReviews(baseId);
+        const revision=(await withStablePublication(baseId,undefined,async()=>null)).publicationRevision;
+        async function decision(id:string,mode:MusicalReviewMode) {
+          try {
+            if (!revision) throw new Error("Unpinned publication");
+            const output=await musicalOutput(baseId,id,mode,revision);
+            return {...summarizeMusicalReviews(records.map(r=>r.receipt),output.identity,output.endBeat),identity:output.identity,endBeat:output.endBeat};
+          } catch {return {mode,status:"unavailable" as const,source:"pending" as const,listening:"pending" as const,keyboard:"pending" as const,receiptCount:0,staleCount:0,identity:null,endBeat:null};}
+        }
+        const chords=await decision(`${baseId}-a`,"Chords");
         if (rows.length > 16) throw new Error("variant limit exceeded");
         const variants = [];
         for (const row of rows) {
@@ -21,15 +32,15 @@ export async function ownerReviewList(after = "") {
             noteCount:loaded.data?.notes.length ?? null,
             sourceHash:manifest?.sourceArtifactHash ?? null, profile:manifest?.arrangementProfile ?? null,
             sourceKind:manifest?.source?.kind ?? null, rightsAttested:manifest?.symbolicIntent?.rightsAttested ?? null,
-            decisions:[{mode:"Original",status:"unavailable",listening:"unknown",keyboard:"unknown"},{mode:"Chords",status:"unavailable",listening:"unknown",keyboard:"unknown"}] });
+            decisions:[await decision(row.id,"Original"),chords] });
         }
-        return {title:rows[0]?.title ?? baseId,artist:rows[0]?.artist ?? "",variants};
+        return {title:rows[0]?.title ?? baseId,artist:rows[0]?.artist ?? "",variants,receipts:records.map(({receiptSha256,receipt})=>({receiptSha256,...receipt}))};
       });
       entries.push({baseId,excluded:blocked.has(baseId)||disabled.has(baseId)||quarantined.has(baseId),state:"inspectable" as const,publicationRevision:snapshot.publicationRevision,...snapshot.value});
     } catch {
-      entries.push({baseId,excluded:blocked.has(baseId)||disabled.has(baseId)||quarantined.has(baseId),state:"unavailable" as const,publicationRevision:null,title:baseId,artist:"",variants:[]});
+      entries.push({baseId,excluded:blocked.has(baseId)||disabled.has(baseId)||quarantined.has(baseId),state:"unavailable" as const,publicationRevision:null,title:baseId,artist:"",variants:[],receipts:[]});
     }
   }
-  return {entries,next:bases.length>25?bases[24]!.base_id:null,admissionImport:"unavailable" as const};
+  return {entries,next:bases.length>25?bases[24]!.base_id:null,admissionImport:"available" as const};
 }
 export type OwnerReviewList = Awaited<ReturnType<typeof ownerReviewList>>;

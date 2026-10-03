@@ -86,7 +86,7 @@ with tarfile.open(archive_copy, "r:gz") as archive:
     for member in members:
         member_path = Path(member.name)
         if (member_path.is_absolute() or ".." in member_path.parts
-                or not member_path.parts or member_path.parts[0].removeprefix("._") not in {"artifacts", "seed-midi", "transcribed", "uploads", "manifest.json", "learner-review.json"}
+                or not member_path.parts or member_path.parts[0].removeprefix("._") not in {"artifacts", "seed-midi", "transcribed", "uploads", "manifest.json", "learner-review.json", "review-receipts"}
                 or not (member.isfile() or member.isdir())):
             raise SystemExit(f"restore drill: unsafe archive member {member.name!r}")
     archive.extractall(extract_root)
