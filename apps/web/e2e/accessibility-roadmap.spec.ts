@@ -31,6 +31,11 @@ test("learning views retain keyboard practice, text targets and dialogs at CSS 2
       await expect(practice).toBeVisible(); await tabTo(page, practice); await page.keyboard.press("Enter");
       const dialog = page.getByRole("dialog", { name: "Set up practice" });
       await expect(dialog).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(dialog).not.toBeVisible();
+      await expect(practice).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(dialog).toBeVisible();
       await tabTo(page, dialog.getByLabel("Behavior")); await page.keyboard.press("w"); await page.keyboard.press("Tab"); await expect(dialog.getByLabel("Behavior")).toHaveValue("wait");
       await tabTo(page, dialog.getByLabel("Count-in", { exact: true })); await page.keyboard.press("Home");
       await tabTo(page, dialog.getByRole("button", { name: "Start practice", exact: true })); await page.keyboard.press("Enter");
