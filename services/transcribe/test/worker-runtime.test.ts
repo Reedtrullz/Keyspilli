@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { assessWorkerHealthFile, writeWorkerHealthSnapshot } from "../src/worker-health.js";
 import { getWorkerHealthSnapshot, runWorkerLoop } from "../src/worker-runtime.js";
 
 function deferred<T = void>() {
@@ -8,6 +12,40 @@ function deferred<T = void>() {
 }
 
 describe("worker runtime health and shutdown", () => {
+  it("keeps rejected polls unhealthy until success and lets hung polls become stale", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(10_000);
+    const directory = mkdtempSync(join(tmpdir(), "keyspilli-poll-health-"));
+    const file = join(directory, "health.json");
+    try {
+      for (const fails of [true, false]) {
+        const controller = new AbortController(), poll = deferred<[]>();
+        let calls = 0;
+        const loop = runWorkerLoop({signal: controller.signal, pollMs: 1_000, heartbeatMs: 1_000,
+          shutdownGraceMs: 1_000, capabilityRevision: "0123456789abcdef",
+          getQueuedJobs: () => { calls++; if (fails && calls === 1) throw Error("private database failure"); return poll.promise; },
+          processJob: async () => {}, onHealth: snapshot => writeWorkerHealthSnapshot(file, snapshot)});
+        try {
+          await vi.advanceTimersByTimeAsync(0);
+          if (fails) expect(assessWorkerHealthFile(file)).toMatchObject({state: "health-error", healthy: false});
+          await vi.advanceTimersByTimeAsync(4_001);
+          expect(assessWorkerHealthFile(file).healthy).toBe(false);
+          expect(assessWorkerHealthFile(file).state).toBe("stale");
+          poll.resolve([]); await vi.advanceTimersByTimeAsync(0);
+          expect(assessWorkerHealthFile(file)).toMatchObject({state: "idle", healthy: true});
+        } finally { controller.abort(); poll.resolve([]); await loop; }
+      }
+      const controller = new AbortController(), poll = deferred<Array<{id:string;createdAt:string}>>();
+      const processJob = vi.fn(async () => {});
+      const loop = runWorkerLoop({signal: controller.signal, pollMs: 1_000, heartbeatMs: 1_000,
+        shutdownGraceMs: 1_000, capabilityRevision: "0123456789abcdef", getQueuedJobs: () => poll.promise,
+        processJob, onHealth: snapshot => writeWorkerHealthSnapshot(file, snapshot)});
+      await vi.advanceTimersByTimeAsync(0); controller.abort();
+      await expect(loop).resolves.toBe("stopped");
+      poll.resolve([{id:"late-private-job",createdAt:new Date().toISOString()}]); await vi.advanceTimersByTimeAsync(0);
+      expect(processJob).not.toHaveBeenCalled();
+      expect(assessWorkerHealthFile(file)).toMatchObject({state:"stopped",healthy:false});
+    } finally { vi.useRealTimers(); rmSync(directory, {recursive: true, force: true}); }
+  });
   it("publishes bounded queue age and reports unfinished work while draining", async () => {
     const controller = new AbortController();
     const started = deferred();

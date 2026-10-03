@@ -996,6 +996,11 @@ states with a five-job queue sample and oldest sampled age. Production Compose
 checks it every 30 seconds and allows 125 seconds for the worker's default
 120-second shutdown grace. The ops checker requires a healthy heartbeat in
 addition to a running container. Queue samples are bounds, not exact counts.
+Queue polling must make progress: an unresolved poll stops refreshing its
+heartbeat, and a rejected poll stays unhealthy until a successful retry.
+The host checker independently samples up to five queued rows from the shared
+catalog in read-only mode, with a query deadline. A stopped or absent worker
+does not hide that queue; an unreadable catalog reports the sample unavailable.
 
 SIGTERM stops admission and aborts supported subprocesses. Before publication,
 shutdown releases only its owned lease without consuming an attempt. After an

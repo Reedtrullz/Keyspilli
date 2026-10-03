@@ -33,7 +33,7 @@ export interface WorkerLoopOptions<T extends WorkerQueueEntry> {
   shutdownGraceMs: number;
   capabilityRevision: string;
   startup?(signal: AbortSignal): Promise<void>;
-  getQueuedJobs(): Promise<T[]> | T[];
+  getQueuedJobs(signal: AbortSignal): Promise<T[]> | T[];
   processJob(
     job: T,
     signal: AbortSignal,
@@ -61,6 +61,9 @@ export async function runWorkerLoop<T extends WorkerQueueEntry>(options: WorkerL
   let lastHeartbeat = now();
   let queued: T[] = [];
   let queueMayHaveMore = false;
+  let pollFailed = false;
+  let pollInFlight = false;
+  let cancelPoll: (() => void) | undefined;
   let wakeDelay: (() => void) | undefined;
   let graceTimer: ReturnType<typeof setTimeout> | undefined;
   let resolveGraceExpired: (() => void) | undefined;
@@ -129,10 +132,12 @@ export async function runWorkerLoop<T extends WorkerQueueEntry>(options: WorkerL
       }, options.shutdownGraceMs);
     }
     wakeDelay?.();
+    cancelPoll?.();
   };
 
   const heartbeat = setInterval(() => {
-    lastHeartbeat = now();
+    // A live event loop cannot certify a queue poll that never completes.
+    if (!pollInFlight && status !== "starting") lastHeartbeat = now();
     publish();
   }, options.heartbeatMs);
   heartbeat.unref();
@@ -163,17 +168,32 @@ export async function runWorkerLoop<T extends WorkerQueueEntry>(options: WorkerL
       }
     }
     while (!options.signal.aborted) {
-      status = "polling";
+      status = pollFailed ? "health-error" : "polling";
       progress = null;
       lastHeartbeat = now();
       publish();
+      pollInFlight = true;
       try {
-        queued = await options.getQueuedJobs();
+        const cancelled = new Promise<null>(resolve => { cancelPoll = () => resolve(null); });
+        const result = await Promise.race([
+          Promise.resolve().then(() => options.signal.aborted ? [] : options.getQueuedJobs(options.signal)), cancelled,
+        ]);
+        if (result === null || options.signal.aborted) break;
+        queued = result;
         queueMayHaveMore = queued.length >= 5;
+        pollFailed = false;
       } catch {
+        pollFailed = true;
         queued = [];
         queueMayHaveMore = false;
         reportError("poll");
+        status = "health-error";
+        publish();
+        if (!options.signal.aborted) await delay();
+        continue;
+      } finally {
+        pollInFlight = false;
+        cancelPoll = undefined;
       }
       status = "idle";
       lastHeartbeat = now();

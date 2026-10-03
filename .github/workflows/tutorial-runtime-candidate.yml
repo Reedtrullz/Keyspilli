@@ -39,7 +39,7 @@ jobs:
         run: |
           test "$(uname -m)" = x86_64
           docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-tutorial-worker:candidate .
-      - name: Verify isolated default worker startup
+      - name: Verify isolated default worker startup and SIGTERM
         timeout-minutes: 2
         run: |
           name=keyspilli-tutorial-worker-smoke
@@ -60,6 +60,10 @@ jobs:
               if grep -Fq '[worker] poll error:' <<< "$worker_logs"; then
                 exit 1
               fi
+              docker exec "$name" node --import tsx services/transcribe/src/worker-health-check.ts
+              docker stop --time 10 "$name"
+              test "$(docker inspect --format '{{.State.ExitCode}}' "$name")" = 0
+              docker logs "$name" 2>&1 | grep -Fq '"status":"stopped"'
               exit 0
             fi
             sleep 1
