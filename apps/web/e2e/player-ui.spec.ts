@@ -199,12 +199,15 @@ test("practice setup preserves the selected position", async ({ page }) => {
 });
 
 test("seek slider is keyboard operable without a separate bar jump", async ({ page }) => {
+  const client = await page.context().newCDPSession(page);
+  await client.send("Emulation.setCPUThrottlingRate", { rate: 6 });
   await page.goto(`/player/${SONG}`);
   const seek = page.getByRole("slider", { name: "Seek", exact: true });
+  await expect(seek).toBeEnabled();
   await seek.focus();
   await seek.press("ArrowRight");
   await expect(page.getByRole("spinbutton", { name: "Bar", exact: true })).toHaveCount(0);
-  expect(Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue())).toBeGreaterThan(0);
+  await expect.poll(async () => Number(await seek.inputValue())).toBeGreaterThan(0);
 });
 
 
