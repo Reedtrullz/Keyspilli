@@ -9,6 +9,12 @@ test("direct sheet stays light, then exact passages seek/loop by keyboard across
  let detailRequests=0;
  page.on('request',req=>{if(new URL(req.url()).pathname===`/api/songs/${id}`)detailRequests++;});
  await page.addInitScript(()=>localStorage.setItem('keyspilli.prefs.v1',JSON.stringify({soundSource:'synth',backgroundMode:'piano',transpose:0})));
+ await page.addInitScript(()=>{
+  const state=window as unknown as {__holdScorePage:number;__scoreRepliesHeld:number;__releaseScore:()=>void},pending:Array<()=>void>=[];
+  state.__holdScorePage=0;state.__scoreRepliesHeld=0;state.__releaseScore=()=>{state.__holdScorePage=0;pending.splice(0).forEach(release=>release());state.__scoreRepliesHeld=0;};
+  const Original=window.Worker;window.Worker=class extends Original{constructor(url:string|URL,options?:WorkerOptions){super(url,options);const native=Object.getOwnPropertyDescriptor(Original.prototype,'onmessage')!;
+   Object.defineProperty(this,'onmessage',{configurable:true,set(callback:(event:MessageEvent)=>void){native.set!.call(this,(event:MessageEvent)=>{if(event.data.type==='page'&&event.data.page===state.__holdScorePage){pending.push(()=>callback(event));state.__scoreRepliesHeld=pending.length;}else callback(event);});},get(){return native.get!.call(this);}});}};
+ });
  try {
   await page.goto(`/player/${id}/sheet`);await expect.poll(()=>page.evaluate(()=>(window as unknown as {__sheetReady?:boolean}).__sheetReady)).toBe(true);
   expect(detailRequests).toBe(0);await expect(page.getByRole('button',{name:'Focus score passages'})).toHaveCount(0);
@@ -28,6 +34,18 @@ test("direct sheet stays light, then exact passages seek/loop by keyboard across
   const lastPage=Number(await last.locator('xpath=ancestor::*[@data-page]').getAttribute('data-page'));expect(lastPage).toBeGreaterThan(1);
   const scroll=await page.evaluate(()=>window.scrollY);await page.keyboard.press('Enter');await expect.poll(async()=>Number(await page.getByRole('slider',{name:'Seek',exact:true}).inputValue())).toBeCloseTo(detail.data.measures[lastIndex].startBeat*60/bpm,2);
   await expect(last).toHaveAttribute('aria-current','location');expect(await page.evaluate(()=>window.scrollY)).toBeCloseTo(scroll,0);
+  await page.evaluate(()=>{(window as unknown as {__holdScorePage:number}).__holdScorePage=1;});
+  await page.keyboard.press('Home');await expect.poll(()=>page.evaluate(()=>(window as unknown as {__scoreRepliesHeld:number}).__scoreRepliesHeld)).toBeGreaterThan(0);
+  const practice=page.getByRole('button',{name:'Practice',exact:true});await practice.click();
+  const dialog=page.getByRole('dialog',{name:'Set up practice'});await dialog.getByLabel('Count-in',{exact:true}).selectOption('4');await dialog.getByRole('button',{name:'Start practice',exact:true}).click();
+  await page.getByRole('button',{name:'Cancel count-in',exact:true}).click();await expect(practice).toBeFocused();
+  const retryPage=page.locator('.sheet-svg [data-page="2"]');await retryPage.scrollIntoViewIfNeeded();
+  const retryMeasure=retryPage.locator('g.measure[id^="keyspilli-score-"]').first();await expect(retryMeasure).toBeVisible();
+  const retryIndex=Number((await retryMeasure.getAttribute('id'))!.replace('keyspilli-score-',''));
+  await retryMeasure.focus();await page.keyboard.press('ArrowRight');
+  const next=page.locator(`g.measure[id="keyspilli-score-${retryIndex+1}"]`);await expect(next).toBeFocused();
+  await page.evaluate(()=>(window as unknown as {__releaseScore:()=>void}).__releaseScore());
+  await expect(page.locator('.sheet-svg [data-page="1"] > svg')).toBeVisible();await expect(next).toBeFocused();
   expect(detailRequests).toBe(1);
  }finally{if(!page.isClosed())expect((await request.delete(`/api/songs/${receipt.baseId}`,{headers})).ok()).toBe(true);}
 });

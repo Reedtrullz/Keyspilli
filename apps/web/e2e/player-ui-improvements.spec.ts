@@ -141,6 +141,7 @@ test("sheet-only entry retains zoom and its reader position after failure, retry
   await page.route(url => url.pathname === "/api/songs/ui-fixture-m", async route => {
     requests++;
     if (requests === 1) return route.fulfill({ status: 503, body: "unavailable" });
+    await new Promise(resolve => setTimeout(resolve, 400));
     await route.continue();
   });
   await page.goto(`${song}/sheet`);
