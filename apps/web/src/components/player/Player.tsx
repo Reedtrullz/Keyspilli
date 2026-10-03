@@ -311,6 +311,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     ...DEFAULT_SETTINGS,
     ...(mode ? { mode } : {}),
   }));
+  const [settingsRestored, setSettingsRestored] = useState(false);
   const activeData = settings.backgroundMode === "chord" ? initial.chordData ?? initial.data : initial.data;
   const sourceBackingNotes = useMemo(
     () => reviewedSourceBacking(initial.chordData ?? initial.data),
@@ -344,6 +345,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     if (songPrefs.hand !== undefined) s.hand = songPrefs.hand;
     if (mode) s.mode = mode;
     setSettings(s);
+    setSettingsRestored(true);
   }, [initial.chordData, initial.song.id, mode, sourceBackingNotes]);
   useEffect(() => {
     const syncTheme = () => setSettings(current => ({ ...current, stageTheme: document.documentElement.dataset.theme === "charcoal" ? "charcoal" : "light" }));
@@ -1010,6 +1012,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
 
   // Engine lifecycle: one PlaybackEngine per mount, disposed on unmount.
   useEffect(() => {
+    if (!settingsRestored) return;
     const previous = audioSwapStateRef.current;
     audioSwapStateRef.current = null;
     const audio = settings.soundSource === "sampled"
@@ -1073,7 +1076,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       engine.audio.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.soundSource, settings.organStyle, settings.organRegistration, activeData.tempoBpm]);
+  }, [settingsRestored, settings.soundSource, settings.organStyle, settings.organRegistration, activeData.tempoBpm]);
 
   useEffect(() => {
     const engine = engineRef.current;
@@ -1141,7 +1144,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }, [playing]);
 
   const startPlayback = useCallback(() => {
-    if (auxiliaryRef.current || chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
+    if (!engineRef.current || auxiliaryRef.current || chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
     cancelSoundPreview();
     heldInputRef.current?.releaseAll();
     engineRef.current?.start();
@@ -2287,7 +2290,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       <div className="player-surface rounded-2xl border border-zinc-200 bg-white mb-4">
         <div className="player-toolbar">
         <div className="player-control-strip flex items-center gap-3 px-4 py-3 border-b border-zinc-100 flex-wrap">
-          <button onClick={togglePlay} disabled={auxiliary!==null || chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
+          <button onClick={togglePlay} disabled={!engineReady || auxiliary!==null || chordPracticeActive || countIn !== null || (grading && waitMode)} className="pressable w-12 h-12 rounded-full bg-zinc-900 text-white text-lg shadow-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed" aria-label={playing ? "Pause" : "Play"} title={chordPracticeActive ? "Exit chord practice to play the arrangement" : undefined}>
             <span aria-hidden="true">{playing ? "❚❚" : "▶"}</span>
           </button>
           <button
