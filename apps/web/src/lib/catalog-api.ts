@@ -545,9 +545,11 @@ export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "le
   };
   // Metadata projection only: retain stored notes and source identity. Source
   // labels take priority; musical form guesses are visibly marked estimated.
+  const storedSections=data.sections;
+  data.sections=[];
   if (data.measures.length > 0) {
     try {
-      data.sections = resolveSongSections(song,data,manifest?.sourceArtifactHash);
+      data.sections = resolveSongSections(song,{...data,sections:storedSections},manifest?.sourceArtifactHash);
     } catch {
       // Section detection is best-effort; never block song loading on it.
     }

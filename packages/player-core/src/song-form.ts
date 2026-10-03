@@ -92,10 +92,11 @@ export function inferSongForm(notes: readonly Note[], measures: readonly Measure
  */
 export function overlaySourceSections(fallback: readonly Section[], source: readonly Section[], durationBeats: number): Section[] {
   if (!source.length || source.length>512 || !Number.isFinite(durationBeats) || durationBeats<=0) return [...fallback];
+  if(source.some(s=>!s || typeof s!=="object")) return [...fallback];
   const sorted=[...source].sort((a,b)=>a.startBeat-b.startBeat);
   const ids=new Set<string>();
   for(const [index,s] of sorted.entries()) {
-    if(typeof s.id!=="string" || !s.id || ids.has(s.id) || typeof s.label!=="string" || !s.label.trim() || s.label.length>160
+    if(!s || typeof s!=="object" || typeof s.id!=="string" || !s.id || ids.has(s.id) || typeof s.label!=="string" || !s.label.trim() || s.label.length>160
       || !Number.isFinite(s.startBeat) || !Number.isFinite(s.endBeat) || s.startBeat<0 || s.endBeat<=s.startBeat
       || (index>0 && s.startBeat<sorted[index-1]!.endBeat)) return [...fallback];
     ids.add(s.id);

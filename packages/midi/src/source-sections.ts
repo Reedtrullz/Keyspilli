@@ -21,5 +21,5 @@ export function sectionsFromMarkers(markers: readonly {beat:number;label:string}
   const unique=selected.filter((m,index)=>index===0 || m.beat!==selected[index-1]!.beat);
   // Conflicting labels at the same beat across tracks are not form evidence.
   const unambiguous=unique.filter(m=>!selected.some(other=>other.beat===m.beat && other.label!==m.label));
-  return unambiguous.map((m,index)=>({id:`source-section-${index+1}`,label:m.label.trim().replace(/:$/," ").trim(),type:sourceSectionType(m.label)!,startBeat:m.beat,endBeat:unambiguous[index+1]?.beat??durationBeats,evidence:"source"}));
+  return unambiguous.map((m,index)=>({id:`source-section-${index+1}`,label:m.label.trim().replace(/:$/," ").trim(),type:sourceSectionType(m.label)!,startBeat:m.beat,endBeat:unique.find(next=>next.beat>m.beat)?.beat??durationBeats,evidence:"source"}));
 }

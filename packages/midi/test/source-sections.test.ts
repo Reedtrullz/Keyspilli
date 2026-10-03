@@ -13,6 +13,17 @@ describe("source section markers",()=>{
   it("ignores commentary and conflicts, while keeping genuine section labels",()=>{
     expect(sectionsFromMarkers([{beat:0,label:"Choir singing chorus"},{beat:4,label:"Verse 1:"},{beat:12,label:"Chorus"},{beat:12,label:"Bridge"},{beat:20,label:"Outro"}],24).map(s=>s.label)).toEqual(["Verse 1","Outro"]);
   });
+  it("ends a known span at a conflicting marker instead of extending source certainty",()=>{
+    const markers=[{beat:0,label:"Verse 1"},{beat:16,label:"Chorus"},{beat:16,label:"Bridge"}];
+    expect(sectionsFromMarkers(markers,32).map(s=>[s.label,s.startBeat,s.endBeat])).toEqual([["Verse 1",0,16]]);
+  });
+  it("retains ambiguous boundaries when combining MusicXML parts",()=>{
+    const direction=(label:string)=>`<direction><direction-type><words>${label}</words></direction-type></direction>`;
+    const note='<note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>';
+    const part=(id:string,labels:string)=>`<part id="${id}"><measure><attributes><divisions>1</divisions></attributes>${direction("Verse 1")}${note}${labels}${note}</measure></part>`;
+    const xml=`<score-partwise>${part("P1",direction("Chorus")+direction("Bridge"))}${part("P2","")}</score-partwise>`;
+    expect(parseMusicXmlNotes(xml).sections?.map(s=>[s.label,s.startBeat,s.endBeat])).toEqual([["Verse 1",0,4]]);
+  });
   it("retains MusicXML rehearsal labels at their actual cursor and offset",()=>{
     const xml='<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>2</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><direction><direction-type><rehearsal>Verse 1</rehearsal></direction-type></direction><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note><direction><direction-type><words>Chorus</words></direction-type><offset>2</offset></direction><note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration></note></measure></part></score-partwise>';
     expect(parseMusicXmlNotes(xml).sections?.map(s=>[s.label,s.startBeat,s.endBeat])).toEqual([["Verse 1",0,3],["Chorus",3,4]]);

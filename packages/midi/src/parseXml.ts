@@ -177,11 +177,12 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   }
   if (partNodes.length > 1) {
     if (/<(?:repeat|ending)\b/i.test(clean)) throw new Error("Unsupported MusicXML multipart repeat playback order");
+    const sourceMarkers:Array<{beat:number;label:string}>=[];
     const parsedParts = partNodes.map((partMatch, index) => {
       const id = xmlAttribute(partMatch[1]!, "id") || `part-${index + 1}`;
       const name = partNames.get(id) ?? id;
       const singlePart = clean.replace(/<part(?![-\w])[^>]*>[\s\S]*?<\/part>/g, (candidate) => candidate === partMatch[0] ? candidate : "");
-      return { parsed: parseSingleMusicXmlNotes(singlePart, { id: `musicxml:${id}`, name }), id, name };
+      return { parsed: parseSingleMusicXmlNotes(singlePart, { id: `musicxml:${id}`, name }, sourceMarkers), id, name };
     });
     const signatureByBeat = new Map<number, [number, number]>();
     for (const { parsed } of parsedParts) {
@@ -198,7 +199,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       .sort(([left], [right]) => left - right)
       .map(([beat, timeSig]) => ({ beat, timeSig, tick: Math.round(beat * first.division) }));
     const notes = parsedParts.flatMap(({ parsed }) => parsed.notes).sort((a, b) => a.start - b.start || a.midi - b.midi);
-    const sections=sectionsFromMarkers(parsedParts.flatMap(({parsed})=>(parsed.sections??[]).map(s=>({beat:s.startBeat,label:s.label}))),notes.reduce((end,n)=>Math.max(end,n.start+n.dur),0));
+    const sections=sectionsFromMarkers(sourceMarkers,notes.reduce((end,n)=>Math.max(end,n.start+n.dur),0));
     return {
       ...first,
       sections,
@@ -222,7 +223,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
   return parseSingleMusicXmlNotes(clean, { id: `musicxml:${id}`, name: partNames.get(id) ?? "MusicXML" });
 }
 
-function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: string }): ParsedMidi {
+function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: string }, markerCollector?:Array<{beat:number;label:string}>): ParsedMidi {
   xml = cleanMusicXml(xml);
   if (/<(?:segno|coda|dalsegno|dacapo|tocoda|fine)\b|\b(?:dalsegno|dacapo|tocoda|fine)\s*=/i.test(xml)) {
     throw new Error("Unsupported MusicXML navigation playback order");
@@ -396,6 +397,7 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
   const sourcePedal=pedals[0]?readSourcePedal(decodeXmlEntities(pedals[0][2]!),mergedNotes):undefined;
   const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), order ? measureStart : 0);
   const sections=sectionsFromMarkers(sectionMarkers,durationBeats);
+  markerCollector?.push(...sectionMarkers);
   if (order && Math.ceil(durationBeats/.25)*mergedNotes.length > 200_000_000) throw new Error("repeat source workload exceeds supported limits");
   return {
     format: 0,

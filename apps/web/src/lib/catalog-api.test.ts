@@ -322,6 +322,17 @@ describe("catalog artifact manifest read boundary", () => {
     expect(loaded.data?.tempoBpm).toBe(120);
   });
 
+  it("never exposes malformed optional sections from an otherwise playable artifact", async()=>{
+    const dir=join(dataRoot,"artifacts","catalog-api-song","a");
+    const notes=[{midi:60,start:0,dur:1,vel:80}];
+    for(const measures of [[],[{index:0,startBeat:0,endBeat:4}]]) {
+      await writeFile(join(dir,"notes.json"),JSON.stringify({notes,chords:[],measures,key:"C",tempoBpm:120,timeSig:[4,4],sections:[null]}));
+      const loaded=await loadSongArtifact(song());
+      expect(loaded.data?.notes).toEqual(notes);
+      expect(loaded.data?.sections).toEqual(measures.length ? [expect.objectContaining({evidence:"estimated"})] : []);
+    }
+  });
+
   it("keeps a legacy detail explicitly unpinned and rejects pinning it after publication", async () => {
     const legacy = await getSongDetail(song().id);
     expect(legacy?.publicationRevision).toBeNull();

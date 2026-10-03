@@ -9,7 +9,8 @@ export function resolveSongSections(song:{baseId:string;category?:string}, data:
   const structuralNotes=data.notes.length ? data.notes : data.chords.flatMap(chord=>chord.notes.map(midi=>({midi,start:chord.beat,dur:chord.durationBeats??1,vel:80})));
   const fallback=inferSongForm(structuralNotes,data.measures,{classical:song.category?.toLowerCase()==="classical"});
   const duration=data.measures.at(-1)?.endBeat??0;
-  const authored=data.sections?.filter(section=>section.evidence!=="estimated");
+  const stored=Array.isArray(data.sections) && data.sections.every(section=>section && typeof section==="object") ? data.sections : [];
+  const authored=stored.filter(section=>section.evidence!=="estimated");
   if(authored?.length)return overlaySourceSections(fallback,authored,duration);
   const notesHash=data.sourceFingerprint?.match(/:notes:([a-f0-9]{64})(?::|$)/)?.[1];
   const matching=maps.find(entry=>entry.baseId===song.baseId && entry.sourceArtifactHash===sourceArtifactHash

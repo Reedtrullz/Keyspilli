@@ -5,6 +5,12 @@ import type { SongData } from "@keyspilli/player-core";
 const data:SongData={notes:[{midi:60,start:0,dur:1,vel:80}],chords:[],measures:Array.from({length:16},(_,index)=>({index,startBeat:index*4,endBeat:index*4+4})),key:"C",tempoBpm:120,timeSig:[4,4]};
 const entry={baseId:"fixture",sourceArtifactHash:"a".repeat(64),playbackTempoBpm:120,sections:[{id:"source-verse",label:"Verse 1",startBeat:0,endBeat:32,type:"verse" as const,evidence:"source" as const},{id:"source-chorus",label:"Chorus",startBeat:32,endBeat:64,type:"chorus" as const,evidence:"source" as const}]};
 describe("song sections",()=>{
+ it("falls back safely when stored section metadata is malformed",()=>{
+  for(const sections of [[null],{},[null,entry.sections[0]]]) {
+   const malformed={...data,sections} as unknown as SongData;
+   expect(resolveSongSections({baseId:"unmapped"},malformed).every(s=>s.evidence==="estimated")).toBe(true);
+  }
+ });
  it("uses a map only for the exact source and playback clock",()=>{
   expect(resolveSongSections({baseId:"fixture",category:"Pop"},data,entry.sourceArtifactHash,[entry]).map(s=>s.label)).toEqual(["Verse 1","Chorus"]);
   expect(resolveSongSections({baseId:"fixture",category:"Pop"},data,"b".repeat(64),[entry]).every(s=>s.evidence==="estimated")).toBe(true);
