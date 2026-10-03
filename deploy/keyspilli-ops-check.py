@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import glob
 import hashlib
 import json
@@ -159,9 +160,35 @@ def offhost_status(path: Path, enabled: bool) -> dict[str, Any]:
         return {"enabled": True, "state": "unknown", "verified": False, "ageHours": None}
 
 
+def queue_sample(path: Path | None) -> dict[str, Any]:
+    """Read the shared catalog even when the worker cannot execute its probe."""
+    unknown = {"queueSampleState": "unavailable", "queuedSample": None, "oldestQueuedAgeMs": None}
+    if path is None:
+        return unknown
+    try:
+        deadline = time.monotonic() + 0.25
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=0.25)) as database:
+            database.set_progress_handler(lambda: int(time.monotonic() > deadline), 1000)
+            rows = database.execute("SELECT created_at FROM conversion_jobs WHERE status = 'queued' ORDER BY created_at LIMIT 5").fetchall()
+        oldest = None
+        if rows:
+            created = datetime.fromisoformat(rows[0][0].replace("Z", "+00:00"))
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            oldest = max(0, round((datetime.now(timezone.utc) - created).total_seconds() * 1000))
+        return {"queueSampleState": "available", "queuedSample": len(rows), "oldestQueuedAgeMs": oldest}
+    except (OSError, sqlite3.Error, ValueError, TypeError, AttributeError):
+        return unknown
+
+
 def collect(mode: str) -> dict[str, Any]:
     web = inspect("keyspilli")
-    worker = inspect("keyspilli-worker")
+    try:
+        worker = inspect("keyspilli-worker")
+    except subprocess.CalledProcessError:
+        worker = {}
+    data_mount = next((item.get("Source") for item in web.get("Mounts", []) if item.get("Destination") == "/data"), None)
+    db_path = Path(data_mount) / "db.sqlite" if data_mount else None
     web_env = env_map(web)
     health = http_json("http://127.0.0.1:3008/api/health")
     disk_free = os.statvfs("/").f_bavail * os.statvfs("/").f_frsize
@@ -196,6 +223,7 @@ def collect(mode: str) -> dict[str, Any]:
             "restarts": worker.get("RestartCount"),
             "image": worker.get("Config", {}).get("Image"),
             **worker_heartbeat(),
+            **queue_sample(db_path),
         },
         "backup": {
             "timerEnabled": run("systemctl", "is-enabled", "keyspilli-backup.timer") == "enabled",
@@ -226,8 +254,6 @@ def collect(mode: str) -> dict[str, Any]:
         },
     }
     if mode == "deep":
-        data_mount = next((item.get("Source") for item in web.get("Mounts", []) if item.get("Destination") == "/data"), None)
-        db_path = str(Path(data_mount) / "db.sqlite") if data_mount else ""
         live_integrity = None
         backup_integrity = None
         if db_path and Path(db_path).is_file():
@@ -283,6 +309,7 @@ def evaluate(snapshot: dict[str, Any], mode: str) -> dict[str, Any]:
         if isinstance(worker.get("queuedSample"), int) and worker["queuedSample"] > 0:
             failures.append("queued_without_worker")
     if worker.get("heartbeatHealthy") is not True: failures.append("worker_heartbeat_unavailable")
+    if worker.get("queueSampleState") == "unavailable": warnings.append("worker_queue_sample_unavailable")
     if isinstance(worker.get("restarts"), int) and worker["restarts"] > 0: warnings.append("worker_restart_count_nonzero")
 
     backup = snapshot.get("backup", {})
