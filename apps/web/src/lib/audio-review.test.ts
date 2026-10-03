@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { AudioFilePin, ReviewJob } from "./audio-review.js";
 import {
   AUDIO_REVIEW_LIMITS,
   buildAntiListenArgs,
@@ -14,7 +15,7 @@ import {
 } from "./audio-review.js";
 
 const pin = (char: string) => char.repeat(64);
-const clip = (name: string, startSeconds = 0) => ({
+const clip = (name: string, startSeconds = 0): AudioFilePin => ({
   path: `/fixture/${name}.wav`,
   sha256: pin("a"),
   bytes: 1_852_244,
@@ -48,7 +49,7 @@ const modeReplay = (mode: "original" | "chords") => ({
     playability: { status: "not-run", reason: "No independent physical-keyboard evidence" },
   },
 });
-const job = (mode: "original" | "chords", phraseId = "opening") => ({
+const job = (mode: "original" | "chords", phraseId = "opening"): ReviewJob => ({
   id: `${mode}-${phraseId}`,
   mode,
   phraseId,
