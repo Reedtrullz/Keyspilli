@@ -44,6 +44,7 @@ test("sections bar collapses, persists, and expands", async ({ page }) => {
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(nav.locator("span")).toHaveCount(1);
+  expect(await page.evaluate(() => localStorage.getItem("keyspilli.sectionsCollapsed"))).toBe("true");
 
   await page.reload();
   const navAfterReload = page.getByRole("navigation", { name: "Song sections" });
@@ -67,6 +68,7 @@ test("full width mode expands the player and persists across reload", async ({ p
   await page.getByRole("button", { name: "Full width" }).click();
   await expect(root).toHaveClass(/w-full/);
   await expect(root).not.toHaveClass(/max-w-6xl/);
+  expect(await page.evaluate(() => localStorage.getItem("keyspilli.fullWidth"))).toBe("true");
 
   await page.reload();
   const rootAfterReload = page.locator("main > div").first();
