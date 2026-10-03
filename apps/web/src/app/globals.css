@@ -841,6 +841,10 @@ body {
 
 /* Virtual sheet mode keeps a bounded page window mounted. The placeholders
  * retain the page aspect ratio so scrolling does not jump as SVGs arrive. */
+.sheet-svg[data-sheet-render-mode="virtual"] .sheet-svg__page:not(.sheet-svg__page--placeholder) {
+  content-visibility: visible;
+}
+
 .sheet-svg__page--placeholder {
   aspect-ratio: var(--sheet-page-aspect, 1600 / 2200);
   min-height: 15rem;

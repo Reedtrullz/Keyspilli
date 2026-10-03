@@ -104,7 +104,11 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
   const [followScore,setFollowScore] = useState(false);
   const scoreMeasuresRef = useRef(scoreMeasures); scoreMeasuresRef.current = scoreMeasures;
   const interactionRef = useRef(interaction); interactionRef.current = interaction;
-  const navigationBusyRef = useRef(false);
+  const pendingScoreFocusRef = useRef<{id:string;ready:boolean} | null>(null);
+  useEffect(() => {
+    pendingScoreFocusRef.current = null;
+    return () => { pendingScoreFocusRef.current = null; };
+  }, [suspended, interaction?.canNavigate]);
   const renderGenerationRef=useRef(0);
   function failRender(reason:unknown,generation:number){
     if(renderGenerationRef.current!==generation)return;renderGenerationRef.current++;
@@ -143,6 +147,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
     setError("");
     setReady(false);
     manualScoreNavigationRef.current = false;
+    pendingScoreFocusRef.current = null;
     setScoreMeasures([]); setScoreNotice(""); setSelectedScoreMeasure(0); setFollowScore(false);
     updateSheetState({
       __sheetReady: false,
@@ -360,27 +365,27 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
 
   async function focusScoreMeasure(index: number) {
     const snapshot = scoreMeasuresRef.current, measure = snapshot[index];
-    if (!measure || navigationBusyRef.current || !interactionRef.current?.canNavigate) return;
-    navigationBusyRef.current = true;
+    if (!measure || suspended || !interactionRef.current?.canNavigate) return;
+    const request = {id:measure.elementId,ready:false};
+    pendingScoreFocusRef.current = request;
     manualScoreNavigationRef.current = true;
     try {
       const page = sessionRef.current ? await sessionRef.current.elementPage(measure.elementId) : 0;
-      if (scoreMeasuresRef.current !== snapshot || page < 1 || page > pageCount) return;
+      if (pendingScoreFocusRef.current !== request || scoreMeasuresRef.current !== snapshot || page < 1 || page > pageCount) return;
       windowRef.current={start:Math.max(1,page-PAGE_RADIUS),end:Math.min(pageCount,page+PAGE_RADIUS)};
       loadedPagesRef.current=retainSheetPages(loadedPagesRef.current,windowRef.current.start,windowRef.current.end);
       setSelectedScoreMeasure(index);
       setWindowStart(Math.max(1,page-PAGE_RADIUS)); setWindowEnd(Math.min(pageCount,page+PAGE_RADIUS));
       containerRef.current?.querySelector<HTMLElement>(`[data-page="${page}"]`)?.scrollIntoView({block:"center",behavior:"instant"});
       await renderPageRef.current(page);
-      await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
-      if (scoreMeasuresRef.current === snapshot && interactionRef.current?.canNavigate) {
-        const node = containerRef.current?.querySelector<SVGElement>(`[id="${measure.elementId}"]`);
-        if (!node) throw new Error("Passage is not mounted");
-        node.tabIndex = 0;
-        node.focus({preventScroll:true});
+      if (pendingScoreFocusRef.current === request && scoreMeasuresRef.current === snapshot && interactionRef.current?.canNavigate) {
+        request.ready = true;
+        setPages({ ...loadedPagesRef.current });
       }
-    } catch { if (scoreMeasuresRef.current === snapshot) setScoreNotice("This passage could not be located. Reload the score before navigating."); }
-    finally { navigationBusyRef.current = false; }
+    } catch { if (pendingScoreFocusRef.current === request && scoreMeasuresRef.current === snapshot) {
+      pendingScoreFocusRef.current = null;
+      setScoreNotice("This passage could not be located. Reload the score before navigating.");
+    } }
   }
   function activateScoreMeasure(index: number, loop = false) {
     const measure = scoreMeasuresRef.current[index], controls = interactionRef.current;
@@ -403,7 +408,13 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
       if (index===current) node.setAttribute("aria-current","location"); else node.removeAttribute("aria-current");
       node.style.outline = index===current ? "2px solid Highlight" : "";
     });
-  },[pages,scoreMeasures,selectedScoreMeasure,followScore,interaction?.beat,interaction?.canNavigate,interaction?.enabled]);
+    const pending = pendingScoreFocusRef.current?.ready && [...nodes].find(node => node.id === pendingScoreFocusRef.current?.id);
+    if (pending && !suspended && interaction?.canNavigate) {
+      pendingScoreFocusRef.current = null;
+      pending.scrollIntoView({block:"center",behavior:"instant"});
+      pending.focus({preventScroll:true});
+    }
+  },[pages,scoreMeasures,selectedScoreMeasure,followScore,interaction?.beat,interaction?.canNavigate,interaction?.enabled,suspended]);
 
   if (error) {
     return (
