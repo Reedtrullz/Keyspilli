@@ -1,8 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import ImportProgress, { stagePercent } from "./ImportProgress";
+import RecentJobs from "./RecentJobs";
 export default function TutorialImport() {
+  const savedJob = useSearchParams().get("job");
   const submitting = useRef(false);
   const [ready, setReady] = useState(false),
     [cancelling, setCancelling] = useState(false),
@@ -33,14 +36,18 @@ export default function TutorialImport() {
     return () => clearInterval(timer);
   }, [createdAt, status]);
   useEffect(() => {
-    const saved = new URL(window.location.href).searchParams.get("job");
-    if (saved && /^[a-zA-Z0-9_-]{1,100}$/.test(saved)) {
+    setError(""); setSongId(""); setStage(""); setFurthest(0);
+    setCreatedAt(null); setElapsedSeconds(null);
+    if (savedJob && /^[a-zA-Z0-9_-]{1,100}$/.test(savedJob)) {
       submitting.current = true;
-      setJobId(saved);
+      setJobId(savedJob);
       setStatus("Checking saved preview");
+    } else {
+      submitting.current = false;
+      setJobId(""); setStatus("");
     }
     setReady(true);
-  }, []);
+  }, [savedJob]);
   useEffect(() => {
     if (!jobId) return;
     const controller = new AbortController();
@@ -74,7 +81,8 @@ export default function TutorialImport() {
         if (job.status === "done" || job.status === "error")
           submitting.current = false;
         if (job.status === "done") {
-          setSongId(job.songId);
+          setSongId(job.resultAvailable ? job.songId : "");
+          if (!job.resultAvailable) setError("This job completed, but its result is unavailable. Check the library or ask the owner to inspect its publication before importing again.");
           return;
         }
         if (job.status === "error") {
@@ -150,7 +158,7 @@ export default function TutorialImport() {
           Create piano preview
         </button>
       </form>
-      {jobId && submitting.current && (
+      {jobId && ["queued", "processing"].includes(status) && (
         <button
           type="button"
           disabled={cancelling}
@@ -189,6 +197,7 @@ export default function TutorialImport() {
         elapsedSeconds={elapsedSeconds}
         cancelled={error.startsWith("Piano preview cancelled")}
         reconciliationRequired={error.startsWith("Import saved an artifact")}
+        resultUnavailable={status === "done" && !songId && Boolean(error)}
       />
       {error && <p role="alert">{error}</p>}
       {songId && (
@@ -199,6 +208,7 @@ export default function TutorialImport() {
           Open piano lesson
         </Link>
       )}
+      <RecentJobs refreshKey={`${jobId}:${status}:${refresh}`} />
     </div>
   );
 }

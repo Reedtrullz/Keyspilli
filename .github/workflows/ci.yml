@@ -9,6 +9,20 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      operation:
+        description: "Deployment retries preserve production song data; rebuilding requires explicit scope"
+        required: true
+        default: deploy_only
+        type: choice
+        options:
+          - deploy_only
+          - rebuild_target
+          - rebuild_all
+      rebuild_confirmation:
+        description: "Only for rebuild_all: type REBUILD_ALL_CATALOG"
+        required: false
+        default: ""
+        type: string
       rebuild_base_id:
         description: "Optional single base id to rebuild (leave blank for the full catalog)"
         required: false
@@ -25,7 +39,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 env:
   NODE_VERSION: 22.22.3
@@ -46,6 +59,15 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Validate dispatch operation before release work
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_OPERATION: ${{ inputs.operation }}
+          REBUILD_BASE_ID: ${{ inputs.rebuild_base_id }}
+          REBUILD_TRANSCRIPTION_MODE: ${{ inputs.rebuild_transcription_mode }}
+          REBUILD_CONFIRMATION: ${{ inputs.rebuild_confirmation }}
+        run: python3 deploy/validate-release-operation.py
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -97,11 +119,18 @@ jobs:
           sudo apt-get install -y --no-install-recommends ffmpeg
           python3 deploy/test/test-live-verifier.py
           python3 deploy/test/test-backup.py
+          python3 deploy/test/test-replicate-backup.py
+          node deploy/test/restore-app-verifier.mjs
+          python3 deploy/test/test-release-operation.py
+          python3 deploy/test/test-worker-queue.py
+          python3 -m unittest \
+            deploy.test_worker_resources.WorkerResourceBoundary.test_native_limits_are_bounded_without_shell_commands \
+            deploy.test_worker_resources.WorkerResourceBoundary.test_cleanup_failure_cannot_claim_success
           bash deploy/test/ops-check.sh
           transcribe_test_venv=.transcribe-test-venv
           trap 'rm -rf "$transcribe_test_venv"' EXIT
-          python3 -m venv --system-site-packages "$transcribe_test_venv"
-          "$transcribe_test_venv/bin/python" -m pip install --disable-pip-version-check --no-cache-dir numpy soundfile mido opencv-python-headless
+          python3 -m venv "$transcribe_test_venv"
+          "$transcribe_test_venv/bin/python" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r services/transcribe/requirements-test.txt
           "$transcribe_test_venv/bin/python" -m unittest \
             services/transcribe/test/test_tutorial_keys.py \
             services/transcribe/test/test_tutorial_timing.py \
@@ -109,13 +138,59 @@ jobs:
 
       - name: End-to-end tests
         run: |
+          node scripts/verify-e2e-routing.mjs
           npx playwright test
           npx playwright test --config=playwright.scratch.config.ts
           npx playwright test --config=playwright.player-ui.config.ts
+          npx playwright test --config=playwright.roadmap.config.ts
         working-directory: apps/web
+
+      - name: Verify public seed backup in the current isolated web image
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 12
+        env:
+          RESTORE_REVISION: ${{ github.sha }}
+        run: |
+          test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
+          docker build -f apps/web/Dockerfile --build-arg VERSION="$RESTORE_REVISION" -t keyspilli-restore:ci .
+          export KEYSPILLI_BACKUP_WEB_IMAGE_ID="$(docker image inspect keyspilli-restore:ci --format '{{.Id}}')"
+          export KEYSPILLI_BACKUP_WEB_REVISION="$RESTORE_REVISION"
+          export RESTORE_SONG_ID="$(node --import tsx --input-type=module -e '
+            import {listSongs, getDb} from "./packages/catalog/src/db.ts";
+            const song = listSongs({publicOnly: true, limit: 200}).filter(s => s.hasSheetXml === 1 && s.difficulty === "easy").sort((a,b) => a.duration-b.duration)[0];
+            if (!song) throw new Error("No public seed export fixture");
+            console.log(song.id); getDb().close();
+          ')"
+          python3 - <<'PY'
+          import json, os, shutil, subprocess, tempfile
+          from pathlib import Path
+          source = Path("data").resolve()
+          for name in ("manifest.json", "learner-review.json"):
+              shutil.copyfile(Path("catalog") / name, source / name)
+          with tempfile.TemporaryDirectory(prefix="keyspilli-ci-restore-") as directory:
+              root = Path(directory)
+              env = {**os.environ, "KEYSPILLI_DATA_DIR": str(source), "KEYSPILLI_BACKUP_DIR": str(root / "backups")}
+              subprocess.run(["bash", "deploy/backup.sh"], env=env, check=True, timeout=60)
+              manifests = list((root / "backups").glob("backup-manifest-*.json"))
+              assert len(manifests) == 1
+              subprocess.run(["bash", "deploy/restore-drill.sh", str(manifests[0]), str(root / "restored"),
+                              "--verify-app", env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["RESTORE_REVISION"],
+                              env["RESTORE_SONG_ID"]], check=True, timeout=300)
+              report = json.loads((root / "restored" / "restore-report.json").read_text())
+              assert report["applicationVerification"] == "passed"
+              assert report["restoredRevision"] == env["RESTORE_REVISION"]
+              assert report["webImageId"] == env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"]
+              for name in ("manifest.json", "learner-review.json"):
+                  assert (root / "restored" / "runtime" / name).read_bytes() == (source / name).read_bytes()
+          assert not subprocess.check_output(["docker", "ps", "-aq", "--filter", "name=^/keyspilli-restore-"], text=True).strip()
+          print("Current web image restored the public seed pair; policy bytes and owned-container cleanup verified")
+          PY
 
   build-and-push:
     name: Build and push images to GHCR
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-24.04
     needs: checks
     timeout-minutes: 30
@@ -210,6 +285,7 @@ jobs:
           . .ansible-venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install ansible==12.3.0
+          python deploy/test_worker_resources.py
           ansible-galaxy collection install -r deploy/requirements.yml
           echo "$PWD/.ansible-venv/bin" >> "$GITHUB_PATH"
 
@@ -339,7 +415,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [deploy]
     timeout-minutes: 60
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.operation != 'deploy_only'
     environment:
       name: production
 
@@ -354,6 +430,7 @@ jobs:
           . .ansible-venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install ansible==12.3.0
+          python deploy/test_worker_resources.py
           ansible-galaxy collection install -r deploy/requirements.yml
           echo "$PWD/.ansible-venv/bin" >> "$GITHUB_PATH"
 

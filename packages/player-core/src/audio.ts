@@ -12,6 +12,8 @@ const NOTE_FREQ = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
  */
 export class AudioEngine {
   private ctx: AudioContext | null = null;
+  onStateChange: ((state: string) => void) | null = null;
+  get state(): string { return this.ctx?.state ?? "uninitialized"; }
   private compressor: DynamicsCompressorNode | null = null;
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
@@ -30,6 +32,8 @@ export class AudioEngine {
     if (!this.ctx || this.ctx.state === "closed") {
       configurePlaybackSession();
       this.ctx = new AudioContext();
+      const observed = this.ctx;
+      observed.onstatechange = () => { if (this.ctx === observed) this.onStateChange?.(observed.state); };
       // Soft compressor prevents bass notes from clipping small speakers
       // while leaving quiet passages untouched.
       this.compressor = this.ctx.createDynamicsCompressor();
@@ -43,6 +47,8 @@ export class AudioEngine {
       this.compressor.connect(this.ctx.destination);
       this.voiceGainNode = this.ctx.createGain();
       this.pianoGainNode = this.ctx.createGain();
+      this.voiceGainNode.gain.value = this.voiceGain;
+      this.pianoGainNode.gain.value = this.pianoGain;
       this.voiceGainNode.connect(this.master);
       this.pianoGainNode.connect(this.master);
       this.applyGains();
@@ -348,8 +354,9 @@ export class AudioEngine {
   dispose(): void {
     this.stopVisibilityTracking();
     this.cancelAll();
-    if (this.ctx && this.ctx.state !== "closed") {
-      void this.ctx.close();
+    if (this.ctx) {
+      this.ctx.onstatechange = null;
+      if (this.ctx.state !== "closed") void this.ctx.close();
     }
     this.ctx = null;
     this.compressor = null;

@@ -9,7 +9,7 @@ cat >"$scratch/healthy.json" <<'JSON'
 {
   "diskFreeBytes": 37580963840,
   "web": {"running": true, "healthy": true, "restarts": 0, "versionMatches": true, "sourceDiscoveryConfigured": true, "directAudioAmt": false},
-  "worker": {"running": true, "restarts": 0},
+  "worker": {"running": true, "restarts": 0, "heartbeatHealthy": true, "heartbeatState": "idle"},
   "backup": {"timerEnabled": true, "timerActive": true, "lastResult": "success", "coherentPair": true, "latestDbAgeHours": 2, "latestArchiveAgeHours": 2},
   "tlsDaysRemaining": 42,
   "caddyValid": true,
@@ -84,3 +84,18 @@ if python3 "$repo_root/deploy/keyspilli-ops-check.py" --fixture "$scratch/discov
   echo "discovery capability mismatch unexpectedly passed" >&2
   exit 1
 fi
+
+python3 - "$repo_root" <<'PYTEST'
+import importlib.util
+from pathlib import Path
+import sys
+spec = importlib.util.spec_from_file_location("ops", Path(sys.argv[1]) / "deploy/keyspilli-ops-check.py")
+ops = importlib.util.module_from_spec(spec); spec.loader.exec_module(ops)
+for state in ("stale", "unfinished", "missing", "invalid", "draining", "health-error"):
+    result = ops.evaluate({"worker": {"running": True, "heartbeatHealthy": False, "heartbeatState": state}}, "routine")
+    assert result["checks"]["worker"]["status"] == "failed", result
+    assert "worker_heartbeat_unavailable" in result["failures"], result
+result = ops.evaluate({"worker": {"running": False, "queuedSample": 2}}, "routine")
+assert "queued_without_worker" in result["failures"]
+print("worker idle/stale/unfinished/missing/queued fixtures passed")
+PYTEST

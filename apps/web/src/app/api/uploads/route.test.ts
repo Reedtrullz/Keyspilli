@@ -3,8 +3,9 @@ import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const ingestSource = vi.hoisted(() => vi.fn());
+const getUploadPublicationReceipt = vi.hoisted(() => vi.fn());
 
-vi.mock("@keyspilli/catalog", () => ({ ingestSource }));
+vi.mock("@keyspilli/catalog", () => ({ ingestSource, getUploadPublicationReceipt }));
 
 import { POST } from "./route";
 
@@ -12,6 +13,76 @@ describe("upload route", () => {
   beforeEach(() => {
     process.env.KEYSPILLI_API_TOKEN = "test-token";
     ingestSource.mockReset();
+    getUploadPublicationReceipt.mockReset().mockImplementation(async (baseId: string, sourceHash: string) => {
+      const input = ingestSource.mock.calls.at(-1)?.[0] as { title?: string; artist?: string } | undefined;
+      let result: { error?: string } | undefined;
+      try { result = await Promise.resolve(ingestSource.mock.results.at(-1)?.value); } catch { return null; }
+      if (!result || result.error) return null;
+      const songIds = ["vb", "b", "ve", "e", "m", "a"].map((level) => `${baseId}-${level}`);
+      return { baseId, sourceHash, publicationRevision: "revision-1", songIds, easySongId: `${baseId}-e`, title: input?.title ?? "Untitled Upload", artist: input?.artist ?? "Unknown" };
+    });
+  });
+
+  it("returns the committed receipt on a replay even when submitted metadata changed", async () => {
+    const sourceHash = createHash("sha256").update(new Uint8Array([4, 5, 6])).digest("hex");
+    const receipt = {
+      baseId: `upload-${sourceHash}`,
+      sourceHash,
+      publicationRevision: "revision-1",
+      songIds: [`upload-${sourceHash}-vb`, `upload-${sourceHash}-b`, `upload-${sourceHash}-ve`, `upload-${sourceHash}-e`, `upload-${sourceHash}-m`, `upload-${sourceHash}-a`],
+      easySongId: `upload-${sourceHash}-e`,
+      title: "Saved title",
+      artist: "Saved artist",
+    };
+    getUploadPublicationReceipt.mockResolvedValueOnce(receipt);
+
+    const response = await POST(new NextRequest("https://keys.reidar.tech/api/uploads?title=Changed&artist=Different", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: new Uint8Array([4, 5, 6]),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ...receipt, reused: true });
+    expect(ingestSource).not.toHaveBeenCalled();
+  });
+
+  it("rejects replacement when the submitted publication revision is stale", async () => {
+    const sourceHash = createHash("sha256").update(new Uint8Array([7, 8, 9])).digest("hex");
+    getUploadPublicationReceipt.mockResolvedValueOnce({
+      baseId: `upload-${sourceHash}`, sourceHash, publicationRevision: "current-revision",
+      songIds: [], easySongId: `upload-${sourceHash}-e`, title: "Saved", artist: "Artist",
+    });
+
+    const response = await POST(new NextRequest("https://keys.reidar.tech/api/uploads?mode=replace&expectedRevision=old-revision", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: new Uint8Array([7, 8, 9]),
+    }));
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ code: "UPLOAD_REVISION_STALE", receipt: { publicationRevision: "current-revision" } });
+    expect(ingestSource).not.toHaveBeenCalled();
+  });
+
+  it("passes the accepted revision only for an explicit replacement", async () => {
+    const sourceHash = createHash("sha256").update(new Uint8Array([2, 4, 6])).digest("hex");
+    getUploadPublicationReceipt.mockResolvedValueOnce({
+      baseId: `upload-${sourceHash}`, sourceHash, publicationRevision: "revision-before",
+      songIds: [], easySongId: `upload-${sourceHash}-e`, title: "Saved", artist: "Artist",
+    });
+    ingestSource.mockResolvedValueOnce({ baseId: `upload-${sourceHash}`, songIds: [] });
+
+    const response = await POST(new NextRequest("https://keys.reidar.tech/api/uploads?mode=replace&expectedRevision=revision-before&title=New+title", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: new Uint8Array([2, 4, 6]),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(ingestSource).toHaveBeenCalledWith(expect.objectContaining({ title: "New title" }), {
+      uploadReplay: { mode: "replace", expectedRevision: "revision-before" },
+    });
   });
 
   it("returns unsupported musical input as an actionable 422", async () => {
@@ -42,11 +113,16 @@ describe("upload route", () => {
     expect(ingestSource).toHaveBeenCalledWith(expect.objectContaining({
       baseId: `upload-${sourceHash}`,
       sourceRef: `upload:${sourceHash}`,
-    }));
+    }), { uploadReplay: { mode: "reuse" } });
     await expect(response.json()).resolves.toEqual({
-      baseId: "upload",
-      songIds: ["upload-vb", "upload-b", "upload-ve", "upload-e", "upload-m", "upload-a"],
-      easySongId: "upload-e",
+      baseId: `upload-${sourceHash}`,
+      sourceHash,
+      publicationRevision: "revision-1",
+      songIds: ["vb", "b", "ve", "e", "m", "a"].map((level) => `upload-${sourceHash}-${level}`),
+      easySongId: `upload-${sourceHash}-e`,
+      title: "Upload",
+      artist: "Artist",
+      reused: false,
     });
   });
 
@@ -192,10 +268,13 @@ describe("upload route", () => {
       body: new Uint8Array([4, 5, 6]),
     });
 
-    await POST(request());
-    await POST(request());
+    const first = await POST(request());
+    const retry = await POST(request());
 
-    expect(ingestSource.mock.calls[0]?.[0].baseId).toBe(ingestSource.mock.calls[1]?.[0].baseId);
+    expect(ingestSource).toHaveBeenCalledOnce();
+    expect(ingestSource.mock.calls[0]?.[0].baseId).toBe(`upload-${createHash("sha256").update(new Uint8Array([4, 5, 6])).digest("hex")}`);
+    expect(first.status).toBe(200);
+    await expect(retry.json()).resolves.toMatchObject({ reused: true, publicationRevision: "revision-1" });
   });
 
   it("logs bounded upload lifecycle events without credentials or user metadata", async () => {

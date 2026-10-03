@@ -1,0 +1,4 @@
+Verovio 6.3.0 browser ESM/WASM assets.
+Copyright Verovio authors. Licensed under LGPL-3.0-or-later; see COPYING and COPYING.LESSER.
+Unmodified package assets from https://www.npmjs.com/package/verovio/v/6.3.0
+Source: https://github.com/rism-digital/verovio/tree/version-6.3.0

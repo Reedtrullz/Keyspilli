@@ -75,3 +75,15 @@ it("releases repeated-pitch physical input without stealing a scheduled note", (
   expect(ctx.oscillators.slice(3, 6).every(osc => osc.stops.length === 1)).toBe(true);
   engine.dispose();
 });
+
+it("reports AudioContext interruption without a transport frame and stops observing on disposal", () => {
+  vi.stubGlobal("AudioContext", Context);
+  const audio = new AudioEngine(), states: string[] = [];
+  audio.onStateChange = state => states.push(state);
+  const context = audio.ensure();
+  Context.last.state = "suspended";
+  context.onstatechange?.(new Event("statechange"));
+  expect(states).toEqual(["suspended"]);
+  audio.dispose();
+  expect(context.onstatechange).toBeNull();
+});

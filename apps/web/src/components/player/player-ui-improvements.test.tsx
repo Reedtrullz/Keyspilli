@@ -49,6 +49,7 @@ it("names source and effective key and tempo in note letters", () => {
 it("shows the resolved setup context and input readiness before Start", () => {
   vi.stubGlobal("React", React);
   const html = renderToStaticMarkup(createElement(PracticeSetupDialog, {
+    keyboardTarget: () => ({total:8,visible:8,overflow:0,physicalUnavailable:0,overflowPitches:[]}), microphoneTarget: () => ({ eligible: false, reason: "Overlapping pitches" }), micSignal: "Unknown signal quality",
     initialSetup: { input: "midi", wait: true, scope: "bars", countInBeats: 0 },
     hasLoop: false, midiConnected: false, micReady: false, micPending: false, micError: "", error: "",
     describeSetup: () => "Bars 2–5 · Both hands · Playback D · 50% · 60 practice BPM",
@@ -62,4 +63,41 @@ it("divides arrangement from instrument and mix without changing settings", () =
   const html = renderToStaticMarkup(createElement(SoundControls, { settings: DEFAULT_SETTINGS, onChange: () => {} }));
   expect(html).toContain('aria-label="Arrangement settings"');
   expect(html).toContain('aria-label="Instrument and mix settings"');
+});
+
+it("withholds microphone practice for a polyphonic target even after permission is ready", () => {
+  vi.stubGlobal("React", React);
+  const html = renderToStaticMarkup(createElement(PracticeSetupDialog, {
+    keyboardTarget: () => ({total:8,visible:8,overflow:0,physicalUnavailable:0,overflowPitches:[]}), microphoneTarget: () => ({ eligible: false, reason: "Overlapping pitches exceed the monophonic detector" }), micSignal: "Unknown signal quality",
+    initialSetup: { input: "microphone", wait: false, scope: "bars", countInBeats: 0 },
+    hasLoop: false, midiConnected: false, micReady: true, micPending: false, micError: "", error: "",
+    onEnableMic: () => {}, onInputChange: () => {}, onStart: () => {}, onCancel: () => {},
+  }));
+  expect(html).toContain("Overlapping pitches"); expect(html).toContain("Unknown signal quality");
+  expect(html).toMatch(/<button[^>]*disabled[^>]*>Start practice/);
+});
+
+it("keeps a cross-bar hold visible without another attack and derives silence after its interval",()=>{
+ const held:SongData={...data,notes:[{midi:60,start:0,dur:5,vel:80,hand:"R"}],measures:[{index:0,startBeat:0,endBeat:4},{index:1,startBeat:4,endBeat:8}]};
+ for(const component of [BeginnerView,LeadSheetView]) {
+  const html=renderToStaticMarkup(createElement(component,{data:held,time:2.25,settings:DEFAULT_SETTINGS,chords:[]}));
+  expect(html).toContain("Carry, not a new attack");expect(html).toContain("hold to beat 2");expect(html).toContain("Silence to beat 5");
+  expect(html).toContain('data-midi="60"');
+ }
+ const beginning=renderToStaticMarkup(createElement(BeginnerView,{data:held,time:0,settings:DEFAULT_SETTINGS,chords:[]}));
+ expect(beginning).toContain("continues into next bar");expect(beginning).toContain("Carry RH C4");
+});
+
+it("shows matching authored spelling and marks transposed spelling as derived",()=>{
+ const spelled:SongData={...data,notes:[{midi:70,start:0,dur:1,vel:80,hand:"R",sourcePitch:{step:"B",alter:-1,octave:4}}]};
+ for(const component of [BeginnerView,LeadSheetView]) {
+  const source=renderToStaticMarkup(createElement(component,{data:spelled,time:0,settings:DEFAULT_SETTINGS,chords:[]}));expect(source).toContain("Bb4");expect(source).toContain("source spelling");
+  const changed=renderToStaticMarkup(createElement(component,{data:spelled,time:0,settings:{...DEFAULT_SETTINGS,transpose:1},chords:[]}));expect(changed).toContain("B4");expect(changed).toContain("derived spelling");expect(changed).not.toContain("Bb4");
+ }
+});
+
+it("recall cue visibility preserves physical holds and authority while removing target pitches, color and the next preview",()=>{
+ const song={...data,notes:[{...data.notes[0]!,sourcePitch:{step:"C" as const,octave:4 as const,alter:0 as const}}],measures:[{index:0,startBeat:0,endBeat:4},{index:1,startBeat:4,endBeat:8}]},before=structuredClone(song);
+ const props={data:song,time:0,settings:DEFAULT_SETTINGS,chords:[{beat:0,name:"C/E",notes:[52,60,64],sourceKind:"unknown" as const}]};
+ const guided=renderToStaticMarkup(createElement(BeginnerView,props)),hidden=renderToStaticMarkup(createElement(BeginnerView,{...props,pitchCues:false}));expect(guided).toContain('data-midi="60"');expect(hidden).not.toContain('data-midi=');expect(hidden).not.toContain('>C/E<');expect(hidden).not.toContain('Next bar preview');expect(hidden).toContain('Pitch cue reduced');expect(hidden).toContain('Chord cue reduced');expect(hidden).toContain('Hold');expect(hidden).toContain('Chord provenance unknown');expect(song).toEqual(before);
 });

@@ -5,7 +5,7 @@ import {join} from "node:path";
 import {writeMidi} from "@keyspilli/midi";
 const resolver=vi.hoisted(()=>({run:vi.fn()}));
 const publication=vi.hoisted(()=>({afterFence:null as null|(()=>Promise<void>),beforeJournalRemoval:null as null|(()=>void)}));
-vi.mock("../src/tutorial-route.js",()=>({resolveTutorialLink:resolver.run}));
+vi.mock("../src/tutorial-route.js",async original=>({...await original<typeof import("../src/tutorial-route.js")>(),resolveTutorialLink:resolver.run}));
 vi.mock("node:fs/promises",async original=>{
  const actual=await original<typeof import("node:fs/promises")>();
  return {...actual,rm:async(...args:Parameters<typeof actual.rm>)=>{
@@ -13,7 +13,9 @@ vi.mock("node:fs/promises",async original=>{
   return actual.rm(...args);
  },writeFile:async(...args:Parameters<typeof actual.writeFile>)=>{
   await actual.writeFile(...args);
-  if(String(args[0]).endsWith("/.publication-id") && publication.afterFence){const hook=publication.afterFence;publication.afterFence=null;await hook();}
+  // The final ownership fence now follows the marker write. Hold only once
+  // the journal exists, so this exercises shutdown after that fence.
+  if(String(args[0]).endsWith(".reconciliation.json") && publication.afterFence){const hook=publication.afterFence;publication.afterFence=null;await hook();}
  }};
 });
 const dir=mkdtempSync(join(tmpdir(),"keyspilli-tutorial-worker-"));
@@ -72,6 +74,51 @@ it("refuses cancellation after publication commits and keeps the job linked",asy
  expect(status).toBe(409);
  expect(getSongsByBase("preview-cancel-fence")).toHaveLength(6);
  expect(getJob("cancel-fence")).toMatchObject({status:"done",songId:"preview-cancel-fence-e"});
+});
+it("cancels a running extraction subprocess and releases the job without an attempt",async()=>{
+ const {processJob}=await import("../src/worker.js");
+ const {runTutorialProcess}=await import("../src/tutorial-route.js");
+ const {getJob,getSongsByBase,claimJob}=await import("@keyspilli/catalog");
+ const controller=new AbortController(),marker=join(dir,"extractor-started");
+ resolver.run.mockImplementation(async(_url:string,_out:string,hooks:import("../src/tutorial-route.js").TutorialHooks)=>{
+  hooks.onProgress?.("extracting");
+  await runTutorialProcess(process.execPath,["-e",`require("node:fs").writeFileSync(${JSON.stringify(marker)},"ready");setInterval(()=>{},1000)`],5000,
+   {...hooks,checkActive:()=>{hooks.checkActive?.();if(existsSync(marker))controller.abort();}});
+  return candidate();
+ });
+ await queue("shutdown-extraction");
+ await processJob("shutdown-extraction",{signal:controller.signal});
+ expect(existsSync(marker)).toBe(true);
+ expect(getJob("shutdown-extraction")).toMatchObject({status:"queued",attempts:0,error:null,songId:null});
+ expect(getSongsByBase("preview-shutdown-extraction")).toHaveLength(0);
+ expect(claimJob("shutdown-extraction")).toEqual(expect.any(String));
+});
+it("keeps publication owned across shutdown grace and commits the original job",async()=>{
+ const {processJob}=await import("../src/worker.js");
+ const {runWorkerLoop}=await import("../src/worker-runtime.js");
+ const {getJob,claimJob,getSongsByBase,readArrangementManifest}=await import("@keyspilli/catalog");
+ resolver.run.mockResolvedValue(candidate());await queue("shutdown-after-fence");
+ const controller=new AbortController();
+ let reached!:()=>void,release!:()=>void;
+ const fenced=new Promise<void>(resolve=>{reached=resolve;});
+ const held=new Promise<void>(resolve=>{release=resolve;});
+ let work:Promise<void>|undefined;
+ publication.afterFence=async()=>{reached();await held;};
+ const loop=runWorkerLoop({signal:controller.signal,pollMs:60000,heartbeatMs:60000,shutdownGraceMs:10,
+  capabilityRevision:"0123456789abcdef",
+  getQueuedJobs:()=>[{id:"shutdown-after-fence",createdAt:new Date().toISOString()}],
+  processJob:(job,signal,onProgress,registerGraceExpired)=>{
+   work=processJob(job.id,{signal,onProgress,registerGraceExpired});return work;
+  },onHealth:()=>{}});
+ try{
+  await fenced;controller.abort();await expect(loop).resolves.toBe("unfinished");
+  expect(getJob("shutdown-after-fence")?.status).toBe("processing");
+  expect(claimJob("shutdown-after-fence")).toBeUndefined();
+  release();await work;
+  expect(getJob("shutdown-after-fence")).toMatchObject({status:"done",songId:"preview-shutdown-after-fence-e"});
+  expect(getSongsByBase("preview-shutdown-after-fence")).toHaveLength(6);
+  expect((await readArrangementManifest("preview-shutdown-after-fence")).status).toBe("valid");
+ }finally{release();controller.abort();await loop;await work;publication.afterFence=null;}
 });
 it("accepts cancellation before publication and leaves no song",async()=>{
  const {processJob}=await import("../src/worker.js");

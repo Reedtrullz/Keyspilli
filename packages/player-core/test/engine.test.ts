@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PlaybackEngine, type AudioLike } from "../src/engine.js";
 import { filterAccompanimentChords, resolveAccompaniment } from "../src/accompaniment.js";
 import { DEFAULT_SETTINGS } from "../src/prefs.js";
@@ -741,4 +741,38 @@ describe("speed-stable loops", () => {
     // 4 beats at 120bpm spans 2s at x1 and must span exactly 4s at x0.5.
     expect(elapsedToWrap).toBeCloseTo(4, 1);
   });
+});
+
+it("schedules the chosen other hand without adding wait targets, including overlapping pitches and loops", async()=>{
+ const {selectHandNotes}=await import("../src/timeline.js");
+ const source:TimedNote[]=[{midi:60,startSec:0,durSec:.5,vel:80,hand:"R"},{midi:60,startSec:0,durSec:.5,vel:70,hand:"L"},{midi:62,startSec:1,durSec:.5,vel:80,hand:"R"},{midi:50,startSec:1,durSec:.5,vel:70,hand:"L"}];
+ const targets=selectHandNotes(source,"L"),audible=selectHandNotes(source,"L",true),audio=new FakeAudio();
+ expect(targets).toHaveLength(2);expect(audible).toHaveLength(4);expect(selectHandNotes(source,"L")).toEqual(targets);
+ const eng=new PlaybackEngine(audio,audible,2,{tempoBpm:120,timeSig:[4,4]},{...DEFAULT_SETTINGS,hand:"L"},[],targets);
+ eng.setLoop({startSec:0,endSec:2});eng.seek(0);eng.startGrading(true,{startSec:0,endSec:2});
+ expect(eng.waitNotes.map(note=>note.hand)).toEqual(["L"]);expect(eng.handleNoteOn(60)).toBe(true);
+ expect(eng.waitNotes.map(note=>note.midi)).toEqual([50]);expect(eng.handleNoteOn(50)).toBe(true);
+ expect(eng.gradeResult).toMatchObject({total:2,hit:2,wrong:0});
+ eng.setTimeline(audible,2,[],selectHandNotes(source,"R"));eng.seek(1);eng.start();
+ expect(audio.events.some(note=>note.hand==="L"&&note.midi===50)).toBe(true);expect(audio.events.some(note=>note.hand==="R"&&note.midi===62)).toBe(true);
+ eng.stop();eng.setTimeline(audible,2,[],[]);expect(()=>eng.startGrading(true)).toThrow("No playable notes");eng.stop();
+});
+
+it("keeps articulation separate from onset and observes physical release before pedal audio cleanup",()=>{
+ let now=1000;const clock=vi.spyOn(performance,"now").mockImplementation(()=>now);
+ try {
+ const engine=new PlaybackEngine(new FakeAudio(),[{midi:60,startSec:0,durSec:1,vel:80}],1,SONG,DEFAULT_SETTINGS);
+ expect(()=>engine.startGrading(true,{startSec:0,endSec:1},150)).toThrow();
+ engine.startGrading(false,{startSec:0,endSec:1},150);engine.start();
+ const event=(timestampMs:number)=>({timestampMs,timingSource:"event" as const,velocity:80,deviceId:"fixture",channel:0});
+ engine.handleNoteOn(60,event(now));engine.observeKeyPress("key",event(now));
+ now=1020;engine.observeKeyRelease("key",event(now));
+ now=2100;engine.tick(1.1);expect(engine.grader).not.toBeNull();
+ now=2401;engine.tick(.301);
+ expect(engine.gradeResult).toMatchObject({accuracyPct:100,articulation:{observed:1,shortHolds:1,earlyReleases:1,unobserved:0}});
+ // A safety release without an input timestamp never fabricates a successful hold.
+ now=3000;engine.startGrading(false,{startSec:0,endSec:1},150);engine.start();engine.handleNoteOn(60,event(now));engine.observeKeyPress("key",event(now));
+ engine.handleNoteOff(60);engine.observeKeyRelease("key",undefined);
+ expect(engine.finishGrading()).toMatchObject({accuracyPct:100,articulation:{observed:0,unobserved:1}});
+ } finally {clock.mockRestore();}
 });

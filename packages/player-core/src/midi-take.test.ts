@@ -1,0 +1,14 @@
+import {expect,it} from 'vitest';
+import {MidiTakeRecorder,performedNotes,replayTakeNotes,type MidiTakeContext} from './midi-take.js';
+it('captures raw MIDI take timing, physical key intervals and pedal sound without rewriting targets',()=>{
+ const context:MidiTakeContext={target:{baseId:'take',variantId:'take-a',fingerprint:'sha256:'+'a'.repeat(64)},revision:'revision-1',startBeat:0,endBeat:16,bpm:120,speed:1,transpose:0,device:'device',channel:0,targets:[{midi:60,startSec:0,durSec:1,vel:80}]},before=JSON.stringify(context),recorder=new MidiTakeRecorder(context,1000);
+ const send=(kind:'on'|'off'|'pedal',sec:number,midi:number,velocity:number)=>recorder.capture(kind,`midi:device:0:${kind==='pedal'?'':midi}`,midi,{timestampMs:1000+sec*1000,timingSource:'event',velocity,deviceId:'device',channel:0});
+ send('on',0,60,71);send('pedal',.2,64,127);send('off',.5,60,0);send('on',.6,60,103);send('off',.8,60,0);send('pedal',1,64,0);send('on',1.2,64,50);
+ const take=recorder.finish(2500);expect(take.events[2]).toMatchObject({kind:'off',sec:.5,timestampMs:1500,value:0});const notes=performedNotes(take);expect(notes.map(n=>[n.startSec,n.durSec,n.soundingEndSec,n.releaseObserved])).toEqual([[0,.5,1,true],[.6,.20000000000000007,1,true],[1.2,.30000000000000004,1.5,false]]);
+ expect(()=>recorder.finish(NaN)).toThrow();
+ expect(replayTakeNotes(take,.75,2).map(n=>[n.midi,n.startSec,n.durSec])).toEqual([[60,0,.125],[60,0,.125],[64,.22499999999999998,.15000000000000002]]);expect(JSON.stringify(context)).toBe(before);expect(()=>replayTakeNotes(take,0,4)).toThrow();
+ const missing=new MidiTakeRecorder(context,1000);missing.capture('on','midi:device:0:60',60,{timestampMs:1100,timingSource:'event',velocity:80,deviceId:'device',channel:0});expect(missing.capture('off','midi:device:0:60',60)).toBe(false);expect(missing.snapshot().status).toBe('interrupted');expect(performedNotes(missing.snapshot()).every(n=>!n.releaseObserved)).toBe(true);
+ const dense=new MidiTakeRecorder(context,0);for(let pitch=0;pitch<65;pitch++)dense.capture('on',`midi:device:0:${pitch}`,pitch,{timestampMs:1,timingSource:'event',velocity:80,deviceId:'device',channel:0});expect(()=>replayTakeNotes(dense.finish(1000))).toThrow(/64 sounding voices/);
+ const targetTake={...take,context:{...take.context,targets:Array.from({length:65},(_,midi)=>({midi,startSec:0,durSec:1,vel:80}))}};expect(()=>replayTakeNotes(targetTake,0,1,true)).toThrow(/64 sounding voices/);expect(()=>replayTakeNotes({...targetTake,context:{...targetTake.context,targets:[{midi:60,startSec:0,durSec:241,vel:80}]}},0,1,true)).toThrow(/240 seconds/);expect(replayTakeNotes(take,.75,2,true)).toEqual([{midi:60,startSec:0,durSec:.125,vel:80}]);
+ const capped=new MidiTakeRecorder(context,1000);expect(capped.capture('on','midi:device:0:60',60,{timestampMs:242000,timingSource:'event',velocity:80,deviceId:'device',channel:0})).toBe(false);expect(capped.snapshot().status).toBe('limit');
+});

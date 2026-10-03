@@ -1,3 +1,4 @@
+import { readJsonObject } from "../../../../../lib/bounded-body";
 import { NextResponse } from "next/server";
 import { dataDir, getDb, getSongsByBase, tutorialImportsEnabled, withBaseArtifactLock } from "@keyspilli/catalog";
 import { existsSync } from "node:fs";
@@ -41,7 +42,9 @@ export async function PATCH(req: Request, {params}: {params: Promise<{id:string}
     return NextResponse.json({error:"Tutorial preview cancellation is unavailable"},{status:410});
   const {checkMutationAuth}=await import("../../../../../lib/mutation-auth");
   const denied=checkMutationAuth(req);if(denied)return denied;
-  const body=await req.json().catch(()=>null);
+  const input = await readJsonObject(req);
+  if (input.response) return input.response;
+  const body = input.body;
   if(!body || body.action!=="cancel" || Object.keys(body).length!==1)
     return NextResponse.json({error:"Supply only action: cancel"},{status:400});
   const {id}=await params;

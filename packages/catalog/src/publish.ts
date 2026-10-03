@@ -1,16 +1,20 @@
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { constants, existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+import {getDb} from "./db.js";
+import {dataDir} from "./paths.js";
 import { validateArtifactFiles, type Variant } from "@keyspilli/midi";
 import { parseArrangementManifest } from "./artifact-manifest.js";
 import type { ArrangementManifest } from "./artifact-manifest.js";
 
 const BASE_ID_RE = /^[a-z0-9][a-z0-9-]{0,119}$/;
 
-export interface PublishBaseArtifactOptions {
+export interface PublishBaseArtifactOptions<T = unknown> {
   artifactsRoot: string;
+  /** Return the committed value under the base lock instead of staging a replay. */
+  reuseExisting?: (finalRoot: string) => Promise<T | undefined> | T | undefined;
   /**
    * The complete base-level artifact contract.  Every normal publication is
    * a six-level arrangement, so these defaults are deliberately strict.  The
@@ -27,15 +31,17 @@ export interface PublishBaseArtifactOptions {
    */
   semanticValidation?: "strict";
   /** Synchronous ownership/cancellation check after staging validation, before replacement. */
-  beforeSwap?: () => void;
+  beforeSwap?: () => Promise<void> | void;
   /** Runs after the filesystem swap; a failure leaves the new tree published. */
-  afterSwap?: () => Promise<void> | void;
+  afterSwap?: (publicationId: string) => Promise<void> | void;
   /** Durable arguments for the operator reconciliation command. */
   recoveryData?: unknown;
 }
 
 export interface ArtifactLockOptions {
   artifactsRoot: string;
+  /** Only the explicit tombstone recovery workflow may touch a hidden base. */
+  allowTombstone?: boolean;
 }
 
 export interface DeleteBaseArtifactOptions extends ArtifactLockOptions {
@@ -46,7 +52,8 @@ export interface DeleteBaseArtifactOptions extends ArtifactLockOptions {
    * an explicit filesystem-success/DB-stale reconciliation state; deletion
    * is intentionally not rolled back because the tree is already committed.
    */
-  afterFilesystemDelete?: () => Promise<void> | void;
+  prepareRecoveryData?: () => Promise<unknown> | unknown;
+  afterFilesystemDelete?: (recoveryData: unknown) => Promise<void> | void;
 }
 
 export class ArtifactReconciliationError extends Error {
@@ -84,6 +91,9 @@ export async function withBaseArtifactLock<T>(
       if ((error as { code?: string }).code === "SQLITE_BUSY") throw new Error("artifact publish already locked");
       throw error;
     }
+    if (!options.allowTombstone && resolve(root) === resolve(dataDir(), "artifacts")
+      && getDb().prepare("SELECT 1 FROM catalog_tombstones WHERE base_id=? AND state NOT IN ('restored','purged')").get(baseId))
+      throw new Error("base is quarantined; use the explicit undo or purge workflow");
     return await operation();
   } finally {
     lock.close();
@@ -97,8 +107,8 @@ export async function withBaseArtifactLock<T>(
  */
 export async function publishBaseArtifact<T>(
   baseId: string,
-  writer: (stagingDir: string) => Promise<T> | T,
-  options: PublishBaseArtifactOptions,
+  writer: (stagingDir: string, publicationId: string) => Promise<T> | T,
+  options: PublishBaseArtifactOptions<T>,
 ): Promise<T> {
   const root = options.artifactsRoot;
   const finalRoot = join(root, baseId);
@@ -108,14 +118,15 @@ export async function publishBaseArtifact<T>(
   const requiredFiles = options.requiredFiles ?? REQUIRED_ARTIFACT_FILES;
 
   return withBaseArtifactLock(baseId, options, async () => {
-    const journal = join(root, `.${baseId}.reconciliation.json`);
-    if (existsSync(journal)) throw new ArtifactReconciliationError(baseId);
+    const { journal } = await recoverBaseArtifact(baseId, root);
+    const existing = await options.reuseExisting?.(finalRoot);
+    if (existing !== undefined) return existing;
     let journalWritten = false;
     try {
-      await recoverInterruptedPublish(finalRoot, newRoot, oldRoot);
       await rm(newRoot, { recursive: true, force: true });
       await mkdir(newRoot, { recursive: true });
-      const result = await writer(newRoot);
+      const token = randomUUID();
+      const result = await writer(newRoot, token);
       const manifestPath = join(newRoot, "manifest.json");
       if (!existsSync(manifestPath)) {
         throw new Error("staged artifact set is missing manifest.json commit marker");
@@ -133,9 +144,10 @@ export async function publishBaseArtifact<T>(
       }
 
       await rm(oldRoot, { recursive: true, force: true });
-      options.beforeSwap?.();
-      const token = randomUUID();
       await writeFile(join(newRoot, ".publication-id"), token, { flush: true });
+      // Marker writing is asynchronous: recheck cancellation/ownership after it,
+      // immediately before creating the durable publication intent.
+      await options.beforeSwap?.();
       await writeFile(journal, JSON.stringify({ version: 1, operation: "publish", token, requiresCommit: Boolean(options.afterSwap), recoveryData: options.recoveryData }), { flag: "wx", flush: true });
       journalWritten = true;
       if (existsSync(finalRoot)) await rename(finalRoot, oldRoot);
@@ -145,7 +157,7 @@ export async function publishBaseArtifact<T>(
         if (!existsSync(finalRoot) && existsSync(oldRoot)) await rename(oldRoot, finalRoot).catch(() => undefined);
         throw error;
       }
-      await options.afterSwap?.();
+      await options.afterSwap?.(token);
       await rm(oldRoot, { recursive: true, force: true });
       await rm(journal);
       return result;
@@ -166,6 +178,12 @@ const VARIANT_LEVEL_BY_CODE: Record<string, Variant["level"]> = {
   a: "advanced",
 };
 
+export function manifestLevels(manifest: ArrangementManifest): readonly string[] {
+  return manifest.symbolicIntent?.study
+    ? manifest.symbolicIntent.study.availableLevels.map(level => Object.keys(VARIANT_LEVEL_BY_CODE).find(code => VARIANT_LEVEL_BY_CODE[code] === level)!)
+    : REQUIRED_ARTIFACT_LEVELS;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -184,7 +202,7 @@ function finiteNumber(value: unknown): value is number {
 export async function validateStagedArtifactTree(
   stagedRoot: string,
   manifest: ArrangementManifest,
-  requiredLevels: readonly string[] = REQUIRED_ARTIFACT_LEVELS,
+  requiredLevels: readonly string[] = manifestLevels(manifest),
   requiredFiles: readonly string[] = REQUIRED_ARTIFACT_FILES,
 ): Promise<string[]> {
   const issues: string[] = [];
@@ -289,7 +307,8 @@ export async function deleteBaseArtifact(
     const journal = join(root, `.${baseId}.reconciliation.json`);
     if (existsSync(journal)) throw new ArtifactReconciliationError(baseId);
     await recoverInterruptedPublish(finalRoot, newRoot, oldRoot);
-    await writeFile(journal, JSON.stringify({ version: 1, operation: "delete" }), { flag: "wx", flush: true });
+    const recoveryData = await options.prepareRecoveryData?.();
+    await writeFile(journal, JSON.stringify({ version: 1, operation: "delete", recoveryData }), { flag: "wx", flush: true });
     const existed = existsSync(finalRoot);
     await rm(finalRoot, { recursive: true, force: true });
     // A deletion is also a cleanup boundary for abandoned staged/backup
@@ -297,14 +316,14 @@ export async function deleteBaseArtifact(
     await rm(newRoot, { recursive: true, force: true });
     await rm(oldRoot, { recursive: true, force: true });
     try {
-      await options.afterFilesystemDelete?.();
+      await options.afterFilesystemDelete?.(recoveryData);
       await rm(journal);
     } catch (error) { throw new ArtifactReconciliationError(baseId, error); }
     return { baseId, existed };
   });
 }
 
-async function assertCompleteArtifactTree(
+export async function assertCompleteArtifactTree(
   stagedRoot: string,
   requiredLevels: readonly string[],
   requiredFiles: readonly string[],
@@ -343,39 +362,112 @@ async function recoverInterruptedPublish(finalRoot: string, newRoot: string, old
   if (existsSync(newRoot)) await rm(newRoot, { recursive: true, force: true });
 }
 
+async function recoverBaseArtifact(baseId: string, root: string) {
+  const finalRoot = join(root, baseId);
+  const newRoot = join(root, `.${baseId}.new`);
+  const oldRoot = join(root, `.${baseId}.old`);
+  const journal = join(root, `.${baseId}.reconciliation.json`);
+  if (existsSync(journal)) throw new ArtifactReconciliationError(baseId);
+  await recoverInterruptedPublish(finalRoot, newRoot, oldRoot);
+  return { finalRoot, newRoot, oldRoot, journal };
+}
+
+/** Read a stable base artifact snapshot with the same lock and recovery guard as publication. */
+export async function inspectBaseArtifact<T>(
+  baseId: string,
+  options: ArtifactLockOptions,
+  inspect: (finalRoot: string) => Promise<T> | T,
+): Promise<T> {
+  return withBaseArtifactLock(baseId, options, async () => {
+    const { finalRoot } = await recoverBaseArtifact(baseId, options.artifactsRoot);
+    return inspect(finalRoot);
+  });
+}
+
 
 /** Explicit recovery only: retries an idempotent DB/source commit under the writer lock. */
 export async function reconcileBaseArtifact(
   baseId: string,
-  options: ArtifactLockOptions,
+  options: ArtifactLockOptions & { expectedJournalSha256?: string },
   commit: (data: unknown, operation: "publish" | "delete") => Promise<void> | void,
-): Promise<void> {
-  await withBaseArtifactLock(baseId, options, async () => {
+): Promise<RecoveryReceipt | null> {
+  if(options.expectedJournalSha256!==undefined&&!/^[a-f0-9]{64}$/.test(options.expectedJournalSha256))throw new Error("invalid recovery snapshot");
+  return withBaseArtifactLock(baseId, options, async () => {
     const root = options.artifactsRoot;
     const journal = join(root, `.${baseId}.reconciliation.json`);
-    const entry = JSON.parse(await readFile(journal, "utf8"));
-    if (entry.version !== 1 || !["publish", "delete"].includes(entry.operation)) throw new Error("invalid reconciliation journal");
+    const receiptPath=join(root,`.${baseId}.recovery-receipt.json`);
+    if(!existsSync(journal)&&options.expectedJournalSha256){
+      const receipt=JSON.parse((await readRecoveryDocument(receiptPath,8192)).toString("utf8"));
+      if(validRecoveryReceipt(receipt)&&receipt.baseId===baseId&&receipt.journalSha256===options.expectedJournalSha256)return receipt;
+      throw new Error("recovery snapshot changed");
+    }
+    const bytes=await readRecoveryDocument(journal),hash=createHash("sha256").update(bytes).digest("hex");
+    if(options.expectedJournalSha256!==undefined&&hash!==options.expectedJournalSha256)throw new Error("recovery snapshot changed");
+    const entry = JSON.parse(bytes.toString("utf8"));
+    if (entry.version !== 1 || !["publish", "delete"].includes(entry.operation)||entry.requiresCommit!==undefined&&typeof entry.requiresCommit!=="boolean") throw new Error("invalid reconciliation journal");
+    const finish=async(disposition:RecoveryReceipt["disposition"])=>{
+      let receipt:RecoveryReceipt|null=null;
+      if(options.expectedJournalSha256){
+        receipt={schemaVersion:1,baseId,journalSha256:hash,operation:entry.operation,disposition,finishedAt:new Date().toISOString()};
+        const temporary=`${receiptPath}.${randomUUID()}.tmp`;
+        try{await writeFile(temporary,JSON.stringify(receipt),{flag:"wx",flush:true});await rename(temporary,receiptPath);}
+        finally{await rm(temporary,{force:true});}
+      }
+      await rm(journal);return receipt;
+    };
     const final = join(root, baseId);
     const old = join(root, `.${baseId}.old`);
     const stage = join(root, `.${baseId}.new`);
     if (entry.operation === "publish") {
-      if (typeof entry.token !== "string" || !entry.token) throw new Error("invalid publication token");
-      const installed = await readFile(join(final, ".publication-id"), "utf8").catch(() => null);
+      if (typeof entry.token !== "string" || !entry.token || entry.token.length>256) throw new Error("invalid publication token");
+      const marker=async(path:string)=>{try{return (await readRecoveryDocument(path,256)).toString("utf8");}catch(error){if((error as NodeJS.ErrnoException).code==="ENOENT")return null;throw error;}};
+      const installed = await marker(join(final, ".publication-id"));
       if (installed !== entry.token) {
-        const staged = await readFile(join(stage, ".publication-id"), "utf8").catch(() => null);
+        const staged = await marker(join(stage, ".publication-id"));
         if (staged !== entry.token) throw new Error("ambiguous publication state; preserve journal and backups for investigation");
         // The swap never committed; restore the previous tree without touching the DB.
         if (!existsSync(final) && existsSync(old)) await rename(old, final);
         await rm(stage, { recursive: true, force: true });
-        await rm(journal);
-        return;
+        return finish("rolled-back");
       }
+      // A marker alone cannot prove a restored/damaged tree is complete.
+      // Keep the journal and rollback tree until the contract is readable.
+      const manifest = parseArrangementManifest(JSON.parse(await readFile(join(final, "manifest.json"), "utf8")));
+      if (manifest.baseId !== baseId) throw new Error("reconciliation manifest identity mismatch");
+      await assertCompleteArtifactTree(final, manifestLevels(manifest), REQUIRED_ARTIFACT_FILES);
     } else {
       await rm(final, { recursive: true, force: true });
     }
     if (entry.requiresCommit !== false) await commit(entry.recoveryData, entry.operation);
     await rm(old, { recursive: true, force: true });
     await rm(stage, { recursive: true, force: true });
-    await rm(journal);
+    return finish(entry.operation==="delete"?"deleted":"committed");
   });
+}
+
+export interface RecoveryReceipt {schemaVersion:1;baseId:string;journalSha256:string;operation:"publish"|"delete";disposition:"rolled-back"|"committed"|"deleted";finishedAt:string}
+export function validRecoveryReceipt(v:unknown):v is RecoveryReceipt {
+ if(!v||typeof v!=="object"||Array.isArray(v))return false;const r=v as RecoveryReceipt;
+ return Object.keys(r).sort().join(" ")==="baseId disposition finishedAt journalSha256 operation schemaVersion"&&r.schemaVersion===1&&typeof r.baseId==="string"&&BASE_ID_RE.test(r.baseId)
+  &&typeof r.journalSha256==="string"&&/^[a-f0-9]{64}$/.test(r.journalSha256)&&["publish","delete"].includes(r.operation)&&["rolled-back","committed","deleted"].includes(r.disposition)&&(r.operation==="delete"?r.disposition==="deleted":r.disposition!=="deleted")&&typeof r.finishedAt==="string"&&Number.isFinite(Date.parse(r.finishedAt));
+}
+/** Fixed recovery files only; refuse symlinks, devices and oversized local journals. */
+/** Bounded publication identity for compare-under-lock callers. */
+export async function artifactPublicationRevision(baseId: string, artifactsRoot: string): Promise<string | null> {
+  if (!BASE_ID_RE.test(baseId)) throw new Error("invalid base ID");
+  try {
+    const value = (await readRecoveryDocument(join(artifactsRoot, baseId, ".publication-id"), 256)).toString("utf8").trim();
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(value)) throw new Error("invalid publication identity");
+    return value;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+export async function readRecoveryDocument(path:string,maxBytes=1048576):Promise<Buffer>{
+ const file=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW);
+ try{const size=await file.stat();if(!size.isFile()||size.size>maxBytes)throw new Error("recovery document exceeds bounds");
+  const buffer=Buffer.alloc(maxBytes+1),{bytesRead}=await file.read(buffer,0,buffer.length,0);if(bytesRead>maxBytes)throw new Error("recovery document exceeds bounds");return buffer.subarray(0,bytesRead);
+ }finally{await file.close();}
 }

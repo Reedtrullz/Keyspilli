@@ -129,7 +129,7 @@ export function bassChordsBackground(
   const resolution = sourcePlayedVoicings(data, chords, resolveAccompaniment(data.notes, chords, "bass-chords", {
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures,
   }));
-  if (data.sourceFingerprint === journeySourceFingerprint) {
+  if (data.sourceFingerprint === journeySourceFingerprint && data.chordProvenance?.provider !== "owner-candidate") {
     // This chordal RH phrase repeats exactly; the RH elsewhere carries the vocal line.
     const laterBassOnly = (beat: number) => (beat >= 244 && beat < 308) || beat >= 372;
     // Later LH verses shift an octave up and add upper runs; keep their low chord shell.

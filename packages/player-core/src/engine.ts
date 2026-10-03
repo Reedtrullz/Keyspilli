@@ -1,3 +1,6 @@
+import { ArticulationGrader } from "./articulation.js";
+import { gradeableNotes } from "./keyboard-range.js";
+import type { InputEventMetadata } from "./input.js";
 import { Grader, type GradeResult } from "./grading.js";
 import { beatToSec, beatsPerMeasure, completeChordDurations, firstNoteAtOrAfter, secPerBeat, type LoopRegion, type TimedNote } from "./timeline.js";
 import type { ChordLabel } from "@keyspilli/midi";
@@ -11,6 +14,9 @@ const DEFAULT_CHORD_DURATION_SEC = 1.2;
 /** Minimal audio surface the engine needs (AudioEngine satisfies this). */
 export interface AudioLike {
   ensure(): unknown;
+  readonly state?: string;
+  onStateChange?: ((state: string) => void) | null;
+  prepareTimbre?(): boolean | void;
   noteOn(n: TimedNote, when?: number): void;
   noteOff(midi: number): void;
   metronomeClick(beat: number, when?: number): void;
@@ -59,6 +65,7 @@ export class PlaybackEngine {
   playing = false;
   loop: LoopRegion | null = null;
   grader: Grader | null = null;
+  private articulation: ArticulationGrader | null = null;
   /** Retained after completion so the owner can render results and repeat. */
   gradingRange: { startSec: number; endSec: number } | null = null;
   gradeResult: GradeResult | null = null;
@@ -72,7 +79,10 @@ export class PlaybackEngine {
   waitMode = false;
   onChange: ((snap: EngineSnapshot) => void) | null = null;
 
+  private inputClock = { time: 0, ms: 0 };
+  private inputBoundaryMs = 0;
   private lastScheduled = 0;
+  private sourceCarryPending = true;
   private lastChordScheduled = -1;
 
   constructor(
@@ -83,18 +93,29 @@ export class PlaybackEngine {
     settings: PlayerSettings,
     chords: ChordPlaybackLabel[] = [],
     gradingNotes: TimedNote[] = notes,
+    private monotonicNow: () => number = () => performance.now(),
   ) {
     this.settings = settings;
+    this.audio.sustainPedal=settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
     this.audio.setGains(settings.voiceGain, settings.pianoGain);
     this.chords = this.normalizeChordTimeline(chords);
     this.gradingNotes = gradingNotes;
+    this.resetInputClock();
+  }
+
+  private resetInputClock(): void {
+    this.inputBoundaryMs = this.monotonicNow();
+    this.inputClock = { time: this.time, ms: this.inputBoundaryMs };
   }
 
   start(): void {
     if (this.playing) return;
     this.audio.ensure();
+    if (!this.grader && this.audio.prepareTimbre?.() === false) return;
     this.playing = true;
+    this.resetInputClock();
     this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
     this.lastChordScheduled = -1;
     this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     this.emit();
@@ -103,6 +124,7 @@ export class PlaybackEngine {
   stop(): void {
     if (!this.playing && !this.grader) return;
     this.playing = false;
+    this.resetInputClock();
     this.audio.cancelAll();
     this.lastChordScheduled = -1;
     this.emit();
@@ -112,7 +134,9 @@ export class PlaybackEngine {
     const wasPlaying = this.playing;
     if (wasPlaying) this.audio.cancelAll();
     this.time = Math.max(0, Math.min(this.duration, t));
+    this.resetInputClock();
     this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
     this.lastChordScheduled = -1;
     if (wasPlaying) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     this.emit();
@@ -121,25 +145,29 @@ export class PlaybackEngine {
   /** Advance by dt seconds (called from the owner's rAF loop). */
   tick(dt: number): void {
     if (!this.playing || (this.grader && this.waitMode)) return;
-    if (this.grader && this.gradingRange && this.time + dt >= this.gradingRange.endSec) {
+    if (!Number.isFinite(dt) || dt < 0) return;
+    // Physical releases get a bounded 400ms dispatch tail; no target audio is scheduled past the passage.
+    if (this.grader && this.gradingRange && this.time + dt >= this.gradingRange.endSec + (this.articulation ? .4 : 0)) {
       this.time = this.gradingRange.endSec;
       this.grader.tick(this.time);
       this.finishGrading();
       return;
     }
-    if (!Number.isFinite(dt) || dt < 0) return;
     const next = this.time + dt;
     const wrapped = this.loop && !this.grader && next >= this.loop.endSec;
     this.time = wrapped && this.loop
       ? this.loop.startSec + (next - this.loop.startSec) % (this.loop.endSec - this.loop.startSec)
       : next;
+    this.inputClock = { time: this.time, ms: this.monotonicNow() };
+    if (wrapped) this.inputBoundaryMs = this.inputClock.ms;
     // Skip missed attacks after a stalled frame, while still processing loop/end state.
     if (dt > 0.5 || wrapped) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
     }
-    if (this.time >= this.duration && !this.loop) {
+    if (this.time >= this.duration && !this.loop && (!this.grader || !this.gradingRange)) {
       this.stop();
       this.seek(0);
       return;
@@ -151,7 +179,9 @@ export class PlaybackEngine {
 
   setNotes(notes: TimedNote[], duration: number): void {
     if (this.notes === notes) return;
+    this.resetInputClock();
     this.notes = notes;
+    this.audio.sustainPedal=this.settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
     this.gradingNotes = notes;
     this.duration = duration;
     this.chords = this.normalizeChordTimeline(this.chords);
@@ -159,6 +189,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -171,7 +202,9 @@ export class PlaybackEngine {
     const gradingNotesChanged = this.gradingNotes !== gradingNotes;
     if (!notesChanged && !chordsChanged && !gradingNotesChanged) return;
     if (notesChanged) {
+      this.resetInputClock();
       this.notes = notes;
+      this.audio.sustainPedal=this.settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
       this.duration = duration;
     }
     if (gradingNotesChanged) this.gradingNotes = gradingNotes;
@@ -181,6 +214,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -194,6 +228,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
   }
@@ -210,11 +245,12 @@ export class PlaybackEngine {
     const sustainChanged = this.settings.sustainPedal !== settings.sustainPedal;
     this.settings = settings;
     this.audio.setGains(settings.voiceGain, settings.pianoGain);
-    this.audio.sustainPedal = settings.sustainPedal;
+    this.audio.sustainPedal = settings.sustainPedal && !this.notes.some(n=>n.soundingDurSec!==undefined);
     this.audio.setOrganControls?.(settings.organRotary, settings.organDrive, settings.organSpace);
     if (backgroundChanged && this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     } else if ((chordTimingChanged || metronomeChanged || sustainChanged) && this.playing) {
@@ -223,6 +259,7 @@ export class PlaybackEngine {
       // leave stale metronome clicks/pedal tails after a setting change).
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
     }
 
@@ -239,6 +276,7 @@ export class PlaybackEngine {
     if (this.playing) {
       this.audio.cancelAll();
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       this.lastChordScheduled = -1;
       this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -251,7 +289,8 @@ export class PlaybackEngine {
     this.emit();
   }
 
-  startGrading(wait: boolean, range?: { startSec: number; endSec: number }): void {
+  startGrading(wait: boolean, range?: { startSec: number; endSec: number }, articulationToleranceMs?: number): void {
+    if (articulationToleranceMs !== undefined && (wait || !Number.isFinite(articulationToleranceMs) || articulationToleranceMs < 50 || articulationToleranceMs > 400)) throw new RangeError("Articulation requires timed practice and 50–400ms tolerance");
     if (range && (!Number.isFinite(range.startSec) || !Number.isFinite(range.endSec))) {
       throw new RangeError("Practice bounds must be finite");
     }
@@ -262,12 +301,14 @@ export class PlaybackEngine {
     if (bounded && bounded.endSec <= bounded.startSec) throw new RangeError("Practice end must follow its start");
     // Hand filtering already happened in the notes memo; ornaments are decoration.
     const minDurSec = 0.25 * (60 / this.song.tempoBpm / this.settings.speed);
-    const gradeable = this.gradingNotes.filter((n) => n.durSec >= minDurSec &&
-      (!bounded || (n.startSec >= bounded.startSec && n.startSec < bounded.endSec)));
+    const gradeable = gradeableNotes(this.gradingNotes, bounded, minDurSec);
     if (!gradeable.length) throw new RangeError("No playable notes in this passage");
+    this.audio.ensure();
+    if (this.audio.prepareTimbre?.() === false) throw new Error("Piano samples are not ready. Wait or select synthesis fallback in Sound.");
     if (this.playing || this.grader) this.audio.cancelAll();
     this.playing = false;
-    this.gradingRange = bounded;
+    this.gradingRange = bounded ?? (articulationToleranceMs !== undefined ? {startSec:0,endSec:this.duration} : null);
+    this.articulation = articulationToleranceMs === undefined ? null : new ArticulationGrader(gradeable.length,this.gradingRange!.endSec,articulationToleranceMs);
     this.gradeResult = null;
     this.waitMode = wait;
     this.grader = new Grader(gradeable, { waitMode: wait, bpm: this.song.tempoBpm, speed: this.settings.speed });
@@ -280,6 +321,8 @@ export class PlaybackEngine {
       this.audio.cancelAll();
       this.lastChordScheduled = -1;
       this.gradeResult = this.grader.result();
+      if(this.articulation)this.gradeResult.articulation=this.articulation.result();
+      this.articulation=null;
       this.grader = null;
     }
     this.waitMode = false;
@@ -292,11 +335,25 @@ export class PlaybackEngine {
    * Input voices are tagged so noteOff can release only what the player played
    * instead of cutting song-scheduled notes at the same pitch (voice stealing).
    */
-  handleNoteOn(midi: number): boolean {
-    if (!this.gradeInput(midi)) return false;
-    this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: 100, hand: "R", fromInput: true });
+  handleNoteOn(midi: number, event?: InputEventMetadata, offsetMs = 0): boolean {
+    if (!Number.isInteger(midi) || midi < 0 || midi > 127) return false;
+    if (!this.gradeInput(midi, event, offsetMs)) return false;
+    const velocity = event && Number.isFinite(event.velocity) ? Math.min(127, Math.max(1, event.velocity)) : 100;
+    this.audio.noteOn({ midi, startSec: 0, durSec: 0.4, vel: velocity, hand: "R", fromInput: true });
     this.emit();
     return true;
+  }
+
+  private physicalTime(event: InputEventMetadata | undefined): number | null {
+    if(!event || event.timingSource !== "event" || !Number.isFinite(event.timestampMs) || event.timestampMs < this.inputBoundaryMs || event.timestampMs > this.monotonicNow()+1)return null;
+    return this.inputClock.time+(event.timestampMs-this.inputClock.ms)/1000;
+  }
+  observeKeyPress(identity:string,event:InputEventMetadata|undefined,offsetMs=0):void {
+    const raw=this.physicalTime(event),target=this.grader?.lastAccepted();
+    if(this.articulation && target && raw!==null)this.articulation.press(identity,target,this.grader!.acceptedTargetIndex(),raw,offsetMs);
+  }
+  observeKeyRelease(identity:string,event:InputEventMetadata|undefined):void {
+    const raw=this.physicalTime(event);if(this.articulation && raw!==null)this.articulation.release(identity,raw);
   }
 
   handleNoteOff(midi: number): void {
@@ -316,16 +373,23 @@ export class PlaybackEngine {
   }
 
   /** Both input sources advance wait targets even without a UI reading waitNote. */
-  private gradeInput(midi: number): boolean {
+  private gradeInput(midi: number, event?: InputEventMetadata, offsetMs = 0): boolean {
     if (!this.grader) return true;
     const target = this.grader.currentWait;
-    if (!this.grader.play(midi, this.time)) return false;
+    let raw = this.time;
+    if (event) {
+      if (!Number.isFinite(event.timestampMs) || event.timestampMs < this.inputBoundaryMs || event.timestampMs > this.monotonicNow() + 1) return false;
+      if (this.playing && !this.waitMode) raw = this.inputClock.time + (event.timestampMs - this.inputClock.ms) / 1000;
+    }
+    const offset = target ? 0 : Math.min(250, Math.max(-250, Number.isFinite(offsetMs) ? offsetMs : 0));
+    if (!this.grader.play(midi, raw - offset / 1000, { rawSec: raw, offsetMs: offset })) return false;
     if (target) {
       const next = this.grader.currentWait;
       const accepted = this.grader.lastAccepted() ?? target;
       this.time = Math.min(this.gradingRange?.endSec ?? this.duration,
         Math.max(this.time, next?.startSec ?? accepted.startSec + accepted.durSec));
       this.lastScheduled = this.time;
+      this.sourceCarryPending=true;
       if (this.gradingRange && !next) this.finishGrading();
       else if (!this.playing) this.schedule(this.time, this.time + SCHEDULE_LOOKAHEAD);
     }
@@ -348,7 +412,7 @@ export class PlaybackEngine {
 
     const notes = this.notes.flatMap((note) => {
       if (!Number.isInteger(note.midi) || note.midi < 0 || note.midi > 127) return [];
-      const noteEnd = note.startSec + note.durSec;
+      const noteEnd = note.startSec + (note.soundingDurSec ?? note.durSec);
       const visibleStart = Math.max(start, note.startSec);
       const visibleEnd = Math.min(end, noteEnd);
       if (visibleEnd <= visibleStart + 1e-6) return [];
@@ -398,12 +462,20 @@ export class PlaybackEngine {
     if (to <= from) return;
     const chordMode = this.settings.backgroundMode === "chord" && this.hasPlayableChord() && !!this.audio.playChord;
     if (chordMode) this.scheduleChords(from, to);
+    if(this.sourceCarryPending){
+      this.sourceCarryPending=false;
+      for(const note of this.notes){
+        if(note.soundingDurSec===undefined||note.startSec>=from||note.startSec+note.soundingDurSec<=from)continue;
+        const end=Math.min(endpoint,note.startSec+note.soundingDurSec);
+        if(end>from)this.audio.noteOn({...note,startSec:from,durSec:end-from},0);
+      }
+    }
     let i = firstNoteAtOrAfter(this.notes, from);
     for (; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (n.startSec >= to) break;
       if (!Number.isInteger(n.midi) || n.midi < 0 || n.midi > 127) continue;
-      const durSec = Math.min(n.durSec, endpoint - n.startSec);
+      const durSec = Math.min(n.soundingDurSec ?? n.durSec, endpoint - n.startSec);
       if (durSec > 0) this.audio.noteOn(durSec === n.durSec ? n : { ...n, durSec }, Math.max(0, n.startSec - this.time));
     }
     // The metronome follows the song timeline in either background mode.

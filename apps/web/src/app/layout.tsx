@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
-import { NavigationMotion } from "@/components/NavigationMotion";
 
 export const metadata: Metadata = {
   title: { default: "Keyspilli — Play the songs you love", template: "%s · Keyspilli" },
@@ -21,7 +20,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head><script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("keyspilli.prefs.v1")||"{}").stageTheme==="charcoal"?"charcoal":"light"}catch{document.documentElement.dataset.theme="light"}` }} /></head>
       <body className="min-h-screen flex flex-col">
         <SiteHeader />
-        <NavigationMotion />
         <main className="flex-1">{children}</main>
         <footer className="site-footer border-t border-zinc-200 py-6 text-xs text-zinc-500">
           <div className="max-w-6xl mx-auto px-4">Keyspilli — private piano practice. Made for one pianist.</div>

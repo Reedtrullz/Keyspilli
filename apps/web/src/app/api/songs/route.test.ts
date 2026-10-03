@@ -6,9 +6,9 @@ const listSongsGroupedWithTotal = vi.hoisted(() => vi.fn());
 const countSongs = vi.hoisted(() => vi.fn());
 const projectPublicGroupedSongs = vi.hoisted(() => vi.fn());
 
-vi.mock("@keyspilli/catalog", () => ({ listSongs, listSongsGroupedWithTotal, countSongs, projectPublicGroupedSongs }));
+vi.mock("@keyspilli/catalog/runtime", () => ({ listSongs, listSongsGroupedWithTotal, countSongs, projectPublicGroupedSongs }));
 
-import { GET } from "./route";
+import { GET, POST } from "./route";
 
 const requestFor = (query: string) => new NextRequest(`http://127.0.0.1/api/songs?${query}`);
 
@@ -117,6 +117,7 @@ describe("grouped songs route", () => {
     );
 
     expect(listSongsGroupedWithTotal).toHaveBeenCalledWith({
+      publicOnly: true,
       difficulty: "easy",
       key: "C",
       style: "classical",
@@ -263,6 +264,33 @@ describe("grouped songs route", () => {
 });
 
 describe("pagination bounds", () => {
+  it("paginates large favorite selections through a bounded read-only body", async () => {
+    const ids = Array.from({ length: 600 }, (_, index) => `favorite-${index}`);
+    listSongsGroupedWithTotal.mockReturnValue({ songs: [], total: 600 });
+    projectPublicGroupedSongs.mockReturnValue([]);
+    const response = await POST(new NextRequest("http://127.0.0.1/api/songs?group=1&limit=60&offset=540", {
+      method: "POST", body: JSON.stringify({ ids }), headers: { "Content-Type": "application/json" },
+    }));
+    expect(response.status).toBe(200);
+    expect(listSongsGroupedWithTotal).toHaveBeenCalledWith(expect.objectContaining({ ids, limit: 60, offset: 540, publicOnly: true }));
+    for (const body of [{ ids: ["../private"] }, { ids: ["valid"], mutation: true }, { ids: Array(5001).fill("valid") }]) {
+      expect((await POST(new NextRequest("http://127.0.0.1/api/songs", { method: "POST", body: JSON.stringify(body) }))).status).toBe(400);
+    }
+  });
+  it("passes public projection, artist and selected IDs before pagination", async () => {
+    listSongsGroupedWithTotal.mockReturnValue({ songs: [], total: 250 });
+    projectPublicGroupedSongs.mockReturnValue([]);
+    const response = await GET(requestFor("group=1&artist=Read%20Test&ids=read-249-easy&offset=250"));
+    expect(listSongsGroupedWithTotal).toHaveBeenCalledWith(expect.objectContaining({ publicOnly: true, artist: "Read Test", ids: ["read-249-easy"] }));
+    expect((await response.json()).total).toBe(250);
+  });
+  it("rejects oversized or malformed selected-ID requests and accepts an empty selection", async () => {
+    expect((await GET(requestFor(`ids=${Array.from({ length: 501 }, (_, i) => `id-${i}`).join(",")}`))).status).toBe(400);
+    expect((await GET(requestFor("ids=../private"))).status).toBe(400);
+    listSongs.mockReturnValue([]); countSongs.mockReturnValue(0);
+    expect((await GET(requestFor("ids="))).status).toBe(200);
+    expect(listSongs).toHaveBeenCalledWith(expect.objectContaining({ ids: [] }));
+  });
   it.each(["abc", "1.5", "-1", "0", "500", "Infinity"])("normalizes limit=%s", async limit => {
     listSongs.mockReset().mockReturnValue([]);
     countSongs.mockReturnValue(0);

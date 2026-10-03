@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "kind": "isolated-synthetic-decoder-probe",
+  "image_id": "sha256:10314d9510e9efb37bf07bf49da5e6730c97242be432c3627890c8c8ff506f02",
+  "image_platform": "linux/amd64",
+  "docker_architecture": "aarch64",
+  "docker_memory_bytes": 4095197184,
+  "docker_cpus": 4,
+  "cases": [
+    {
+      "exit_code": 0,
+      "oom_killed": false,
+      "applied": {
+        "memory_bytes": 402653184,
+        "swap_total_bytes": 402653184,
+        "nano_cpus": 1000000000,
+        "pids": 64,
+        "network": "none",
+        "read_only": true,
+        "cap_drop": [
+          "ALL"
+        ],
+        "security_opt": [
+          "no-new-privileges"
+        ]
+      },
+      "metrics": {
+        "fixture": "generated-sine-mp3-to-mono-wav",
+        "duration_seconds": 3,
+        "latency_seconds": 1.2921,
+        "child_peak_rss_bytes": 77381632,
+        "cgroup_peak_memory_bytes": 69664768,
+        "sampled_peak_pids": 8,
+        "cpu_seconds": 1.304552,
+        "sampled_peak_cpu_percent": 109.41,
+        "sample_interval_seconds": 0.01,
+        "cpu_window_seconds": 0.1,
+        "output_bytes": 96078
+      }
+    },
+    {
+      "exit_code": 0,
+      "oom_killed": false,
+      "applied": {
+        "memory_bytes": 402653184,
+        "swap_total_bytes": 402653184,
+        "nano_cpus": 1000000000,
+        "pids": 64,
+        "network": "none",
+        "read_only": true,
+        "cap_drop": [
+          "ALL"
+        ],
+        "security_opt": [
+          "no-new-privileges"
+        ]
+      },
+      "metrics": {
+        "fixture": "generated-sine-mp3-to-mono-wav",
+        "duration_seconds": 30,
+        "latency_seconds": 5.9657,
+        "child_peak_rss_bytes": 77398016,
+        "cgroup_peak_memory_bytes": 70627328,
+        "sampled_peak_pids": 8,
+        "cpu_seconds": 5.954324,
+        "sampled_peak_cpu_percent": 123.41,
+        "sample_interval_seconds": 0.01,
+        "cpu_window_seconds": 0.1,
+        "output_bytes": 960078
+      }
+    },
+    {
+      "exit_code": 0,
+      "oom_killed": false,
+      "applied": {
+        "memory_bytes": 402653184,
+        "swap_total_bytes": 402653184,
+        "nano_cpus": 1000000000,
+        "pids": 64,
+        "network": "none",
+        "read_only": true,
+        "cap_drop": [
+          "ALL"
+        ],
+        "security_opt": [
+          "no-new-privileges"
+        ]
+      },
+      "metrics": {
+        "fixture": "generated-sine-mp3-to-mono-wav",
+        "duration_seconds": 90,
+        "latency_seconds": 15.7788,
+        "child_peak_rss_bytes": 77324288,
+        "cgroup_peak_memory_bytes": 72765440,
+        "sampled_peak_pids": 8,
+        "cpu_seconds": 15.774563,
+        "sampled_peak_cpu_percent": 133.07,
+        "sample_interval_seconds": 0.01,
+        "cpu_window_seconds": 0.1,
+        "output_bytes": 2880078
+      }
+    }
+  ],
+  "not_measured": [
+    "full tutorial extraction",
+    "ML/stem/transcription peak",
+    "production web headroom",
+    "owner media",
+    "deployed runtime limits"
+  ],
+  "oom_probe": {
+    "exit_code": 137,
+    "oom_killed": true,
+    "applied": {
+      "memory_bytes": 67108864,
+      "swap_total_bytes": 67108864,
+      "nano_cpus": 1000000000,
+      "pids": 16,
+      "network": "none",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges"
+      ]
+    },
+    "metrics": null
+  },
+  "pid_probe": {
+    "exit_code": 0,
+    "oom_killed": false,
+    "applied": {
+      "memory_bytes": 67108864,
+      "swap_total_bytes": 67108864,
+      "nano_cpus": 1000000000,
+      "pids": 16,
+      "network": "none",
+      "read_only": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges"
+      ]
+    },
+    "metrics": {
+      "resource_blocked": true,
+      "owned_children": 7
+    }
+  },
+  "owned_containers_removed": true
+}

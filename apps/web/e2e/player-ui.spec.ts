@@ -44,6 +44,7 @@ test("sections bar collapses, persists, and expands", async ({ page }) => {
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(nav.locator("span")).toHaveCount(1);
+  expect(await page.evaluate(() => localStorage.getItem("keyspilli.sectionsCollapsed"))).toBe("true");
 
   await page.reload();
   const navAfterReload = page.getByRole("navigation", { name: "Song sections" });
@@ -67,6 +68,7 @@ test("full width mode expands the player and persists across reload", async ({ p
   await page.getByRole("button", { name: "Full width" }).click();
   await expect(root).toHaveClass(/w-full/);
   await expect(root).not.toHaveClass(/max-w-6xl/);
+  expect(await page.evaluate(() => localStorage.getItem("keyspilli.fullWidth"))).toBe("true");
 
   await page.reload();
   const rootAfterReload = page.locator("main > div").first();
@@ -197,12 +199,15 @@ test("practice setup preserves the selected position", async ({ page }) => {
 });
 
 test("seek slider is keyboard operable without a separate bar jump", async ({ page }) => {
+  const client = await page.context().newCDPSession(page);
+  await client.send("Emulation.setCPUThrottlingRate", { rate: 6 });
   await page.goto(`/player/${SONG}`);
   const seek = page.getByRole("slider", { name: "Seek", exact: true });
+  await expect(seek).toBeEnabled();
   await seek.focus();
   await seek.press("ArrowRight");
   await expect(page.getByRole("spinbutton", { name: "Bar", exact: true })).toHaveCount(0);
-  expect(Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue())).toBeGreaterThan(0);
+  await expect.poll(async () => Number(await seek.inputValue())).toBeGreaterThan(0);
 });
 
 
@@ -326,7 +331,7 @@ test("practice remains keyboard accessible with reduced motion and 200% CSS zoom
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`/player/${SONG}`);
   await page.locator("body").evaluate((body) => { body.style.zoom = "2"; });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const practice = page.getByRole("button", { name: "Practice", exact: true });
   await practice.press("Enter");
   const input = page.getByLabel("Input", { exact: true });
@@ -343,13 +348,17 @@ test("practice remains keyboard accessible with reduced motion and 200% CSS zoom
 
 for (const playing of [false, true]) {
   test(`speed preserves the musical position while ${playing ? "playing" : "paused"}`, async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
     await page.goto(`/player/${SONG}`);
+    await expect(page.getByRole("slider", { name: "Seek", exact: true })).toBeEnabled();
+    await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
     await page.getByRole("slider", { name: "Seek", exact: true }).fill("20");
     if (playing) await page.getByRole("button", { name: "Play", exact: true }).click();
     const seek = page.getByRole("slider", { name: "Seek", exact: true });
     const originalBar = (await seek.getAttribute("aria-valuetext"))!.match(/^Bar \d+ of \d+/)![0];
     for (const [label, speed] of [["50%", 0.5], ["75%", 0.75], ["100%", 1]] as const) {
       await page.getByRole("button", { name: label, exact: true }).click();
+      if (playing) await page.clock.runFor(200);
       await expect(seek).toHaveAttribute("aria-valuetext", new RegExp(`^${originalBar}`));
       const musicalSeconds = Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue()) * speed;
       expect(musicalSeconds).toBeGreaterThanOrEqual(19.99);

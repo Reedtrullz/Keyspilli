@@ -1,4 +1,4 @@
-import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation, MidiTimeSignatureEvent } from "@keyspilli/midi";
+import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation, MidiTimeSignatureEvent, SourcePedalTimeline } from "@keyspilli/midi";
 import type { AccompanimentStyle, SparseBackingTiming } from "./accompaniment.js";
 
 export type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation };
@@ -41,6 +41,7 @@ export interface ChordSourceBundle {
 }
 
 export interface SongData {
+  sourcePedal?: SourcePedalTimeline;
   notes: Note[];
   chords: ChordLabel[];
   /** Canonical source/variant fingerprint used to reject stale derived choices. */
@@ -87,6 +88,10 @@ export interface PlayerSettings {
   transpose: number;
   mode: ViewMode;
   showAllKeys: boolean;
+  /** Owner-confirmed physical range, independently of the piano view. */
+  audibleSupport?: boolean;
+  renderedExpression?: import("./timeline.js").RenderedExpression;
+  physicalKeyboard?: import("./keyboard-range.js").KeyboardRange | null;
   keyboardLabels: "notes" | "octaves" | "off";
   showKeyBindings: boolean;
   stageTheme: "light" | "charcoal";

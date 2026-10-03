@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getJob, transcribedDir } from "@keyspilli/catalog";
-import { publicJobError } from "../../../../../lib/job-error";
+import { publicJobView } from "../../../../../lib/job-view";
 
 export const dynamic = "force-dynamic";
 
@@ -17,5 +17,5 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       if (["identifying","searching","downloading","extracting","validating","publishing"].includes(progress.stage)) stage = progress.stage;
     } catch { /* Progress is optional; database job state remains authoritative. */ }
   }
-  return NextResponse.json({ ...job, stage, error: publicJobError(job.error) });
+  return NextResponse.json({ ...await publicJobView(job), stage }, { headers: { "Cache-Control": "no-store" } });
 }

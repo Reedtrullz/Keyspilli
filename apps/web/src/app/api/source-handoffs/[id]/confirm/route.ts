@@ -1,3 +1,4 @@
+import { readJsonObject } from "../../../../../lib/bounded-body";
 import { NextRequest, NextResponse } from "next/server";
 import {
   confirmSourceCandidateHandoff,
@@ -12,8 +13,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
   const params = await context.params;
-  let body: unknown = null;
-  try { body = await req.json(); } catch { /* handled below */ }
+  const input = await readJsonObject(req);
+  if (input.response) return input.response;
+  const body = input.body;
   if (!body || typeof body !== "object" || (body as Record<string, unknown>).userAffirmedTarget !== true) {
     console.info("[source-handoff]", { event: "confirmation-missing", elapsedMs: Date.now() - startedAt });
     return NextResponse.json(

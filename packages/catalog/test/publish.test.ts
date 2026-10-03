@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile,rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { writeVariantArtifacts, type Variant } from "@keyspilli/midi";
@@ -10,6 +10,17 @@ import { deleteBaseArtifact, publishBaseArtifact, withBaseArtifactLock, reconcil
 async function tempRoot(): Promise<string> {
   return mkdtemp(join(tmpdir(), "keyspilli-publish-"));
 }
+it("binds staged sidecars to the actual atomic publication identity",async()=>{
+ const root=await tempRoot();
+ try {
+ const token=await publishBaseArtifact("test-song",async(stage,publicationId)=>{
+  expect(publicationId).toMatch(/^[A-Za-z0-9_-]+$/);
+  await writeManifest(stage);await writeFile(join(stage,"review-binding.json"),JSON.stringify({publicationId}));return publicationId;
+ },{artifactsRoot:root});
+ expect((await readFile(join(root,"test-song/.publication-id"),"utf8")).trim()).toBe(token);
+ expect(JSON.parse(await readFile(join(root,"test-song/review-binding.json"),"utf8"))).toEqual({publicationId:token});
+ } finally {await rm(root,{recursive:true,force:true});}
+});
 
 async function writeManifest(stage: string, baseId = "test-song"): Promise<void> {
   for (const level of ["a", "b", "e", "m", "ve", "vb"]) {

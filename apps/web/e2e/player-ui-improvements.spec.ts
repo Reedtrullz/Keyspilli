@@ -9,6 +9,40 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
+test("paused Grand Piano selection prepares one sample set and reuses it after a warm switch", async ({ page }) => {
+  const wav = Buffer.alloc(44 + 960);
+  wav.write("RIFF", 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(48000, 24); wav.writeUInt32LE(96000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
+  wav.write("data", 36); wav.writeUInt32LE(960, 40);
+  for (let i = 0; i < 480; i++) wav.writeInt16LE(Math.round(8000 * Math.sin(2 * Math.PI * 440 * i / 48000)), 44 + i * 2);
+  let requests = 0, release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route("https://smpldsnds.github.io/**", async route => {
+    requests++; await pending;
+    await route.fulfill({ contentType: "audio/wav", body: wav });
+  });
+  await page.goto(song); await openPlayerTool(page, "Sound");
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
+  expect(requests).toBe(0); // A restored Synth choice must not preload the SSR default.
+  try {
+    await page.getByRole("radio", { name: "Grand Piano", exact: true }).click();
+    await expect.poll(() => requests).toBe(226);
+    await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("loading");
+    await page.getByRole("radio", { name: "Synth Piano", exact: true }).click();
+    await page.getByRole("radio", { name: "Grand Piano", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("loading");
+    expect(requests).toBe(226);
+    release();
+    await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("ready");
+    await expect(page.getByLabel("Playback status", { exact: true })).toContainText("Ready");
+    await page.getByRole("radio", { name: "Synth Piano", exact: true }).click();
+    await page.getByRole("radio", { name: "Grand Piano", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("ready");
+    expect(requests).toBe(226);
+  } finally { release(); }
+});
+
 test("Charcoal appearance is shared by player and app, persists and returns to Light", async ({ page }) => {
   await page.goto(song);
   await page.getByRole("button", { name: "Charcoal mode", exact: true }).click();
@@ -104,9 +138,10 @@ test("manual browsing stays put until Resume following", async ({ page }) => {
 test("sheet-only entry retains zoom and its reader position after failure, retry and controls load", async ({ page }) => {
   let requests = 0;
   await page.route("**/api/v1/sheet/*", route => route.fulfill({ contentType: "application/xml", body: sheetXml }));
-  await page.route("**/api/songs/ui-fixture-m", async route => {
+  await page.route(url => url.pathname === "/api/songs/ui-fixture-m", async route => {
     requests++;
     if (requests === 1) return route.fulfill({ status: 503, body: "unavailable" });
+    await new Promise(resolve => setTimeout(resolve, 400));
     await route.continue();
   });
   await page.goto(`${song}/sheet`);

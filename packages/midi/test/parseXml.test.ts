@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMusicXmlNotes, parseMidi, buildVariants, writeMusicXml, Variant } from "../src/index.js";
+import { parseMusicXmlNotes, parseMidi, buildVariants, selectSourceParts, writeMusicXml, writeMidi, Variant } from "../src/index.js";
 
 const HEX = (s: string) => new Uint8Array(s.trim().split(/\s+/).map((b) => parseInt(b, 16)));
 const SCALE_MIDI = HEX(`
@@ -14,6 +14,17 @@ const SCALE_MIDI = HEX(`
 `);
 
 describe("parseMusicXmlNotes", () => {
+  it("preserves bounded original pitch spelling independently of the MIDI pitch", () => {
+    const xml = `<score-partwise><part id="P1"><measure number="1"><attributes><divisions>1</divisions></attributes>
+<note><pitch><step>F</step><alter>2</alter><octave>4</octave></pitch><duration>1</duration></note>
+<note><pitch><step>C</step><alter>3</alter><octave>4</octave></pitch><duration>1</duration></note>
+</measure></part></score-partwise>`;
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.notes[0]).toMatchObject({ midi: 67, sourcePitch: { step: "F", alter: 2, octave: 4 } });
+    expect(parsed.notes[1]).toMatchObject({ midi: 63 });
+    expect(parsed.notes[1]).not.toHaveProperty("sourcePitch");
+  });
+
   it("ignores comments and rejects malformed or unsupported song form", () => {
     const note = '<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>';
     const head = '<?xml version="1.0"?><score-partwise><part id="P1"><measure><attributes><divisions>1</divisions></attributes>';
@@ -32,6 +43,29 @@ describe("parseMusicXmlNotes", () => {
     expect(() => parseMusicXmlNotes(`${head}<direction><direction-type><segno/></direction-type></direction>${note.repeat(4)}${tail}`)).toThrow(/unsupported.*navigation/i);
     expect(() => parseMusicXmlNotes(`<!DOCTYPE score-partwise [<!ENTITY x "${note}">]>${head}&x;${tail}`)).toThrow(/unsupported|invalid MusicXML/i);
   });
+  it("unfolds one explicit two-pass repeat with occurrence lineage and rejects expanded workloads/ambiguous forms", () => {
+    const xml = '<score-partwise><part id="P1">'+['C','D','E'].map((step,i)=>`<measure number="${i+1}">${i===0?'<attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><barline location="left"><repeat direction="forward"/></barline>':''}<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note>${i===1?'<barline location="right"><repeat direction="backward" times="2"/></barline>':''}</measure>`).join('')+'</part></score-partwise>';
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.repeatPlayback).toBe("unfolded");
+    expect(parsed.notes.map(n=>[n.midi,n.start,n.dur])).toEqual([[60,0,4],[62,4,4],[60,8,4],[62,12,4],[64,16,4]]);
+    expect(parsed.notationMeasures?.map(m=>[m.sourceMeasureIndex,m.sourceOccurrence])).toEqual([[0,1],[1,1],[0,2],[1,2],[2,1]]);
+    expect(parsed.notes[0]!.sourceOrigins![0]!.originalId).toBe(parsed.notes[2]!.sourceOrigins![0]!.originalId);
+    expect(parsed.notes[0]!.sourceOrigins![0]!.id).not.toBe(parsed.notes[2]!.sourceOrigins![0]!.id);
+    const advanced=buildVariants(parsed,{title:"Repeat",artist:"Synthetic"},{chords:[]}).find(v=>v.level==='advanced')!;
+    expect(advanced.measures).toEqual(parsed.notationMeasures);
+    expect(parseMidi(writeMidi(advanced.notes,{tempoBpm:120,timeSig:[4,4],measures:advanced.measures})).notationMeasures).toEqual(advanced.measures);
+    expect(parseMusicXmlNotes(writeMusicXml(advanced,"Unfolded","Synthetic")).notationMeasures).toEqual(advanced.measures);
+    expect(parseMusicXmlNotes(writeMusicXml(advanced,"Unfolded","Synthetic")).notes.map(n=>[n.midi,n.start,n.dur])).toEqual(advanced.notes.map(n=>[n.midi,n.start,n.dur]));
+    for (const bad of [xml.replace('times="2"','times="3"'),xml.replace('direction="forward"','direction="backward"'),xml.replace('<duration>4</duration>','<duration>1</duration>'),xml.replace('<type>whole</type>','<type>whole</type><tie type="start"/>'),xml.replace('number="1"','number="1" implicit="yes"'),xml.replace('</measure>','<attributes><divisions>2</divisions></attributes></measure>')]) expect(()=>parseMusicXmlNotes(bad)).toThrow(/unsupported.*repeat/i);
+    const exported=writeMusicXml(advanced,"Unfolded","Synthetic");
+    expect(parseMusicXmlNotes(exported).repeatPlayback).toBe("declared");
+    expect(()=>parseMusicXmlNotes(exported.replace(/\[\[0,1,0,4\][\s\S]*?\]\]/,"[[0,1,0,4],[0,2,4,8],[99,1,8,12],[1,1,12,16],[2,1,16,20]]"))).toThrow(/occurrence/);
+    expect(()=>parseMusicXmlNotes(exported.replace('[[0,1,0,4]', '[[0,2,0,4]'))).toThrow(/occurrence/);
+    expect(()=>parseMusicXmlNotes(xml.replace('</part>','<barline location="right"><repeat direction="backward"/></barline></part>'))).toThrow(/unsupported.*repeat/i);
+    const huge=xml.replace('<beats>4</beats>','<beats>1024</beats>').replaceAll('<duration>4</duration>','<duration>1024</duration>');
+    expect(()=>parseMusicXmlNotes(huge)).toThrow(/workload/i);
+  });
+
   it("round-trips interleaved grand-staff note starts", () => {
     const variant: Variant = {
       level: "advanced",
@@ -148,9 +182,9 @@ describe("parseMusicXmlNotes", () => {
     const xml = writeMusicXml(variant, "Padded staff", "Test");
     const measure = xml.match(/<measure(?:[ >])[^>]*>[\s\S]*?<\/measure>/)?.[0] ?? "";
     // The RH stream is followed by a full-measure backup before the LH stream;
-    // the LH stream itself ends with a forward to the same boundary.
+    // the LH stream itself ends with an explicit rest to the same boundary.
     expect(measure).toContain('<backup><duration>3840</duration></backup>');
-    expect(measure).toMatch(/<staff>2<\/staff>[\s\S]*?<forward><duration>960<\/duration><\/forward><\/measure>$/);
+    expect(measure).toMatch(/<staff>2<\/staff>[\s\S]*?<note><rest\/><duration>960<\/duration><voice>2<\/voice>[\s\S]*?<staff>2<\/staff><\/note><\/measure>$/);
     expect(parseMusicXmlNotes(xml).notes.map((n) => [n.midi, n.start, n.dur])).toEqual([
       [60, 0, 1],
       [48, 2.5, 0.5],
@@ -249,12 +283,21 @@ describe("parseMusicXmlNotes", () => {
     expect(m.notes.map((n) => n.midi)).toEqual([64]);
   });
 
-  it("rejects multi-part scores rather than silently dropping instruments", () => {
-    const xml = `<score-partwise version="4.0"><part id="P1"><measure number="1"><attributes><divisions>4</divisions></attributes>
+  it("keeps named and unnamed MusicXML parts distinct for explicit selection", () => {
+    const xml = `<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Lead</part-name></score-part>
+<score-part id="P2"><part-name>Bass</part-name></score-part></part-list>
+<part id="P1"><measure number="1"><attributes><divisions>4</divisions></attributes>
 <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>
 </measure></part><part id="P2"><measure number="1"><attributes><divisions>4</divisions></attributes>
 <note><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration></note>
+</measure></part><part id="P3"><measure number="1"><attributes><divisions>4</divisions></attributes>
+<note><pitch><step>E</step><octave>4</octave></pitch><duration>4</duration></note>
 </measure></part></score-partwise>`;
-    expect(() => parseMusicXmlNotes(xml)).toThrow(/multiple parts/);
+    const parsed = parseMusicXmlNotes(xml);
+    expect(parsed.sourceParts?.map(({ id, name }) => [id, name])).toEqual([
+      ["musicxml:P1", "Lead"], ["musicxml:P2", "Bass"], ["musicxml:P3", "P3"],
+    ]);
+    expect(parsed.notes.map((note) => note.sourceOrigins?.[0]?.part).sort()).toEqual(["musicxml:P1", "musicxml:P2", "musicxml:P3"]);
+    expect(selectSourceParts(parsed, ["musicxml:P2"]).notes.map((note) => note.midi)).toEqual([55]);
   });
 });

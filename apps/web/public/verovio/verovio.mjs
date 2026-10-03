@@ -21,8 +21,11 @@ function getToolkitFunction(VerovioModule, method) {
     // bool edit(Toolkit *ic, const char *editorAction) 
     mapping.edit = VerovioModule.cwrap("vrvToolkit_edit", "number", ["number", "string"]);
 
-    // char *editInfo(Toolkit *ic)
-    mapping.editInfo = VerovioModule.cwrap("vrvToolkit_editInfo", "string", ["number"]);
+    // char *editResponse(Toolkit *ic)
+    mapping.editResponse = VerovioModule.cwrap("vrvToolkit_editResponse", "string", ["number"]);
+
+    // char *editStatus(Toolkit *ic)
+    mapping.editStatus = VerovioModule.cwrap("vrvToolkit_editStatus", "string", ["number"]);
 
     // char *getAvailableOptions(Toolkit *ic)
     mapping.getAvailableOptions = VerovioModule.cwrap("vrvToolkit_getAvailableOptions", "string", ["number"]);
@@ -157,7 +160,16 @@ class VerovioToolkit {
     }
 
     editInfo() {
-        return JSON.parse(this.proxy.editInfo(this.ptr));
+        console.warn( "This function is deprecated. Use editStatus instead." );
+        return JSON.parse(this.proxy.editStatus(this.ptr));
+    }
+
+    editResponse() {
+        return JSON.parse(this.proxy.editResponse(this.ptr));
+    }
+
+    editStatus() {
+        return JSON.parse(this.proxy.editStatus(this.ptr));
     }
 
     getAvailableOptions() {
@@ -333,40 +345,33 @@ class VerovioToolkit {
         if (!options.hasOwnProperty('fontAddCustom')) {
             return options;
         }
-        const filenames = options['fontAddCustom'];
+        const files = options['fontAddCustom'];
         let filesInBase64 = [];
-        // Get all the files and convert them to a base64 string
-        for (let i = 0; i < filenames.length; i++ ) {
+        // Get all the files and convert them to a base64 string if necessary
+        for ( const file of files ) {
+            // The file is already passed as base64 string - nothing to do
+            if (!/^https?:\/\//.test( file )) {
+                filesInBase64.push( file );
+                continue;
+            }
             const request = new XMLHttpRequest();
-            request.open("GET", filenames[i], false); // `false` makes the request synchronous
+            request.open("GET", file, false); // `false` makes the request synchronous
             request.send(null);
 
             if (request.status === 200) {
                 filesInBase64.push(request.responseText);
             }
             else {
-                console.error(`${filenames[i]} could not be retrieved`);
+                console.error(`${file} could not be retrieved`);
             }
         }
         options["fontAddCustom"] = filesInBase64;
-        //console.log( options );
         return options;
     }
 }
 
 // A pointer to the object - only one instance can be created for now
 VerovioToolkit.instances = [];
-
-
-// If the window object is defined (if we are not within a WebWorker)...
-if ((typeof window !== "undefined") && (window.addEventListener)) {
-    // Add a listener that will delete the object (if necessary) when the page is closed
-    window.addEventListener("unload", () => {
-        VerovioToolkit.instances.forEach((instance) => {
-            instance.destroy();
-        });
-    });
-}
 
 const LOG_OFF = 0;
 const LOG_ERROR = 1;

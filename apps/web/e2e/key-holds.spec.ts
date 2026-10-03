@@ -1,0 +1,53 @@
+import {test,expect} from "@playwright/test";
+const xml=`<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>${Array.from({length:8},()=>'<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>').join("")}</measure></part></score-partwise>`;
+test("MIDI hold mode requires an explicit device/channel and stores a tap separately from onset score",async({page,request})=>{
+ const response=await request.post("/api/uploads?title=Hold%20Fixture&artist=Authored%20Test",{headers:{Authorization:"Bearer test-token-for-e2e","Content-Type":"application/xml"},data:Buffer.from(xml)});
+ expect(response.ok(),await response.text()).toBe(true);const receipt=await response.json(),id=receipt.songIds.find((id:string)=>id.endsWith("-a"));
+ try{
+  await page.addInitScript(()=>{
+   localStorage.setItem("keyspilli.prefs.v1",JSON.stringify({soundSource:"synth",hand:"both"}));
+   const input={id:"hold-fixture",name:"Controlled MIDI Fixture",state:"connected",onmidimessage:null as ((event:{data:Uint8Array;timeStamp:number})=>void)|null};
+   Object.defineProperty(navigator,"requestMIDIAccess",{value:async()=>({inputs:new Map([[input.id,input]]),onstatechange:null}),configurable:true});
+   (window as unknown as {__holdMidi:(on:boolean)=>void}).__holdMidi=on=>input.onmidimessage?.({data:new Uint8Array([on?0x90:0x80,60,on?80:0]),timeStamp:performance.now()});
+  });
+  await page.goto(`/player/${id}/beginner`);
+  await page.getByRole("button",{name:"Practice",exact:true}).click();
+  let dialog=page.getByRole("dialog",{name:"Set up practice"});
+  await expect(dialog.getByRole("checkbox",{name:/Assess key holds/})).toBeDisabled();
+  await dialog.getByRole("button",{name:"Cancel",exact:true}).click();
+  await page.getByRole("button",{name:"Input",exact:true}).click();
+  await page.getByRole("button",{name:"Connect MIDI",exact:true}).click();
+  await page.getByRole("combobox",{name:"MIDI device",exact:true}).selectOption("hold-fixture");await page.getByRole("combobox",{name:"MIDI channel",exact:true}).selectOption("0");
+  await page.getByRole("button",{name:"Close tools"}).click();
+  await page.getByRole("button",{name:"Practice",exact:true}).click();dialog=page.getByRole("dialog",{name:"Set up practice"});
+  await dialog.getByLabel("Input",{exact:true}).selectOption("midi");await dialog.getByLabel("Behavior").selectOption("along");
+  await dialog.getByRole("checkbox",{name:/Assess key holds/}).check();await dialog.getByLabel("Hold/release tolerance (ms)").fill("150");
+  await dialog.getByLabel("Passage",{exact:true}).selectOption("beginning");await dialog.getByLabel("Count-in",{exact:true}).selectOption("0");
+  await dialog.getByRole("button",{name:"Start practice",exact:true}).click();
+  await page.evaluate(async()=>{localStorage.setItem("keyspilli.timing.v1",JSON.stringify({"midi:hold-fixture:0:synth:rock:warm":250}));const send=(window as unknown as {__holdMidi:(on:boolean)=>void}).__holdMidi;send(true);await new Promise(resolve=>setTimeout(resolve,30));send(false);});
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0].outcome),{timeout:10000}).toBe("completed");
+  const attempt=await page.evaluate(()=>JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0]);
+  expect(attempt.context).toMatchObject({assessment:"key-hold",articulationToleranceMs:150,midiDevice:"hold-fixture",midiChannel:0});
+  expect(attempt.result.articulation.events[0].offsetMs).toBe(0);
+  expect(attempt.result.hit).toBe(1);expect(attempt.result.articulation).toMatchObject({observed:1,shortHolds:1,earlyReleases:1,unobserved:7});
+  await expect(page.getByRole("region",{name:"Practice grading"})).toContainText("Key holds:");
+  await page.getByRole("button",{name:"Practice",exact:true}).click();
+  dialog=page.getByRole("dialog",{name:"Set up practice"});
+  await dialog.getByLabel("Input",{exact:true}).selectOption("midi");await dialog.getByLabel("Behavior").selectOption("along");
+  await dialog.getByRole("checkbox",{name:/Assess key holds/}).check();
+  await dialog.getByLabel("Passage",{exact:true}).selectOption("beginning");
+  await dialog.getByLabel("Count-in",{exact:true}).selectOption("0");
+  await dialog.getByRole("button",{name:"Start practice",exact:true}).click();
+  await page.getByRole("button",{name:"Input",exact:true}).click();
+  await expect(page.getByRole("combobox",{name:"MIDI device",exact:true})).toBeDisabled();
+  await expect(page.getByRole("combobox",{name:"MIDI channel",exact:true})).toBeDisabled();
+  await expect(page.getByLabel("Selected MIDI-device offset (ms)")).toBeDisabled();
+  await page.getByRole("button",{name:"Close tools"}).click();
+  await page.getByRole("link",{name:"Return to library"}).click();
+  await expect(page).toHaveURL("/");
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0].outcome)).toBe("interrupted");
+  const interrupted=await page.evaluate(()=>JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0]);
+  expect(interrupted.outcome).toBe("interrupted");expect(interrupted.result.articulation).toMatchObject({observed:0,unobserved:8});
+  await page.reload();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[1].result.articulation.shortHolds)).toBe(1);
+ }finally{expect((await request.delete(`/api/songs/${receipt.baseId}`,{headers:{Authorization:"Bearer test-token-for-e2e"}})).ok()).toBe(true);}
+});

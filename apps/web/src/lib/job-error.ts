@@ -1,6 +1,6 @@
 /**
- * Conversion status is intentionally public so the no-login learner page can
- * poll its own job. Never return raw subprocess errors here: they can contain
+ * The owner browser polls status behind the required private edge.
+ * Never return raw subprocess errors here: they can contain
  * command arguments, local paths, or proxy credentials.
  */
 export function publicJobError(error: unknown): string | null {
@@ -10,6 +10,7 @@ export function publicJobError(error: unknown): string | null {
     return "YouTube blocked server-side extraction (bot check); configure a trusted proxy or cookie session, or pre-seed the audio file.";
   }
   const withoutAttempt = message.replace(/^attempt\s+\d+:\s*/i, "");
+  if (withoutAttempt.startsWith("RESOURCE_BLOCKED:")) return "Import stopped because the worker reached a memory or process limit. No arrangement was published. Review capacity before retrying.";
   if (withoutAttempt.startsWith("ARTIFACT_RECONCILIATION_REQUIRED:")) return "Import saved an artifact but needs operator reconciliation before it can be used. Do not retry this job.";
   if (withoutAttempt === "TUTORIAL_PREVIEW_CANCELLED") return "Piano preview cancelled. Saved source evidence was retained.";
   if (withoutAttempt === "Less than 30GiB free") return "Import paused because server storage is low. Retry after storage is available.";

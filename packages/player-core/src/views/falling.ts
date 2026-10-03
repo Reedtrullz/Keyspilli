@@ -1,3 +1,4 @@
+import { learnerPitch } from "../pitch-label.js";
 import type { TimedNote } from "../timeline.js";
 import { pitchColor } from "@keyspilli/midi";
 
@@ -11,13 +12,10 @@ export interface KeyboardGeometry {
 }
 
 const WHITE = [0, 2, 4, 5, 7, 9, 11];
-const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 /** Short pitch label: letter for keys, octave appended on C (C4, C#4...). */
 export function noteLabel(midi: number, includeOctave = false): string {
-  const pc = NAMES[midi % 12]!;
-  const octave = Math.floor(midi / 12) - 1;
-  return includeOctave || pc === "C" ? `${pc}${octave}` : pc;
+  return learnerPitch({midi},0,"C",includeOctave).label;
 }
 
 export function keyboardGeometry(lowMidi: number, highMidi: number, width: number, whiteHeight = 160): KeyboardGeometry {
@@ -227,7 +225,7 @@ export function fallingBarsIndexed(
       height,
       color: pitchColor(n.midi),
       midi: n.midi,
-      label: noteLabel(n.midi),
+      label: n.displayPitch?.label ?? noteLabel(n.midi),
       hand: n.hand,
     });
   }
@@ -265,7 +263,7 @@ export function fallingBars(notes: TimedNote[], o: FallingLayoutOptions, out: Fa
       height,
       color: pitchColor(n.midi),
       midi: n.midi,
-      label: noteLabel(n.midi),
+      label: n.displayPitch?.label ?? noteLabel(n.midi),
       hand: n.hand,
     });
   }

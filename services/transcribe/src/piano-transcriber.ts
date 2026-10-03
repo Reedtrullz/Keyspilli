@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import type { Note, ParsedMidi } from "@keyspilli/midi";
 
+import {withResourceAccounting,isResourceBlocked} from "./errors.js";
+
 const execFileAsync = promisify(execFile);
 
 export const PIANO_TRANSCRIPTION_UNAVAILABLE = "piano transcription backend unavailable";
@@ -228,7 +230,7 @@ export function normalizePianoTranscription(raw: unknown, provenance: PianoTrans
 }
 
 const defaultRunner: PianoProcessRunner = async (command, args, options) => {
-  const result = await execFileAsync(command, [...args], { timeout: options.timeout, maxBuffer: 16 * 1024 * 1024 });
+  const result = await withResourceAccounting(()=>execFileAsync(command, [...args], { timeout: options.timeout, maxBuffer: 16 * 1024 * 1024 }));
   return { stdout: result.stdout, stderr: result.stderr };
 };
 
@@ -268,7 +270,8 @@ export function createPianoTranscriptionAdapter(options: PianoTranscriptionAdapt
             }
           }
           return { status: "ok", ...evidence };
-        } catch {
+        } catch (error) {
+          if(isResourceBlocked(error))throw error;
           return { status: "unavailable", error: PIANO_TRANSCRIPTION_UNAVAILABLE, provenance };
         }
       })();

@@ -12,6 +12,7 @@ export interface MusicXmlWorkerSession {
   readonly height: number;
   prepare(): Promise<MusicXmlWorkerSession>;
   renderPage(page: number): Promise<string>;
+  elementPage(elementId: string): Promise<number>;
   close(): Promise<void>;
 }
 
@@ -19,22 +20,25 @@ type WorkerResponse =
   | { id: number; type: "opened"; sessionId: number }
   | { id: number; type: "prepared"; sessionId: number; pageCount: number; width: number; height: number }
   | { id: number; type: "page"; sessionId: number; page: number; svg: string }
+  | { id: number; type: "elementPage"; sessionId: number; elementId: string; page: number }
   | { id: number; type: "closed"; sessionId: number }
   | { id: number; type: "error"; error: string };
 
 type WorkerRequest =
-  | { id: number; type: "open"; xml: string; options: RenderOptions }
+  | { id: number; type: "open"; xml: string; options: RenderOptions; prepare?: boolean }
   | { id: number; type: "prepare"; sessionId: number }
   | { id: number; type: "renderPage"; sessionId: number; page: number }
+  | { id: number; type: "elementPage"; sessionId: number; elementId: string }
   | { id: number; type: "close"; sessionId: number };
 
 // `Omit<WorkerRequest, "id">` collapses the discriminated union to its
 // shared fields. Keep the request union distributed so each message retains
 // the payload required by its `type` discriminator.
 type WorkerRequestInput =
-  | { type: "open"; xml: string; options: RenderOptions }
+  | { type: "open"; xml: string; options: RenderOptions; prepare?: boolean }
   | { type: "prepare"; sessionId: number }
   | { type: "renderPage"; sessionId: number; page: number }
+  | { type: "elementPage"; sessionId: number; elementId: string }
   | { type: "close"; sessionId: number };
 
 type PendingRender = {
@@ -144,9 +148,9 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
   }
 
   /** Prepare/layout the score once. Rendering individual pages is cheap after this. */
-  async prepare(): Promise<this> {
+  async prepare(prepared?: WorkerResponse): Promise<this> {
     if (this.closed || this.generation !== workerGeneration || !verovioWorker) throw new Error("Verovio worker session is closed");
-    const response = await request({ type: "prepare", sessionId: this.sessionId });
+    const response = prepared ?? await request({ type: "prepare", sessionId: this.sessionId });
     if (response.type !== "prepared" || response.sessionId !== this.sessionId) {
       throw new Error("Verovio worker returned an invalid prepare response");
     }
@@ -168,6 +172,15 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
     return response.svg;
   }
 
+  async elementPage(elementId: string): Promise<number> {
+    if (this.closed || this.generation !== workerGeneration || !verovioWorker) throw new Error("Verovio worker session is closed");
+    if (!/^keyspilli-score-\d{1,4}$/.test(elementId)) throw new Error("invalid score measure identity");
+    const response = await request({ type: "elementPage", sessionId: this.sessionId, elementId });
+    if (response.type !== "elementPage" || response.sessionId !== this.sessionId || response.elementId !== elementId
+      || !Number.isInteger(response.page) || response.page < 1 || response.page > this.pageCount) throw new Error("score measure has no rendered page");
+    return response.page;
+  }
+
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
@@ -184,20 +197,13 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
   }
 }
 
-/**
- * Open and prepare a MusicXML score in a dedicated Verovio worker session.
- *
- * `prepare` is deliberately a separate worker message even though this
- * convenience function awaits it before resolving. Consumers that need an
- * explicit loading state can build on the same protocol while the normal
- * sheet view gets a single, ready-to-render session object.
- */
+/** Open/layout atomically so another view cannot replace the session between messages. */
 export async function openMusicXmlInWorker(xml: string, opts: RenderOptions = {}): Promise<MusicXmlWorkerSession> {
-  const opened = await request({ type: "open", xml, options: opts });
-  if (opened.type !== "opened") throw new Error("Verovio worker returned an invalid open response");
-  const session = new WorkerScoreSession(opened.sessionId, workerGeneration);
-  await session.prepare();
-  return session;
+  const prepared = await request({ type: "open", xml, options: opts, prepare: true });
+  if (prepared.type !== "prepared") throw new Error("Verovio worker returned an invalid open response");
+  const session = new WorkerScoreSession(prepared.sessionId, workerGeneration);
+  try {return await session.prepare(prepared);}
+  catch(error){await session.close();throw error;}
 }
 
 /** Render every laid-out page through the session protocol. */

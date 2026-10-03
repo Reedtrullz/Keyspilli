@@ -297,3 +297,29 @@ it("retains approved prepared backing bytes and selection after a title edit", a
   const finalProjection = await api.withChordSources(finalData, id, "a");
   expect(finalProjection.chordProvenance?.sourceRef).toBe(`prepared:${finalData.sourceFingerprint}`);
 });
+
+
+it("checks reviewed revisions and preserves an exact short study during descriptive edits", async () => {
+  const bytes = midi.writeMidi([{ midi: 60, start: 0, dur: 1, vel: 80 }], { tempoBpm: 120 });
+  const preflight = catalog.createSymbolicUploadPreflight(bytes);
+  const base = `upload-${preflight.sourceHash}`;
+  const symbolicIntent = catalog.confirmSymbolicUploadChoice(preflight.preflightId, bytes, { selectedParts: [{ id: preflight.parts[0]!.id, role: "other" }], arrangementIntent: "original", rightsAttested: true, ownerAuthoredStudy: true });
+  const result = await catalog.ingestSource({ baseId: base, buf: bytes, title: "Before", artist: "Authored", contentType: "upload", symbolicIntent });
+  expect(result.error).toBeUndefined();
+  const marker = join(root, "artifacts", base, ".publication-id"), revision = (await readFile(marker,"utf8")).trim();
+  const rows = catalog.getSongsByBase(base), before = await Promise.all(rows.map(row => readFile(join(root,"artifacts",base,row.level,"notes.json"))));
+  await expect(update.applySongMetadata(base,{ title: "" },{ expectedRevision: revision })).rejects.toMatchObject({status:400});
+  await expect(update.applySongMetadata(base,{ title: "Wrong" },{ expectedRevision: "old-version" })).rejects.toMatchObject({status:409});
+  const sourcePath = join(root, "uploads", `${base}.mid`);
+  await writeFile(sourcePath, Buffer.from("changed source"));
+  await expect(update.applySongMetadata(base,{title:"Refused"},{expectedRevision:revision})).rejects.toMatchObject({status:409});
+  expect((await readFile(marker,"utf8")).trim()).toBe(revision);
+  expect(catalog.getSongsByBase(base)[0]?.title).toBe("Before");
+  await writeFile(sourcePath, bytes);
+  await update.applySongMetadata(base,{ title: "After", artist: "Owner", category: "Study" },{ expectedRevision: revision });
+  expect(catalog.getSongsByBase(base).every(row=>row.title==="After"&&row.artist==="Owner"&&row.category==="Study")).toBe(true);
+  expect(await Promise.all(rows.map(row => readFile(join(root,"artifacts",base,row.level,"notes.json"))))).toEqual(before);
+  expect((await readFile(marker,"utf8")).trim()).not.toBe(revision);
+  await expect(update.applySongMetadata(base,{ title: "Stale" },{ expectedRevision: revision })).rejects.toMatchObject({status:409});
+  expect(catalog.getSongsByBase(base).map(row=>row.id)).toEqual(rows.map(row=>row.id));
+});

@@ -58,3 +58,13 @@ describe("SimplifyScore measure indexing", () => {
     expect(html.match(/overlap/g)).toHaveLength(2);
   });
 });
+
+it("prints carry and silence with the same interval cues as learner views",()=>{
+ const html=renderToStaticMarkup(createElement(SimplifyScore,{data:song({notes:[{midi:60,start:0,dur:5,vel:80,hand:"R"}],chords:[],measures:[{index:0,startBeat:0,endBeat:4},{index:1,startBeat:4,endBeat:8}]}),title:"Hold"}));
+ expect(html).toContain("continues into next bar");expect(html).toContain("Carry, not a new attack");expect(html).toContain("Silence · beats 2–5");
+});
+
+it("uses each printed bar's denominator after a meter change",()=>{
+ const html=renderToStaticMarkup(createElement(SimplifyScore,{data:song({notes:[{midi:60,start:4,dur:.5,vel:80,hand:"R"}],chords:[],measures:[{index:0,startBeat:0,endBeat:4},{index:1,startBeat:4,endBeat:7}],timeSig:[4,4],timeSigEvents:[{tick:0,beat:0,timeSig:[4,4]},{tick:1920,beat:4,timeSig:[6,8]}]}),title:"Meter"}));
+ expect(html).toContain("hold to beat 2");expect(html).toContain("Silence · beats 2–7");
+});

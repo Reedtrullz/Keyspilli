@@ -4,6 +4,9 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, statfs, writeFile 
 import { basename, dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { writeMidi } from "@keyspilli/midi";
+import { finiteNumberSetting } from "./worker-config.js";
+
+import {withResourceAccounting} from "./errors.js";
 
 const execFileP = promisify(execFile);
 
@@ -77,7 +80,7 @@ interface CommandResult {
 export type StemCommandRunner = (
   command: string,
   args: readonly string[],
-  options: { timeoutMs: number },
+  options: { timeoutMs: number; signal?: AbortSignal },
 ) => Promise<CommandResult>;
 
 export interface StemPipelineDependencies {
@@ -85,6 +88,7 @@ export interface StemPipelineDependencies {
   freeBytes?: (path: string) => Promise<number>;
   demucsVersion?: string;
   basicPitchVersion?: string;
+  signal?: AbortSignal;
 }
 
 const DEFAULT_SEPARATOR_TIMEOUT_MS = 2_700_000;
@@ -110,26 +114,17 @@ function thresholdsForRole(
   return { onsetThreshold: config.onsetThreshold, frameThreshold: config.frameThreshold };
 }
 
-function finiteNumber(name: string, raw: string, opts: { min: number; max?: number }): number {
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < opts.min || (opts.max !== undefined && value > opts.max)) {
-    const range = opts.max === undefined ? `>= ${opts.min}` : `between ${opts.min} and ${opts.max}`;
-    throw new Error(`${name} must be ${range}, got "${raw}"`);
-  }
-  return value;
-}
-
 export function stemPipelineConfigFromEnv(
   env: NodeJS.ProcessEnv,
   paths: { root: string; python: string; basicPitch: string },
 ): StemPipelineConfig {
   const mode = env.KEYSPILLI_IMPORT_MODE ?? "auto";
   if (mode !== "auto" && mode !== "legacy" && mode !== "metal") {
-    throw new Error(`KEYSPILLI_IMPORT_MODE must be auto, legacy, or metal, got "${mode}"`);
+    throw new Error("KEYSPILLI_IMPORT_MODE must be auto, legacy, or metal");
   }
   const device = env.KEYSPILLI_DEMUCS_DEVICE ?? "cpu";
   if (device !== "cpu" && device !== "cuda" && device !== "mps") {
-    throw new Error(`KEYSPILLI_DEMUCS_DEVICE must be cpu, cuda, or mps, got "${device}"`);
+    throw new Error("KEYSPILLI_DEMUCS_DEVICE must be cpu, cuda, or mps");
   }
   return {
     mode,
@@ -139,23 +134,23 @@ export function stemPipelineConfigFromEnv(
     drumOnsetScript: join(paths.root, "services", "transcribe", "src", "audio_onsets.py"),
     demucsModel: env.KEYSPILLI_DEMUCS_MODEL?.trim() || "htdemucs_6s",
     demucsDevice: device,
-    separatorTimeoutMs: finiteNumber(
+    separatorTimeoutMs: finiteNumberSetting(
       "KEYSPILLI_DEMUCS_TIMEOUT_MS",
       env.KEYSPILLI_DEMUCS_TIMEOUT_MS ?? String(DEFAULT_SEPARATOR_TIMEOUT_MS),
-      { min: 1_000 },
+      { min: 1_000, max: 3_600_000 },
     ),
-    basicPitchTimeoutMs: finiteNumber(
+    basicPitchTimeoutMs: finiteNumberSetting(
       "KEYSPILLI_BP_TIMEOUT_MS",
       env.KEYSPILLI_BP_TIMEOUT_MS ?? String(DEFAULT_BASIC_PITCH_TIMEOUT_MS),
-      { min: 1_000 },
+      { min: 1_000, max: 3_600_000 },
     ),
-    minFreeBytes: finiteNumber(
+    minFreeBytes: finiteNumberSetting(
       "KEYSPILLI_STEM_MIN_FREE_GIB",
       env.KEYSPILLI_STEM_MIN_FREE_GIB ?? String(DEFAULT_MIN_FREE_GIB),
-      { min: 0 },
+      { min: 0, max: 1_024 },
     ) * 1024 ** 3,
-    onsetThreshold: finiteNumber("KEYSPILLI_ONSET", env.KEYSPILLI_ONSET ?? "0.65", { min: 0, max: 1 }),
-    frameThreshold: finiteNumber("KEYSPILLI_FRAME", env.KEYSPILLI_FRAME ?? "0.45", { min: 0, max: 1 }),
+    onsetThreshold: finiteNumberSetting("KEYSPILLI_ONSET", env.KEYSPILLI_ONSET ?? "0.65", { min: 0, max: 1 }),
+    frameThreshold: finiteNumberSetting("KEYSPILLI_FRAME", env.KEYSPILLI_FRAME ?? "0.45", { min: 0, max: 1 }),
     modelSerialization: env.KEYSPILLI_BP_SERIALIZATION?.trim() || "",
   };
 }
@@ -163,10 +158,11 @@ export function stemPipelineConfigFromEnv(
 async function defaultRun(
   command: string,
   args: readonly string[],
-  options: { timeoutMs: number },
+  options: { timeoutMs: number; signal?: AbortSignal },
 ): Promise<CommandResult> {
-  const result = await execFileP(command, [...args], {
+  const result = await withResourceAccounting(()=>execFileP(command, [...args], {
     timeout: options.timeoutMs,
+    ...(options.signal ? { signal: options.signal } : {}),
     killSignal: "SIGKILL",
     maxBuffer: 32 * 1024 * 1024,
     env: {
@@ -178,7 +174,7 @@ async function defaultRun(
       MKL_NUM_THREADS: process.env.MKL_NUM_THREADS ?? "2",
       OPENBLAS_NUM_THREADS: process.env.OPENBLAS_NUM_THREADS ?? "2",
     },
-  });
+  }),options.signal);
   return { stdout: result.stdout, stderr: result.stderr };
 }
 
@@ -249,6 +245,7 @@ export async function transcribePitchedStems(
   dependencies: StemPipelineDependencies = {},
 ): Promise<StemPipelineResult> {
   const run = dependencies.run ?? defaultRun;
+  if (dependencies.signal?.aborted) throw new Error("stem transcription cancelled");
   const freeBytes = await (dependencies.freeBytes ?? defaultFreeBytes)(jobDir);
   if (freeBytes < config.minFreeBytes) {
     throw new Error(
@@ -267,7 +264,7 @@ export async function transcribePitchedStems(
       "--output", separatedDir,
       "--model", config.demucsModel,
       "--device", config.demucsDevice,
-    ], { timeoutMs: config.separatorTimeoutMs });
+    ], { timeoutMs: config.separatorTimeoutMs, signal: dependencies.signal });
     const reportLine = separation.stdout
       .split(/\r?\n/)
       .reverse()
@@ -319,7 +316,7 @@ export async function transcribePitchedStems(
       ];
       if (options.tempo !== undefined) args.push("--midi-tempo", String(options.tempo));
       if (config.modelSerialization) args.push("--model-serialization", config.modelSerialization);
-      await run(config.basicPitch, args, { timeoutMs: config.basicPitchTimeoutMs });
+      await run(config.basicPitch, args, { timeoutMs: config.basicPitchTimeoutMs, signal: dependencies.signal });
       const midiPath = await findBasicPitchMidi(outDir);
       const midi = new Uint8Array(await readFile(midiPath));
       stems.push({ role: item.role, midi, noteSource: item.source });
@@ -337,6 +334,7 @@ export async function transcribePitchedStems(
     // arranger can consume a normal ParsedMidi timing lane.
     const drumOnsetsResult = await run(config.python, [config.drumOnsetScript, stemPaths.drums], {
       timeoutMs: Math.min(config.basicPitchTimeoutMs, 180_000),
+      signal: dependencies.signal,
     });
     const drumOnsets = (JSON.parse(drumOnsetsResult.stdout) as unknown[])
       .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0);

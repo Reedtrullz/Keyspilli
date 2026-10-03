@@ -146,11 +146,15 @@ describe("source handoff routes", () => {
   it("does not erase an accepted upload when a delayed confirmation resumes", async () => {
     const created = await POST(request({ targetId: "target-route-song", targetArtist: "Route Band", targetTitle: "Route Song", candidateId: "lead-route" }));
     const id = (await created.json()).handoff.handoffId as string;
-    const req = request({ userAffirmedTarget: true }, `https://keys.reidar.tech/api/source-handoffs/${id}/confirm`);
     let entered!: () => void;
-    let resume!: (value: unknown) => void;
+    let resume!: () => void;
     const reading = new Promise<void>((resolve) => { entered = resolve; });
-    vi.spyOn(req, "json").mockImplementation(() => { entered(); return new Promise((resolve) => { resume = resolve; }); });
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) { entered(); return new Promise<void>(resolve => { resume = () => { controller.enqueue(new TextEncoder().encode('{"userAffirmedTarget":true}')); controller.close(); resolve(); }; }); },
+    });
+    const req = new NextRequest(`https://keys.reidar.tech/api/source-handoffs/${id}/confirm`, {
+      method: "POST", headers: { authorization: "Bearer test-token", "content-type": "application/json" }, body: stream, duplex: "half",
+    });
     const pending = confirm(req, { params: Promise.resolve({ id }) });
     await reading;
     const original = getSourceCandidateHandoff(id)!;
@@ -158,7 +162,7 @@ describe("source handoff routes", () => {
       uploadedSourceSha256: "a".repeat(64), uploadedFormat: "midi", intakeCandidateId: `upload-${"a".repeat(64)}`,
     });
     saveSourceCandidateHandoff(acceptSourceCandidateHandoff(bound.handoff));
-    resume({ userAffirmedTarget: true });
+    resume();
     expect((await pending).status).toBe(200);
     expect(getSourceCandidateHandoff(id)).toMatchObject({ state: "GENERATION_ACCEPTED", uploadedSourceSha256: "a".repeat(64), intakeCandidateId: `upload-${"a".repeat(64)}` });
   });

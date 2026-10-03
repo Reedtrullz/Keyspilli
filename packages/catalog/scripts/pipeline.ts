@@ -7,7 +7,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { LEVEL_ORDER } from "@keyspilli/midi";
-import { countSongs, getSongsByBase, removeSongsByBase } from "../src/db.js";
+import { countSongs, getSongsByBase, removeSongsByBase, quarantinedBaseIds } from "../src/db.js";
 import { ingestSource } from "../src/ingest.js";
 import { ROOT, seedMidiDir } from "../src/paths.js";
 
@@ -75,6 +75,7 @@ let failed = 0;
 const failures: string[] = [];
 const t0 = Date.now();
 for (const s of manifest.songs) {
+  if (quarantinedBaseIds().has(s.id)) { process.stdout.write(`- ${s.id}: quarantined, rows and owned bytes retained\n`); continue; }
   if (s.disabled) {
     const removed = removeSongsByBase(s.id);
     process.stdout.write(`- ${s.id}: disabled, skipped\n`);

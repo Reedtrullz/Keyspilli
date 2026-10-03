@@ -21,6 +21,7 @@ import {
   getSongsByBase,
   ingestSource,
   removeSongsByBase,
+  quarantinedBaseIds,
   parseYoutubeSourceArgs,
   resolveYoutubeSource,
 } from "../src/index.js";
@@ -97,7 +98,7 @@ const manifest = new Map((manifestRaw.songs ?? []).map((song) => [song.id, song]
 // cannot leave stale songs publicly reachable. Targeting a disabled base will
 // then fail closed below because it no longer has catalog metadata.
 for (const song of manifest.values()) {
-  if (!song.disabled) continue;
+  if (!song.disabled || quarantinedBaseIds().has(song.id)) continue;
   if (dryRun) {
     if (getSongsByBase(song.id).length) console.log(`? ${song.id}: would remove disabled catalogue rows`);
     continue;
@@ -314,6 +315,7 @@ let failed = 0;
 let skipped = 0;
 
 for (const baseId of bases) {
+  if (quarantinedBaseIds().has(baseId)) { console.log(`- ${baseId}: quarantined, rows and owned bytes retained`); continue; }
   const meta = metadataFor(baseId);
   if (!meta) {
     skipped++;

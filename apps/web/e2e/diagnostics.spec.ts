@@ -1,0 +1,35 @@
+import {readFileSync} from "node:fs";
+import {test,expect} from "@playwright/test";
+
+test("diagnostic preview excludes private material, can be discarded, and survives unavailable runtime",async({page})=>{
+ let checks=0;
+ await page.route("**/api/health",route=>{checks++;return route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({version:"1.2.3",commit:"abcdef1234567",readiness:{catalog:{state:"unavailable",code:"CATALOG_UNAVAILABLE",schemaEpoch:4}},privateUrl:"https://private.example/music?token=secret",path:"/Users/owner/music",title:"Private lesson",environment:{TOKEN:"credential"}})});});
+ await page.goto("/");
+ const owner=page.locator('details[aria-label="Back up browser practice"]');
+ await owner.locator(":scope > summary").click();
+ const tools=owner.locator('details[aria-label="Privacy-safe diagnostics"]');
+ await tools.locator(":scope > summary").click();
+ expect(checks).toBe(0);
+ await tools.getByRole("button",{name:"Preview diagnostic receipt",exact:true}).click();
+ const preview=tools.getByLabel("Diagnostic preview");
+ await expect(preview).toContainText("CATALOG_UNAVAILABLE");
+ const text=await preview.innerText();
+ expect(Buffer.byteLength(text)).toBeLessThanOrEqual(16384);
+ expect(text).not.toMatch(/private\.example|token=secret|\/Users\/owner|Private lesson|credential/);
+ const receipt=JSON.parse(text);
+ expect(receipt.software).toEqual({version:"1.2.3",commit:"abcdef1234567"});
+ expect(receipt.capabilities.worker).toBe("unknown");
+ await tools.getByRole("button",{name:"Discard diagnostic preview"}).click();
+ await expect(preview).toHaveCount(0);
+ await tools.getByRole("button",{name:"Preview diagnostic receipt",exact:true}).click();
+ await expect(preview).toBeVisible();
+ const event=page.waitForEvent("download");
+ await tools.getByRole("button",{name:"Download diagnostic receipt",exact:true}).click();
+ const download=await event;
+ expect(readFileSync((await download.path())!,"utf8")).toBe(await preview.innerText());
+ await page.unroute("**/api/health");
+ await page.route("**/api/health",route=>route.abort());
+ await tools.getByRole("button",{name:"Preview diagnostic receipt",exact:true}).click();
+ await expect(tools.getByRole("status")).toContainText("Runtime status unavailable");
+ await expect(preview).toContainText('"state": "unknown"');
+});

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { openPlayerTool } from "./player-tools";
 
 test("synthetic mobile player keeps controls reachable and modal focus usable", async ({ page, request }) => {
-  const response = await request.get("/api/songs?q=Scratch%20MusicXML&limit=20");
+  const response = await request.get("/api/songs?q=Scratch%20MusicXML&limit=20&legacy=1");
   const songs = (await response.json()).songs as Array<{ id: string; difficulty: string }>;
   const id = songs.find((song) => song.difficulty === "easy")?.id;
   expect(id).toBeTruthy();

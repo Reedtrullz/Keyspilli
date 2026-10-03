@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const ingestSource = vi.hoisted(() => vi.fn());
@@ -8,8 +9,10 @@ const saveSourceCandidateHandoff = vi.hoisted(() => vi.fn());
 const acceptSourceCandidateHandoff = vi.hoisted(() => vi.fn());
 const rejectSourceCandidateHandoff = vi.hoisted(() => vi.fn());
 const inferIngestFormat = vi.hoisted(() => vi.fn(() => "midi"));
+const getUploadPublicationReceipt = vi.hoisted(() => vi.fn());
 
 vi.mock("@keyspilli/catalog", () => ({
+  getUploadPublicationReceipt,
   ingestSource,
   getSourceCandidateHandoff,
   bindSourceCandidateUpload,
@@ -81,6 +84,7 @@ describe("upload route source handoff binding", () => {
     rejectSourceCandidateHandoff.mockReset().mockReturnValue({ ...handoff, state: "FILE_REJECTED" });
     inferIngestFormat.mockReset().mockReturnValue("midi");
     ingestSource.mockReset();
+    getUploadPublicationReceipt.mockReset().mockResolvedValue(null);
   });
 
   it("requires the explicit confirmation query value", async () => {
@@ -89,11 +93,38 @@ describe("upload route source handoff binding", () => {
     expect(ingestSource).not.toHaveBeenCalled();
   });
 
+  it("reuses an accepted publication without rewriting its source handoff", async () => {
+    const sourceHash = createHash("sha256").update(new Uint8Array([1, 2, 3])).digest("hex");
+    const receipt = {
+      baseId: `upload-${sourceHash}`, sourceHash, publicationRevision: "revision-1",
+      songIds: [], easySongId: `upload-${sourceHash}-e`, title: "Saved", artist: "Artist",
+    };
+    getUploadPublicationReceipt.mockResolvedValueOnce(receipt);
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ...receipt, reused: true });
+    expect(getSourceCandidateHandoff).not.toHaveBeenCalled();
+    expect(bindSourceCandidateUpload).not.toHaveBeenCalled();
+    expect(saveSourceCandidateHandoff).not.toHaveBeenCalled();
+    expect(acceptSourceCandidateHandoff).not.toHaveBeenCalled();
+    expect(ingestSource).not.toHaveBeenCalled();
+  });
+
   it("passes the server-created lineage into ingest and accepts it after success", async () => {
+    const sourceHash = createHash("sha256").update(new Uint8Array([1, 2, 3])).digest("hex");
+    getUploadPublicationReceipt
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        baseId: `upload-${sourceHash}`, sourceHash, publicationRevision: "revision-1",
+        songIds: ["vb", "b", "ve", "e", "m", "a"].map((level) => `upload-${sourceHash}-${level}`),
+        easySongId: `upload-${sourceHash}-e`, title: "Song", artist: "Artist",
+      });
     ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: ["upload-e"] });
     const response = await POST(request());
     expect(response.status).toBe(200);
-    expect(ingestSource).toHaveBeenCalledWith(expect.objectContaining({ sourceCandidateHandoff: link }));
+    expect(ingestSource).toHaveBeenCalledWith(expect.objectContaining({ sourceCandidateHandoff: link }), { uploadReplay: { mode: "reuse" } });
     expect(acceptSourceCandidateHandoff).toHaveBeenCalledOnce();
     expect(saveSourceCandidateHandoff).toHaveBeenCalled();
   });

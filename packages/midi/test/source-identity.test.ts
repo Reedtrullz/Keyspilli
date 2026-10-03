@@ -47,8 +47,8 @@ describe("neutral source identity", () => {
     const parsed = parseMusicXmlNotes(xml);
     const notes = parsed.notes.filter((note) => note.midi === 60);
     expect(notes.map((note) => note.sourceOrigins)).toEqual([
-      [{ id: "musicxml:1:1:0", staff: "1", voice: "1" }],
-      [{ id: "musicxml:2:2:1", staff: "2", voice: "2" }],
+      [{ id: "musicxml:P1:1:1:0", part: "musicxml:P1", staff: "1", voice: "1" }],
+      [{ id: "musicxml:P1:2:2:1", part: "musicxml:P1", staff: "2", voice: "2" }],
     ]);
     expect(notes.every((note) => note.identitySource === undefined)).toBe(true);
     const advanced = buildVariants(parsed, { title: "Two staves", artist: "Test" }, { arrangementProfile: "source" })
@@ -56,14 +56,14 @@ describe("neutral source identity", () => {
     const roundTripped = JSON.parse(JSON.stringify(advanced));
     const merged = roundTripped.notes.filter((note: { midi: number }) => note.midi === 60);
     expect(merged).toHaveLength(1);
-    expect(merged[0].sourceOrigins.map((origin: { id: string }) => origin.id)).toEqual(["musicxml:1:1:0", "musicxml:2:2:1"]);
+    expect(merged[0].sourceOrigins.map((origin: { id: string }) => origin.id)).toEqual(["musicxml:P1:1:1:0", "musicxml:P1:2:2:1"]);
   });
 
   it("unions tied segment origins when reconstructing a MusicXML note", () => {
     const xml = `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><tie type="start"/><voice>1</voice><staff>1</staff></note></measure><measure number="2"><note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><tie type="stop"/><voice>1</voice><staff>1</staff></note></measure></part></score-partwise>`;
     const note = parseMusicXmlNotes(xml).notes[0]!;
     expect(note.dur).toBe(5);
-    expect(note.sourceOrigins?.map((origin) => origin.id)).toEqual(["musicxml:1:1:0", "musicxml:1:1:1"]);
+    expect(note.sourceOrigins?.map((origin) => origin.id)).toEqual(["musicxml:P1:1:1:0", "musicxml:P1:1:1:1"]);
   });
 
   it("keeps quantized collision lineage without promoting conflicting roles", () => {

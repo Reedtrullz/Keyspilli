@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "engravingVersion": "6.3.0",
+  "runtime": "v22.22.3",
+  "browser": "151.0.7922.34",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "fixture": {
+    "sha256": "cab5686bb92f70c380369c1f7acd2f951230f434d769f736780683b390929df1",
+    "notes": 20000,
+    "measures": 500,
+    "beats": 2500,
+    "gridNotePairs": 200000000
+  },
+  "sampleCount": 6,
+  "samples": [
+    {
+      "renderer": "worker",
+      "sample": 0,
+      "libraryMs": [
+        255.48333300000013,
+        127.6235000000006
+      ],
+      "uploadMs": 5542.10175,
+      "firstScheduledNoteMs": 440.7000000476837,
+      "sheetMs": [
+        4263.174083000002,
+        12484.578957999998
+      ],
+      "pdfMs": 4692.753792000003,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 130.1298339999994,
+          "pages": 3,
+          "estimatedStringBytes": 967856,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 26,
+          "renderMs": 307.87125000000015,
+          "pages": 5,
+          "estimatedStringBytes": 1416998,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 51,
+          "renderMs": 444.8964999999989,
+          "pages": 3,
+          "estimatedStringBytes": 661832,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 213.0497499999983,
+          "pages": 3,
+          "estimatedStringBytes": 967856,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 51,
+          "renderMs": 148.95324999999866,
+          "pages": 3,
+          "estimatedStringBytes": 661832,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 252.71945800000321,
+          "pages": 3,
+          "estimatedStringBytes": 967856,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [],
+      "heapBytes": 37300000
+    },
+    {
+      "renderer": "worker",
+      "sample": 1,
+      "libraryMs": [
+        146.6340829999972,
+        8951.554916000001
+      ],
+      "uploadMs": null,
+      "firstScheduledNoteMs": 71.69999992847443,
+      "sheetMs": [
+        3008.9187079999974,
+        13811.972709000001
+      ],
+      "pdfMs": 5161.877416999996,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 89.84995899999922,
+          "pages": 3,
+          "estimatedStringBytes": 971184,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 26,
+          "renderMs": 309.20908300000883,
+          "pages": 5,
+          "estimatedStringBytes": 1422774,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 51,
+          "renderMs": 262.48445800000627,
+          "pages": 3,
+          "estimatedStringBytes": 664382,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 230.916916999995,
+          "pages": 3,
+          "estimatedStringBytes": 971184,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 51,
+          "renderMs": 230.94800000000396,
+          "pages": 3,
+          "estimatedStringBytes": 664382,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 186.70004199999676,
+          "pages": 3,
+          "estimatedStringBytes": 971184,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [],
+      "heapBytes": 42100000
+    },
+    {
+      "renderer": "worker",
+      "sample": 2,
+      "libraryMs": [
+        150.95229099999415,
+        7815.941584
+      ],
+      "uploadMs": null,
+      "firstScheduledNoteMs": 58.60000002384186,
+      "sheetMs": [
+        3229.8221249999915,
+        12394.463833000002
+      ],
+      "pdfMs": 4146.141125000009,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 81.88479200001166,
+          "pages": 3,
+          "estimatedStringBytes": 967962,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 26,
+          "renderMs": 272.82195800000045,
+          "pages": 5,
+          "estimatedStringBytes": 1417088,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 51,
+          "renderMs": 205.24049999999988,
+          "pages": 3,
+          "estimatedStringBytes": 661916,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 151.37233300000662,
+          "pages": 3,
+          "estimatedStringBytes": 967962,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 51,
+          "renderMs": 215.31020799999533,
+          "pages": 3,
+          "estimatedStringBytes": 661916,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        },
+        {
+          "page": 1,
+          "renderMs": 252.83629099999962,
+          "pages": 3,
+          "estimatedStringBytes": 967962,
+          "fallbackBytes": 0,
+          "renderer": "worker"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [
+        50
+      ],
+      "heapBytes": 26000000
+    },
+    {
+      "renderer": "main",
+      "sample": 0,
+      "libraryMs": [
+        123.10649999999441,
+        10186.918583999985
+      ],
+      "uploadMs": null,
+      "firstScheduledNoteMs": 59.200000047683716,
+      "sheetMs": [
+        2660.094167000003,
+        10528.462999999989
+      ],
+      "pdfMs": 4444.344874999981,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 374.7047920000041,
+          "pages": 3,
+          "estimatedStringBytes": 971180,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 26,
+          "renderMs": 321.30020800000057,
+          "pages": 5,
+          "estimatedStringBytes": 1422902,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 51,
+          "renderMs": 302.94645799999125,
+          "pages": 3,
+          "estimatedStringBytes": 664458,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 1,
+          "renderMs": 292.82991599998786,
+          "pages": 3,
+          "estimatedStringBytes": 971180,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 51,
+          "renderMs": 184.08574999999837,
+          "pages": 3,
+          "estimatedStringBytes": 664458,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 1,
+          "renderMs": 208.43554099998437,
+          "pages": 3,
+          "estimatedStringBytes": 971180,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [
+        1784,
+        50
+      ],
+      "heapBytes": 64000000
+    },
+    {
+      "renderer": "main",
+      "sample": 1,
+      "libraryMs": [
+        139.65333299999475,
+        8173.495083000016
+      ],
+      "uploadMs": null,
+      "firstScheduledNoteMs": 96.5,
+      "sheetMs": [
+        2805.1507500000007,
+        12123.833125000005
+      ],
+      "pdfMs": 4505.957584000018,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 388.4446659999958,
+          "pages": 3,
+          "estimatedStringBytes": 967920,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 26,
+          "renderMs": 354.35470799999894,
+          "pages": 5,
+          "estimatedStringBytes": 1416982,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 51,
+          "renderMs": 304.7962080000143,
+          "pages": 3,
+          "estimatedStringBytes": 661804,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 1,
+          "renderMs": 208.6751670000085,
+          "pages": 3,
+          "estimatedStringBytes": 967920,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 51,
+          "renderMs": 207.37683399999514,
+          "pages": 3,
+          "estimatedStringBytes": 661804,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 1,
+          "renderMs": 202.51604200000293,
+          "pages": 3,
+          "estimatedStringBytes": 967920,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [
+        1820,
+        50,
+        52
+      ],
+      "heapBytes": 60300000
+    },
+    {
+      "renderer": "main",
+      "sample": 2,
+      "libraryMs": [
+        125.61208300001454,
+        9741.234666000004
+      ],
+      "uploadMs": null,
+      "firstScheduledNoteMs": 71.89999997615814,
+      "sheetMs": [
+        2671.3543749999953,
+        12374.519540999987
+      ],
+      "pdfMs": 5225.724665999995,
+      "retention": [
+        {
+          "page": 1,
+          "renderMs": 276.6600000000035,
+          "pages": 3,
+          "estimatedStringBytes": 967984,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 26,
+          "renderMs": 395.08804100001,
+          "pages": 5,
+          "estimatedStringBytes": 1417018,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 51,
+          "renderMs": 365.8162080000038,
+          "pages": 3,
+          "estimatedStringBytes": 661866,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 1,
+          "renderMs": 220.5335410000116,
+          "pages": 3,
+          "estimatedStringBytes": 967984,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 51,
+          "renderMs": 213.21716699999524,
+          "pages": 3,
+          "estimatedStringBytes": 661866,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        },
+        {
+          "page": 1,
+          "renderMs": 234.30175000001327,
+          "pages": 3,
+          "estimatedStringBytes": 967984,
+          "fallbackBytes": 0,
+          "renderer": "main"
+        }
+      ],
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "longTasksMs": [
+        1834,
+        53,
+        71
+      ],
+      "heapBytes": 56800000
+    }
+  ],
+  "limitations": [
+    "Local Chromium; audio scheduled, not speaker latency",
+    "String bytes and Chromium heap estimate exclude WASM/native memory",
+    "No device or production budget adopted",
+    "Joint maximum note/grid-pair source; independent 4096-beat and 2048-measure shapes not measured"
+  ]
+}

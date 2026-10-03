@@ -6,12 +6,13 @@ const notFound = vi.hoisted(() => vi.fn(() => {
 const getSongDetail = vi.hoisted(() => vi.fn());
 const getSongDetailShell = vi.hoisted(() => vi.fn());
 const SimplifyScore = vi.hoisted(() => vi.fn(() => null));
-const ClassicScore = vi.hoisted(() => vi.fn(() => null));
+const SheetMusicView = vi.hoisted(() => vi.fn(() => null));
+const PublicationRevisionConflictError = vi.hoisted(() => class extends Error {});
 
 vi.mock("next/navigation", () => ({ notFound }));
-vi.mock("@/lib/catalog-api", () => ({ getSongDetail, getSongDetailShell }));
+vi.mock("@/lib/catalog-api", () => ({ getSongDetail, getSongDetailShell, PublicationRevisionConflictError }));
 vi.mock("@/components/export/SimplifyScore", () => ({ SimplifyScore }));
-vi.mock("@/components/export/ClassicScore", () => ({ ClassicScore }));
+vi.mock("@/components/player/SheetMusicView", () => ({ SheetMusicView }));
 
 import ExportPage from "./page";
 
@@ -28,7 +29,7 @@ describe("export page layout contract", () => {
     getSongDetail.mockReset();
     getSongDetailShell.mockReset();
     SimplifyScore.mockClear();
-    ClassicScore.mockClear();
+    SheetMusicView.mockClear();
   });
 
   it("does not downgrade a classic request without MusicXML", async () => {
@@ -41,7 +42,7 @@ describe("export page layout contract", () => {
 
     expect(notFound).toHaveBeenCalledOnce();
     expect(getSongDetail).not.toHaveBeenCalled();
-    expect(ClassicScore).not.toHaveBeenCalled();
+    expect(SheetMusicView).not.toHaveBeenCalled();
     expect(SimplifyScore).not.toHaveBeenCalled();
   });
 
@@ -54,16 +55,17 @@ describe("export page layout contract", () => {
     expect(getSongDetail).not.toHaveBeenCalled();
   });
 
-  it("uses ClassicScore only when MusicXML is available", async () => {
-    getSongDetailShell.mockResolvedValueOnce({ song: detail(1).song, variants: [] });
+  it("pins the classic sheet request to the shell publication", async () => {
+    getSongDetailShell.mockResolvedValueOnce({ song: detail(1).song, variants: [], publicationRevision: "revision-a" });
 
     const rendered = await ExportPage({
       params: Promise.resolve({ id: "song-a" }),
       searchParams: Promise.resolve({ layout: "classic" }),
     });
-    const score = (rendered as any).props.children.props.children;
+    const sheet = (rendered as any).props.children.props.children.props.children[1];
 
-    expect(score.type).toBe(ClassicScore);
+    expect(sheet.type).toBe(SheetMusicView);
+    expect(sheet.props.publicationRevision).toBe("revision-a");
     expect(getSongDetail).not.toHaveBeenCalled();
   });
 

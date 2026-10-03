@@ -11,7 +11,7 @@ const hooks = vi.hoisted(() => ({
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useMemo: (factory: () => unknown) => factory(),
-  useRef: (value: unknown) => ({ current: hooks.refs++ === 0 ? hooks.canvas : hooks.refs === 2 ? hooks.lyrics : value }),
+  useRef: (value: unknown) => ({ current: value === null && hooks.refs < 2 ? hooks.refs++ === 0 ? hooks.canvas : hooks.lyrics : value }),
   useEffect: (effect: () => void | (() => void)) => hooks.effects.push(effect),
 }));
 afterEach(() => { vi.unstubAllGlobals(); hooks.effects = []; hooks.refs = 0; });
