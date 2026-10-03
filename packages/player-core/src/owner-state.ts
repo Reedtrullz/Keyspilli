@@ -68,10 +68,13 @@ function read(key: string): unknown {
 }
 export function exportOwnerState(includeHistory: boolean): OwnerState {
   const storage = preferenceStorage(), prefs: Record<string, SongPrefs> = {}, choices: Record<string, OwnerMelodyChoice> = {};
+  if (!storage) throw Error("Browser storage is unavailable; owner state could not be exported.");
+  if (storage.length > 5000) throw Error("Owner state export exceeds the 5000-key scan bound; no incomplete backup was downloaded.");
+  storage.getItem("keyspilli.prefs.v1"); // Refuse inaccessible storage before tolerant preference readers substitute defaults.
   const restored = read(RESTORED_MELODY);
   if (map(restored, 1000, musicalChoice)) Object.assign(choices, restored);
   // ponytail: bounded scan of this browser's keys; a dedicated state row if the owner exceeds 5000 keys.
-  for (let i = 0; storage && i < Math.min(storage.length, 5000); i++) {
+  for (let i = 0; i < Math.min(storage.length, 5000); i++) {
     const key = storage.key(i); if (!key) continue;
     if (key.startsWith(SONG_PREFIX) && id(key.slice(SONG_PREFIX.length))) prefs[key.slice(SONG_PREFIX.length)] = loadSongPrefs(key.slice(SONG_PREFIX.length));
     if (key.startsWith(MELODY_PREFIX) && id(key.slice(MELODY_PREFIX.length))) {
@@ -82,6 +85,7 @@ export function exportOwnerState(includeHistory: boolean): OwnerState {
       if (musicalChoice(normalized)) choices[key.slice(MELODY_PREFIX.length)] = normalized;
     }
   }
+  if (storage.length > 5000) throw Error("Owner state changed beyond the 5000-key scan bound; retry the export.");
   const practice = loadPracticeState();
   const state: OwnerState = { version: 1, includeHistory, settings: loadSettings(), favorites: loadStringList("keyspilli.favorites"), learned: loadStringList("keyspilli.learned"),
     songPrefs: prefs, musicalChoices: choices, practice: { ...practice, attempts: includeHistory ? practice.attempts : [] }, practiceSets: loadPracticeSets() };

@@ -3,6 +3,14 @@ import { DEFAULT_SETTINGS } from "../src/prefs.js";
 import { exportOwnerState, parseOwnerState, restoreOwnerState, restoredMelodyChoice } from "../src/owner-state.js";
 
 afterEach(() => vi.unstubAllGlobals());
+it("refuses owner exports when storage is unavailable or the scan would be incomplete", () => {
+  vi.stubGlobal("localStorage", undefined);
+  expect(() => exportOwnerState(false)).toThrow(/unavailable/i);
+  vi.stubGlobal("localStorage", { length: 5001, key: () => null, getItem: () => null });
+  expect(() => exportOwnerState(false)).toThrow(/5000|incomplete/i);
+  vi.stubGlobal("localStorage", { length: 0, getItem: () => { throw Error("storage unavailable"); } });
+  expect(() => exportOwnerState(false)).toThrow(/unavailable/i);
+});
 it("previews bounded owner state, restores supported fields atomically and withholds stale musical choices", () => {
   const rows = new Map<string, string>([["keyspilli.favorites", '["old-e"]'], ["unrelated", "keep"]]);
   vi.stubGlobal("localStorage", { get length() { return rows.size; }, key: (i: number) => [...rows.keys()][i] ?? null,
