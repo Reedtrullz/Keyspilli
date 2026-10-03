@@ -343,13 +343,17 @@ test("practice remains keyboard accessible with reduced motion and 200% CSS zoom
 
 for (const playing of [false, true]) {
   test(`speed preserves the musical position while ${playing ? "playing" : "paused"}`, async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
     await page.goto(`/player/${SONG}`);
+    await expect(page.getByRole("slider", { name: "Seek", exact: true })).toBeEnabled();
+    await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
     await page.getByRole("slider", { name: "Seek", exact: true }).fill("20");
     if (playing) await page.getByRole("button", { name: "Play", exact: true }).click();
     const seek = page.getByRole("slider", { name: "Seek", exact: true });
     const originalBar = (await seek.getAttribute("aria-valuetext"))!.match(/^Bar \d+ of \d+/)![0];
     for (const [label, speed] of [["50%", 0.5], ["75%", 0.75], ["100%", 1]] as const) {
       await page.getByRole("button", { name: label, exact: true }).click();
+      if (playing) await page.clock.runFor(200);
       await expect(seek).toHaveAttribute("aria-valuetext", new RegExp(`^${originalBar}`));
       const musicalSeconds = Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue()) * speed;
       expect(musicalSeconds).toBeGreaterThanOrEqual(19.99);
