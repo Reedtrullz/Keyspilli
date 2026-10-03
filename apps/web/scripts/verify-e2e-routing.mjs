@@ -24,12 +24,14 @@ try {
     report.suites.forEach(collect);
     return found;
   }
-  const seeded = files("playwright.config.ts"), roadmap = files("playwright.roadmap.config.ts");
+  const seeded = files("playwright.config.ts"), roadmap = files("playwright.roadmap.config.ts"), playerUI = files("playwright.player-ui.config.ts");
   assert(seeded.has("app.spec.ts") && seeded.has("player-mobile.spec.ts"), "Seeded app/mobile coverage must remain enabled");
   assert(roadmap.has("library-roadmap.spec.ts") && roadmap.has("owner-review.spec.ts"), "Isolated roadmap coverage must remain enabled");
   for (const file of roadmap) assert(!seeded.has(file), `${file} requires the isolated roadmap catalog`);
+  assert(playerUI.has("home-navigation.spec.ts") && playerUI.has("player-ui-improvements.spec.ts"), "Player UI/navigation coverage must remain enabled");
+  for (const file of playerUI) assert(!seeded.has(file) && !roadmap.has(file), `${file} requires the isolated player UI catalog`);
   assert(!seeded.has("performance-baseline.spec.ts"), "Performance measurements require explicit opt-in");
-  console.log(`E2E routing passed: ${seeded.size} seeded files, ${roadmap.size} isolated roadmap files`);
+  console.log(`E2E routing passed: ${seeded.size} seeded files, ${roadmap.size} isolated roadmap files, ${playerUI.size} player UI files`);
 } finally {
   rmSync(scratch, { recursive: true, force: true });
 }
