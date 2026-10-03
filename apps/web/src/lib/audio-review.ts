@@ -533,6 +533,7 @@ export function validateGatewayAudioRouteCatalog(
     ...(Array.isArray(capabilities.aliases) ? capabilities.aliases : []),
   ].filter((item): item is string => typeof item === "string" && item.length > 0))];
   invariant(allowedModelIds.includes(expected.resolvedModel), "gateway model identity does not include the locally resolved explicit route");
+  invariant(allowedModelIds.includes(expected.model), "gateway selected route does not include the explicitly requested model");
   invariant(allowedModelIds.includes(canonicalModel), "gateway canonical model id is absent from its own alias set");
   const routingIdentity = capabilities.routing_identity;
   const routeProjection = {
@@ -581,6 +582,14 @@ function validFinding(value: unknown, durations: Record<AttachmentName, number>,
   invariant(nonempty(value.evidence) && nonempty(value.proposedRepair), `finding ${index} must include audible evidence and a small repair/check suggestion`);
 }
 
+function parseDomainReviewOutput(text: string): unknown {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```json[ \t]*\r?\n([\s\S]*?)\r?\n```$/);
+  const source = fenced ? fenced[1]!.trim() : trimmed;
+  try { return JSON.parse(source); }
+  catch { throw new Error("Anti output_text must be bare JSON or one complete json code fence"); }
+}
+
 export function validateListenEnvelope(
   raw: unknown,
   expected: { model: string; resolvedModel: string; allowedModelIds: readonly string[]; mode: ReviewMode; durations: Record<AttachmentName, number>; expectedAudioHashes: readonly [string, string]; expectedAudioBytes?: readonly [number, number] },
@@ -615,9 +624,7 @@ export function validateListenEnvelope(
   const mediaCoverage = raw.metadata.media_coverage;
   validateAudioMediaReceipt(mediaCoverage, { audioHashes: expected.expectedAudioHashes, audioBytes: expected.expectedAudioBytes, gatewayAttempts: 1 });
   invariant(nonempty(raw.output_text) && raw.output_text.length <= 120_000, "Anti output_text is missing or exceeds the response limit");
-  let decoded: unknown;
-  try { decoded = JSON.parse(raw.output_text); }
-  catch { throw new Error("Anti output_text is not complete JSON"); }
+  const decoded = parseDomainReviewOutput(raw.output_text);
   invariant(isRecord(decoded) && nonempty(decoded.summary) && ["low", "medium", "high"].includes(String(decoded.uncertainty)) && Array.isArray(decoded.findings), "musical review JSON is missing summary, uncertainty, or findings");
   invariant(decoded.findings.length <= 40, "musical review contains too many findings");
   for (const [index, finding] of decoded.findings.entries()) validFinding(finding, expected.durations, index);

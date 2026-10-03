@@ -170,6 +170,15 @@ describe("Keyspilli pairwise audio review contracts", () => {
     expect(() => validateListenEnvelope(envelope({ metadata: { ...envelope().metadata, media_coverage: undefined } }), listenExpected())).toThrow(/media|receipt/);
   });
 
+  it("accepts one complete json fence around the domain review and rejects surrounding text", () => {
+    const json = JSON.stringify(domainReview());
+    const fenced = `\`\`\`json\n${json}\n\`\`\``;
+    expect(validateListenEnvelope(envelope({ output_text: fenced }), listenExpected()).findings).toHaveLength(1);
+    expect(() => validateListenEnvelope(envelope({ output_text: `Review:\n${fenced}` }), listenExpected())).toThrow(/JSON|review/i);
+    expect(() => validateListenEnvelope(envelope({ output_text: `${fenced}\nextra` }), listenExpected())).toThrow(/JSON|review/i);
+    expect(() => validateListenEnvelope(envelope({ output_text: `${fenced}\n\`\`\`json\n${json}\n\`\`\`` }), listenExpected())).toThrow(/JSON|review/i);
+  });
+
   it("requires an ordered two-audio submission receipt with one gateway attempt", () => {
     expect(validateListenEnvelope(envelope(), listenExpected()).findings).toHaveLength(1);
     const media = envelope().metadata.media_coverage;
@@ -200,6 +209,7 @@ describe("Keyspilli pairwise audio review contracts", () => {
     const route = validateGatewayAudioRouteCatalog(catalog, { model: "gemini-3.1-pro", resolvedModel: "gemini-3.1-pro", audioBytes: [1_852_244, 1_852_244], audioDurations: [21, 21] });
     expect(route.allowedModelIds).toContain("gemini-3.1-pro-low");
     expect(route.backendAttemptLimit).toBe(1);
+    expect(() => validateGatewayAudioRouteCatalog(catalog, { model: "unrelated-requested-model", resolvedModel: "gemini-3.1-pro", audioBytes: [1_852_244, 1_852_244], audioDurations: [21, 21] })).toThrow(/requested model|explicit model|selected route/i);
     expect(gatewayAudioRouteCatalogContractSha256({ ...catalog, created: 1, models: catalog.models.map(row => ({ ...row, created: 1 })) }))
       .toBe(gatewayAudioRouteCatalogContractSha256({ ...catalog, created: 2, models: catalog.models.map(row => ({ ...row, created: 2 })) }));
     expect(() => validateGatewayAudioRouteCatalog({ models: catalog.models.map(row => ({ ...row, capabilities: { ...row.capabilities, audio_input: { ...row.capabilities.audio_input, backend_attempt_limit: 2 } } })) }, { model: "gemini-3.1-pro", resolvedModel: "gemini-3.1-pro", audioBytes: [1_852_244, 1_852_244], audioDurations: [21, 21] })).toThrow(/single backend attempt/);
