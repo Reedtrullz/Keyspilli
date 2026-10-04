@@ -64,6 +64,19 @@ describe("captured PCM waveform evidence", () => {
     const clipped = inspectPcm16Wav(pcmWav([-32_768, ...new Array(31_999).fill(0)]));
     expect(clipped).toMatchObject({ digitalSilence: false, clippedSampleCount: 1, peakNormalized: 1 });
   });
+
+  it("keeps partial-frame onset estimates within duration and preserves a first attack at zero", () => {
+    const partialFrame = new Array<number>(32_001).fill(0);
+    partialFrame[32_000] = 32_767;
+    const trailingAttack = inspectPcm16Wav(pcmWav(partialFrame));
+    expect(trailingAttack.durationSeconds).toBe(32_001 / 32_000);
+    expect(trailingAttack.onsetEstimateSeconds).toEqual([1]);
+    expect(trailingAttack.onsetEstimateSeconds.every(time => time <= trailingAttack.durationSeconds)).toBe(true);
+
+    const openingAttack = new Array<number>(32_000).fill(0);
+    openingAttack[0] = 32_767;
+    expect(inspectPcm16Wav(pcmWav(openingAttack)).onsetEstimateSeconds).toEqual([0]);
+  });
 });
 
 const clip = (name: string, startSeconds = 0): AudioFilePin => ({

@@ -421,7 +421,7 @@ export function inspectPcm16Wav(bytes: Uint8Array): WavInfo {
     const frameRms = Math.sqrt(frameSquares / (end - start)) / config.normalizationDivisor;
     const above = frameRms >= onsetThreshold;
     if (above && !previousAbove && onsetEstimateSeconds.length < config.maxOnsets) {
-      const estimate = frameIndex === 0 ? 0 : (start + Math.floor(frameSize / 2)) / sampleRate;
+      const estimate = frameIndex === 0 ? 0 : (start + Math.floor((end - start) / 2)) / sampleRate;
       if (!onsetEstimateSeconds.length || estimate - onsetEstimateSeconds.at(-1)! >= minGapSeconds) onsetEstimateSeconds.push(estimate);
     }
     previousAbove = above;
