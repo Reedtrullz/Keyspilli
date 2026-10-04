@@ -16,6 +16,8 @@ export const AUDIO_REVIEW_LIMITS = Object.freeze({
 export const REVIEW_AREAS = ["melody", "harmony", "timing", "balance", "phrasing", "articulation", "render", "other"] as const;
 export type ReviewArea = typeof REVIEW_AREAS[number];
 export type ReviewMode = "original" | "chords";
+export type ReviewProfile = "legacy" | "evidence-v2";
+export type ComparisonStatus = "compared" | "abstained";
 export type AttachmentName = "reference" | "candidate";
 export type FindingClassification = "defect" | "uncertain" | "observation";
 export type FindingSeverity = "low" | "moderate" | "high";
@@ -73,6 +75,16 @@ export interface DomainReview {
   findings: ReviewFinding[];
 }
 
+export interface EvidenceV2Review extends DomainReview {
+  schemaVersion: 2;
+  comparisonStatus: ComparisonStatus;
+  attachments: Record<AttachmentName, {
+    content: "music" | "speech" | "silence" | "unavailable" | "uncertain";
+    evidence: string;
+  }>;
+  limitations: string[];
+}
+
 export interface ReviewManifest {
   schemaVersion: typeof AUDIO_REVIEW_SCHEMA_VERSION;
   kind: "keyspilli-audio-review-manifest";
@@ -120,14 +132,17 @@ export interface AntiListenEnvelope {
 
 export interface ValidatedListenResult {
   envelope: AntiListenEnvelope;
-  review: DomainReview;
+  review: DomainReview | EvidenceV2Review;
   findings: ReviewFinding[];
-  /** Audio bytes were submitted by this adapter; provider listening remains unverified. */
+  comparisonStatus?: ComparisonStatus;
+  /** The ordered receipt reports an audio submission attempt; provider listening remains unverified. */
   listeningAttestation: "unverified";
 }
 
 export interface RunState {
   schemaVersion: 1;
+  reviewProfile?: ReviewProfile;
+  reviewSchemaVersion?: 1 | 2;
   manifestSha256: string;
   fingerprint: string;
   gatewayCatalogSha256?: string;
@@ -143,6 +158,7 @@ export interface RunState {
     resolvedModel?: string;
     preflightSha256?: string;
     allowedModelIds?: string[];
+    comparisonStatus?: ComparisonStatus;
   }>;
 }
 
@@ -354,6 +370,17 @@ export function buildReviewPrompt(job: ReviewJob): string {
     "Compare the two attached piano excerpts labeled REFERENCE and CANDIDATE. Treat attachment order and labels as the only identity information; do not infer correctness from filenames or outside context.",
     focus,
     "Return exactly one JSON object with keys summary, uncertainty, findings. uncertainty is low|medium|high. findings is an array of {attachment: reference|candidate, startSeconds, endSeconds, area: melody|harmony|timing|balance|phrasing|articulation|render|other, classification: defect|uncertain|observation, severity: low|moderate|high, uncertainty: low|medium|high, evidence, proposedRepair}. Timestamps are local to the named attached clip. Keep findings concise and specific. Do not guess exact notes or source timestamps. Say when evidence is unclear. Empty findings means only that no defect was detected in this pair; it is not approval.",
+  ].join("\n\n");
+}
+
+export function buildEvidenceV2ReviewPrompt(job: ReviewJob): string {
+  const focus = job.mode === "original"
+    ? "After establishing that both attachments contain music, assess whether the candidate's main contour, phrase entrances, rests, bass support, rhythm, articulation, and ending remain coherent and recognizable against the reference."
+    : "After establishing that both attachments contain music, assess whether candidate harmonic changes and bass support arrive usefully, attacks and releases leave room for singing, and any copied lead material crowds the backing. Do not label every non-chord tone a defect; passing notes and suspensions can be intentional.";
+  return [
+    "Inspect the audio actually present in the two ordered attachments labeled REFERENCE and CANDIDATE. Do not assume either attachment is available, audible, music, or piano. First characterize each attachment separately from directly observed content. Abstain when either input is missing, unavailable, uncertain, silence, speech, or otherwise insufficient for a musical comparison. Apply the mode-specific musical focus only after both attachments are observed to contain music.",
+    focus,
+    "Return exactly one JSON object with keys schemaVersion=2, comparisonStatus, attachments, summary, uncertainty, limitations, findings. Set comparisonStatus to compared|abstained. attachments has reference and candidate objects, each with content=music|speech|silence|unavailable|uncertain and concise evidence of directly observed content. Compared requires both attachments to contain music, nonempty evidence for each, and nonempty limitations. Abstained requires uncertainty=high, nonempty limitations, and findings=[]. Findings use {attachment: reference|candidate, startSeconds, endSeconds, area: melody|harmony|timing|balance|phrasing|articulation|render|other, classification: defect|uncertain|observation, severity: low|moderate|high, uncertainty: low|medium|high, evidence, proposedRepair}. Timestamps are local to the named attachment. Keep evidence concise and specific; do not guess exact notes or source timestamps. A provider self-report does not establish audio grounding or prove that it heard the audio. Empty findings do not imply comparison or approval.",
   ].join("\n\n");
 }
 
@@ -592,7 +619,7 @@ function parseDomainReviewOutput(text: string): unknown {
 
 export function validateListenEnvelope(
   raw: unknown,
-  expected: { model: string; resolvedModel: string; allowedModelIds: readonly string[]; mode: ReviewMode; durations: Record<AttachmentName, number>; expectedAudioHashes: readonly [string, string]; expectedAudioBytes?: readonly [number, number] },
+  expected: { model: string; resolvedModel: string; allowedModelIds: readonly string[]; mode: ReviewMode; durations: Record<AttachmentName, number>; expectedAudioHashes: readonly [string, string]; expectedAudioBytes?: readonly [number, number]; reviewProfile?: ReviewProfile },
 ): ValidatedListenResult {
   invariant(isRecord(raw) && raw.schemaVersion === 1, "Anti returned an unsupported or malformed JSON envelope");
   invariant(raw.mode === "listen", "Anti response mode is not listen");
@@ -625,11 +652,51 @@ export function validateListenEnvelope(
   validateAudioMediaReceipt(mediaCoverage, { audioHashes: expected.expectedAudioHashes, audioBytes: expected.expectedAudioBytes, gatewayAttempts: 1 });
   invariant(nonempty(raw.output_text) && raw.output_text.length <= 120_000, "Anti output_text is missing or exceeds the response limit");
   const decoded = parseDomainReviewOutput(raw.output_text);
+  const profile = expected.reviewProfile ?? "legacy";
+  invariant(profile === "legacy" || profile === "evidence-v2", `unsupported review profile ${String(profile)}`);
+  if (profile === "evidence-v2") return validateEvidenceV2ListenResult(raw, decoded, expected);
   invariant(isRecord(decoded) && nonempty(decoded.summary) && ["low", "medium", "high"].includes(String(decoded.uncertainty)) && Array.isArray(decoded.findings), "musical review JSON is missing summary, uncertainty, or findings");
   invariant(decoded.findings.length <= 40, "musical review contains too many findings");
   for (const [index, finding] of decoded.findings.entries()) validFinding(finding, expected.durations, index);
   const review = decoded as unknown as DomainReview;
   return { envelope: raw as unknown as AntiListenEnvelope, review, findings: review.findings, listeningAttestation: "unverified" };
+}
+
+function validateEvidenceV2ListenResult(
+  raw: Record<string, unknown>,
+  decoded: unknown,
+  expected: { durations: Record<AttachmentName, number> },
+): ValidatedListenResult {
+  invariant(isRecord(decoded) && decoded.schemaVersion === 2, "evidence-v2 requires domain schemaVersion 2");
+  invariant(decoded.comparisonStatus === "compared" || decoded.comparisonStatus === "abstained", "evidence-v2 comparisonStatus must be compared or abstained");
+  invariant(isRecord(decoded.attachments), "evidence-v2 requires observed evidence for both attachments");
+  const attachments = decoded.attachments;
+  const attachmentStates = ["music", "speech", "silence", "unavailable", "uncertain"] as const;
+  for (const attachment of ["reference", "candidate"] as const) {
+    const observed = attachments[attachment];
+    invariant(isRecord(observed) && attachmentStates.includes(observed.content as typeof attachmentStates[number]), `evidence-v2 ${attachment} content status is invalid`);
+    invariant(nonempty(observed.evidence) && observed.evidence.length <= 500, `evidence-v2 ${attachment} requires concise observed evidence`);
+  }
+  invariant(nonempty(decoded.summary) && decoded.summary.length <= 2_000, "evidence-v2 summary is missing or too long");
+  invariant(["low", "medium", "high"].includes(String(decoded.uncertainty)), "evidence-v2 uncertainty is invalid");
+  invariant(Array.isArray(decoded.limitations) && decoded.limitations.length > 0 && decoded.limitations.length <= 20
+    && decoded.limitations.every(item => nonempty(item) && item.length <= 500), "evidence-v2 requires explicit concise limitations");
+  invariant(Array.isArray(decoded.findings) && decoded.findings.length <= 40, "evidence-v2 findings must be an array of at most 40 items");
+  for (const [index, finding] of decoded.findings.entries()) validFinding(finding, expected.durations, index);
+  if (decoded.comparisonStatus === "abstained") {
+    invariant(decoded.uncertainty === "high", "evidence-v2 abstention requires high uncertainty");
+    invariant(decoded.findings.length === 0, "evidence-v2 abstention must not retain findings");
+  } else {
+    invariant((attachments.reference as Record<string, unknown>).content === "music" && (attachments.candidate as Record<string, unknown>).content === "music", "evidence-v2 compared status requires both attachments to contain available music");
+  }
+  const review = decoded as unknown as EvidenceV2Review;
+  return {
+    envelope: raw as unknown as AntiListenEnvelope,
+    review,
+    findings: review.findings,
+    comparisonStatus: review.comparisonStatus,
+    listeningAttestation: "unverified",
+  };
 }
 
 function sourceBeatAt(anchors: readonly SourceBeatAnchor[], assetSeconds: number): number | null {
@@ -701,24 +768,39 @@ export function planResumableJobs(state: RunState, manifest: ReviewManifest, man
   return { completed, pending, ambiguous };
 }
 
-export function buildAudioReviewCoverage(manifest: ReviewManifest, completeJobIds: ReadonlySet<string>) {
+export function buildAudioReviewCoverage(manifest: ReviewManifest, completeJobIds: ReadonlySet<string>, comparisonStatuses: ReadonlyMap<string, ComparisonStatus> = new Map()) {
   const byMode = Object.fromEntries((["original", "chords"] as const).map(mode => {
     const planned = manifest.jobs.filter(job => job.mode === mode);
     const complete = planned.filter(job => completeJobIds.has(job.id));
+    const compared = complete.filter(job => comparisonStatuses.get(job.id) === "compared");
+    const abstained = complete.filter(job => comparisonStatuses.get(job.id) === "abstained");
     return [mode, {
       jobsPlanned: planned.length,
       jobsComplete: complete.length,
+      jobsCompared: compared.length,
+      jobsAbstained: abstained.length,
       phrasesPlanned: [...new Set(planned.map(job => job.phraseId))],
-      phrasesReviewed: [...new Set(complete.map(job => job.phraseId))],
-      gaps: planned.filter(job => !completeJobIds.has(job.id)).map(job => job.phraseId),
+      phrasesCompared: [...new Set(compared.map(job => job.phraseId))],
+      phrasesReviewed: [...new Set(complete.filter(job => !comparisonStatuses.has(job.id) || comparisonStatuses.get(job.id) === "compared").map(job => job.phraseId))],
+      phrasesAbstained: [...new Set(abstained.map(job => job.phraseId))],
+      gaps: planned.filter(job => !completeJobIds.has(job.id) || comparisonStatuses.get(job.id) === "abstained").map(job => job.phraseId),
       disposition: "provisional" as const,
     }];
-  })) as Record<ReviewMode, { jobsPlanned: number; jobsComplete: number; phrasesPlanned: string[]; phrasesReviewed: string[]; gaps: string[]; disposition: "provisional" }>;
+  })) as Record<ReviewMode, { jobsPlanned: number; jobsComplete: number; jobsCompared: number; jobsAbstained: number; phrasesPlanned: string[]; phrasesCompared: string[]; phrasesReviewed: string[]; phrasesAbstained: string[]; gaps: string[]; disposition: "provisional" }>;
   const byPhrase = Object.fromEntries(manifest.phraseInventory.map(phrase => [phrase.id, Object.fromEntries((["original", "chords"] as const).map(mode => {
     const job = manifest.jobs.find(item => item.mode === mode && item.phraseId === phrase.id);
-    return [mode, !job ? "not-covered" : completeJobIds.has(job.id) ? "reviewed-excerpt" : "not-reviewed"];
+    const status = job ? comparisonStatuses.get(job.id) : undefined;
+    return [mode, !job ? "not-covered" : !completeJobIds.has(job.id) ? "not-reviewed" : status === "compared" ? "compared-excerpt" : status === "abstained" ? "abstained" : "reviewed-excerpt"];
   }))]));
-  return { byMode, byPhrase, completeJobCount: completeJobIds.size, musicalAcceptance: "not-established" as const, calibrated: false };
+  return {
+    byMode,
+    byPhrase,
+    completeJobCount: completeJobIds.size,
+    comparedJobCount: [...comparisonStatuses.values()].filter(status => status === "compared").length,
+    abstainedJobCount: [...comparisonStatuses.values()].filter(status => status === "abstained").length,
+    musicalAcceptance: "not-established" as const,
+    calibrated: false,
+  };
 }
 
 export function stableJson(value: unknown): string {

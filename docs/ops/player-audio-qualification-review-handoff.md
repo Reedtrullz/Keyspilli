@@ -1,5 +1,7 @@
 # Player audio qualification review handoff
 
+The opt-in evidence response format and its CLI/report/resume contract are specified in [Player audio evidence-v2](player-audio-evidence-v2.md). It is a separate review profile; it does not change the default prompt or reopen the stopped frozen study below.
+
 ## Source pins and CI evidence
 
 The capture source was the isolated worktree at `6318906565d782879391a3e8b4baffbe881116d5`, with the Player sample-readiness fix from `46e7b666799de4f7b18ba714ea12d44549b7ad29` in its ancestry. The generated fixture bundle pins the Player source-file tree hashes; each capture receipt pins both commit IDs, sample responses, and PCM output.

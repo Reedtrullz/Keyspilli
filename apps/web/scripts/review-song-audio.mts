@@ -12,6 +12,7 @@ import {
   buildAntiListenArgs,
   buildAudioReviewCoverage,
   buildRepairQueue,
+  buildEvidenceV2ReviewPrompt,
   buildReviewPrompt,
   gatewayAudioRouteCatalogContractSha256,
   mapClipFindingToSource,
@@ -26,6 +27,8 @@ import {
   validateListenEnvelope,
   validateManifestFiles,
   validateReviewManifest,
+  type ComparisonStatus,
+  type ReviewProfile,
   type AntiListenEnvelope,
   type GatewayAudioRoutePin,
   type ReviewJob,
@@ -38,6 +41,7 @@ const CAPABILITIES = {
   schemaVersion: 2,
   manifestSchemaVersion: 2,
   reportSchemaVersion: 2,
+  reviewProfiles: { legacy: { schemaVersion: 1, default: true }, "evidence-v2": { schemaVersion: 2, default: false } },
   provider: "anti.listen",
   pairwiseAudio: true,
   dryRun: true,
@@ -70,6 +74,7 @@ interface Options {
   dryRun: boolean;
   sendAudio: boolean;
   resume: boolean;
+  reviewProfile: ReviewProfile;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -92,7 +97,7 @@ function parseOptions(argv: string[]): Options {
       values.set(item, value);
     }
   }
-  if (positional.length !== 2) throw new Error("Usage: review-song-audio.mts MANIFEST.json OUTPUT_DIR --dry-run|--send-audio --anti-python /absolute/python --anti-script /absolute/anti.py --base-url URL --model MODEL [--max-requests N] [--resume]");
+  if (positional.length !== 2) throw new Error("Usage: review-song-audio.mts MANIFEST.json OUTPUT_DIR --dry-run|--send-audio --anti-python /absolute/python --anti-script /absolute/anti.py --base-url URL --model MODEL [--review-profile legacy|evidence-v2] [--max-requests N] [--resume]");
   const dryRun = flags.has("--dry-run");
   const sendAudio = flags.has("--send-audio");
   if (dryRun === sendAudio) throw new Error("Select exactly one of --dry-run or --send-audio");
@@ -105,11 +110,13 @@ function parseOptions(argv: string[]): Options {
   const maxRequests = rawMaxRequests === undefined ? 0 : Number(rawMaxRequests);
   if (!Number.isSafeInteger(maxRequests) || maxRequests < 0 || maxRequests > 300) throw new Error("--max-requests must be an integer from 0 to 300");
   if (sendAudio && maxRequests < 1) throw new Error("--send-audio requires an explicit positive --max-requests total cap");
+  const reviewProfile = values.get("--review-profile") ?? "legacy";
+  if (reviewProfile !== "legacy" && reviewProfile !== "evidence-v2") throw new Error(`unsupported review profile ${reviewProfile}; choose legacy or evidence-v2`);
   return {
     manifestPath: resolve(positional[0]!), outputDir: resolve(positional[1]!),
     python: required("--anti-python"), antiScript: required("--anti-script"),
     baseUrl: required("--base-url"), model: required("--model"), maxRequests,
-    dryRun, sendAudio, resume: flags.has("--resume"),
+    dryRun, sendAudio, resume: flags.has("--resume"), reviewProfile,
   };
 }
 
@@ -249,12 +256,15 @@ async function fetchGatewayModelCatalog(baseUrl: string): Promise<{ value: unkno
 }
 
 function makeFingerprint(manifestSha256: string, antiScriptSha256: string, options: Options, prompts: Record<string, string>, gatewayRouteContractSha256: string | null) {
-  return sha256Text(stableJson({ manifestSha256, antiScriptSha256, model: options.model, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, dryRun: options.dryRun, gatewayRouteContractSha256, prompts }));
+  const profileContract = options.reviewProfile === "evidence-v2" ? { reviewProfile: "evidence-v2", reviewSchemaVersion: 2 } : {};
+  return sha256Text(stableJson({ manifestSha256, antiScriptSha256, model: options.model, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, dryRun: options.dryRun, gatewayRouteContractSha256, prompts, ...profileContract }));
 }
 
-function newState(manifest: ReviewManifest, manifestSha256: string, fingerprint: string, maxRequests: number, gatewayCatalog: { rawSha256: string; routeContractSha256: string } | null): RunState {
+function newState(manifest: ReviewManifest, manifestSha256: string, fingerprint: string, maxRequests: number, gatewayCatalog: { rawSha256: string; routeContractSha256: string } | null, reviewProfile: ReviewProfile): RunState {
   return {
     schemaVersion: 1,
+    reviewProfile,
+    reviewSchemaVersion: reviewProfile === "evidence-v2" ? 2 : 1,
     manifestSha256,
     fingerprint,
     ...(gatewayCatalog ? { gatewayCatalogSha256: gatewayCatalog.rawSha256, gatewayRouteContractSha256: gatewayCatalog.routeContractSha256 } : {}),
@@ -299,20 +309,21 @@ function reportMarkdown(report: Record<string, any>): string {
     "# Keyspilli music listening review",
     "",
     `- Status: **${report.status}**`,
+    `- Review profile/schema: \`${report.reviewProfile}\` / \`${report.reviewSchemaVersion}\``,
     `- Manifest SHA-256: \`${report.manifestSha256}\``,
     `- Provider: \`${report.provider.name}\`; requested model: \`${report.provider.requestedModel}\``,
-    `- Captured clips: ${report.captureEvidence.files.length}; submitted jobs: ${report.submissionEvidence.attemptsUsed}`,
+    `- Captured clips: ${report.captureEvidence.files.length}; attempts reserved: ${report.submissionEvidence.attemptsReserved}; validated completed responses: ${report.coverage.completeJobCount}; compared: ${report.coverage.comparedJobCount}; abstained: ${report.coverage.abstainedJobCount}; ambiguous jobs: ${report.submissionEvidence.ambiguousJobs}`,
     "- Listening calibration: **unqualified**; musical acceptance: **not established**.",
     "- Audio token usage: **not exposed / not inferred**.",
     "",
     "## Mode and phrase coverage",
     "",
-    "| Mode | Reviewed jobs / planned | Phrases reviewed / planned | Status |",
-    "| --- | ---: | --- | --- |",
+    "| Mode | Validated complete responses / planned | Compared | Abstained | Phrases compared / planned | Unreviewed gaps | Status |",
+    "| --- | ---: | ---: | ---: | --- | --- | --- |",
   ];
   for (const mode of ["original", "chords"] as const) {
     const row = report.coverage.byMode[mode];
-    lines.push(`| ${mode} | ${row.jobsComplete}/${row.jobsPlanned} | ${row.phrasesReviewed.join(", ") || "none"} / ${row.phrasesPlanned.join(", ") || "none"} | ${row.disposition} |`);
+    lines.push(`| ${mode} | ${row.jobsComplete}/${row.jobsPlanned} | ${row.jobsCompared} | ${row.jobsAbstained} | ${row.phrasesCompared.join(", ") || "none"} / ${row.phrasesPlanned.join(", ") || "none"} | ${row.gaps.join(", ") || "none"} | ${row.disposition} |`);
   }
   lines.push("", "## Resolved playback and separate symbolic evidence", "");
   for (const mode of ["original", "chords"] as const) {
@@ -330,6 +341,12 @@ function reportMarkdown(report: Record<string, any>): string {
     lines.push(`### ${row.mode} / ${row.phraseId} — ${row.status}`, "");
     if (row.status === "dry-run") lines.push("No provider request was sent. This confirms local capture and Anti listen preflight only.", "");
     if (row.review) lines.push(row.review.summary, "", `Overall uncertainty: ${row.review.uncertainty} (descriptive, not calibrated).`, "");
+    if (row.comparisonStatus) lines.push(`Comparison status: **${row.comparisonStatus}**. Provider listening attestation: **unverified**.`, "");
+    if (row.review?.attachments) {
+      for (const attachment of ["reference", "candidate"] as const) lines.push(`- ${attachment}: ${row.review.attachments[attachment].content} — ${row.review.attachments[attachment].evidence}`);
+      for (const limitation of row.review.limitations) lines.push(`- Limitation: ${limitation}`);
+      lines.push("");
+    }
     for (const finding of row.findings ?? []) {
       const mapped = finding.sourceBeatStart === null || finding.sourceBeatEnd === null
         ? "source-beat mapping unavailable"
@@ -346,6 +363,10 @@ function reportMarkdown(report: Record<string, any>): string {
   return lines.join("\n");
 }
 
+function buildPrompt(job: ReviewJob, profile: ReviewProfile): string {
+  return profile === "evidence-v2" ? buildEvidenceV2ReviewPrompt(job) : buildReviewPrompt(job);
+}
+
 async function materializeReport(manifest: ReviewManifest, state: RunState, options: Options, manifestSha256: string, fingerprint: string, antiScriptSha256: string, captured: Array<Record<string, unknown>>, outputDir: string) {
   const rows: Array<Record<string, any>> = [];
   const complete = new Set<string>();
@@ -353,6 +374,7 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
     const entry = state.jobs[job.id]!;
     const base: Record<string, any> = {
       id: job.id, mode: job.mode, phraseId: job.phraseId, status: entry.status,
+      comparisonStatus: entry.comparisonStatus ?? null,
       clips: {
         reference: { sha256: job.referenceClip.sha256, bytes: job.referenceClip.bytes, durationSeconds: job.referenceClip.durationSeconds },
         candidate: { sha256: job.candidateClip.sha256, bytes: job.candidateClip.bytes, durationSeconds: job.candidateClip.durationSeconds },
@@ -382,7 +404,7 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
       const bytes = await readFile(responsePath);
       if (entry.envelopeSha256 && hashBytes(bytes) !== entry.envelopeSha256) throw new Error(`retained Anti response changed for ${job.id}`);
       if (options.dryRun) {
-        const raw = parseAntiDryRunStdout(bytes.toString("utf8"), buildReviewPrompt(job));
+        const raw = parseAntiDryRunStdout(bytes.toString("utf8"), buildPrompt(job, options.reviewProfile));
         base.dryRun = validateDryRun(raw, { hashes: [job.referenceClip.sha256, job.candidateClip.sha256], bytes: [job.referenceClip.bytes, job.candidateClip.bytes] });
       } else {
         const raw = parseAntiLiveStdout(bytes.toString("utf8"));
@@ -392,22 +414,25 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
           durations: { reference: job.referenceClip.durationSeconds, candidate: job.candidateClip.durationSeconds },
           expectedAudioHashes: [job.referenceClip.sha256, job.candidateClip.sha256],
           expectedAudioBytes: [job.referenceClip.bytes, job.candidateClip.bytes],
+          reviewProfile: options.reviewProfile,
         });
         const mapped = validated.findings.map(finding => {
           const { sourceBeatStart, sourceBeatEnd, alignmentStatus } = mapClipFindingToSource(job, finding);
           return { ...finding, sourceBeatStart, sourceBeatEnd, alignmentStatus };
         });
         base.review = validated.review;
+        base.comparisonStatus = validated.comparisonStatus ?? null;
         base.findings = mapped;
         base.repairQueue = buildRepairQueue(job, validated.findings);
         base.submission = {
-          state: "submitted-once",
-          attempts: entry.attempts,
+          state: "response-validated",
+          attemptsReserved: entry.attempts,
           requestedModel: options.model,
           resolvedModel: entry.resolvedModel,
           allowedModelIds: entry.allowedModelIds,
           effectiveModel: validated.envelope.model,
           antiRunStatus: validated.envelope.runStatus,
+          listeningAttestation: validated.listeningAttestation,
           mediaCoverage: validated.envelope.metadata.media_coverage,
           audioTokenUsage: null,
           responseSha256: entry.envelopeSha256,
@@ -428,14 +453,24 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
     runFingerprint: fingerprint,
     provider: { name: "anti.listen", requestedModel: options.model, python: options.python, antiScript: options.antiScript, antiScriptSha256, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, outputTokenCeiling: AUDIO_REVIEW_LIMITS.maxOutputTokens, gatewayBackendAttemptLimitRequired: 1, gatewayCatalogSha256: state.gatewayCatalogSha256 ?? null, gatewayRouteContractSha256: state.gatewayRouteContractSha256 ?? null },
     captureEvidence: { status: "pinned-local-clips", files: captured },
-    submissionEvidence: { attemptsUsed: state.attemptsUsed, dryRun: options.dryRun, proof: options.dryRun ? "Anti media receipt reports zero gateway attempts" : "one bounded Anti listen invocation per submitted job", audioTokenUsage: null },
+    submissionEvidence: {
+      attemptsReserved: state.attemptsUsed,
+      validatedCompleteResponses: rows.filter(row => row.status === "complete").length,
+      ambiguousJobs: rows.filter(row => row.status === "ambiguous").length,
+      dryRun: options.dryRun,
+      proof: options.dryRun ? "Anti media receipt reports zero gateway attempts" : "one bounded Anti listen invocation per reserved attempt",
+      audioTokenUsage: null,
+    },
     reference: manifest.reference,
     source: manifest.source,
     resolvedReplays: manifest.replays,
     phraseInventory: manifest.phraseInventory,
-    coverage: buildAudioReviewCoverage(manifest, complete),
+    coverage: buildAudioReviewCoverage(manifest, complete, new Map(rows.filter(row => row.comparisonStatus).map(row => [row.id, row.comparisonStatus as ComparisonStatus]))),
+    reviewProfile: options.reviewProfile,
+    reviewSchemaVersion: options.reviewProfile === "evidence-v2" ? 2 : 1,
     jobs: rows,
     listeningCalibration: { status: "unqualified", qualifiedCases: 0, claim: "advisory findings only" },
+    providerListeningAttestation: "unverified",
     musicalAcceptance: "not-established",
   };
   validateAudioReport(report);
@@ -451,7 +486,7 @@ async function run(options: Options): Promise<void> {
   options.python = runtime.python;
   options.antiScript = runtime.antiScript;
   const manifestSha256 = sha256Text(stableJson(manifest));
-  const prompts = Object.fromEntries(manifest.jobs.map(job => [job.id, buildReviewPrompt(job)]));
+  const prompts = Object.fromEntries(manifest.jobs.map(job => [job.id, buildPrompt(job, options.reviewProfile)]));
   const maxRequests = options.sendAudio ? options.maxRequests : 0;
   const gatewayCatalog = options.sendAudio ? await fetchGatewayModelCatalog(options.baseUrl) : null;
   const fingerprint = makeFingerprint(manifestSha256, runtime.antiScriptSha256, options, prompts, gatewayCatalog?.routeContractSha256 ?? null);
@@ -461,11 +496,15 @@ async function run(options: Options): Promise<void> {
   let resumePlan: ReturnType<typeof planResumableJobs> | null = null;
   if (options.resume) {
     const rawState = JSON.parse(await readFile(statePath, "utf8")) as RunState;
+    const savedProfile = rawState.reviewProfile ?? "legacy";
+    const savedSchemaVersion = rawState.reviewSchemaVersion ?? 1;
+    const selectedSchemaVersion = options.reviewProfile === "evidence-v2" ? 2 : 1;
+    if (savedProfile !== options.reviewProfile || savedSchemaVersion !== selectedSchemaVersion) throw new Error("cannot resume: review profile or schema changed");
     if (rawState.fingerprint !== fingerprint) throw new Error("cannot resume: route, prompt, model, media, script, or request cap changed");
     resumePlan = planResumableJobs(rawState, manifest, manifestSha256, maxRequests);
     state = rawState;
   } else {
-    state = newState(manifest, manifestSha256, fingerprint, maxRequests, gatewayCatalog);
+    state = newState(manifest, manifestSha256, fingerprint, maxRequests, gatewayCatalog, options.reviewProfile);
     await atomicWrite(statePath, `${JSON.stringify(state, null, 2)}\n`);
   }
   if (options.resume) {
@@ -541,8 +580,9 @@ async function run(options: Options): Promise<void> {
           durations: { reference: job.referenceClip.durationSeconds, candidate: job.candidateClip.durationSeconds },
           expectedAudioHashes: [job.referenceClip.sha256, job.candidateClip.sha256],
           expectedAudioBytes: [job.referenceClip.bytes, job.candidateClip.bytes],
+          reviewProfile: options.reviewProfile,
         });
-        state.jobs[job.id] = { status: "complete", attempts: 1, envelopeSha256: responseSha256, resolvedModel, ...(preflightSha256 ? { preflightSha256 } : {}), ...(allowedModelIds ? { allowedModelIds } : {}) };
+        state.jobs[job.id] = { status: "complete", attempts: 1, envelopeSha256: responseSha256, resolvedModel, ...(validated.comparisonStatus ? { comparisonStatus: validated.comparisonStatus } : {}), ...(preflightSha256 ? { preflightSha256 } : {}), ...(allowedModelIds ? { allowedModelIds } : {}) };
         // The complete envelope remains byte-for-byte in evidence/responses; usage is not reinterpreted.
         void validated;
       }

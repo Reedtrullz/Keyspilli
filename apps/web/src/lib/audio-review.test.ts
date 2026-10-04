@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { AudioFilePin, ReviewJob } from "./audio-review.js";
+import type { AudioFilePin, ReviewJob, ReviewManifest } from "./audio-review.js";
 import {
   AUDIO_REVIEW_LIMITS,
   buildAntiListenArgs,
+  buildAudioReviewCoverage,
+  buildEvidenceV2ReviewPrompt,
+  buildReviewPrompt,
   buildRepairQueue,
   gatewayAudioRouteCatalogContractSha256,
   mapClipFindingToSource,
@@ -171,6 +174,100 @@ describe("Keyspilli pairwise audio review contracts", () => {
     expect(() => validateListenEnvelope(envelope({ metadata: { ...envelope().metadata, media_coverage: undefined } }), listenExpected())).toThrow(/media|receipt/);
   });
 
+  it("evidence-v2 refuses the failed-study legacy confident empty-findings response", () => {
+    const failedStudy = {
+      summary: "The candidate matches the reference closely in melody, harmony, rhythm, articulation, and timbre, with no audible defects detected.",
+      uncertainty: "low",
+      findings: [],
+    };
+    expect(() => validateListenEnvelope(
+      envelope({ output_text: JSON.stringify(failedStudy) }),
+      { ...listenExpected(), reviewProfile: "evidence-v2" },
+    )).toThrow(/schemaVersion 2|evidence-v2/i);
+  });
+
+  it("retains a valid evidence-v2 abstention without repairing the provider output", () => {
+    const abstention = {
+      schemaVersion: 2,
+      comparisonStatus: "abstained",
+      attachments: {
+        reference: { content: "uncertain", evidence: "Pitched content could not be established from this attachment." },
+        candidate: { content: "unavailable", evidence: "No usable audio content could be established." },
+      },
+      summary: "Comparison abstained because both inputs could not be verified as audible music.",
+      uncertainty: "high",
+      limitations: ["The submitted audio was not independently verified as heard by the provider."],
+      findings: [],
+    };
+    const result = validateListenEnvelope(
+      envelope({ output_text: JSON.stringify(abstention) }),
+      { ...listenExpected(), reviewProfile: "evidence-v2" },
+    );
+    expect(result.review).toEqual(abstention);
+    expect(result.comparisonStatus).toBe("abstained");
+    expect(result.listeningAttestation).toBe("unverified");
+  });
+
+  it("requires available observed music and evidence for evidence-v2 comparisons", () => {
+    const compared = {
+      schemaVersion: 2,
+      comparisonStatus: "compared",
+      attachments: {
+        reference: { content: "music", evidence: "Piano tones and a repeating upper-register line are audible." },
+        candidate: { content: "music", evidence: "Piano tones and the corresponding upper-register line are audible." },
+      },
+      summary: "Both attachments contain piano music with a corresponding upper-register line.",
+      uncertainty: "medium",
+      limitations: ["The provider's actual perception remains unverified."],
+      findings: [],
+    };
+    expect(validateListenEnvelope(
+      envelope({ output_text: JSON.stringify(compared) }),
+      { ...listenExpected(), reviewProfile: "evidence-v2" },
+    ).comparisonStatus).toBe("compared");
+    const unavailable = structuredClone(compared);
+    unavailable.attachments.candidate.content = "unavailable";
+    expect(() => validateListenEnvelope(
+      envelope({ output_text: JSON.stringify(unavailable) }),
+      { ...listenExpected(), reviewProfile: "evidence-v2" },
+    )).toThrow(/available|music|compared/i);
+  });
+
+  it("preserves the exact legacy prompt bytes and separates submitted from compared and abstained coverage", () => {
+    expect(buildReviewPrompt(job("original"))).toBe([
+      "Compare the two attached piano excerpts labeled REFERENCE and CANDIDATE. Treat attachment order and labels as the only identity information; do not infer correctness from filenames or outside context.",
+      "Assess whether the candidate's main contour, phrase entrances, rests, bass support, rhythm, articulation, and ending remain coherent and recognizable against the reference.",
+      "Return exactly one JSON object with keys summary, uncertainty, findings. uncertainty is low|medium|high. findings is an array of {attachment: reference|candidate, startSeconds, endSeconds, area: melody|harmony|timing|balance|phrasing|articulation|render|other, classification: defect|uncertain|observation, severity: low|moderate|high, uncertainty: low|medium|high, evidence, proposedRepair}. Timestamps are local to the named attached clip. Keep findings concise and specific. Do not guess exact notes or source timestamps. Say when evidence is unclear. Empty findings means only that no defect was detected in this pair; it is not approval.",
+    ].join("\n\n"));
+    const coverage = buildAudioReviewCoverage(
+      manifest() as ReviewManifest,
+      new Set(["original-opening", "chords-opening", "original-ending"]),
+      new Map([["original-opening", "compared"], ["chords-opening", "abstained"]]),
+    );
+    expect(coverage).toMatchObject({
+      completeJobCount: 3,
+      comparedJobCount: 1,
+      abstainedJobCount: 1,
+      byMode: {
+        original: { jobsComplete: 2, jobsCompared: 1, jobsAbstained: 0, phrasesCompared: ["opening"], gaps: [] },
+        chords: { jobsComplete: 1, jobsCompared: 0, jobsAbstained: 1, phrasesCompared: [], gaps: ["opening", "ending"] },
+      },
+    });
+    const legacyCoverage = buildAudioReviewCoverage(manifest() as ReviewManifest, new Set(["original-opening"]));
+    expect(legacyCoverage).not.toHaveProperty("submittedJobCount");
+    expect(legacyCoverage.byMode.original).toMatchObject({ jobsComplete: 1, jobsCompared: 0, phrasesCompared: [] });
+  });
+
+  it("makes evidence-v2 inspect media before conditionally applying the musical review focus", () => {
+    const prompt = buildEvidenceV2ReviewPrompt(job("original"));
+    expect(prompt).not.toMatch(/two attached piano excerpts/i);
+    expect(prompt).toMatch(/do not assume.*music.*piano/i);
+    expect(prompt).toMatch(/inspect.*audio actually present/i);
+    expect(prompt).toMatch(/apply.*musical focus.*only after.*music/i);
+    expect(prompt).toMatch(/abstain.*insufficient/i);
+    expect(prompt).toMatch(/self-report.*does not establish.*grounding/i);
+  });
+
   it("accepts one complete json fence around the domain review and rejects surrounding text", () => {
     const json = JSON.stringify(domainReview());
     const fenced = `\`\`\`json\n${json}\n\`\`\``;
@@ -186,6 +283,8 @@ describe("Keyspilli pairwise audio review contracts", () => {
     expect(() => validateListenEnvelope(envelope({ metadata: { ...envelope().metadata, media_coverage: { ...media, gateway_attempts: 0, status: "not_sent" } } }), listenExpected())).toThrow(/attempt|not.sent/);
     expect(() => validateListenEnvelope(envelope({ metadata: { ...envelope().metadata, media_coverage: { ...media, audio: [...media.audio].reverse() } } }), listenExpected())).toThrow(/order|clip|hash/);
     expect(() => validateListenEnvelope(envelope({ metadata: { ...envelope().metadata, media_coverage: { ...media, captured_count: 1 } } }), listenExpected())).toThrow(/count|clip/);
+    const noReceipt = envelope({ metadata: { ...envelope().metadata, media_coverage: undefined }, output_text: "{}" });
+    expect(() => validateListenEnvelope(noReceipt, { ...listenExpected(), reviewProfile: "evidence-v2" })).toThrow(/media|receipt/);
   });
 
   it("binds effective model aliases to the selected gateway route and its one-attempt audio contract", () => {
