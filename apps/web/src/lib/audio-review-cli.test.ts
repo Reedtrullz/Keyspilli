@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { execFile as execFileCallback, execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
@@ -12,11 +12,11 @@ const execFileAsync = promisify(execFileCallback);
 
 const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
-function toneWav(frequency: number): Buffer {
+function toneWav(frequency: number, amplitude = 12_000): Buffer {
   const sampleRate = 44_100;
   const sampleCount = sampleRate;
   const data = Buffer.alloc(sampleCount * 2);
-  for (let i = 0; i < sampleCount; i++) data.writeInt16LE(Math.round(Math.sin(2 * Math.PI * frequency * i / sampleRate) * 12_000), i * 2);
+  for (let i = 0; i < sampleCount; i++) data.writeInt16LE(Math.round(Math.sin(2 * Math.PI * frequency * i / sampleRate) * amplitude), i * 2);
   const wav = Buffer.alloc(44 + data.length);
   wav.write("RIFF", 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
   wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
@@ -26,7 +26,7 @@ function toneWav(frequency: number): Buffer {
   return wav;
 }
 
-async function makeLocalRun() {
+async function makeLocalRun(options: { digitalSilenceCandidate?: boolean; quietCandidate?: boolean; corruptCandidate?: boolean } = {}) {
   const root = await mkdtemp(join(tmpdir(), "keyspilli-evidence-v2-"));
   const filePin = async (name: string, bytes: Uint8Array = Buffer.from(name)) => {
     const path = join(root, name);
@@ -43,7 +43,9 @@ async function makeLocalRun() {
   const chordsNotes = await filePin("chords-notes.mid");
   const bank = await filePin("test-bank.sf2");
   const referenceWav = toneWav(440);
-  const originalWav = toneWav(660);
+  const originalWav = options.digitalSilenceCandidate ? toneWav(660, 0)
+    : options.quietCandidate ? toneWav(660, 12)
+      : options.corruptCandidate ? Buffer.from("not a wav") : toneWav(660);
   const chordsWav = toneWav(330);
   const reference = await filePin("reference.wav", referenceWav);
   const original = await filePin("original.wav", originalWav);
@@ -140,6 +142,81 @@ function cliArgs(fixture: Awaited<ReturnType<typeof makeLocalRun>>, outputDir: s
 }
 
 describe("review-song-audio CLI", () => {
+  it("writes a local not-reviewed render-input report and dispatches no Anti command for a digital-silence clip", async () => {
+    const fixture = await makeLocalRun({ digitalSilenceCandidate: true });
+    const outputDir = join(fixture.root, "digital-silence-output");
+    let errorText = "";
+    try {
+      try { await runCli(cliArgs(fixture, outputDir, "evidence-v2")); }
+      catch (error) {
+        const failure = error as { message?: string; stderr?: string };
+        errorText = `${failure.message ?? ""}${failure.stderr ?? ""}`;
+      }
+      expect(errorText).toMatch(/digital silence.*not-reviewed/i);
+      const report = JSON.parse(await readFile(join(outputDir, "report.json"), "utf8"));
+      expect(report).toMatchObject({
+        kind: "keyspilli-audio-preflight-report", status: "not-reviewed", reason: "digital-silence",
+        providerCalls: 0, route: "not-queried", musicalFaultInferred: false,
+      });
+      expect(report.jobs).toHaveLength(2);
+      expect(report.jobs[0]).toMatchObject({ status: "local-not-reviewed", source: "render-input" });
+      expect(fixture.catalogGets()).toBe(0);
+      await expect(readFile(join(outputDir, "stub-invocations.txt"), "utf8")).rejects.toThrow();
+    } finally {
+      fixture.server.closeAllConnections();
+      await new Promise<void>(resolveClose => fixture.server.close(() => resolveClose()));
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("records a quiet nonzero captured signal without blocking review", async () => {
+    const fixture = await makeLocalRun({ quietCandidate: true });
+    const outputDir = join(fixture.root, "quiet-output");
+    try {
+      await runCli(cliArgs(fixture, outputDir, "evidence-v2"));
+      const report = JSON.parse(await readFile(join(outputDir, "report.json"), "utf8"));
+      expect(report.status).toBe("triage-complete");
+      expect(report.captureEvidence.waveformAnalysis).toMatchObject({
+        config: { version: 1, normalizationDivisor: 32_768, frameMilliseconds: 20, hopMilliseconds: 10 },
+        analysisConfigSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        evidenceSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      });
+      expect(report.jobs[0].clips.candidate.waveform).toMatchObject({ digitalSilence: false, nearSilence: true, clippedSampleCount: 0 });
+      expect(fixture.catalogGets()).toBe(1);
+      expect(await readFile(join(outputDir, "stub-invocations.txt"), "utf8")).toBe("4");
+    } finally {
+      fixture.server.closeAllConnections();
+      await new Promise<void>(resolveClose => fixture.server.close(() => resolveClose()));
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it("reports corrupt or missing captured WAVs as local render-input failures", async () => {
+    for (const missing of [false, true]) {
+      const fixture = await makeLocalRun({ corruptCandidate: !missing });
+      const outputDir = join(fixture.root, `invalid-input-${missing ? "missing" : "corrupt"}`);
+      try {
+        if (missing) await unlink(join(fixture.root, "original.wav"));
+        let errorText = "";
+        try { await runCli(cliArgs(fixture, outputDir, "evidence-v2")); }
+        catch (error) {
+          const failure = error as { message?: string; stderr?: string };
+          errorText = `${failure.message ?? ""}${failure.stderr ?? ""}`;
+        }
+        expect(errorText).toMatch(/local not-reviewed\/render-input outcome/i);
+        const report = JSON.parse(await readFile(join(outputDir, "report.json"), "utf8"));
+        expect(report).toMatchObject({ kind: "keyspilli-audio-preflight-report", status: "not-reviewed", providerCalls: 0, route: "not-queried", musicalFaultInferred: false });
+        expect(report.reason).toBe(missing ? "missing-input" : "invalid-render-input");
+        expect(fixture.catalogGets()).toBe(0);
+        await expect(readFile(join(outputDir, "stub-invocations.txt"), "utf8")).rejects.toThrow();
+      } finally {
+        fixture.server.closeAllConnections();
+        await new Promise<void>(resolveClose => fixture.server.close(() => resolveClose()));
+        await rm(fixture.root, { recursive: true, force: true });
+      }
+    }
+  }, 30_000);
+
   it("rejects an unknown review profile before inspecting the manifest", () => {
     let output = "";
     try {
@@ -192,6 +269,37 @@ describe("review-song-audio CLI", () => {
       const legacyPrompt = await readFile(join(legacyDir, "prompts", "original-opening.txt"), "utf8");
       expect(legacyReport).toMatchObject({ reviewProfile: "legacy", reviewSchemaVersion: 1, coverage: { completeJobCount: 0, comparedJobCount: 0, abstainedJobCount: 0 } });
       expect(legacyPrompt).toContain("Compare the two attached piano excerpts");
+
+      const statePath = join(outputDir, "state.json");
+      const savedState = JSON.parse(await readFile(statePath, "utf8"));
+      const receiptHash = savedState.waveformEvidenceSha256;
+      savedState.waveformEvidenceSha256 = "0".repeat(64);
+      await writeFile(statePath, JSON.stringify(savedState));
+      const catalogGetsBeforeReceiptCheck = fixture.catalogGets();
+      let receiptMismatch = "";
+      try { await runCli(cliArgs(fixture, outputDir, "evidence-v2", true)); }
+      catch (error) { receiptMismatch = String((error as Error).message); }
+      expect(receiptMismatch).toMatch(/waveform receipt does not match/i);
+      expect(fixture.catalogGets()).toBe(catalogGetsBeforeReceiptCheck);
+      expect(await readFile(countPath, "utf8")).toBe("4");
+      savedState.waveformEvidenceSha256 = receiptHash;
+      await writeFile(statePath, JSON.stringify(savedState));
+
+      const changedSource = await readFile(join(fixture.root, "original.wav"));
+      changedSource.writeInt16LE(1, 44);
+      await writeFile(join(fixture.root, "original.wav"), changedSource);
+      const catalogGetsBeforeStaleResume = fixture.catalogGets();
+      let staleResume = "";
+      try { await runCli(cliArgs(fixture, outputDir, "evidence-v2", true)); }
+      catch (error) {
+        const failure = error as { message?: string; stderr?: string };
+        staleResume = `${failure.message ?? ""}${failure.stderr ?? ""}`;
+      }
+      expect(staleResume).toMatch(/changed-bytes.*not-reviewed\/render-input outcome/i);
+      const localBlock = JSON.parse(await readFile(join(outputDir, "local-preflight-block.json"), "utf8"));
+      expect(localBlock).toMatchObject({ status: "not-reviewed", reason: "changed-bytes", providerCalls: 0, route: "not-queried" });
+      expect(await readFile(countPath, "utf8")).toBe("4");
+      expect(fixture.catalogGets()).toBe(catalogGetsBeforeStaleResume);
     } finally {
       fixture.server.closeAllConnections();
       await new Promise<void>(resolveClose => fixture.server.close(() => resolveClose()));

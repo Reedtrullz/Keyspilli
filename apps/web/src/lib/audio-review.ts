@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { open, readFile, stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 
 export const AUDIO_REVIEW_SCHEMA_VERSION = 2 as const;
@@ -144,6 +144,7 @@ export interface RunState {
   reviewProfile?: ReviewProfile;
   reviewSchemaVersion?: 1 | 2;
   manifestSha256: string;
+  waveformEvidenceSha256?: string;
   fingerprint: string;
   gatewayCatalogSha256?: string;
   gatewayRouteContractSha256?: string;
@@ -280,34 +281,171 @@ export interface WavInfo {
   channels: number;
   bitsPerSample: number;
   durationSeconds: number;
+  sha256: string;
+  rmsNormalized: number;
+  peakNormalized: number;
+  digitalSilence: boolean;
+  nearSilence: boolean;
+  clippedSampleCount: number;
+  onsetEstimateSeconds: number[];
+  lowLevelSpans: Array<{ startSeconds: number; endSeconds: number }>;
+  config: typeof PCM_WAVEFORM_ANALYSIS_CONFIG;
+  analysisConfigSha256: string;
 }
 
-export function inspectPcm16Wav(bytes: Uint8Array): WavInfo {
+export async function readPinnedAudioBytes(pin: AudioFilePin): Promise<Buffer> {
+  const handle = await open(pin.path, "r");
+  try {
+    const before = await handle.stat({ bigint: true });
+    invariant(before.isFile(), `pinned WAV is not a regular file: ${pin.path}`);
+    invariant(before.size === BigInt(pin.bytes), `pinned WAV byte count changed: ${pin.path}`);
+    const buffer = Buffer.alloc(pin.bytes + 1);
+    let offset = 0;
+    while (offset < buffer.length) {
+      const result = await handle.read(buffer, offset, buffer.length - offset, offset);
+      if (result.bytesRead === 0) break;
+      offset += result.bytesRead;
+    }
+    const after = await handle.stat({ bigint: true });
+    invariant(before.dev === after.dev && before.ino === after.ino && before.size === after.size
+      && before.mtimeNs === after.mtimeNs && before.ctimeNs === after.ctimeNs,
+    `pinned WAV changed while it was being read: ${pin.path}`);
+    invariant(offset === pin.bytes, `pinned WAV byte count changed while reading: ${pin.path}`);
+    const bytes = buffer.subarray(0, pin.bytes);
+    invariant(createHash("sha256").update(bytes).digest("hex") === pin.sha256.toLowerCase(), `pinned WAV hash changed: ${pin.path}`);
+    return bytes;
+  } finally { await handle.close(); }
+}
+
+export const PCM_WAVEFORM_ANALYSIS_CONFIG = Object.freeze({
+  version: 1,
+  normalizationDivisor: 32_768,
+  nearSilenceRmsMax: 0.001,
+  nearSilencePeakMax: 0.003,
+  clippingRailSamples: [-32_768, 32_767] as const,
+  frameMilliseconds: 20,
+  hopMilliseconds: 10,
+  lowLevelRmsThreshold: 0.001,
+  onsetFloorRms: 0.0001,
+  onsetRelativeThreshold: 0.2,
+  onsetMinGapMilliseconds: 80,
+  maxOnsets: 256,
+  maxLowLevelSpans: 64,
+});
+
+function parsePcm16Wav(bytes: Uint8Array) {
   const data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   invariant(data.length >= 44 && data.toString("ascii", 0, 4) === "RIFF" && data.toString("ascii", 8, 12) === "WAVE", "audio clip is not a RIFF/WAVE file");
+  invariant(data.readUInt32LE(4) === data.length - 8, "WAV RIFF length does not match captured bytes");
   let offset = 12;
   let format: number | undefined;
   let channels: number | undefined;
   let sampleRate: number | undefined;
+  let byteRate: number | undefined;
+  let blockAlign: number | undefined;
   let bits: number | undefined;
+  let dataOffset: number | undefined;
   let dataBytes: number | undefined;
-  while (offset + 8 <= data.length) {
+  while (offset < data.length) {
+    invariant(offset + 8 <= data.length, "WAV chunk header is truncated");
     const name = data.toString("ascii", offset, offset + 4);
     const size = data.readUInt32LE(offset + 4);
     const body = offset + 8;
-    invariant(body + size <= data.length, `WAV ${name} chunk is truncated`);
+    const next = body + size + (size % 2);
+    invariant(body + size <= data.length && next <= data.length, `WAV ${name} chunk is truncated`);
     if (name === "fmt ") {
-      invariant(size >= 16, "WAV fmt chunk is too short");
+      invariant(format === undefined && size >= 16, "WAV fmt chunk is missing, duplicated, or too short");
       format = data.readUInt16LE(body);
       channels = data.readUInt16LE(body + 2);
       sampleRate = data.readUInt32LE(body + 4);
+      byteRate = data.readUInt32LE(body + 8);
+      blockAlign = data.readUInt16LE(body + 12);
       bits = data.readUInt16LE(body + 14);
-    } else if (name === "data") dataBytes = size;
-    offset = body + size + (size % 2);
+    } else if (name === "data") {
+      invariant(dataOffset === undefined, "WAV contains multiple data chunks");
+      dataOffset = body;
+      dataBytes = size;
+    }
+    offset = next;
   }
   invariant(format === 1 && channels === 1 && bits === 16 && (sampleRate === 44_100 || sampleRate === 32_000), "audio must be mono 16-bit PCM at 44.1 or 32 kHz");
-  invariant(dataBytes !== undefined && dataBytes > 0 && dataBytes % (channels * bits / 8) === 0, "WAV must contain aligned nonempty PCM data");
-  return { bytes: data.length, sampleRate, channels, bitsPerSample: bits, durationSeconds: dataBytes / (sampleRate * channels * bits / 8) };
+  invariant(blockAlign === 2 && byteRate === sampleRate * blockAlign, "WAV PCM alignment or byte rate is invalid");
+  invariant(dataOffset !== undefined && dataBytes !== undefined && dataBytes > 0 && dataBytes % blockAlign === 0, "WAV must contain aligned nonempty PCM data");
+  return { data, sampleRate, channels, bits, blockAlign, dataOffset, dataBytes };
+}
+
+export function inspectPcm16Wav(bytes: Uint8Array): WavInfo {
+  const parsed = parsePcm16Wav(bytes);
+  const { data, sampleRate, blockAlign, dataOffset, dataBytes } = parsed;
+  const sampleCount = dataBytes / blockAlign;
+  const config = PCM_WAVEFORM_ANALYSIS_CONFIG;
+  const frameSize = Math.max(1, Math.round(sampleRate * config.frameMilliseconds / 1_000));
+  const hopSize = Math.max(1, Math.round(sampleRate * config.hopMilliseconds / 1_000));
+  const sampleAt = (index: number) => data.readInt16LE(dataOffset + index * blockAlign);
+  let squareSum = 0;
+  let peak = 0;
+  let clippedSampleCount = 0;
+  let digitalSilence = true;
+  for (let i = 0; i < sampleCount; i++) {
+    const sample = sampleAt(i);
+    const absolute = Math.abs(sample);
+    digitalSilence &&= sample === 0;
+    if (absolute > peak) peak = absolute;
+    if (sample === config.clippingRailSamples[0] || sample === config.clippingRailSamples[1]) clippedSampleCount++;
+    squareSum += sample * sample;
+  }
+  const rmsNormalized = Math.sqrt(squareSum / sampleCount) / config.normalizationDivisor;
+  const peakNormalized = peak / config.normalizationDivisor;
+  let frameSquares = 0;
+  for (let i = 0; i < Math.min(frameSize, sampleCount); i++) frameSquares += sampleAt(i) ** 2;
+  let maxFrameRms = 0;
+  for (let start = 0; start < sampleCount; start += hopSize) {
+    const end = Math.min(start + frameSize, sampleCount);
+    const frameRms = Math.sqrt(frameSquares / (end - start)) / config.normalizationDivisor;
+    if (frameRms > maxFrameRms) maxFrameRms = frameRms;
+    const nextStart = start + hopSize;
+    const nextEnd = Math.min(nextStart + frameSize, sampleCount);
+    for (let i = start; i < Math.min(nextStart, sampleCount); i++) frameSquares -= sampleAt(i) ** 2;
+    for (let i = end; i < nextEnd; i++) frameSquares += sampleAt(i) ** 2;
+  }
+  frameSquares = 0;
+  for (let i = 0; i < Math.min(frameSize, sampleCount); i++) frameSquares += sampleAt(i) ** 2;
+  const onsetThreshold = Math.max(config.onsetFloorRms, maxFrameRms * config.onsetRelativeThreshold);
+  const onsetEstimateSeconds: number[] = [];
+  const lowLevelSpans: Array<{ startSeconds: number; endSeconds: number }> = [];
+  let previousAbove = false;
+  let lowStart: number | null = null;
+  const minGapSeconds = config.onsetMinGapMilliseconds / 1_000;
+  for (let start = 0, frameIndex = 0; start < sampleCount; start += hopSize, frameIndex++) {
+    const end = Math.min(start + frameSize, sampleCount);
+    const frameRms = Math.sqrt(frameSquares / (end - start)) / config.normalizationDivisor;
+    const above = frameRms >= onsetThreshold;
+    if (above && !previousAbove && onsetEstimateSeconds.length < config.maxOnsets) {
+      const estimate = frameIndex === 0 ? 0 : (start + Math.floor(frameSize / 2)) / sampleRate;
+      if (!onsetEstimateSeconds.length || estimate - onsetEstimateSeconds.at(-1)! >= minGapSeconds) onsetEstimateSeconds.push(estimate);
+    }
+    previousAbove = above;
+    const quiet = frameRms < config.lowLevelRmsThreshold;
+    if (quiet && lowStart === null) lowStart = start / sampleRate;
+    if (!quiet && lowStart !== null) {
+      if (lowLevelSpans.length < config.maxLowLevelSpans) lowLevelSpans.push({ startSeconds: lowStart, endSeconds: start / sampleRate });
+      lowStart = null;
+    }
+    const nextStart = start + hopSize;
+    const nextEnd = Math.min(nextStart + frameSize, sampleCount);
+    for (let i = start; i < Math.min(nextStart, sampleCount); i++) frameSquares -= sampleAt(i) ** 2;
+    for (let i = end; i < nextEnd; i++) frameSquares += sampleAt(i) ** 2;
+  }
+  if (lowStart !== null && lowLevelSpans.length < config.maxLowLevelSpans) lowLevelSpans.push({ startSeconds: lowStart, endSeconds: sampleCount / sampleRate });
+  const analysisConfigSha256 = sha256Text(stableJson(config));
+  return {
+    bytes: data.length, sampleRate, channels: parsed.channels, bitsPerSample: parsed.bits,
+    durationSeconds: dataBytes / (sampleRate * parsed.channels * blockAlign),
+    sha256: createHash("sha256").update(data).digest("hex"),
+    rmsNormalized, peakNormalized, digitalSilence,
+    nearSilence: rmsNormalized <= config.nearSilenceRmsMax && peakNormalized <= config.nearSilencePeakMax,
+    clippedSampleCount, onsetEstimateSeconds, lowLevelSpans, config, analysisConfigSha256,
+  };
 }
 
 async function sha256File(path: string): Promise<string> {
@@ -354,7 +492,7 @@ export async function validateManifestFiles(manifestValue: unknown): Promise<Rev
     clips.set(job.candidateClip.path, job.candidateClip);
   }
   for (const [path, clip] of clips) {
-    const bytes = await readFile(path);
+    const bytes = await readPinnedAudioBytes({ ...clip, path });
     const wav = inspectPcm16Wav(bytes);
     invariant(wav.bytes === clip.bytes && wav.sampleRate === clip.sampleRate && wav.channels === clip.channels && wav.bitsPerSample === clip.bitsPerSample, `WAV metadata pin mismatch: ${path}`);
     invariant(Math.abs(wav.durationSeconds - clip.durationSeconds) <= 0.002, `WAV duration pin mismatch: ${path}`);

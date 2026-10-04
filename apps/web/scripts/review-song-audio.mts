@@ -9,6 +9,7 @@ import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   AUDIO_REVIEW_LIMITS,
+  PCM_WAVEFORM_ANALYSIS_CONFIG,
   buildAntiListenArgs,
   buildAudioReviewCoverage,
   buildRepairQueue,
@@ -26,6 +27,8 @@ import {
   validateGatewayAudioRouteCatalog,
   validateListenEnvelope,
   validateManifestFiles,
+  inspectPcm16Wav,
+  readPinnedAudioBytes,
   validateReviewManifest,
   type ComparisonStatus,
   type ReviewProfile,
@@ -33,6 +36,8 @@ import {
   type GatewayAudioRoutePin,
   type ReviewJob,
   type ReviewManifest,
+  type AudioFilePin,
+  type WavInfo,
   type RunState,
 } from "../src/lib/audio-review.js";
 
@@ -169,7 +174,7 @@ async function initializeOutput(outputDir: string, resume: boolean): Promise<voi
   await chmod(join(outputDir, "prompts"), 0o700);
 }
 
-async function copyPinnedClips(manifest: ReviewManifest, outputDir: string) {
+async function copyPinnedClips(manifest: ReviewManifest, outputDir: string, preflightClips: LocalClipEvidence[]) {
   const captured: Array<Record<string, unknown>> = [];
   const pathByHash = new Map<string, string>();
   for (const job of manifest.jobs) {
@@ -178,20 +183,131 @@ async function copyPinnedClips(manifest: ReviewManifest, outputDir: string) {
       if (!retainedPath) {
         retainedPath = join(outputDir, "evidence", "clips", `${clip.sha256}.wav`);
         try {
-          const existing = await readFile(retainedPath);
-          if (hashBytes(existing) !== clip.sha256) throw new Error(`retained clip was edited: ${retainedPath}`);
+          await readPinnedAudioBytes({ ...clip, path: retainedPath });
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-          const inputBytes = await readFile(clip.path);
-          if (inputBytes.length !== clip.bytes || hashBytes(inputBytes) !== clip.sha256) throw new Error(`stale clip pin: ${clip.path}`);
+          const inputBytes = await readPinnedAudioBytes(clip);
           await atomicWrite(retainedPath, inputBytes);
         }
+        const retainedBytes = await readPinnedAudioBytes({ ...clip, path: retainedPath });
+        if (retainedBytes.length !== clip.bytes || hashBytes(retainedBytes) !== clip.sha256) throw new Error(`retained clip changed during capture: ${retainedPath}`);
+        const waveform = inspectPcm16Wav(retainedBytes);
+        assertWaveformMatchesPin(waveform, clip, retainedPath);
+        const expected = preflightClips.find(item => item.jobId === job.id && item.attachment === attachment)?.waveform;
+        if (!expected || stableJson(waveform) !== stableJson(expected)) throw new Error(`captured waveform differs from the local preflight receipt: ${retainedPath}`);
+        await chmod(retainedPath, 0o400);
         pathByHash.set(clip.sha256, retainedPath);
       }
-      captured.push({ jobId: job.id, attachment, originalPath: clip.path, retainedPath, sha256: clip.sha256, bytes: clip.bytes, durationSeconds: clip.durationSeconds, assetStartSeconds: clip.assetStartSeconds });
+      const retainedBytes = await readPinnedAudioBytes({ ...clip, path: retainedPath });
+      const waveform = inspectPcm16Wav(retainedBytes);
+      assertWaveformMatchesPin(waveform, clip, retainedPath);
+      const expected = preflightClips.find(item => item.jobId === job.id && item.attachment === attachment)?.waveform;
+      if (!expected || stableJson(waveform) !== stableJson(expected)) throw new Error(`captured waveform differs from the local preflight receipt: ${retainedPath}`);
+      captured.push({ jobId: job.id, attachment, originalPath: clip.path, retainedPath, sha256: clip.sha256, bytes: clip.bytes, durationSeconds: clip.durationSeconds, assetStartSeconds: clip.assetStartSeconds, waveform });
     }
   }
   return { captured, pathByHash };
+}
+
+async function verifyRetainedJobClips(job: ReviewJob, clipPaths: Map<string, string>, preflightClips: LocalClipEvidence[]): Promise<void> {
+  for (const [attachment, clip] of [["reference", job.referenceClip], ["candidate", job.candidateClip]] as const) {
+    const path = clipPaths.get(clip.sha256);
+    if (!path) throw new Error(`retained ${attachment} clip is missing for ${job.id}`);
+    const bytes = await readPinnedAudioBytes({ ...clip, path });
+    const waveform = inspectPcm16Wav(bytes);
+    assertWaveformMatchesPin(waveform, clip, path);
+    const expected = preflightClips.find(item => item.jobId === job.id && item.attachment === attachment)?.waveform;
+    if (!expected || stableJson(waveform) !== stableJson(expected)) throw new Error(`retained ${attachment} waveform receipt changed for ${job.id}`);
+  }
+}
+
+function assertWaveformMatchesPin(waveform: WavInfo, clip: AudioFilePin, path: string): void {
+  if (waveform.sha256 !== clip.sha256 || waveform.bytes !== clip.bytes || waveform.sampleRate !== clip.sampleRate
+    || waveform.channels !== clip.channels || waveform.bitsPerSample !== clip.bitsPerSample
+    || Math.abs(waveform.durationSeconds - clip.durationSeconds) > 0.002) {
+    throw new Error(`captured waveform receipt no longer matches pinned WAV: ${path}`);
+  }
+}
+
+type LocalInputFailureReason = "missing-input" | "changed-bytes" | "invalid-render-input" | "digital-silence";
+type LocalClipEvidence = Record<string, unknown> & { jobId: string; attachment: "reference" | "candidate"; sha256: string; bytes: number };
+
+class LocalAudioPreflightFailure extends Error {
+  constructor(
+    readonly reason: LocalInputFailureReason,
+    readonly failedClip: Record<string, unknown>,
+    readonly clips: LocalClipEvidence[],
+  ) { super(`${reason} in ${String(failedClip.jobId)} ${String(failedClip.attachment)}`); }
+}
+
+async function measureManifestAudio(manifest: ReviewManifest): Promise<LocalClipEvidence[]> {
+  const byPin = new Map<string, WavInfo>();
+  const clips: LocalClipEvidence[] = [];
+  for (const job of manifest.jobs) {
+    for (const [attachment, clip] of [["reference", job.referenceClip], ["candidate", job.candidateClip]] as const) {
+      const key = `${clip.path}\n${clip.sha256}`;
+      let waveform = byPin.get(key);
+      if (!waveform) {
+        let bytes: Buffer;
+        try { bytes = await readPinnedAudioBytes(clip); }
+        catch (error) {
+          const code = (error as NodeJS.ErrnoException).code;
+          const detail = error instanceof Error ? error.message : String(error);
+          const reason: LocalInputFailureReason = code === "ENOENT" ? "missing-input" : /hash|byte count|changed while/i.test(detail) ? "changed-bytes" : "invalid-render-input";
+          const failed = { jobId: job.id, attachment, path: clip.path, expectedSha256: clip.sha256, code: code ?? "read-error", detail };
+          throw new LocalAudioPreflightFailure(reason, failed, clips);
+        }
+        const actualSha256 = hashBytes(bytes);
+        try {
+          waveform = inspectPcm16Wav(bytes);
+          assertWaveformMatchesPin(waveform, clip, clip.path);
+        } catch (error) {
+          const failed = { jobId: job.id, attachment, path: clip.path, sha256: actualSha256, bytes: bytes.length, detail: error instanceof Error ? error.message : String(error) };
+          throw new LocalAudioPreflightFailure("invalid-render-input", failed, clips);
+        }
+        byPin.set(key, waveform);
+      }
+      clips.push({ jobId: job.id, attachment, path: clip.path, sha256: waveform.sha256, bytes: waveform.bytes, waveform });
+    }
+  }
+  const silent = clips.find(item => (item.waveform as WavInfo).digitalSilence);
+  if (silent) throw new LocalAudioPreflightFailure("digital-silence", silent, clips);
+  return clips;
+}
+
+async function writeLocalPreflightFailure(options: Options, manifest: ReviewManifest, failure: LocalAudioPreflightFailure): Promise<string> {
+  await initializeOutput(options.outputDir, options.resume);
+  const waveformEvidenceSha256 = sha256Text(stableJson({ config: PCM_WAVEFORM_ANALYSIS_CONFIG, clips: failure.clips }));
+  const report = {
+    schemaVersion: 1,
+    kind: "keyspilli-audio-preflight-report",
+    createdAt: new Date().toISOString(),
+    status: "not-reviewed",
+    reason: failure.reason,
+    stage: "local-render-input",
+    failedInput: failure.failedClip,
+    providerCalls: 0,
+    route: "not-queried",
+    musicalFaultInferred: false,
+    waveformAnalysis: { config: PCM_WAVEFORM_ANALYSIS_CONFIG, analysisConfigSha256: sha256Text(stableJson(PCM_WAVEFORM_ANALYSIS_CONFIG)), evidenceSha256: waveformEvidenceSha256 },
+    clips: failure.clips,
+    jobs: manifest.jobs.map(job => ({ id: job.id, mode: job.mode, phraseId: job.phraseId, status: "local-not-reviewed", source: "render-input", reason: failure.reason })),
+    interpretation: "This local preflight outcome is not a provider abstention or a musical fault. Quiet levels and low-level spans are measurements only; silence inside a nonzero clip is not presumed to be an arrangement defect.",
+  };
+  const stem = options.resume ? "local-preflight-block" : "report";
+  await atomicWrite(join(options.outputDir, `${stem}.json`), `${JSON.stringify(report, null, 2)}\n`);
+  const markdown = [
+    "# Local audio preflight — not reviewed", "",
+    `- Outcome: **not-reviewed / render-input** (${failure.reason}).`,
+    `- Failed input: ${String(failure.failedClip.jobId)} / ${String(failure.failedClip.attachment)}.`,
+    "- Provider calls: **0**; route lookup: **not queried**.",
+    "- This is not a model abstention and does not infer a musical fault. Near-silence and low-level spans are descriptive only; a silent span inside an otherwise nonzero recording is not automatically a defect.",
+    `- Waveform evidence SHA-256: \`${waveformEvidenceSha256}\`.`, "",
+    "## Captured-byte measurements", "",
+    "```json", JSON.stringify(failure.clips, null, 2), "```", "",
+  ].join("\n");
+  await atomicWrite(join(options.outputDir, `${stem}.md`), markdown);
+  return join(options.outputDir, `${stem}.json`);
 }
 
 class AntiCommandFailure extends Error {
@@ -260,12 +376,13 @@ function makeFingerprint(manifestSha256: string, antiScriptSha256: string, optio
   return sha256Text(stableJson({ manifestSha256, antiScriptSha256, model: options.model, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, dryRun: options.dryRun, gatewayRouteContractSha256, prompts, ...profileContract }));
 }
 
-function newState(manifest: ReviewManifest, manifestSha256: string, fingerprint: string, maxRequests: number, gatewayCatalog: { rawSha256: string; routeContractSha256: string } | null, reviewProfile: ReviewProfile): RunState {
+function newState(manifest: ReviewManifest, manifestSha256: string, fingerprint: string, maxRequests: number, gatewayCatalog: { rawSha256: string; routeContractSha256: string } | null, reviewProfile: ReviewProfile, waveformEvidenceSha256: string): RunState {
   return {
     schemaVersion: 1,
     reviewProfile,
     reviewSchemaVersion: reviewProfile === "evidence-v2" ? 2 : 1,
     manifestSha256,
+    waveformEvidenceSha256,
     fingerprint,
     ...(gatewayCatalog ? { gatewayCatalogSha256: gatewayCatalog.rawSha256, gatewayRouteContractSha256: gatewayCatalog.routeContractSha256 } : {}),
     maxRequests,
@@ -313,8 +430,10 @@ function reportMarkdown(report: Record<string, any>): string {
     `- Manifest SHA-256: \`${report.manifestSha256}\``,
     `- Provider: \`${report.provider.name}\`; requested model: \`${report.provider.requestedModel}\``,
     `- Captured clips: ${report.captureEvidence.files.length}; attempts reserved: ${report.submissionEvidence.attemptsReserved}; validated completed responses: ${report.coverage.completeJobCount}; compared: ${report.coverage.comparedJobCount}; abstained: ${report.coverage.abstainedJobCount}; ambiguous jobs: ${report.submissionEvidence.ambiguousJobs}`,
+    `- Waveform analysis config SHA-256: \`${report.captureEvidence.waveformAnalysis.analysisConfigSha256}\`; measured-byte evidence SHA-256: \`${report.captureEvidence.waveformAnalysis.evidenceSha256}\`.`,
     "- Listening calibration: **unqualified**; musical acceptance: **not established**.",
     "- Audio token usage: **not exposed / not inferred**.",
+    "- Waveform RMS/peak, clipping, onset estimates and low-level spans are measurements only; they do not classify notes, music or intentional rests.",
     "",
     "## Mode and phrase coverage",
     "",
@@ -339,6 +458,14 @@ function reportMarkdown(report: Record<string, any>): string {
   if (!anyFindings) lines.push("No validated finding has been retained. An empty list means only that no defect was detected in a covered excerpt; it is not approval.", "");
   for (const row of report.jobs) {
     lines.push(`### ${row.mode} / ${row.phraseId} — ${row.status}`, "");
+    for (const attachment of ["reference", "candidate"] as const) {
+      const waveform = row.clips[attachment].waveform;
+      if (waveform) lines.push(
+        `- ${attachment} PCM16: ${waveform.durationSeconds.toFixed(3)} s, RMS ${waveform.rmsNormalized.toFixed(6)}, peak ${waveform.peakNormalized.toFixed(6)}, digital silence ${waveform.digitalSilence}, near-silence ${waveform.nearSilence}, rail samples ${waveform.clippedSampleCount}.`,
+        `  - Bounded energy-onset estimates (seconds): ${waveform.onsetEstimateSeconds.map((time: number) => time.toFixed(3)).join(", ") || "none"}; low-level spans (seconds): ${waveform.lowLevelSpans.map((span: { startSeconds: number; endSeconds: number }) => `${span.startSeconds.toFixed(3)}–${span.endSeconds.toFixed(3)}`).join(", ") || "none"}. These are signal measurements, not musical or rest judgments.`,
+      );
+    }
+    lines.push("");
     if (row.status === "dry-run") lines.push("No provider request was sent. This confirms local capture and Anti listen preflight only.", "");
     if (row.review) lines.push(row.review.summary, "", `Overall uncertainty: ${row.review.uncertainty} (descriptive, not calibrated).`, "");
     if (row.comparisonStatus) lines.push(`Comparison status: **${row.comparisonStatus}**. Provider listening attestation: **unverified**.`, "");
@@ -376,8 +503,8 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
       id: job.id, mode: job.mode, phraseId: job.phraseId, status: entry.status,
       comparisonStatus: entry.comparisonStatus ?? null,
       clips: {
-        reference: { sha256: job.referenceClip.sha256, bytes: job.referenceClip.bytes, durationSeconds: job.referenceClip.durationSeconds },
-        candidate: { sha256: job.candidateClip.sha256, bytes: job.candidateClip.bytes, durationSeconds: job.candidateClip.durationSeconds },
+        reference: { sha256: job.referenceClip.sha256, bytes: job.referenceClip.bytes, durationSeconds: job.referenceClip.durationSeconds, waveform: (captured.find(item => item.jobId === job.id && item.attachment === "reference") as Record<string, any> | undefined)?.waveform },
+        candidate: { sha256: job.candidateClip.sha256, bytes: job.candidateClip.bytes, durationSeconds: job.candidateClip.durationSeconds, waveform: (captured.find(item => item.jobId === job.id && item.attachment === "candidate") as Record<string, any> | undefined)?.waveform },
       },
       alignment: { status: job.alignment.status, method: job.alignment.method, evidence: job.alignment.evidence.sha256 },
       findings: [], repairQueue: [], submission: null,
@@ -452,7 +579,11 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
     manifestSha256,
     runFingerprint: fingerprint,
     provider: { name: "anti.listen", requestedModel: options.model, python: options.python, antiScript: options.antiScript, antiScriptSha256, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, outputTokenCeiling: AUDIO_REVIEW_LIMITS.maxOutputTokens, gatewayBackendAttemptLimitRequired: 1, gatewayCatalogSha256: state.gatewayCatalogSha256 ?? null, gatewayRouteContractSha256: state.gatewayRouteContractSha256 ?? null },
-    captureEvidence: { status: "pinned-local-clips", files: captured },
+    captureEvidence: {
+      status: "pinned-local-clips",
+      waveformAnalysis: { config: PCM_WAVEFORM_ANALYSIS_CONFIG, analysisConfigSha256: sha256Text(stableJson(PCM_WAVEFORM_ANALYSIS_CONFIG)), evidenceSha256: state.waveformEvidenceSha256 ?? null },
+      files: captured,
+    },
     submissionEvidence: {
       attemptsReserved: state.attemptsUsed,
       validatedCompleteResponses: rows.filter(row => row.status === "complete").length,
@@ -480,22 +611,67 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
 async function run(options: Options): Promise<void> {
   options.baseUrl = safeBaseUrl(options.baseUrl);
   const rawManifest = JSON.parse(await readFile(options.manifestPath, "utf8")) as unknown;
-  const manifest = await validateManifestFiles(rawManifest);
+  const structuralManifest = validateReviewManifest(rawManifest);
+  let preflightClips: LocalClipEvidence[];
+  try { preflightClips = await measureManifestAudio(structuralManifest); }
+  catch (error) {
+    if (!(error instanceof LocalAudioPreflightFailure)) throw error;
+    const reportPath = await writeLocalPreflightFailure(options, structuralManifest, error);
+    throw new Error(`${error.reason === "digital-silence" ? "digital silence" : error.reason} — local not-reviewed/render-input outcome written to ${reportPath}`);
+  }
+  let manifest: ReviewManifest;
+  try { manifest = await validateManifestFiles(structuralManifest); }
+  catch (error) {
+    try { await measureManifestAudio(structuralManifest); }
+    catch (preflightError) {
+      if (preflightError instanceof LocalAudioPreflightFailure) {
+        const reportPath = await writeLocalPreflightFailure(options, structuralManifest, preflightError);
+        throw new Error(`captured render-input changed during validation — local not-reviewed outcome written to ${reportPath}`);
+      }
+    }
+    throw error;
+  }
   if (options.sendAudio && options.maxRequests < manifest.jobs.length) throw new Error(`total request cap ${options.maxRequests} is below ${manifest.jobs.length} planned jobs; no provider work started`);
+  const manifestSha256 = sha256Text(stableJson(manifest));
+  const waveformEvidenceSha256 = sha256Text(stableJson({ config: PCM_WAVEFORM_ANALYSIS_CONFIG, clips: preflightClips }));
+  let savedStateForResume: RunState | null = null;
+  if (options.resume) {
+    savedStateForResume = JSON.parse(await readFile(join(options.outputDir, "state.json"), "utf8")) as RunState;
+    if (savedStateForResume.manifestSha256 !== manifestSha256) throw new Error("cannot resume: manifest or media pins changed");
+    if (savedStateForResume.waveformEvidenceSha256 !== waveformEvidenceSha256) throw new Error("cannot resume: measured waveform bytes or analysis configuration changed; waveform receipt does not match");
+  }
   const runtime = await checkRuntime(options);
   options.python = runtime.python;
   options.antiScript = runtime.antiScript;
-  const manifestSha256 = sha256Text(stableJson(manifest));
+  await initializeOutput(options.outputDir, options.resume);
+  let captured: Array<Record<string, unknown>>;
+  let pathByHash: Map<string, string>;
+  try { ({ captured, pathByHash } = await copyPinnedClips(manifest, options.outputDir, preflightClips)); }
+  catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/retained clip was edited|stale clip pin|retained clip changed|captured waveform|pinned WAV.*(changed|hash)|pinned WAV byte count/i.test(message)) {
+      const failure = new LocalAudioPreflightFailure("changed-bytes", { stage: "captured-copy", detail: message }, preflightClips);
+      const reportPath = await writeLocalPreflightFailure(options, manifest, failure);
+      throw new Error(`captured render-input changed — local not-reviewed outcome written to ${reportPath}`);
+    }
+    try { await measureManifestAudio(manifest); }
+    catch (preflightError) {
+      if (preflightError instanceof LocalAudioPreflightFailure) {
+        const reportPath = await writeLocalPreflightFailure(options, manifest, preflightError);
+        throw new Error(`captured render-input changed — local not-reviewed outcome written to ${reportPath}`);
+      }
+    }
+    throw error;
+  }
   const prompts = Object.fromEntries(manifest.jobs.map(job => [job.id, buildPrompt(job, options.reviewProfile)]));
   const maxRequests = options.sendAudio ? options.maxRequests : 0;
   const gatewayCatalog = options.sendAudio ? await fetchGatewayModelCatalog(options.baseUrl) : null;
   const fingerprint = makeFingerprint(manifestSha256, runtime.antiScriptSha256, options, prompts, gatewayCatalog?.routeContractSha256 ?? null);
-  await initializeOutput(options.outputDir, options.resume);
   const statePath = join(options.outputDir, "state.json");
   let state: RunState;
   let resumePlan: ReturnType<typeof planResumableJobs> | null = null;
   if (options.resume) {
-    const rawState = JSON.parse(await readFile(statePath, "utf8")) as RunState;
+    const rawState = savedStateForResume!;
     const savedProfile = rawState.reviewProfile ?? "legacy";
     const savedSchemaVersion = rawState.reviewSchemaVersion ?? 1;
     const selectedSchemaVersion = options.reviewProfile === "evidence-v2" ? 2 : 1;
@@ -504,7 +680,7 @@ async function run(options: Options): Promise<void> {
     resumePlan = planResumableJobs(rawState, manifest, manifestSha256, maxRequests);
     state = rawState;
   } else {
-    state = newState(manifest, manifestSha256, fingerprint, maxRequests, gatewayCatalog, options.reviewProfile);
+    state = newState(manifest, manifestSha256, fingerprint, maxRequests, gatewayCatalog, options.reviewProfile, waveformEvidenceSha256);
     await atomicWrite(statePath, `${JSON.stringify(state, null, 2)}\n`);
   }
   if (options.resume) {
@@ -514,7 +690,6 @@ async function run(options: Options): Promise<void> {
     await atomicWrite(join(options.outputDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     await atomicWrite(join(options.outputDir, ".codex-review-output-sentinel"), `Keyspilli audio-review ${fingerprint}\n`);
   }
-  const { captured, pathByHash } = await copyPinnedClips(manifest, options.outputDir);
   if (resumePlan?.ambiguous.length) {
     for (const id of resumePlan.ambiguous) state.jobs[id]!.status = "ambiguous";
     await atomicWrite(statePath, `${JSON.stringify(state, null, 2)}\n`);
@@ -536,6 +711,7 @@ async function run(options: Options): Promise<void> {
     let allowedModelIds = state.jobs[job.id]!.allowedModelIds;
     try {
       if (await sha256File(runtime.antiScript) !== runtime.antiScriptSha256) throw new Error("pinned Anti helper changed after preflight; refusing to run against a moving interface");
+      await verifyRetainedJobClips(job, pathByHash, preflightClips);
       if (options.sendAudio) {
         const preflightResult = await invokeAnti(options, job, pathByHash, prompts[job.id]!, options.outputDir, true);
         const preflightEnvelope = parseAntiDryRunStdout(preflightResult.stdout, prompts[job.id]!);
@@ -556,6 +732,7 @@ async function run(options: Options): Promise<void> {
         state.jobs[job.id] = { ...state.jobs[job.id]!, resolvedModel, preflightSha256, allowedModelIds };
         await atomicWrite(statePath, `${JSON.stringify(state, null, 2)}\n`);
         if (await sha256File(runtime.antiScript) !== runtime.antiScriptSha256) throw new Error("pinned Anti helper changed after dry-run preflight; refusing live submission");
+        await verifyRetainedJobClips(job, pathByHash, preflightClips);
         state.jobs[job.id] = { ...state.jobs[job.id]!, status: "submitted", attempts: 1 };
         state.attemptsUsed += 1;
         await atomicWrite(statePath, `${JSON.stringify(state, null, 2)}\n`);

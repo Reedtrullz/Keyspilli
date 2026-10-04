@@ -1,6 +1,6 @@
 # Player audio qualification review handoff
 
-The opt-in evidence response format and its CLI/report/resume contract are specified in [Player audio evidence-v2](player-audio-evidence-v2.md). It is a separate review profile; it does not change the default prompt or reopen the stopped frozen study below.
+The opt-in evidence response format, local captured-byte waveform preflight, and CLI/report/resume contract are specified in [Player audio evidence-v2](player-audio-evidence-v2.md). The local preflight labels missing, corrupt, changed, or all-digital-zero audio as not-reviewed render input with no provider call. It does not classify near-silence or low-level spans as musical faults. This is a separate review profile; it does not change the default prompt or reopen the stopped frozen study below.
 
 ## Source pins and CI evidence
 

@@ -7,6 +7,7 @@ import {
   buildEvidenceV2ReviewPrompt,
   buildReviewPrompt,
   buildRepairQueue,
+  inspectPcm16Wav,
   gatewayAudioRouteCatalogContractSha256,
   mapClipFindingToSource,
   parseAntiDryRunStdout,
@@ -18,6 +19,53 @@ import {
 } from "./audio-review.js";
 
 const pin = (char: string) => char.repeat(64);
+
+function pcmWav(samples: readonly number[], sampleRate = 32_000): Buffer {
+  const data = Buffer.alloc(samples.length * 2);
+  samples.forEach((sample, index) => data.writeInt16LE(sample, index * 2));
+  const wav = Buffer.alloc(44 + data.length);
+  wav.write("RIFF", 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(sampleRate, 24); wav.writeUInt32LE(sampleRate * 2, 28);
+  wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write("data", 36);
+  wav.writeUInt32LE(data.length, 40); data.copy(wav, 44);
+  return wav;
+}
+
+describe("captured PCM waveform evidence", () => {
+  it("measures normalized level, clipping, all-zero and near-silence, and bounded energy onsets", () => {
+    const rate = 32_000;
+    const samples = new Array<number>(rate / 2).fill(0);
+    for (let index = rate / 2; index < rate; index++) {
+      samples.push(Math.round(Math.sin(2 * Math.PI * 440 * (index - rate / 2) / rate) * 1_000));
+    }
+    const measured = inspectPcm16Wav(pcmWav(samples, rate));
+
+    expect(measured).toMatchObject({
+      durationSeconds: 1,
+      digitalSilence: false,
+      nearSilence: false,
+      clippedSampleCount: 0,
+      onsetEstimateSeconds: [0.5],
+      config: { frameMilliseconds: 20, hopMilliseconds: 10, maxOnsets: 256 },
+    });
+    expect(measured.rmsNormalized).toBeGreaterThan(0.01);
+    expect(measured.peakNormalized).toBeCloseTo(1_000 / 32_768, 6);
+    expect(measured.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(measured.analysisConfigSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(measured.lowLevelSpans[0]).toMatchObject({ startSeconds: 0, endSeconds: 0.49 });
+
+    const quiet = inspectPcm16Wav(pcmWav(new Array(32_000).fill(12)));
+    expect(quiet.nearSilence).toBe(true);
+    expect(quiet.digitalSilence).toBe(false);
+    expect(quiet.onsetEstimateSeconds.length).toBeLessThanOrEqual(256);
+    const zero = inspectPcm16Wav(pcmWav(new Array(32_000).fill(0)));
+    expect(zero).toMatchObject({ digitalSilence: true, nearSilence: true, clippedSampleCount: 0, onsetEstimateSeconds: [] });
+    const clipped = inspectPcm16Wav(pcmWav([-32_768, ...new Array(31_999).fill(0)]));
+    expect(clipped).toMatchObject({ digitalSilence: false, clippedSampleCount: 1, peakNormalized: 1 });
+  });
+});
+
 const clip = (name: string, startSeconds = 0): AudioFilePin => ({
   path: `/fixture/${name}.wav`,
   sha256: pin("a"),
