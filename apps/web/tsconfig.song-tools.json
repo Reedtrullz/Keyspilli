@@ -6,7 +6,8 @@
     "scripts/song-bundle.mts",
     "scripts/render-prepared-chords.mts",
     "scripts/review-song-audio.mts",
-    "scripts/create-audio-review-demo.mts"
+    "scripts/create-audio-review-demo.mts",
+    "scripts/report-local-audio-evidence.mts"
   ],
   "exclude": ["node_modules"]
 }
