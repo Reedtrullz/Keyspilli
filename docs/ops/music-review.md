@@ -57,6 +57,16 @@ check the loopback port and preserve earlier studies. Missing input/silence are
 explicit controls; only playable fixtures use the Player. Second-bank and real
 recording domains remain uncovered until supplied and measured.
 
+For renderer debugging, a capture plan can explicitly set
+`capturePreCompressor: true`. This records the stereo compressor input as
+Float32 WAV alongside the usual mono PCM16 output, using the same worklet frame
+clock. It also replays the measured input through a fresh browser compressor
+with the recorded parameters. Paired captures require exactly one compressor
+input, at most four seconds and at most 2 MiB per signal. The additional files
+are local diagnostic sidecars; they do not enter a provider request automatically.
+See [Player signal controls](player-signal-controls.md) for the velocity,
+release and compressor findings and their qualification limits.
+
 Freeze worker/config and thresholds after development. `--resume` requires the
 same experiment fingerprint. `--receipt-dir` grades existing pinned receipts
 without inference. Report 50/100 ms tolerances separately, one-to-one notes,

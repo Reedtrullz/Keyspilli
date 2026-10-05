@@ -14,8 +14,8 @@ test("recorder PCM origin is an audio frame clock independent of score", async (
       "utf8",
     ),
   );
-  const first = Object.values(bundle.captures)[0] as { songId: string };
-  await installPlayerPcmProbe(page);
+  const first = Object.values(bundle.captures)[0] as { songId: string; capturePreCompressor?: boolean };
+  await installPlayerPcmProbe(page, first.capturePreCompressor ?? false);
   await page.goto("/player/" + first.songId);
   await expect(
     page.getByRole("button", { name: "Play", exact: true }),
@@ -30,6 +30,7 @@ test("recorder PCM origin is an audio frame clock independent of score", async (
         wav: number[];
         sampleRate: number;
         firstSampleContextSeconds: number;
+        beforeCompressor?: { wav: number[]; firstSampleContextSeconds: number; frames: number };
       }>;
       __playerCaptureClockControl: () => number;
     };
@@ -43,12 +44,24 @@ test("recorder PCM origin is an audio frame clock independent of score", async (
   const wav = Buffer.from(result.wav);
   let peakIndex = 0,
     peak = 0;
-  for (let i = 44; i < wav.length; i += 2) {
+  for (let i = 44;i < wav.length;i += 2) {
     const n = Math.abs(wav.readInt16LE(i));
     if (n > peak) {
       peak = n;
       peakIndex = (i - 44) / 2;
     }
+  }
+  if (first.capturePreCompressor) {
+    expect(result.beforeCompressor).toBeDefined();
+    const before = Buffer.from(result.beforeCompressor!.wav);
+    expect(before.readUInt16LE(20)).toBe(3);
+    expect(before.readUInt16LE(22)).toBe(2);
+    expect(result.beforeCompressor!.firstSampleContextSeconds).toBe(result.firstSampleContextSeconds);
+    expect(result.beforeCompressor!.frames).toBe((wav.length - 44) / 2);
+    let beforePeakIndex = 0, beforePeak = 0;
+    for (let i = 44;i < before.length;i += 8) { const value = Math.abs(before.readFloatLE(i)); if (value > beforePeak) { beforePeak = value; beforePeakIndex = (i - 44) / 8; } }
+    expect(beforePeak).toBeCloseTo(1.25);
+    expect(beforePeakIndex).toBe(peakIndex);
   }
   expect(peak).toBeGreaterThan(1000);
   const measured =
