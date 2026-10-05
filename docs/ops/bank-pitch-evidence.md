@@ -6,6 +6,10 @@ pYIN with a renderer-informed pitch-set estimate. Anti still consumes only a
 generic evidence bundle and owns connected-account Gemini access; it does not
 install this tool, DSP dependencies or a piano bank.
 
+For a separately opted-in waveform-history diagnostic that preserves phase,
+see [phase-pattern-evidence.md](phase-pattern-evidence.md). It requires longer
+held references and an explicit renderer profile; default detection is unchanged.
+
 Use the pinned optional environment in
 `services/transcribe/requirements-onset-evidence.txt`. No model weights, network
 requests, runtime downloads, worker jobs or catalog changes occur.
