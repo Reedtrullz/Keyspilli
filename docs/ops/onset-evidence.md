@@ -66,6 +66,10 @@ coverage, source fidelity, pianist suitability and musical acceptance remain
 unestablished. Do not infer pitch/scale correctness from onset counts or make
 automatic note repairs from these measurements.
 
+For explicitly monophonic pitch-window estimates and a caller-supplied scale,
+see [pitch evidence](pitch-evidence.md). That optional command has separate
+limits and receipts; onset counts alone still provide no pitch evidence.
+
 References: [librosa onset detection](https://librosa.org/doc/0.10.2/onset.html)
 describes spectral flux and peak picking; [Google's audio limitations](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/capabilities/audio-understanding#limitations)
 warn about non-speech recognition and describe the audio timestamp setting.
