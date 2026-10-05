@@ -45,7 +45,80 @@ def request(folder):
             'expectedPitches': [60, 67]}
 
 
+def temporal_request(folder):
+    r = request(folder)
+    rate = 32000
+    pcm = array.array('h')
+    for i in range(round(1.6 * rate)):
+        t = i / rate
+        low = 0 if t < .25 else .12 * math.exp(-4 * (t - .25)) * math.sin(2 * math.pi * 261.625565 * (t - .25))
+        high = 0 if t < .65 else .22 * math.exp(-2 * (t - .65)) * math.sin(2 * math.pi * 391.995436 * (t - .65))
+        pcm.append(round((low + high) * 32767))
+    with wave.open(r['audio']['path'], 'wb') as w:
+        w.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
+        w.writeframes(pcm.tobytes())
+    r['audio']['sha256'] = hashlib.sha256(Path(r['audio']['path']).read_bytes()).hexdigest()
+    r['window'] = {'startSeconds': .68, 'endSeconds': .808}
+    return r
+
+
 class BankPitchTests(unittest.TestCase):
+    def test_history_links_a_weak_component_without_promoting_it(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = temporal_request(Path(d))
+            baseline, _ = module.analyze(r)
+            receipt, bundle = getattr(module, 'analyze_with_history', module.analyze)(r)
+            self.assertEqual(receipt['pitchSetEstimate'], [67])
+            self.assertEqual(receipt['fit'], baseline['fit'])
+            history = receipt.get('history', {})
+            self.assertEqual(history.get('candidateLinks'), [{'midi': 60, 'priorWindowIds': ['prior-window-0']}])
+            self.assertFalse(history['pitchPresenceEstablished'])
+            self.assertEqual(history['windows'][0]['pitchSetEstimate'], [60])
+            self.assertLessEqual(history['windows'][0]['endSeconds'], .68)
+            self.assertIn('candidate-history', {x['id'] for x in bundle['claims']})
+            r['expectedPitches'] = [64]
+            wrong_score, _ = module.analyze_with_history(r)
+            self.assertEqual(wrong_score['history'], receipt['history'])
+
+    def test_history_excludes_future_and_expired_windows_and_caps_work(self):
+        select = getattr(module, '_prior_windows', lambda onsets, rate, start: [])
+        self.assertEqual(select([.25, .65, 1.35, 2.4, 2.85], 32000, 2.),
+                         [{'onsetSeconds': 1.35, 'startSeconds': 1.38, 'endSeconds': 1.508}])
+        self.assertEqual(select([1.35], 32000, 1.50799), [])
+        with self.assertRaisesRegex(ValueError, 'history window bound'):
+            select([.8 + i * .05 for i in range(12)], 32000, 2.)
+
+    def test_history_does_not_use_a_later_fit_to_support_an_early_window(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = temporal_request(Path(d))
+            r['window'] = {'startSeconds': .28, 'endSeconds': .408}
+            receipt, bundle = getattr(module, 'analyze_with_history', module.analyze)(r)
+            self.assertEqual(receipt.get('history', {}).get('windows'), [])
+            self.assertNotIn('prior-window-0', {x['id'] for x in bundle['claims']})
+
+    def test_history_preserves_uncertain_target_and_unknown_current_presence(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = request(Path(d))
+            r['audio']['sha256'] = clip(Path(r['audio']['path']), [70])
+            r['window'] = {'startSeconds': .68, 'endSeconds': .808}
+            receipt, _ = getattr(module, 'analyze_with_history', module.analyze)(r)
+            self.assertIsNone(receipt['pitchSetEstimate'])
+            self.assertIsNone(receipt.get('history', {}).get('candidateLinks', []))
+            self.assertEqual(receipt['pitchSetCompleteness'], 'unknown')
+
+    def test_history_reports_are_exclusive_and_default_profile_stays_simple(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = temporal_request(Path(d))
+            baseline, _ = module.write_report(r, Path(d) / 'simple')
+            self.assertNotIn('history', baseline)
+            out = Path(d) / 'history'
+            receipt, _ = module.write_report(r, out, with_history=True)
+            self.assertIn('history', receipt)
+            before = (out / 'receipt.json').read_bytes()
+            with self.assertRaises(FileExistsError):
+                module.write_report(r, out, with_history=True)
+            self.assertEqual((out / 'receipt.json').read_bytes(), before)
+
     def test_quiet_component_is_visible_without_becoming_a_detected_pitch(self):
         # Removing weak-candidate reporting or promoting it to the selected set
         # would hide this ambiguity or incorrectly claim a recovered note.

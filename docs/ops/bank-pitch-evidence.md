@@ -127,6 +127,47 @@ defines constrained least squares and its residual norm.
 describes harmonic-profile assumptions and overlapping-note limitations. This
 implementation uses fixed templates and NNLS, not that paper's learned NMF system.
 
+## Optional prior-window evidence
+
+Add `--with-history` to the existing command to include earlier measurements
+from the same pinned clip. The default command remains a single-window fit.
+This option does not change `pitchSetEstimate`, coefficients, residuals or
+detection thresholds, and never unions earlier notes into the selected set.
+
+The pinned spectral-onset estimator scans the full clip. Reference windows
+start30ms after an estimated onset, snapped to the input sample grid. Each is
+128ms, must finish before the target window begins, and must start within the
+preceding1.2seconds. At most eight such windows are allowed; more refuses
+locally without a partial report. This bounds fitting work and excludes future
+fit windows. The full-clip onset scan means this is not causal online tracking.
+
+The receipt retains all prior fits, null/uncertain results, the raw onset
+estimates and separate history code/configuration identity. Historical fits
+receive no expected score. Each current weak candidate links to earlier fit
+claims that detected the same MIDI pitch, or an empty list if none did. The
+portable candidate-link list shares the12-candidate bound and omitted count.
+Earlier fit claims carry their own clip-local intervals. Earlier detection
+does not establish current presence, duration, release or a repeated attack;
+it can inherit the same bank and harmonic errors. Unknown current presence
+and pitch-set completeness remain explicit. Never turn these links into an
+automatic repair or a claim that a complete chord was recovered.
+
+A separately frozen60-window temporal-anchor candidate retained the original
+target set and added weighted candidates only when earlier complete windows
+detected them. Fresh overlap recovered14/24 exact sets versus1/24 originally,
+with zero false pitches but18 misses versus48. No-bass controls recovered8/12
+versus7/12; harmonic chords0/12 versus0/12; unanchored quiet-note controls11/12
+versus8/12. All four splits had zero false pitches for both methods. Coverage
+failed the declared18/24 overlap rule, so that fusion detector was rejected.
+It is private research, not a selectable profile. The exported history is
+measurements for interpretation only; general transcription remains unqualified.
+
+[Cheng, Mauch, Benetos and Dixon's attack/decay model](https://archives.ismir.net/ismir2016/paper/000085.pdf)
+couples attack and decay components using learned same-piano templates.
+[Ewert and Sandler's studio transcription model](https://arxiv.org/abs/1606.00785)
+uses structured spectro-temporal patterns. These motivate investigating temporal
+evidence; our rejected anchor rule does not implement either complete model.
+
 ## Quiet-note investigation
 
 A separate frozen experiment compared the unchanged detector with a private

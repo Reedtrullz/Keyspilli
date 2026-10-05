@@ -18,6 +18,10 @@ CONFIG = {'method': 'bank-template-nnls', 'analysisSampleRate': 16000,
           'windowSeconds': .128, 'activityThreshold': .25, 'maximumResidualRatio': .25,
           'minimumRmsDbfs': -50, 'maximumTemplates': 88, 'resampling': 'soxr-HQ'}
 REPORTING = {'minimumWeakCoefficient': .04, 'maximumPortableWeakCandidates': 12}
+HISTORY = {'anchorOffsetSeconds': .03, 'maximumLookbackSeconds': 1.2,
+           'maximumPriorWindows': 8, 'windowSeconds': .128, 'futureFitWindowsAllowed': False}
+HISTORY_LIMITATION = ('Earlier detections can share harmonic errors and do not establish current presence, '
+                      'note duration, releases or repeated attacks. Onsets scan the full clip; this is not causal online tracking.')
 LIMITATIONS = [
     'Renderer-informed evidence; shared bank/renderer can share defects. Not independent source truth.',
     'Bank provenance and template MIDI labels are caller assertions; hashes verify bytes, not those assertions.',
@@ -147,12 +151,76 @@ def analyze(request):
     return receipt, bundle
 
 
-def write_report(request, output):
+def _prior_windows(onsets, rate, start):
+    windows = []
+    target_offset = round(start * rate)
+    frames = round(HISTORY['windowSeconds'] * rate)
+    for onset in onsets:
+        offset = round((onset + HISTORY['anchorOffsetSeconds']) * rate)
+        if (offset + frames > target_offset or (offset + frames) / rate > start or
+                start - offset / rate > HISTORY['maximumLookbackSeconds']):
+            continue
+        windows.append({'onsetSeconds': onset, 'startSeconds': offset / rate,
+                        'endSeconds': (offset + frames) / rate})
+    if len(windows) > HISTORY['maximumPriorWindows']:
+        raise ValueError('history window bound exceeded; no partial history output')
+    return windows
+
+
+def analyze_with_history(request):
+    """Opt-in prior measurements; never union historical notes into the target set."""
+    started = time.monotonic()
+    receipt, bundle = analyze(request)
+    audio_pin = request['audio']
+    onsets, _ = onset_evidence.analyze(pin_path(audio_pin), audio_pin['sha256'])
+    prior = _prior_windows(onsets['onsetEstimateSeconds'], receipt['audio']['sampleRate'],
+                           receipt['window']['startSeconds'])
+    windows = []
+    for i, window in enumerate(prior):
+        selected = {k: window[k] for k in ('startSeconds', 'endSeconds')}
+        historical, _ = analyze({**request, 'window': selected, 'expectedPitches': None})
+        ident = f'prior-window-{i}'
+        windows.append({'id': ident, **window, 'status': historical['status'],
+                        'pitchSetEstimate': historical['pitchSetEstimate'], 'fit': historical['fit'],
+                        'windowRmsDbfs': historical['windowRmsDbfs'],
+                        'analysisConfigSha256': historical['analysisConfigSha256']})
+        stats = {'status': historical['status'], 'pitchSetEstimate': historical['pitchSetEstimate'],
+                 'residualRatio': None if historical['fit'] is None else round(historical['fit']['residualRatio'], 6),
+                 'pitchSetCompleteness': 'unknown'}
+        bundle['claims'].append({'id': ident, 'clipId': 'A', **selected,
+            'text': 'Earlier renderer-informed128ms fit: ' + json.dumps(stats, allow_nan=False) +
+                    '. This is an earlier detection, not proof of current pitch presence.',
+            'origin': 'measurement', 'uncertainty': HISTORY_LIMITATION})
+    weak = receipt['belowThresholdCandidates']
+    links = None if weak is None else [{'midi': row['midi'],
+        'priorWindowIds': [w['id'] for w in windows if row['midi'] in (w['pitchSetEstimate'] or [])]}
+        for row in weak]
+    config = {**HISTORY, 'onsetAnalysisConfigSha256': onsets['analysisConfigSha256'],
+              'parentAnalysisConfigSha256': receipt['analysisConfigSha256']}
+    config_sha = onset_evidence.digest(json.dumps(config, sort_keys=True, separators=(',', ':')).encode())
+    receipt['history'] = {'configuration': config, 'analysisConfigSha256': config_sha,
+        'onsetEstimateSeconds': onsets['onsetEstimateSeconds'], 'windows': windows,
+        'candidateLinks': links, 'pitchPresenceEstablished': False, 'limitation': HISTORY_LIMITATION}
+    if links:
+        portable = links[:REPORTING['maximumPortableWeakCandidates']]
+        bundle['claims'].append({'id': 'candidate-history', 'clipId': 'A', **receipt['window'],
+            'text': 'Unresolved current weak-candidate links to earlier fit claims: ' +
+                    json.dumps({'candidateLinks': portable, 'omittedCount': len(links) - len(portable)}, allow_nan=False) +
+                    f'. History configuration SHA256: {config_sha}. No current presence or absence is established.',
+            'origin': 'measurement', 'uncertainty': HISTORY_LIMITATION})
+    # Copy: the baseline globals and default profile must not acquire history limitations.
+    receipt['limitations'] = [*receipt['limitations'], HISTORY_LIMITATION]
+    bundle['limitations'] = [*bundle['limitations'], HISTORY_LIMITATION]
+    receipt['elapsedSeconds'] = time.monotonic() - started
+    return receipt, bundle
+
+
+def write_report(request, output, *, with_history=False):
     if not output.is_absolute():
         raise ValueError('absolute output directory required')
     if output.exists():
         raise FileExistsError('output directory already exists')
-    receipt, bundle = analyze(request)
+    receipt, bundle = analyze_with_history(request) if with_history else analyze(request)
     output.mkdir(mode=0o700)
     for name, value in [('receipt.json', receipt), ('anti-evidence.json', bundle)]:
         with (output / name).open('x') as f:
@@ -166,6 +234,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--request', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--with-history', action='store_true', help='Include bounded earlier-window measurements; no new detected pitches')
     args = parser.parse_args()
     if not args.request.is_absolute():
         raise ValueError('absolute request path required')
@@ -177,7 +246,7 @@ def main():
         raw = f.read(65537)
     if len(raw) > 65536:
         raise ValueError('request exceeds64KiB')
-    receipt, _ = write_report(json.loads(raw), args.output)
+    receipt, _ = write_report(json.loads(raw), args.output, with_history=args.with_history)
     print(json.dumps({'receipt': str(args.output / 'receipt.json'), 'antiEvidence': str(args.output / 'anti-evidence.json'),
                       'status': receipt['status'], 'providerCalls': 0, 'musicalAcceptance': 'not-established'}))
 
