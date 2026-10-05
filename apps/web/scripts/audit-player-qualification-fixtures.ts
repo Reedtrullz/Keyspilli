@@ -10,7 +10,7 @@ const bundle = JSON.parse(readFileSync(bundlePath, "utf8")) as {
 };
 const fixtures = new Map(bundle.fixtures.map(fixture => [fixture.id, fixture.data]));
 const captures = Object.fromEntries(Object.entries(bundle.captures).map(([label, capture]) => {
-  const fixtureId = capture.songId.replace(/-[ma]$/, "");
+  const fixtureId = capture.songId.replace(/-[bma]$/, "");
   const source = fixtures.get(fixtureId);
   if (!source) throw new Error(`Missing fixture ${fixtureId} for ${label}`);
   const renderedNotes = capture.mode === "original"

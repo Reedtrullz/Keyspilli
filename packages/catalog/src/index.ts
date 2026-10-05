@@ -136,3 +136,4 @@ export { catalogRecoveryInventory, recoverCatalogPublication, type RecoveryEntry
 
 export * from "./tombstone.js";
 export * from './acoustic-receipt.js';
+export * from './music-benchmark.js';

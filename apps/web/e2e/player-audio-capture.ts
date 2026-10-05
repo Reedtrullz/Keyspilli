@@ -8,6 +8,8 @@ export type PlayerCapture = {
   sha256: string;
   durationSeconds: number;
   sampleRate: number;
+  firstSampleContextSeconds: number;
+  recorderClock: "audio-worklet-frame";
   sourceClockOffsetSeconds: number;
   sourceClockOffsetsSeconds: Partial<Record<"voice" | "backing", number>>;
   rms: number;
@@ -26,6 +28,7 @@ type ProbeWindow = Window & {
     peak: number;
     samplerStarts: Array<{ when: number; rate: number; bufferLength: number; bus: "voice" | "backing" | "unknown"; contextId: number; contextTime: number; startedAt: number; stack: string }>;
     oscillatorStarts: number;
+    firstSampleContextSeconds: number;
   }>;
 };
 const probedPages = new WeakSet<Page>();
@@ -46,7 +49,11 @@ export async function installPlayerPcmProbe(page: Page): Promise<void> {
     let startedAt = 0;
     let sources: Array<{ when: number; rate: number; bufferLength: number; bus: "voice" | "backing" | "unknown"; contextId: number; contextTime: number; startedAt: number; stack: string }> = [];
     let oscillatorStarts = 0;
-    let processor: ScriptProcessorNode | null = null;
+    let processor: AudioWorkletNode | null = null;
+    let recorderReady: Promise<void> | null = null;
+    let firstSampleContextSeconds = NaN;
+    let stopRecorder: (() => void) | null = null;
+    const finals = new Set<AudioNode>();
     const probeContexts = new WeakSet<AudioContext>();
     const contextIds = new WeakMap<AudioContext, number>();
     let nextContextId = 0;
@@ -71,22 +78,32 @@ export async function installPlayerPcmProbe(page: Page): Promise<void> {
         super(options);
         context = this;
         contextIds.set(this, ++nextContextId);
-        const tap = this.createScriptProcessor(4096, 2, 1);
-        const mute = this.createGain();
-        mute.gain.value = 0;
-        tap.onaudioprocess = (event) => {
-          if (!chunks) return;
-          const input = event.inputBuffer;
-          const frames = input.length;
-          const left = input.getChannelData(0);
-          const right = input.numberOfChannels > 1 ? input.getChannelData(1) : left;
-          const mono = new Float32Array(frames);
-          for (let i = 0; i < frames; i++) mono[i] = (left[i]! + right[i]!) * 0.5;
-          chunks.push(mono);
-        };
-        Reflect.apply(nativeConnect, tap, [mute]);
-        Reflect.apply(nativeConnect, mute, [this.destination]);
-        processor = tap;
+        const capturedContext = this;
+        const code = `class Capture extends AudioWorkletProcessor {
+          constructor(){super();this.active=false;this.samples=[];this.firstFrame=null;
+            this.port.onmessage=e=>{if(e.data==='start'){this.active=true;this.samples=[];this.firstFrame=null;}
+              if(e.data==='stop'){this.flush();this.active=false;this.port.postMessage({stopped:true});}};}
+          flush(){if(this.samples.length){const samples=Float32Array.from(this.samples);this.port.postMessage({samples,firstFrame:this.firstFrame},[samples.buffer]);this.samples=[];this.firstFrame=null;}}
+          process(inputs){if(!this.active)return true;const channels=inputs[0];if(!channels||!channels.length)return true;
+            if(this.firstFrame===null)this.firstFrame=currentFrame;
+            const frames=channels[0].length;for(let i=0;i<frames;i++){let sum=0;for(const c of channels)sum+=c[i];this.samples.push(sum/channels.length);}
+            if(this.samples.length>=4096)this.flush();return true;}
+        } registerProcessor('keyspilli-frame-capture',Capture);`;
+        const url = URL.createObjectURL(new Blob([code], {type:'text/javascript'}));
+        recorderReady = this.audioWorklet.addModule(url).then(() => {
+          URL.revokeObjectURL(url);
+          const tap = new AudioWorkletNode(capturedContext,'keyspilli-frame-capture');
+          tap.port.onmessage = event => {
+            if(event.data.stopped){stopRecorder?.();stopRecorder=null;return;}
+            if(!chunks)return;
+            if(!Number.isFinite(firstSampleContextSeconds))firstSampleContextSeconds=event.data.firstFrame/capturedContext.sampleRate;
+            chunks.push(event.data.samples);
+          };
+          const mute=capturedContext.createGain();mute.gain.value=0;
+          Reflect.apply(nativeConnect,tap,[mute]);Reflect.apply(nativeConnect,mute,[capturedContext.destination]);
+          processor=tap;
+          for(const node of finals)if(node.context===capturedContext)Reflect.apply(nativeConnect,node,[tap]);
+        });
         probeContexts.add(this);
       }
     }
@@ -122,7 +139,8 @@ export async function installPlayerPcmProbe(page: Page): Promise<void> {
         edges.set(this, destinations);
       }
       if (context && destination === context.destination && this.context === context && this !== processor) {
-        try { Reflect.apply(nativeConnect, this, [processor!]); } catch { /* only final compatible nodes can feed the tap */ }
+        finals.add(this);
+        if(processor)try { Reflect.apply(nativeConnect, this, [processor]); } catch { /* only final compatible nodes can feed the tap */ }
       }
       return result;
     };
@@ -145,24 +163,39 @@ export async function installPlayerPcmProbe(page: Page): Promise<void> {
 
     const exposed = window as unknown as ProbeWindow;
     exposed.__playerCaptureStart = async () => {
-      if (!context || !processor) throw new Error("Player has not created its Web Audio context");
+      if (!context || !recorderReady) throw new Error("Player has not created its Web Audio context");
       await context.resume();
+      await recorderReady;
       chunks = [];
       sources = [];
       oscillatorStarts = 0;
       startedAt = context.currentTime;
+      firstSampleContextSeconds = NaN;
+      processor!.port.postMessage("start");
+    };
+    (window as unknown as {__playerCaptureClockControl:()=>number}).__playerCaptureClockControl=()=>{
+      if(!context||!processor)throw new Error('No recorder context');
+      const buffer=context.createBuffer(1,128,context.sampleRate);buffer.getChannelData(0)[0]=0.5;
+      const source=context.createBufferSource();source.buffer=buffer;
+      Reflect.apply(nativeConnect,source,[processor]);const when=context.currentTime+0.2;
+      Reflect.apply(nativeStart,source,[when]);return when;
     };
     exposed.__playerCaptureStop = async () => {
       if (!context || !chunks) throw new Error("No Player PCM capture is active");
+      await new Promise<void>((resolve,reject)=>{
+        const timeout=setTimeout(()=>{stopRecorder=null;reject(new Error('Recorder flush timed out'));},3000);
+        stopRecorder=()=>{clearTimeout(timeout);resolve();};processor!.port.postMessage('stop');
+      });
+      if(!Number.isFinite(firstSampleContextSeconds))throw new Error('No recorder frame clock');
       const count = chunks.reduce((total, part) => total + part.length, 0);
       const samples = new Float32Array(count);
       let cursor = 0;
       for (const part of chunks) { samples.set(part, cursor); cursor += part.length; }
       let sum = 0; let peak = 0;
       for (const sample of samples) { sum += sample * sample; peak = Math.max(peak, Math.abs(sample)); }
-      const captured = { wav: toWav(samples, context.sampleRate), sampleRate: context.sampleRate,
+      const captured = { wav: toWav(samples, context.sampleRate), sampleRate: context.sampleRate, firstSampleContextSeconds,
         rms: samples.length ? Math.sqrt(sum / samples.length) : 0, peak,
-        samplerStarts: sources.map(source => ({ ...source, when: Number((source.when - source.startedAt).toFixed(5)), startedAt: Number(source.startedAt.toFixed(5)), contextTime: Number(source.contextTime.toFixed(5)) })), oscillatorStarts };
+        samplerStarts: sources.map(source => ({ ...source, when: Number((source.when - firstSampleContextSeconds).toFixed(5)), startedAt: Number(source.startedAt.toFixed(5)), contextTime: Number(source.contextTime.toFixed(5)) })), oscillatorStarts };
       chunks = null as unknown as Float32Array[];
       return captured;
     };
@@ -270,7 +303,7 @@ export async function capturePlayerClip(page: Page, options: {
   const firstActual = result.samplerStarts.map(source => source.when).sort((a, b) => a - b)[0];
   const sourceClockOffsetSeconds = firstExpected !== undefined && firstActual !== undefined
     ? Number((firstActual - firstExpected).toFixed(5)) : 0;
-  return { wav, sha256: hash, durationSeconds, sampleRate: result.sampleRate, sourceClockOffsetSeconds, sourceClockOffsetsSeconds, rms: result.rms,
+  return { wav, sha256: hash, durationSeconds, sampleRate: result.sampleRate, firstSampleContextSeconds: result.firstSampleContextSeconds, recorderClock: "audio-worklet-frame", sourceClockOffsetSeconds, sourceClockOffsetsSeconds, rms: result.rms,
     peak: result.peak, samplerStarts: result.samplerStarts.map(({ when, rate, bufferLength, bus, contextId, contextTime }) => ({ when, rate, bufferLength, bus, contextId, contextTime })), sampleAssets: uniqueAssets };
 }
 
