@@ -97,6 +97,11 @@ blind benchmark. Short synthetic single-note sequences and overlapping decay
 do not qualify full arrangements, real songs or calibrated pitch confidence.
 Both banks retain diagnostic status; no note repair or musical acceptance follows.
 
+For a selected chord window from an explicitly pinned known bank, optional
+[bank-informed pitch-set evidence](bank-pitch-evidence.md) provides a separate
+renderer-informed channel. It retains missed quiet notes and shared-bank limits;
+it does not remove this monophonic tracker's texture restrictions.
+
 References: [pinned librosa pYIN documentation](https://librosa.org/doc/0.10.2/generated/librosa.pyin.html)
 defines F0, voicing flags and voicing probability.
 [The original pYIN project](https://code.soundsoftware.ac.uk/projects/pyin)

@@ -1,5 +1,8 @@
-import importlib.util, unittest, sys
+import importlib.util
+import sys
+import unittest
 from pathlib import Path
+
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
 p=Path(__file__).resolve().parents[1]/'src/renderer_verification.py';s=importlib.util.spec_from_file_location('renderer',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 class RendererTests(unittest.TestCase):
@@ -15,7 +18,9 @@ class RendererTests(unittest.TestCase):
 
  def test_real_nnls_search_is_not_restricted_to_expected_score(self):
   try:
-   import numpy as np, scipy, soxr
+   import numpy as np
+   __import__('scipy')
+   __import__('soxr')
   except ImportError:
    self.skipTest('Optional local DSP experiment dependencies absent')
   rate=8000; t=np.arange(rate)/rate
@@ -25,3 +30,24 @@ class RendererTests(unittest.TestCase):
   result=m.compare_activity(activity,[60])
   self.assertEqual(result['unexpectedPitches'],[67]);self.assertIn(60,result['matchedPitches']);self.assertTrue(residuals)
   wrong=m.compare_activity(activity,[62]);self.assertEqual(wrong['missingExpectedPitches'],[62]);self.assertEqual(wrong['unexpectedPitches'],[60,67])
+
+ def test_explicit_attack_alignment_accepts_template_with_leading_silence(self):
+  import numpy as np
+  rate=8000;t=np.arange(rate)/rate
+  template=np.zeros(rate);template[2000:]=.3*np.sin(2*np.pi*261.6256*t[:6000])
+  audio=np.zeros(2*rate);audio[4000:10000]=template[2000:]
+  activity,residuals=m.spectral_activity(audio,rate,[(60,template,rate,.25)],.25)
+  self.assertEqual(sorted({row['midi'] for row in activity}),[60]);self.assertTrue(residuals)
+
+ def test_template_attack_must_leave_one_complete_window(self):
+  import numpy as np
+  for attack in (-.1,float('nan'),.99):
+   with self.assertRaisesRegex(ValueError,'attack'):
+    m.spectral_activity(np.ones(8000),8000,[(60,np.ones(8000),8000,attack)],.25)
+
+ def test_selected_chord_window_finds_all_registered_pitches_above_four_khz(self):
+  import numpy as np
+  rate=32000;t=np.arange(rate)/rate
+  low=np.sin(2*np.pi*261.6256*t);high=np.sin(2*np.pi*4186.009*t)
+  result=m.fit_pitch_set(.2*low+.2*high,rate,[(60,low,rate,0),(108,high,rate,0)],.25)
+  self.assertEqual(result['pitches'],[60,108]);self.assertLess(result['residualRatio'],.1)
