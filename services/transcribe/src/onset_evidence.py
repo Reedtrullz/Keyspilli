@@ -85,12 +85,15 @@ def analyze(path, expected_sha):
                'analysisConfigSha256': config_sha, 'elapsedSeconds': time.monotonic() - started,
                'acousticPitch': None, 'providerCalls': 0, 'calibrated': False,
                'musicalAcceptance': 'not-established', 'limitations': LIMITATIONS}
+    # Keep raw detector values in the receipt. Bounded presentation precision
+    # allows all256 estimates to fit Anti's4096-character claim field.
+    displayed_onsets = [round(t, 6) for t in onsets]
     bundle = {'schemaVersion': 1, 'kind': 'anti-music-evidence',
               'clips': [{'id': 'A', 'sha256': expected_sha, 'durationSeconds': audio['durationSeconds']}],
               'claims': [{'id': 'spectral-onsets', 'clipId': 'A', 'startSeconds': 0,
                           'endSeconds': audio['durationSeconds'], 'origin': 'measurement',
                           'text': f'Spectral onset estimate: {len(onsets)} energy/spectral transients '
-                                  f'at clip-local seconds {json.dumps(onsets)}. '
+                                  f'at clip-local seconds {json.dumps(displayed_onsets)}. '
                                   f'Analysis configuration SHA256: {config_sha}.',
                           'uncertainty': LIMITATIONS[0]}],
               'context': {'sourceAuthority': 'unknown', 'allowedDifferences': []},

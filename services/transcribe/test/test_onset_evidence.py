@@ -80,6 +80,21 @@ class OnsetEvidenceTests(unittest.TestCase):
                 module.write_report(path, sha, output)
             self.assertEqual(before, (output / 'anti-evidence.json').read_bytes())
 
+    def test_dense_clip_exports_all_estimates_within_portable_claim_bound(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'dense.wav'
+            rate, period = 32000, 3808
+            burst = array.array('h', (
+                round(12000 * math.sin(2 * math.pi * 440 * i / rate) *
+                      min(1, i / 100) * max(0, 1 - i / 1500))
+                for i in range(period)))
+            with wave.open(str(path), 'wb') as handle:
+                handle.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
+                handle.writeframes(burst.tobytes() * 252)
+            receipt, bundle = module.analyze(path, hashlib.sha256(path.read_bytes()).hexdigest())
+            self.assertGreater(len(receipt['onsetEstimateSeconds']), 200)
+            self.assertLessEqual(len(bundle['claims'][0]['text']), 4096)
+
 
 if __name__ == '__main__':
     unittest.main()
