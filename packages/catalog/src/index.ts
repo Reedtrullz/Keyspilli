@@ -135,3 +135,4 @@ export { commitCatalogPublication, catalogDeletionSnapshot, commitCatalogDeletio
 export { catalogRecoveryInventory, recoverCatalogPublication, type RecoveryEntry } from "./recovery.js";
 
 export * from "./tombstone.js";
+export * from './acoustic-receipt.js';
