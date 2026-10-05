@@ -17,11 +17,13 @@ import renderer_verification
 CONFIG = {'method': 'bank-template-nnls', 'analysisSampleRate': 16000,
           'windowSeconds': .128, 'activityThreshold': .25, 'maximumResidualRatio': .25,
           'minimumRmsDbfs': -50, 'maximumTemplates': 88, 'resampling': 'soxr-HQ'}
+REPORTING = {'minimumWeakCoefficient': .04, 'maximumPortableWeakCandidates': 12}
 LIMITATIONS = [
     'Renderer-informed evidence; shared bank/renderer can share defects. Not independent source truth.',
     'Bank provenance and template MIDI labels are caller assertions; hashes verify bytes, not those assertions.',
     'One128ms window estimates pitch presence only; releases, re-attacks, pedal and complete transcription are not established.',
     'Coefficients and spectral residual are uncalibrated fit statistics, not pitch confidence or proof of a correct chord.',
+    'Pitch-set completeness and acoustic absence remain unknown. Below-threshold candidates can be harmonics or fit artifacts, not recovered notes.',
     'Unknown banks, timbres, velocity layers, out-of-inventory pitches and overlapping harmonics can invalidate estimates.',
     'Source correctness, independent Gemini hearing, repair authority and musical acceptance remain unestablished.',
 ]
@@ -90,14 +92,19 @@ def analyze(request):
         fit = renderer_verification.fit_pitch_set(selected, audio['sampleRate'], templates, CONFIG['activityThreshold'])
     estimated = fit is not None and fit['residualRatio'] <= CONFIG['maximumResidualRatio']
     pitches = fit['pitches'] if estimated else None
+    weak = None if not estimated else sorted(
+        [row for row in fit['strengths'] if REPORTING['minimumWeakCoefficient'] <=
+         row['relativeCoefficient'] < CONFIG['activityThreshold']],
+        key=lambda row: (-row['relativeCoefficient'], row['midi']))
     searched = sorted(t['midi'] for t in pins)
     comparison = None
     if pitches is not None and expected is not None:
         target, detected, inventory = set(expected), set(pitches), set(searched)
         comparison = {'matchedPitches': sorted(target & detected), 'unexpectedPitches': sorted(detected - target),
                       'missingExpectedPitches': sorted((target & inventory) - detected),
-                      'unsearchedExpectedPitches': sorted(target - inventory)}
-    analysis = {**CONFIG, 'numpyVersion': np.__version__, 'scipyVersion': scipy.__version__,
+                      'unsearchedExpectedPitches': sorted(target - inventory), 'absenceEstablished': False}
+    analysis = {**CONFIG, 'weakCandidateReporting': REPORTING,
+                'numpyVersion': np.__version__, 'scipyVersion': scipy.__version__,
                 'soxrVersion': soxr.__version__, 'codeSha256': onset_evidence.digest(Path(__file__).read_bytes()),
                 'rendererCodeSha256': onset_evidence.digest(Path(renderer_verification.__file__).read_bytes()),
                 'decoderCodeSha256': onset_evidence.digest(Path(onset_evidence.__file__).read_bytes())}
@@ -108,6 +115,7 @@ def analyze(request):
                'window': {'startSeconds': start, 'endSeconds': end}, 'windowRmsDbfs': level,
                'bankSha256': bank['sha256'], 'bankProvenanceVerified': False,
                'templatePins': pins, 'searchedPitches': searched, 'pitchSetEstimate': pitches, 'fit': fit,
+               'pitchSetCompleteness': 'unknown', 'belowThresholdCandidates': weak,
                'expectedPitches': expected, 'comparison': comparison, 'analysis': analysis,
                'analysisConfigSha256': config_sha, 'origin': 'renderer-informed',
                'status': 'estimated' if estimated else 'uncertain', 'providerCalls': 0,
@@ -117,10 +125,19 @@ def analyze(request):
         return {'id': ident, 'clipId': 'A', 'startSeconds': start, 'endSeconds': end,
                 'text': text, 'origin': origin, 'uncertainty': ' '.join(LIMITATIONS[:2])}
     text = json.dumps({'status': receipt['status'], 'pitchSetEstimate': pitches, 'comparison': comparison,
+                       'pitchSetCompleteness': 'unknown',
                        'residualRatio': None if fit is None else round(fit['residualRatio'], 6)}, allow_nan=False)
     claims = [claim('asserted-bank', f'Caller asserts the WAV and labeled templates use bank SHA256 {bank["sha256"]}. '
                    f'Searched MIDI inventory: {searched}. Byte hashes do not verify provenance or labels.', 'authored'),
               claim('bank-pitch-set', f'Renderer-informed128ms pitch-set estimate: {text}. Configuration SHA256: {config_sha}.', 'measurement')]
+    if weak:
+        portable = [{'midi': row['midi'], 'relativeCoefficient': round(row['relativeCoefficient'], 6)}
+                    for row in weak[:REPORTING['maximumPortableWeakCandidates']]]
+        claims.append(claim('weak-pitch-candidates',
+                            'Unresolved below-threshold spectral candidates, not selected pitches: ' +
+                            json.dumps({'candidates': portable, 'omittedCount': len(weak) - len(portable)}, allow_nan=False) +
+                            '. These can be overlapping harmonics or fit artifacts. Do not infer note presence, absence or repairs.',
+                            'measurement'))
     if expected is not None:
         claims.append(claim('expected-pitch-set', f'Caller-supplied expected pitch set: {sorted(expected)}. This did not restrict spectral search.', 'authored'))
     bundle = {'schemaVersion': 1, 'kind': 'anti-music-evidence',

@@ -46,6 +46,42 @@ def request(folder):
 
 
 class BankPitchTests(unittest.TestCase):
+    def test_quiet_component_is_visible_without_becoming_a_detected_pitch(self):
+        # Removing weak-candidate reporting or promoting it to the selected set
+        # would hide this ambiguity or incorrectly claim a recovered note.
+        with tempfile.TemporaryDirectory() as d:
+            r = request(Path(d))
+            rate = 32000
+            pcm = array.array('h')
+            for i in range(rate):
+                t = i / rate - .25
+                value = 0 if t < 0 else math.exp(-2 * t) * (
+                    .2 * math.sin(2 * math.pi * 261.625565 * t) +
+                    .025 * math.sin(2 * math.pi * 329.627557 * t))
+                pcm.append(round(value * 32767))
+            with wave.open(r['audio']['path'], 'wb') as w:
+                w.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
+                w.writeframes(pcm.tobytes())
+            r['audio']['sha256'] = hashlib.sha256(Path(r['audio']['path']).read_bytes()).hexdigest()
+            r['expectedPitches'] = [60, 64]
+            receipt, bundle = module.analyze(r)
+            self.assertEqual(receipt['pitchSetEstimate'], [60])
+            self.assertEqual(receipt['comparison']['missingExpectedPitches'], [64])
+            self.assertEqual([x['midi'] for x in receipt.get('belowThresholdCandidates', [])], [64])
+            self.assertEqual(receipt['pitchSetCompleteness'], 'unknown')
+            self.assertFalse(receipt['comparison']['absenceEstablished'])
+            self.assertIn('weak-pitch-candidates', {x['id'] for x in bundle['claims']})
+            r['expectedPitches'] = [67]
+            wrong_score, _ = module.analyze(r)
+            self.assertEqual(wrong_score['belowThresholdCandidates'], receipt['belowThresholdCandidates'])
+            self.assertEqual(wrong_score['pitchSetEstimate'], [60])
+
+    def test_clean_fit_does_not_invent_weak_candidates(self):
+        with tempfile.TemporaryDirectory() as d:
+            receipt, bundle = module.analyze(request(Path(d)))
+            self.assertEqual(receipt.get('belowThresholdCandidates'), [])
+            self.assertNotIn('weak-pitch-candidates', {x['id'] for x in bundle['claims']})
+
     def test_chord_fit_searches_inventory_even_when_expected_score_is_wrong(self):
         with tempfile.TemporaryDirectory() as d:
             r = request(Path(d))
@@ -108,6 +144,8 @@ class BankPitchTests(unittest.TestCase):
             self.assertEqual(receipt['status'], 'uncertain')
             self.assertIsNone(receipt['pitchSetEstimate'])
             self.assertIsNone(receipt['comparison'])
+            self.assertIsNone(receipt.get('belowThresholdCandidates'))
+            self.assertEqual(receipt.get('pitchSetCompleteness'), 'unknown')
             r['audio']['sha256'] = clip(Path(r['audio']['path']), [70])
             receipt, _ = module.analyze(r)
             self.assertEqual(receipt['status'], 'uncertain')

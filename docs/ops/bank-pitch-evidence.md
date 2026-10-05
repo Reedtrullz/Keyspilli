@@ -70,6 +70,19 @@ residual ratio above0.25 remain uncertain, with a null pitch set. Raw coefficien
 and residual statistics are retained; they are not calibrated pitch confidence.
 Low residuals can still accompany wrong or incomplete pitch sets.
 
+`pitchSetCompleteness` always remains `unknown`. The receipt also exposes
+`belowThresholdCandidates`: coefficients from0.04 up to the unchanged0.25
+selection threshold, sorted by strength. This reporting floor does not promote
+any candidate into `pitchSetEstimate`. The portable bundle includes at most12
+of these candidates and an omitted count. They are unresolved spectral fits;
+harmonics and template mismatch can produce false candidates. Below-level or
+poor-fit windows retain null candidates and no weak-candidate claim.
+
+The legacy comparison field `missingExpectedPitches` means registered expected
+pitches that were **not detected**, not established acoustic absence.
+`absenceEstablished` is always false. Candidate reporting searches the same
+full dictionary and remains independent of the supplied expected score.
+
 With `expectedPitches: null`, comparison stays unknown. An explicit expected
 set is compared after fitting; it never changes the dictionary or coefficients.
 Unregistered expected pitches are `unsearchedExpectedPitches`, not acoustically
@@ -113,3 +126,27 @@ defines constrained least squares and its residual norm.
 [Smaragdis and Brown's original polyphonic spectral-decomposition paper](https://www.merl.com/publications/docs/TR2003-139.pdf)
 describes harmonic-profile assumptions and overlapping-note limitations. This
 implementation uses fixed templates and NNLS, not that paper's learned NMF system.
+
+## Quiet-note investigation
+
+A separate frozen experiment compared the unchanged detector with a private
+weighted, four-phase template fit. Fresh same-bank cases varied note age,
+velocity and overlapping voices. The candidate recovered19/24 exact overlap
+sets versus0/24 for the original detector, but introduced one false pitch in
+that split. Harmonic chords recovered2/12 versus0/12 and introduced two false
+pitches versus one. No-bass controls recovered10/12 versus6/12, with zero
+false pitches versus two. The candidate failed the declared no-increase-in-
+false-pitches rule and was rejected. It is not a selectable production profile.
+These results do not qualify the original detector on those harder cases.
+
+The original quiet bass failures had nonzero coefficients excluded by the
+selection threshold. Exposing those coefficients as unresolved candidates
+preserves useful ambiguity without claiming recovered notes or adopting a
+lower detection threshold. A Gemini interpretation can cite this evidence,
+but cannot use it to establish a complete chord or authorize a repair.
+
+[Vincent, Bertin and Badeau's harmonic/inharmonic NMF paper](https://biblio.telecom-paristech.fr/cgi-bin/download.cgi?id=7663)
+motivates weighted spectral objectives for low-energy notes and discusses
+spurious-note risks. [The ISMIR2010 non-negative decomposition paper](https://ismir2010.ismir.net/proceedings/ismir2010-83.pdf)
+discusses the weighting tradeoff and limitations of stationary templates.
+Our rejected private experiment is not either paper's complete system.
