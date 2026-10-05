@@ -1,0 +1,1048 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-05",
+  "scope": "One sampled Keyspilli Player bank, self-authored synthetic phrases; no real-song or second-bank qualification",
+  "providerCalls": 0,
+  "screenCasesPerCandidate": 120,
+  "successfulLocalInferences": 230,
+  "expectedMissingInputRefusals": 10,
+  "selection": "No provisionally admissible candidate; Basic Pitch and Transkun remain explicit diagnostic options",
+  "musicalAcceptance": "not-established",
+  "gradingAudit": "Resource-scope/resume guards corrected after inference; audited rescore uses original immutable receipts, with zero new model calls and unchanged 50/100ms note policy/counts",
+  "candidates": [
+    {
+      "fingerprint": "40188ffae917c9208bcb5836e6b2df0fe661ececc0436a3f5c0d24dc791001b6",
+      "candidate": "basic-pitch",
+      "split": "development",
+      "cases": 24,
+      "ok": 23,
+      "failed": 0,
+      "unavailable": 0,
+      "expectedRefusals": 1,
+      "counts": {
+        "tp": 105,
+        "fp": 31,
+        "fn": 8
+      },
+      "precision": 0.7720588235294118,
+      "recall": 0.9292035398230089,
+      "p95Seconds": 4.808402125025168,
+      "thirtySecondProfile": {
+        "samples": 0,
+        "p95Seconds": null,
+        "status": "unqualified"
+      },
+      "peakRssBytes": 487604224,
+      "cleanFalseAlarms": 18,
+      "qualification": "diagnostic-only",
+      "musicalAcceptance": "not-established",
+      "onset100": {
+        "counts": {
+          "tp": 105,
+          "fp": 31,
+          "fn": 8
+        },
+        "precision": 0.7720588235294118,
+        "recall": 0.9292035398230089
+      },
+      "byCategory": {
+        "clean": {
+          "cases": 12,
+          "refusals": 0,
+          "counts50": {
+            "tp": 55,
+            "fp": 18,
+            "fn": 5
+          },
+          "faithfulRealizationGrades": 2
+        },
+        "fault": {
+          "cases": 12,
+          "refusals": 1,
+          "counts50": {
+            "tp": 50,
+            "fp": 13,
+            "fn": 3
+          },
+          "faithfulRealizationGrades": 3
+        },
+        "valid": {
+          "cases": 0,
+          "refusals": 0,
+          "counts50": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "faithfulRealizationGrades": 0
+        }
+      },
+      "criticalFailureCount": 3,
+      "latencyScope": "Captured phrases of about 3.3 seconds; thirty-second p95 unqualified",
+      "offsetScope": "Key-release/sounding offsets unqualified",
+      "independentAcousticTruth": "Self-authored Player schedule frozen before capture; audio estimates are not human listening",
+      "modelVersion": "0.4.0",
+      "byFamily": {
+        "chords-octaves": {
+          "cases": 2,
+          "counts50": {
+            "tp": 8,
+            "fp": 2,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 8,
+            "fp": 2,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "extra-note": {
+          "cases": 2,
+          "counts50": {
+            "tp": 10,
+            "fp": 3,
+            "fn": 2
+          },
+          "counts100": {
+            "tp": 10,
+            "fp": 3,
+            "fn": 2
+          },
+          "octaveErrors": 1,
+          "attackGroupCountMismatches": 1
+        },
+        "missing-note": {
+          "cases": 2,
+          "counts50": {
+            "tp": 9,
+            "fp": 4,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 9,
+            "fp": 4,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "pedal": {
+          "cases": 2,
+          "counts50": {
+            "tp": 9,
+            "fp": 4,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 9,
+            "fp": 4,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "quiet-overlap": {
+          "cases": 2,
+          "counts50": {
+            "tp": 10,
+            "fp": 1,
+            "fn": 2
+          },
+          "counts100": {
+            "tp": 10,
+            "fp": 1,
+            "fn": 2
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        },
+        "reduction": {
+          "cases": 2,
+          "counts50": {
+            "tp": 18,
+            "fp": 6,
+            "fn": 2
+          },
+          "counts100": {
+            "tp": 18,
+            "fp": 6,
+            "fn": 2
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "register-contour": {
+          "cases": 2,
+          "counts50": {
+            "tp": 10,
+            "fp": 4,
+            "fn": 2
+          },
+          "counts100": {
+            "tp": 10,
+            "fp": 4,
+            "fn": 2
+          },
+          "octaveErrors": 1,
+          "attackGroupCountMismatches": 1
+        },
+        "repeat-held": {
+          "cases": 2,
+          "counts50": {
+            "tp": 5,
+            "fp": 1,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 5,
+            "fp": 1,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        },
+        "repeated-section": {
+          "cases": 2,
+          "counts50": {
+            "tp": 7,
+            "fp": 3,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 7,
+            "fp": 3,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "shifted-entry": {
+          "cases": 2,
+          "counts50": {
+            "tp": 12,
+            "fp": 2,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 12,
+            "fp": 2,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "silence-missing": {
+          "cases": 2,
+          "counts50": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        },
+        "wrong-note": {
+          "cases": 2,
+          "counts50": {
+            "tp": 7,
+            "fp": 1,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 7,
+            "fp": 1,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        }
+      }
+    },
+    {
+      "fingerprint": "a4d04dc7f23aa8543281784192ff1064cf45a02c93f64ec1c31af673bcf8a65a",
+      "candidate": "basic-pitch",
+      "split": "heldout",
+      "cases": 96,
+      "ok": 92,
+      "failed": 0,
+      "unavailable": 0,
+      "expectedRefusals": 4,
+      "counts": {
+        "tp": 426,
+        "fp": 107,
+        "fn": 30
+      },
+      "precision": 0.799249530956848,
+      "recall": 0.9342105263157895,
+      "p95Seconds": 2.965527416090481,
+      "thirtySecondProfile": {
+        "samples": 0,
+        "p95Seconds": null,
+        "status": "unqualified"
+      },
+      "peakRssBytes": 488996864,
+      "cleanFalseAlarms": 42,
+      "qualification": "diagnostic-only",
+      "musicalAcceptance": "not-established",
+      "onset100": {
+        "counts": {
+          "tp": 433,
+          "fp": 100,
+          "fn": 23
+        },
+        "precision": 0.8123827392120075,
+        "recall": 0.9495614035087719
+      },
+      "byCategory": {
+        "clean": {
+          "cases": 32,
+          "refusals": 1,
+          "counts50": {
+            "tp": 141,
+            "fp": 42,
+            "fn": 8
+          },
+          "faithfulRealizationGrades": 10
+        },
+        "fault": {
+          "cases": 32,
+          "refusals": 1,
+          "counts50": {
+            "tp": 148,
+            "fp": 35,
+            "fn": 10
+          },
+          "faithfulRealizationGrades": 13
+        },
+        "valid": {
+          "cases": 32,
+          "refusals": 2,
+          "counts50": {
+            "tp": 137,
+            "fp": 30,
+            "fn": 12
+          },
+          "faithfulRealizationGrades": 15
+        }
+      },
+      "criticalFailureCount": 9,
+      "latencyScope": "Captured phrases of about 3.3 seconds; thirty-second p95 unqualified",
+      "offsetScope": "Key-release/sounding offsets unqualified",
+      "independentAcousticTruth": "Self-authored Player schedule frozen before capture; audio estimates are not human listening",
+      "modelVersion": "0.4.0",
+      "byFamily": {
+        "chords-octaves": {
+          "cases": 8,
+          "counts50": {
+            "tp": 31,
+            "fp": 6,
+            "fn": 1
+          },
+          "counts100": {
+            "tp": 32,
+            "fp": 5,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 4
+        },
+        "extra-note": {
+          "cases": 8,
+          "counts50": {
+            "tp": 38,
+            "fp": 9,
+            "fn": 2
+          },
+          "counts100": {
+            "tp": 39,
+            "fp": 8,
+            "fn": 1
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "missing-note": {
+          "cases": 8,
+          "counts50": {
+            "tp": 44,
+            "fp": 9,
+            "fn": 2
+          },
+          "counts100": {
+            "tp": 44,
+            "fp": 9,
+            "fn": 2
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "pedal": {
+          "cases": 8,
+          "counts50": {
+            "tp": 43,
+            "fp": 10,
+            "fn": 3
+          },
+          "counts100": {
+            "tp": 43,
+            "fp": 10,
+            "fn": 3
+          },
+          "octaveErrors": 1,
+          "attackGroupCountMismatches": 1
+        },
+        "quiet-overlap": {
+          "cases": 8,
+          "counts50": {
+            "tp": 39,
+            "fp": 11,
+            "fn": 1
+          },
+          "counts100": {
+            "tp": 39,
+            "fp": 11,
+            "fn": 1
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 3
+        },
+        "reduction": {
+          "cases": 8,
+          "counts50": {
+            "tp": 61,
+            "fp": 19,
+            "fn": 11
+          },
+          "counts100": {
+            "tp": 64,
+            "fp": 16,
+            "fn": 8
+          },
+          "octaveErrors": 2,
+          "attackGroupCountMismatches": 6
+        },
+        "register-contour": {
+          "cases": 8,
+          "counts50": {
+            "tp": 38,
+            "fp": 9,
+            "fn": 2
+          },
+          "counts100": {
+            "tp": 39,
+            "fp": 8,
+            "fn": 1
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "repeat-held": {
+          "cases": 8,
+          "counts50": {
+            "tp": 24,
+            "fp": 10,
+            "fn": 1
+          },
+          "counts100": {
+            "tp": 25,
+            "fp": 9,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 3
+        },
+        "repeated-section": {
+          "cases": 8,
+          "counts50": {
+            "tp": 34,
+            "fp": 10,
+            "fn": 4
+          },
+          "counts100": {
+            "tp": 34,
+            "fp": 10,
+            "fn": 4
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "shifted-entry": {
+          "cases": 8,
+          "counts50": {
+            "tp": 40,
+            "fp": 9,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 40,
+            "fp": 9,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 4
+        },
+        "silence-missing": {
+          "cases": 8,
+          "counts50": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        },
+        "wrong-note": {
+          "cases": 8,
+          "counts50": {
+            "tp": 34,
+            "fp": 5,
+            "fn": 3
+          },
+          "counts100": {
+            "tp": 34,
+            "fp": 5,
+            "fn": 3
+          },
+          "octaveErrors": 1,
+          "attackGroupCountMismatches": 2
+        }
+      }
+    },
+    {
+      "fingerprint": "cb34bfbbab58ce956827448de8850e98fa42b9b104e689ecf3bb7b2392d9f82a",
+      "candidate": "transkun",
+      "split": "development",
+      "cases": 24,
+      "ok": 23,
+      "failed": 0,
+      "unavailable": 0,
+      "expectedRefusals": 1,
+      "counts": {
+        "tp": 62,
+        "fp": 0,
+        "fn": 51
+      },
+      "precision": 1,
+      "recall": 0.5486725663716814,
+      "p95Seconds": 6.820645833038725,
+      "thirtySecondProfile": {
+        "samples": 0,
+        "p95Seconds": null,
+        "status": "unqualified"
+      },
+      "peakRssBytes": 1047838720,
+      "cleanFalseAlarms": 0,
+      "qualification": "diagnostic-only",
+      "musicalAcceptance": "not-established",
+      "onset100": {
+        "counts": {
+          "tp": 62,
+          "fp": 0,
+          "fn": 51
+        },
+        "precision": 1.0,
+        "recall": 0.5486725663716814
+      },
+      "byCategory": {
+        "clean": {
+          "cases": 12,
+          "refusals": 0,
+          "counts50": {
+            "tp": 34,
+            "fp": 0,
+            "fn": 26
+          },
+          "faithfulRealizationGrades": 1
+        },
+        "fault": {
+          "cases": 12,
+          "refusals": 1,
+          "counts50": {
+            "tp": 28,
+            "fp": 0,
+            "fn": 25
+          },
+          "faithfulRealizationGrades": 1
+        },
+        "valid": {
+          "cases": 0,
+          "refusals": 0,
+          "counts50": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "faithfulRealizationGrades": 0
+        }
+      },
+      "criticalFailureCount": 4,
+      "latencyScope": "Captured phrases of about 3.3 seconds; thirty-second p95 unqualified",
+      "offsetScope": "Key-release/sounding offsets unqualified",
+      "independentAcousticTruth": "Self-authored Player schedule frozen before capture; audio estimates are not human listening",
+      "modelVersion": "2.0.1",
+      "byFamily": {
+        "chords-octaves": {
+          "cases": 2,
+          "counts50": {
+            "tp": 3,
+            "fp": 0,
+            "fn": 5
+          },
+          "counts100": {
+            "tp": 3,
+            "fp": 0,
+            "fn": 5
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "extra-note": {
+          "cases": 2,
+          "counts50": {
+            "tp": 6,
+            "fp": 0,
+            "fn": 6
+          },
+          "counts100": {
+            "tp": 6,
+            "fp": 0,
+            "fn": 6
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "missing-note": {
+          "cases": 2,
+          "counts50": {
+            "tp": 5,
+            "fp": 0,
+            "fn": 4
+          },
+          "counts100": {
+            "tp": 5,
+            "fp": 0,
+            "fn": 4
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "pedal": {
+          "cases": 2,
+          "counts50": {
+            "tp": 4,
+            "fp": 0,
+            "fn": 5
+          },
+          "counts100": {
+            "tp": 4,
+            "fp": 0,
+            "fn": 5
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "quiet-overlap": {
+          "cases": 2,
+          "counts50": {
+            "tp": 5,
+            "fp": 0,
+            "fn": 7
+          },
+          "counts100": {
+            "tp": 5,
+            "fp": 0,
+            "fn": 7
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "reduction": {
+          "cases": 2,
+          "counts50": {
+            "tp": 15,
+            "fp": 0,
+            "fn": 5
+          },
+          "counts100": {
+            "tp": 15,
+            "fp": 0,
+            "fn": 5
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        },
+        "register-contour": {
+          "cases": 2,
+          "counts50": {
+            "tp": 7,
+            "fp": 0,
+            "fn": 5
+          },
+          "counts100": {
+            "tp": 7,
+            "fp": 0,
+            "fn": 5
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "repeat-held": {
+          "cases": 2,
+          "counts50": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 5
+          },
+          "counts100": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 5
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "repeated-section": {
+          "cases": 2,
+          "counts50": {
+            "tp": 4,
+            "fp": 0,
+            "fn": 3
+          },
+          "counts100": {
+            "tp": 4,
+            "fp": 0,
+            "fn": 3
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 2
+        },
+        "shifted-entry": {
+          "cases": 2,
+          "counts50": {
+            "tp": 7,
+            "fp": 0,
+            "fn": 5
+          },
+          "counts100": {
+            "tp": 7,
+            "fp": 0,
+            "fn": 5
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "silence-missing": {
+          "cases": 2,
+          "counts50": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        },
+        "wrong-note": {
+          "cases": 2,
+          "counts50": {
+            "tp": 6,
+            "fp": 0,
+            "fn": 1
+          },
+          "counts100": {
+            "tp": 6,
+            "fp": 0,
+            "fn": 1
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        }
+      }
+    },
+    {
+      "fingerprint": "d01e760a942eb6d06866dcc7937cea8976419343cd8f070c87879c9b273e2ddb",
+      "candidate": "transkun",
+      "split": "heldout",
+      "cases": 96,
+      "ok": 92,
+      "failed": 0,
+      "unavailable": 0,
+      "expectedRefusals": 4,
+      "counts": {
+        "tp": 252,
+        "fp": 2,
+        "fn": 204
+      },
+      "precision": 0.9921259842519685,
+      "recall": 0.5526315789473685,
+      "p95Seconds": 6.169639791012742,
+      "thirtySecondProfile": {
+        "samples": 0,
+        "p95Seconds": null,
+        "status": "unqualified"
+      },
+      "peakRssBytes": 1089093632,
+      "cleanFalseAlarms": 1,
+      "qualification": "diagnostic-only",
+      "musicalAcceptance": "not-established",
+      "onset100": {
+        "counts": {
+          "tp": 252,
+          "fp": 2,
+          "fn": 204
+        },
+        "precision": 0.9921259842519685,
+        "recall": 0.5526315789473685
+      },
+      "byCategory": {
+        "clean": {
+          "cases": 32,
+          "refusals": 1,
+          "counts50": {
+            "tp": 79,
+            "fp": 1,
+            "fn": 70
+          },
+          "faithfulRealizationGrades": 3
+        },
+        "fault": {
+          "cases": 32,
+          "refusals": 1,
+          "counts50": {
+            "tp": 81,
+            "fp": 0,
+            "fn": 77
+          },
+          "faithfulRealizationGrades": 3
+        },
+        "valid": {
+          "cases": 32,
+          "refusals": 2,
+          "counts50": {
+            "tp": 92,
+            "fp": 1,
+            "fn": 57
+          },
+          "faithfulRealizationGrades": 4
+        }
+      },
+      "criticalFailureCount": 13,
+      "latencyScope": "Captured phrases of about 3.3 seconds; thirty-second p95 unqualified",
+      "offsetScope": "Key-release/sounding offsets unqualified",
+      "independentAcousticTruth": "Self-authored Player schedule frozen before capture; audio estimates are not human listening",
+      "modelVersion": "2.0.1",
+      "byFamily": {
+        "chords-octaves": {
+          "cases": 8,
+          "counts50": {
+            "tp": 16,
+            "fp": 0,
+            "fn": 16
+          },
+          "counts100": {
+            "tp": 16,
+            "fp": 0,
+            "fn": 16
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 3
+        },
+        "extra-note": {
+          "cases": 8,
+          "counts50": {
+            "tp": 22,
+            "fp": 0,
+            "fn": 18
+          },
+          "counts100": {
+            "tp": 22,
+            "fp": 0,
+            "fn": 18
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 6
+        },
+        "missing-note": {
+          "cases": 8,
+          "counts50": {
+            "tp": 29,
+            "fp": 0,
+            "fn": 17
+          },
+          "counts100": {
+            "tp": 29,
+            "fp": 0,
+            "fn": 17
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 5
+        },
+        "pedal": {
+          "cases": 8,
+          "counts50": {
+            "tp": 27,
+            "fp": 0,
+            "fn": 19
+          },
+          "counts100": {
+            "tp": 27,
+            "fp": 0,
+            "fn": 19
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 6
+        },
+        "quiet-overlap": {
+          "cases": 8,
+          "counts50": {
+            "tp": 16,
+            "fp": 0,
+            "fn": 24
+          },
+          "counts100": {
+            "tp": 16,
+            "fp": 0,
+            "fn": 24
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 6
+        },
+        "reduction": {
+          "cases": 8,
+          "counts50": {
+            "tp": 43,
+            "fp": 0,
+            "fn": 29
+          },
+          "counts100": {
+            "tp": 43,
+            "fp": 0,
+            "fn": 29
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 1
+        },
+        "register-contour": {
+          "cases": 8,
+          "counts50": {
+            "tp": 25,
+            "fp": 1,
+            "fn": 15
+          },
+          "counts100": {
+            "tp": 25,
+            "fp": 1,
+            "fn": 15
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 6
+        },
+        "repeat-held": {
+          "cases": 8,
+          "counts50": {
+            "tp": 13,
+            "fp": 0,
+            "fn": 12
+          },
+          "counts100": {
+            "tp": 13,
+            "fp": 0,
+            "fn": 12
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 4
+        },
+        "repeated-section": {
+          "cases": 8,
+          "counts50": {
+            "tp": 19,
+            "fp": 0,
+            "fn": 19
+          },
+          "counts100": {
+            "tp": 19,
+            "fp": 0,
+            "fn": 19
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 5
+        },
+        "shifted-entry": {
+          "cases": 8,
+          "counts50": {
+            "tp": 23,
+            "fp": 1,
+            "fn": 17
+          },
+          "counts100": {
+            "tp": 23,
+            "fp": 1,
+            "fn": 17
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 5
+        },
+        "silence-missing": {
+          "cases": 8,
+          "counts50": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "counts100": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 0
+        },
+        "wrong-note": {
+          "cases": 8,
+          "counts50": {
+            "tp": 19,
+            "fp": 0,
+            "fn": 18
+          },
+          "counts100": {
+            "tp": 19,
+            "fp": 0,
+            "fn": 18
+          },
+          "octaveErrors": 0,
+          "attackGroupCountMismatches": 6
+        }
+      }
+    }
+  ],
+  "deferred": {
+    "hft": "reference/conversion parity",
+    "MOSS": "larger resources, complete model/code pins and native reference parity/network-isolation",
+    "MuScriptor": "gated weight terms/access; full-band source validation",
+    "Qwen": "prepared requests only; separate endpoint/model/pricing/account/authorization",
+    "Gemini": "fresh bounded connected-OAuth arm prepared; upload authorization pending; old failed outcome immutable",
+    "renderer": "NNLS ablation passed on synthetic controls; actual Player-bank template qualification and second-bank control pending",
+    "human": "36-item listening pack; source and keyboard gates pending"
+  },
+  "uncertainty": [
+    "Rates describe clustered synthetic phrase cases, not independent real performance accuracy; no statistical confidence interval is asserted",
+    "All source mutations are applied before Player capture. Runtime playback faults are represented by separate comparator/reproducer controls, not claimed as observed Player defects",
+    "Actual-bank renderer templates, second bank and real source anchors remain unqualified"
+  ]
+}
