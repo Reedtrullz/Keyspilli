@@ -33,41 +33,43 @@ LIMITATIONS = [
 ]
 
 
-def _fit(data, start, end_seconds, onsets, references):
+def _fit(data, start, end_seconds, onsets, references, config=None):
     import numpy as np
     from scipy.optimize import nnls
-    selected_onsets = [o for o in onsets if o <= start + .03 and start - o <= CONFIG['maximumLookbackSeconds']]
-    if len(selected_onsets) > CONFIG['maximumOnsets']:
+    config = CONFIG if config is None else config
+    selected_onsets = [o for o in onsets if o <= start + .03 and start - o <= config['maximumLookbackSeconds']]
+    if len(selected_onsets) > config['maximumOnsets']:
         raise ValueError('phase onset bound exceeded; no partial output')
     if not selected_onsets:
         return {'pitches': None, 'reason': 'no-onsets', 'onsets': selected_onsets}
-    begin = max(0, round((min(selected_onsets) - .064) * CONFIG['sampleRate']))
+    begin = max(0, round((min(selected_onsets) - .064) * config['sampleRate']))
     # Floor to the declared boundary: nearest-sample rounding can exceed it.
-    end = math.floor(end_seconds * CONFIG['sampleRate'])
+    end = math.floor(end_seconds * config['sampleRate'])
     if not begin < end <= len(data):
         raise ValueError('phase fit interval outside decoded samples')
-    current = data[round(start * CONFIG['sampleRate']):end]
+    current = data[round(start * config['sampleRate']):end]
     level = float(20 * np.log10(max(np.sqrt(np.mean(current ** 2)), 1e-12)))
-    if level < CONFIG['minimumRmsDbfs']:
+    if level < config['minimumRmsDbfs']:
         return {'pitches': None, 'reason': 'below-level', 'onsets': selected_onsets, 'rmsDbfs': level}
-    rng = np.random.default_rng(CONFIG['sampleSeed'])
-    indices = np.sort(rng.choice(np.arange(begin, end), min(CONFIG['sampleCount'], end - begin), replace=False))
+    rng = np.random.default_rng(config['sampleSeed'])
+    indices = np.sort(rng.choice(np.arange(begin, end), min(config['sampleCount'], end - begin), replace=False))
     labels = []
-    columns = []
+    column_count = len(selected_onsets) * len(references) * (2 * config['onsetRadiusSteps'] + 1)
+    # One float32 dictionary, at most 358MiB for 4 onsets/88 pitches/65 shifts.
+    matrix = np.empty((len(indices), column_count), dtype=np.float32, order='F')
     for onset_id, estimated in enumerate(selected_onsets):
-        center = round(estimated / CONFIG['onsetGridSeconds']) * CONFIG['onsetGridSeconds']
+        center = round(estimated / config['onsetGridSeconds']) * config['onsetGridSeconds']
         for pin, reference in references:
             grid = np.arange(len(reference))
-            for offset in range(-CONFIG['onsetRadiusSteps'], CONFIG['onsetRadiusSteps'] + 1):
-                event_start = center + offset * CONFIG['onsetGridSeconds']
-                positions = indices + (CONFIG['referenceOnsetSeconds'] - event_start) * CONFIG['sampleRate']
-                columns.append(np.interp(positions, grid, reference, left=0, right=0))
+            for offset in range(-config['onsetRadiusSteps'], config['onsetRadiusSteps'] + 1):
+                event_start = center + offset * config['onsetGridSeconds']
+                positions = indices + (config['referenceOnsetSeconds'] - event_start) * config['sampleRate']
+                matrix[:, len(labels)] = np.interp(positions, grid, reference, left=0, right=0)
                 labels.append({'midi': pin['midi'], 'onsetId': onset_id, 'estimatedOnsetSeconds': estimated,
                                'fittedPatternStartSeconds': event_start, 'referenceSha256': pin['sha256']})
-    raw = np.asarray(columns, dtype=np.float32).T
-    norms = np.linalg.norm(raw, axis=0)
+    norms = np.linalg.norm(matrix, axis=0)
     norms[norms < 1e-10] = 1
-    matrix = raw / norms
+    matrix /= norms
     target = data[indices]
     target_norm = np.linalg.norm(target)
     residual = target.copy()
@@ -75,7 +77,7 @@ def _fit(data, start, end_seconds, onsets, references):
     active = []
     coefficients = np.array([])
     excluded = set()
-    for _ in range(CONFIG['maximumEvents']):
+    for _ in range(config['maximumEvents']):
         correlations = matrix.T @ residual
         if excluded:
             correlations[list(excluded)] = -np.inf
@@ -84,7 +86,7 @@ def _fit(data, start, end_seconds, onsets, references):
             break
         proposed = active + [choice]
         next_coefficients, error = nnls(matrix[:, proposed], target, maxiter=1000)
-        if (previous - error) / target_norm < CONFIG['minimumImprovementRatio']:
+        if (previous - error) / target_norm < config['minimumImprovementRatio']:
             break
         active = proposed
         coefficients = next_coefficients
@@ -96,24 +98,28 @@ def _fit(data, start, end_seconds, onsets, references):
     by_pitch = {}
     for event in events:
         by_pitch[event['midi']] = max(by_pitch.get(event['midi'], 0), event['amplitudeRatioToReference'])
-    proposed = sorted(p for p, amplitude in by_pitch.items() if amplitude >= CONFIG['minimumAmplitudeRatio'])
+    proposed = sorted(p for p, amplitude in by_pitch.items() if amplitude >= config['minimumAmplitudeRatio'])
     all_indices = np.arange(begin, end)
     reconstruction = np.zeros(end - begin)
     ref_map = {pin['midi']: reference for pin, reference in references}
     for event in events:
         reference = ref_map[event['midi']]
         reconstruction += event['amplitudeRatioToReference'] * np.interp(
-            all_indices + (CONFIG['referenceOnsetSeconds'] - event['fittedPatternStartSeconds']) * CONFIG['sampleRate'],
+            all_indices + (config['referenceOnsetSeconds'] - event['fittedPatternStartSeconds']) * config['sampleRate'],
             np.arange(len(reference)), reference, left=0, right=0)
     raw_residual = float(np.linalg.norm(reconstruction - data[begin:end]) / np.linalg.norm(data[begin:end]))
-    return {'pitches': proposed if raw_residual <= CONFIG['maximumRawResidual'] else None,
+    return {'pitches': proposed if raw_residual <= config['maximumRawResidual'] else None,
             'proposed': proposed, 'events': events, 'rawResidual': raw_residual, 'onsets': selected_onsets,
-            'fitInterval': {'startSeconds': begin / CONFIG['sampleRate'], 'endSeconds': end / CONFIG['sampleRate']},
+            'fitInterval': {'startSeconds': begin / config['sampleRate'], 'endSeconds': end / config['sampleRate']},
             'sampledPoints': len(indices), 'sampledResidual': float(np.linalg.norm(residual) / target_norm), 'rmsDbfs': level}
 
 
 def analyze(request):
     started = time.monotonic()
+    timing = request.get('phaseTimingProfile', 'narrow-24ms')
+    if type(timing) is not str or timing not in ('narrow-24ms', 'wide-64ms'):
+        raise ValueError('supported phaseTimingProfile required: narrow-24ms or wide-64ms')
+    config = {**CONFIG, 'onsetRadiusSteps': 32 if timing == 'wide-64ms' else 12}
     profile = request.get('phaseProfile')
     if profile != PROFILE or any(type(profile[k]) is not type(v) for k, v in PROFILE.items()):
         raise ValueError('explicit supported phaseProfile required')
@@ -139,8 +145,8 @@ def analyze(request):
         references.append((pin, signal))
     onset_receipt, _ = onset_evidence.analyze(bank_pitch_evidence.pin_path(request['audio']), request['audio']['sha256'])
     fit = _fit(data, request['window']['startSeconds'], request['window']['endSeconds'],
-               onset_receipt['onsetEstimateSeconds'], references)
-    analysis = {**CONFIG, 'profile': PROFILE, 'codeSha256': onset_evidence.digest(Path(__file__).read_bytes()),
+               onset_receipt['onsetEstimateSeconds'], references, config)
+    analysis = {**config, 'timingProfile': timing, 'profile': PROFILE, 'codeSha256': onset_evidence.digest(Path(__file__).read_bytes()),
                 'parentAnalysisConfigSha256': single['analysisConfigSha256'],
                 'onsetAnalysisConfigSha256': onset_receipt['analysisConfigSha256']}
     config_sha = onset_evidence.digest(json.dumps(analysis, sort_keys=True, separators=(',', ':')).encode())
@@ -163,7 +169,7 @@ def analyze(request):
              'currentPresenceEstablished': False, 'pitchSetCompleteness': 'unknown',
              'rawResidual': None if 'rawResidual' not in fit else round(fit['rawResidual'], 6)}
     claims = [claim('asserted-phase-profile', 'Caller asserts matching bank/profile and isolated labeled held references: ' +
-                    json.dumps({'bankSha256': receipt['bankSha256'], 'profile': PROFILE, 'searchedPitches': single['searchedPitches']}), 'authored'),
+                    json.dumps({'bankSha256': receipt['bankSha256'], 'profile': PROFILE, 'timingProfile': timing, 'searchedPitches': single['searchedPitches']}), 'authored'),
               claim('phase-pattern-fit', 'History waveform-pattern fit, not a current pitch set: ' + json.dumps(stats) +
                     f'. Configuration SHA256: {config_sha}. No automatic repairs or source/absence judgments.', 'measurement')]
     if request.get('expectedPitches') is not None:

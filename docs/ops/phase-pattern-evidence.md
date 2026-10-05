@@ -49,14 +49,21 @@ changes remain unqualified. A low residual alone cannot qualify their transfer.
 The command accepts the existing32/44.1kHz byte contract; accepting a format is
 not evidence that its renderer/capture conditions match.
 
-The fit uses measured spectral onsets, a2ms onset grid within±24ms, at most four
+The fit uses measured spectral onsets and a2ms onset grid. The default timing
+profile `narrow-24ms` searches within±24ms; explicitly adding
+`"phaseTimingProfile": "wide-64ms"` to the request searches within±64ms.
+Unknown timing profiles refuse locally; neither profile changes the level or
+residual guard. Both use at most four
 onsets in1.2seconds of lookback, and at most12 pattern events. Every registered
 pitch is searched. A fixed4096-point sample selection drives nonnegative
 matching pursuit with joint amplitude refits; all observed PCM samples in the
 fit interval then check the reconstruction. Raw residuals above0.05 or target
 levels below−50dBFS remain uncertain. Pattern amplitudes above0.15 relative to
 the declared velocity76/gain0.4 references are candidates; this is not calibrated
-confidence. At most8,800 columns by4,096 optimization points are constructed.
+confidence. The default constructs at most8,800 columns by4,096 optimization
+points; the wide profile at most22,880. Dictionary storage uses one preallocated
+float32 array (about358MiB at the wide cap); this is not a peak process-memory
+bound. Normalization and the rest of the pipeline require additional memory.
 Worst-case resource use and30second transcription are not qualified.
 
 No fitting sample extends beyond the declared target end, including nonaligned
@@ -120,3 +127,59 @@ solver. Earlier temporal reasoning came from
 [Ewert and Sandler's spectro-temporal model](https://arxiv.org/abs/1606.00785) and
 [Cheng et al.'s attack/decay model](https://archives.ismir.net/ismir2016/paper/000085.pdf);
 their reported benchmark accuracy is not evidence for this implementation.
+
+
+## Optional wider timing profile
+
+A subsequent development experiment recovered the three known timing failures
+with±64ms while preserving the quiet-target refusal. It did not reopen or
+retune the original84-case study. A new84-case list, configuration and gate were
+frozen before rendering with generator seed510527 (the copied driver's literal
+seed metadata retained510526; a separate erratum records the actual source seed).
+The wide profile recovered70/72 new held-note sets: overlap24/24, harmonic
+chords11/12, new quiet note12/12, no-bass11/12, timing jitter12/12. Zero false
+pitches were reported. The two uncertainties were a quiet target and a poor
+harmonic fit whose spurious raw proposals were withheld by the residual guard.
+All12 release challenges again remained uncertain. Prototype p95 was2.15seconds,
+maximum3.12seconds; these are short-clip fit measurements, not end-to-end bounds.
+
+The wider profile is explicit because a larger search can introduce ambiguous
+alignments and costs more resources. It remains limited to the declared dry
+FluidSynth profile. Keyspilli's actual Player uses smplr SplendidGrandPiano,
+velocity layers, bus gains and a shared dynamics compressor. Its post-compressor
+captures require separate evidence; this timing change does not admit a Player
+profile or qualify transfer. See the
+[smplr source](https://github.com/danigb/smplr) for the sampler design; the locally
+inspected dependency for the Player controls was1.0.0.
+
+
+## Actual Player transfer controls
+
+Sixteen fresh sampled-Player captures included eight isolated velocity76
+references, two velocity controls and six mixture/repeated-note controls. The
+existing frame-clock/sampler readiness harness passed on a sequential retry;
+the first run's clock/start-offset failures remain recorded and were not admitted.
+The inspected Player uses smplr1.0.0 SplendidGrandPiano, the backing gain0.4,
+sustain enabled and the normal shared compressor.
+
+With these eight references, a private0.5ms timing grid returned uncertainty for
+all eight targets. A subsequent development-only sample-accurate grid recovered
+one exact upper-trio control; the other seven remained uncertain. No Player
+configuration is shipped or admitted by this command. These already-known
+controls are not a fresh qualification benchmark and their limited inventory
+cannot establish completeness.
+
+An explicitly authored oracle supplied the correct notes and measured sampler
+start groups, then fitted amplitudes to the isolated post-compressor references.
+Same-velocity chord/overlap residuals were about4.1–6.9%; velocity changes were
+substantially worse, and the repeated-note control remained poor. The results
+show that finer timing alone is insufficient. They do not isolate compression
+from velocity-layer, envelope or capture-phase differences; attributing all
+remaining error to the compressor would require a pre-compressor control.
+The residual guard was not relaxed to admit these failures.
+
+The next Player-specific experiment should pin every velocity layer and bus,
+record the summed signal before and after the compressor, and test a matching
+forward rendering model before a fresh independent screen. Keep all of that
+DSP/renderer work in Keyspilli. Gemini via Anti can interpret exported evidence
+within its limits; it is not a substitute for a qualified acoustic detector.

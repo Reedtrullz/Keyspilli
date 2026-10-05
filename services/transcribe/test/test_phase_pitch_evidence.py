@@ -79,6 +79,27 @@ class PhasePitchTests(unittest.TestCase):
             self.assertNotIn(d, json.dumps(bundle))
             self.assertEqual(bundle['context']['sourceAuthority'], 'unknown')
 
+    def test_wider_timing_requires_explicit_supported_profile(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = request(Path(d))
+            with patch.object(module.onset_evidence, 'analyze', return_value=({'onsetEstimateSeconds': [.20], 'analysisConfigSha256': 'unit-onsets'}, {})):
+                narrow, _ = self.analyze(r)
+                self.assertIsNone(narrow['patternPitchCandidates'])
+                r['phaseTimingProfile'] = 'wide-64ms'
+                wide, bundle = self.analyze(r)
+            self.assertEqual(wide['patternPitchCandidates'], [60, 72])
+            self.assertEqual(wide['analysis']['onsetRadiusSteps'], 32)
+            self.assertEqual(wide['analysis']['timingProfile'], 'wide-64ms')
+            self.assertFalse(wide['currentPresenceEstablished'])
+            self.assertIn('wide-64ms', json.dumps(bundle))
+            self.assertEqual(module.CONFIG['onsetRadiusSteps'], 12)
+            for value in ['wide', 32, True, None]:
+                r['phaseTimingProfile'] = value
+                target = Path(d) / ('invalid-' + str(value))
+                with self.assertRaisesRegex(ValueError, 'phaseTimingProfile'):
+                    module.write_report(r, target)
+                self.assertFalse(target.exists())
+
     def test_wrong_expected_score_never_restricts_the_search(self):
         with tempfile.TemporaryDirectory() as d:
             r = request(Path(d))
