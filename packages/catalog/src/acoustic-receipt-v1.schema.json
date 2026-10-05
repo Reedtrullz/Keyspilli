@@ -1,1 +1,312 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"Keyspilli acoustic receipt v1","type":"object","required":["schemaVersion","kind","status","audio","analyzer","notes","rejectedRows","metadata","resources","limitations"],"properties":{"schemaVersion":{"const":1},"kind":{"const":"keyspilli-acoustic-receipt"},"status":{"enum":["ok","unavailable","failed"]},"notes":{"type":"array","maxItems":20000},"rejectedRows":{"type":"integer","minimum":0}},"description":"Consumers MUST apply parseAcousticReceipt for clock, identity, event and origin constraints."}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Keyspilli acoustic receipt v1",
+  "description": "Apply parseAcousticReceipt additionally for finite JSON numbers, audio clock equations, unique IDs, note intervals and semantic identity constraints.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "status",
+    "audio",
+    "analyzer",
+    "notes",
+    "rejectedRows",
+    "metadata",
+    "resources",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "keyspilli-acoustic-receipt"
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "unavailable",
+        "failed"
+      ]
+    },
+    "audio": {
+      "type": "object",
+      "required": [
+        "sha256",
+        "durationSeconds",
+        "sampleRate",
+        "channels",
+        "frames",
+        "derivativeSha256"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "durationSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 30
+        },
+        "sampleRate": {
+          "type": "integer",
+          "minimum": 8000,
+          "maximum": 48000
+        },
+        "channels": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "frames": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440000
+        },
+        "derivativeSha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "analyzer": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "runtime",
+        "device",
+        "precision",
+        "checkpointSha256",
+        "codeSha256",
+        "frontendSha256",
+        "configSha256",
+        "config"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "device": {
+          "type": "string",
+          "minLength": 1
+        },
+        "precision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpointSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "codeSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "frontendSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "configSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "config": {
+          "type": "object"
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "midi",
+          "onsetSeconds",
+          "keyOffsetSeconds",
+          "soundingOffsetSeconds",
+          "confidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "midi": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 127
+          },
+          "onsetSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "keyOffsetSeconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "soundingOffsetSeconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "rejectedRows": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "tempoBpm",
+        "key",
+        "meter",
+        "origin"
+      ],
+      "properties": {
+        "tempoBpm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "meter": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          ]
+        },
+        "origin": {
+          "enum": [
+            "unknown",
+            "measured",
+            "container-default"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "origin": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "tempoBpm": {
+                "type": "null"
+              },
+              "key": {
+                "type": "null"
+              },
+              "meter": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "resources": {
+      "type": "object",
+      "required": [
+        "elapsedSeconds",
+        "peakRssBytes"
+      ],
+      "properties": {
+        "elapsedSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peakRssBytes": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "failed",
+              "unavailable"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "notes": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}
