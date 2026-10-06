@@ -103,3 +103,9 @@ adoption, signing, merge and deployment remain deferred.
 
 Private reproducibility root:
 `output/music-review/20261005-afk/player-full-range/20261006-020611`.
+
+The separate [compressed-output follow-up](player-output-controls.md) confirms
+that mono downmix alone succeeds on six known controls, while final compression
+invalidates the linear fit. Native compressor correction still omits quiet notes
+despite very small output error. Keep paired input-side findings and final audible
+output evidence distinct; this study does not qualify final-WAV transcription.
