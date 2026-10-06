@@ -15,11 +15,12 @@ export function scorePlayerQualification(receipts:Array<{id:string;receipt:Playe
 export function validateQualificationResultBindings(freeze:{analyzerSha256:string;referenceBankSha256:string;fingerprints:Record<string,string>},currentFingerprints:Record<string,string>,results:Array<{id:string;receipt:PlayerInputEvidenceReceiptV1}>,captures:Record<string,{captureSha256:string;inputSha256:string}>){
  assertMusic(JSON.stringify(Object.keys(freeze.fingerprints).sort())===JSON.stringify(Object.keys(currentFingerprints).sort()),'qualification source inventory changed');
  for(const [path,digest] of Object.entries(freeze.fingerprints))assertMusic(digest===currentFingerprints[path],'qualification source changed');
- for(const row of results){const pin=captures[row.id];assertMusic(pin,'missing qualification capture binding');assertMusic(row.receipt.analyzerSha256===freeze.analyzerSha256 && row.receipt.referenceBankSha256===freeze.referenceBankSha256,'qualification analyzer/bank changed');assertMusic(row.receipt.captureSha256===pin.captureSha256,'qualification capture changed');if(row.receipt.status==='matched')assertMusic(row.receipt.inputSha256===pin.inputSha256,'qualification input changed');}
+ for(const row of results){const pin=captures[row.id];assertMusic(pin,'missing qualification capture binding');assertMusic(row.receipt.analyzerSha256===freeze.analyzerSha256 && row.receipt.referenceBankSha256===freeze.referenceBankSha256,'qualification analyzer/bank changed');assertMusic(row.receipt.captureSha256===pin.captureSha256,'qualification capture changed');if(row.receipt.status==='matched'){assertMusic(row.receipt.inputSha256===pin.inputSha256,'qualification input changed');assertMusic(row.receipt.support?.status==='supported','qualification requires supported policy binding');}}
 }
 
 export const PLAYER_QUALIFICATION_FILES = [
  'services/transcribe/src/player_input_evidence.py','services/transcribe/src/player_history_search.py',
+ 'services/transcribe/src/player_pitch_support.py',
  'apps/web/src/lib/player-input-qualification.ts','apps/web/src/lib/music-qualification-score.ts',
  'apps/web/scripts/build-player-input-qualification.mts','apps/web/scripts/evaluate-player-input-qualification.mts',
  'apps/web/e2e/player-audio-capture.ts','apps/web/e2e/music-review-capture.spec.ts','apps/web/playwright.music-review.config.ts',

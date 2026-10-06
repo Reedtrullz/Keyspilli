@@ -11,6 +11,8 @@ import struct
 import sys
 import time
 
+from player_pitch_support import DEFAULT_POLICY, PitchSupportPolicy, support_receipt
+
 os.environ.setdefault('OPENBLAS_NUM_THREADS','1')
 os.environ.setdefault('OMP_NUM_THREADS','1')
 
@@ -25,6 +27,15 @@ LIMITATIONS = [
 
 def digest(b):
     return hashlib.sha256(b).hexdigest()
+
+
+def analyzer_identity(policy=DEFAULT_POLICY):
+    files = [
+        Path(__file__).read_bytes(),
+        Path(__file__).with_name('player_history_search.py').read_bytes(),
+        Path(__file__).with_name('player_pitch_support.py').read_bytes(),
+    ]
+    return digest(b''.join(files) + policy.sha256().encode('ascii'))
 
 def bounded(path, maximum):
     p = Path(path)
@@ -72,6 +83,8 @@ def capture(path):
 def accept_history(fit):
     pitches=fit.get('pitches');raw=fit.get('rawResidual')
     if pitches is None or not pitches or not isinstance(raw,(int,float)) or not math.isfinite(raw) or raw>.05 or raw<0:return None
+    support=fit.get('support')
+    if not isinstance(support,dict) or support.get('status')!='supported':return None
     if fit.get('unresolvedWeakCandidates') or any(0<e['amplitude']<.05 for e in fit.get('events',[])):return None
     if len(pitches)>8 or pitches!=sorted(set(pitches)) or any(type(x) is not int or not 21<=x<=108 for x in pitches):raise ValueError('invalid fitted pitch inventory')
     return pitches
@@ -81,7 +94,8 @@ def profile_identity(value):
     return {k:struct.unpack('<f',struct.pack('<f',v))[0] for k,v in value.items()}
 
 def dictionary_identity(bank_sha):
-    return {'bankSha256':bank_sha,'algorithmSha256':digest(Path(__file__).with_name('player_history_search.py').read_bytes()),'method':'player-input-v1'}
+    algorithm = Path(__file__).with_name('player_history_search.py').read_bytes() + Path(__file__).with_name('player_pitch_support.py').read_bytes() + DEFAULT_POLICY.sha256().encode('ascii')
+    return {'bankSha256':bank_sha,'algorithmSha256':digest(algorithm),'method':'player-input-v1'}
 
 def validate_dictionary(directory, expected):
     d=Path(directory)
@@ -161,8 +175,13 @@ def analyze_player_input(request):
     import resource
     peak=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*(1 if sys.platform=='darwin' else 1024)
     if peak>2*1024**3:raise ValueError('fit RSS exceeds 2GiB')
+    fitted_support=fitted.get('support') if isinstance(fitted.get('support'),dict) else None
+    if fitted_support and fitted_support.get('status') in {'supported','ambiguous'}:
+        current_support=support_receipt(fitted_support['status'], DEFAULT_POLICY, fitted_support.get('minimumRemovalMargin'), fitted_support.get('minimumAlternativeMargin'))
+    else:
+        current_support=support_receipt('not-computed')
     pitches=accept_history(fitted)
-    return {'schemaVersion':1,'kind':'keyspilli-player-input-evidence','captureSha256':digest(bounded(request['captureManifestPath'],1024*1024)),'inputSha256':r['input']['sha256'],'analyzerSha256':digest(Path(__file__).read_bytes()+Path(__file__).with_name('player_history_search.py').read_bytes()),'referenceBankSha256':bank_sha,'fitInterval':{'startSeconds':0,'endSeconds':1.2},'status':'matched' if pitches is not None else 'uncertain','historyPitchCandidates':pitches,'rawResidual':fitted.get('rawResidual'),'currentPitchSetEstimate':None,'completeness':'unknown','audibility':'not-established','resources':{'elapsedSeconds':time.monotonic()-started,'peakRssBytes':peak},'limitations':LIMITATIONS}
+    return {'schemaVersion':1,'kind':'keyspilli-player-input-evidence','captureSha256':digest(bounded(request['captureManifestPath'],1024*1024)),'inputSha256':r['input']['sha256'],'analyzerSha256':analyzer_identity(),'referenceBankSha256':bank_sha,'fitInterval':{'startSeconds':0,'endSeconds':1.2},'status':'matched' if pitches is not None else 'uncertain','support':current_support,'historyPitchCandidates':pitches,'rawResidual':fitted.get('rawResidual'),'currentPitchSetEstimate':None,'completeness':'unknown','audibility':'not-established','resources':{'elapsedSeconds':time.monotonic()-started,'peakRssBytes':peak},'limitations':LIMITATIONS}
 
 def write_player_input_evidence(request,output):
     output=Path(output)

@@ -35,8 +35,23 @@ class PlayerInputEvidenceTests(unittest.TestCase):
     def test_weak_activation_withholds_pitch_set(self):
         tmp_path = self.tmp_path
         assert player.accept_history({'pitches':[60],'events':[{'amplitude':.1},{'amplitude':.01}],'rawResidual':.001}) is None
-        assert player.accept_history({'pitches':[60],'events':[{'amplitude':.1}],'rawResidual':.01}) == [60]
+        assert player.accept_history({'pitches':[60],'events':[{'amplitude':.1}],'rawResidual':.01,'support':{'status':'supported'}}) == [60]
         assert player.accept_history({'pitches':[60],'events':[{'amplitude':.1}],'rawResidual':.06}) is None
+
+
+    def test_support_policy_changes_analyzer_identity(self):
+        from player_pitch_support import PitchSupportPolicy
+        first = player.analyzer_identity(PitchSupportPolicy(.001, .001))
+        second = player.analyzer_identity(PitchSupportPolicy(.002, .001))
+        self.assertNotEqual(first, second)
+        self.assertEqual(first, player.analyzer_identity())
+
+
+    def test_missing_or_ambiguous_support_never_qualifies_new_method(self):
+        fit = {'pitches':[60],'events':[{'amplitude':.1}],'rawResidual':.01}
+        self.assertIsNone(player.accept_history(fit))
+        self.assertIsNone(player.accept_history({**fit,'support':{'status':'ambiguous'}}))
+        self.assertEqual(player.accept_history({**fit,'support':{'status':'supported'}}), [60])
 
 
     def test_low_level_refuses_without_absence_claim(self):

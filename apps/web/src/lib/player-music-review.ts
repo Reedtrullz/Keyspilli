@@ -23,7 +23,7 @@ export async function preparePlayerMusicReview(capture:PairedPlayerCaptureV1,opt
  await writeFile(join(output,'request.json'),JSON.stringify({request,providerCalls:0,execute:options.execute}),{flag:'wx'});
  if(options.execute){const started=Date.now();try{
   await access(options.python);bankHash=hash(await readFile(options.referenceManifestPath));receipt.referenceBankSha256=bankHash;
-  const module=fileURLToPath(new URL('../../../../services/transcribe/src/player_input_evidence.py',import.meta.url));receipt.analyzerSha256=hash(Buffer.concat([await readFile(module),await readFile(fileURLToPath(new URL('../../../../services/transcribe/src/player_history_search.py',import.meta.url)))]));
+  const module=fileURLToPath(new URL('../../../../services/transcribe/src/player_input_evidence.py',import.meta.url));receipt.analyzerSha256=hash(Buffer.concat([await readFile(module),await readFile(fileURLToPath(new URL('../../../../services/transcribe/src/player_history_search.py',import.meta.url))),await readFile(fileURLToPath(new URL('../../../../services/transcribe/src/player_pitch_support.py',import.meta.url)))]));
   await writeFile(join(output,'analyzer-request.json'),JSON.stringify(request),{flag:'wx'});
   const result=await run(options.python,[module,'--request',join(output,'analyzer-request.json'),'--output',join(output,'analysis')],{timeout:120000,maxBuffer:1024*1024,env:{...process.env,OPENBLAS_NUM_THREADS:'1',OMP_NUM_THREADS:'1'},killSignal:'SIGKILL'});
   await writeFile(join(output,'analyzer.log'),result.stdout+result.stderr,{flag:'wx'});

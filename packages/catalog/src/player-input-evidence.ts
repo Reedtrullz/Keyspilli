@@ -10,7 +10,7 @@ export interface PairedPlayerCaptureV1 {
 }
 export interface PlayerInputEvidenceReceiptV1 {
  schemaVersion:1;kind:'keyspilli-player-input-evidence';captureSha256:string;inputSha256:string;analyzerSha256:string;referenceBankSha256:string;
- fitInterval:{startSeconds:0;endSeconds:1.2};status:'matched'|'uncertain'|'unavailable'|'failed';historyPitchCandidates:number[]|null;rawResidual:number|null;currentPitchSetEstimate:null;completeness:'unknown';audibility:'not-established';resources:{elapsedSeconds:number;peakRssBytes:number};limitations:string[];
+ fitInterval:{startSeconds:0;endSeconds:1.2};status:'matched'|'uncertain'|'unavailable'|'failed';support?:{schemaVersion:1;policySha256:string;status:'supported'|'ambiguous'|'not-computed';minimumRemovalMargin:number|null;minimumAlternativeMargin:number|null};historyPitchCandidates:number[]|null;rawResidual:number|null;currentPitchSetEstimate:null;completeness:'unknown';audibility:'not-established';resources:{elapsedSeconds:number;peakRssBytes:number};limitations:string[];
 }
 const MAX_BYTES=2*1024*1024;
 function parseSignal(p:PlayerSignalPinV1,label:string):void {
@@ -49,6 +49,12 @@ export function parsePlayerInputEvidence(value:unknown):PlayerInputEvidenceRecei
  check(r.resources && finiteSeconds(r.resources.elapsedSeconds) && Number.isSafeInteger(r.resources.peakRssBytes) && r.resources.peakRssBytes>=0 && r.resources.peakRssBytes<=2*1024**3,'unbounded resources');
  check(Array.isArray(r.limitations) && r.limitations.length>0 && r.limitations.every(s=>typeof s==='string' && s.length>0),'limitations required');
  check(r.rawResidual===null || (finiteSeconds(r.rawResidual) && r.rawResidual<=1),'invalid residual');
+ if(r.support!==undefined){
+  const s=r.support;
+  check(s.schemaVersion===1 && isHash(s.policySha256) && ['supported','ambiguous','not-computed'].includes(s.status),'invalid support receipt');
+  for(const margin of [s.minimumRemovalMargin,s.minimumAlternativeMargin])check(margin===null || (finiteSeconds(margin) && margin>=0 && margin<=1),'invalid support margin');
+  if(r.status==='matched')check(s.status==='supported','matched receipt requires supported support');
+ }
  if(r.status==='matched')check(Array.isArray(r.historyPitchCandidates) && r.historyPitchCandidates.length>0 && r.historyPitchCandidates.length<=8 && r.historyPitchCandidates.every((m,i,a)=>Number.isInteger(m) && m>=21 && m<=108 && (i===0 || m>a[i-1]!)) && r.rawResidual!==null && r.rawResidual<=.05,'invalid accepted history');
  else check(r.historyPitchCandidates===null,'uncertain history must withhold candidates');
  return r;
