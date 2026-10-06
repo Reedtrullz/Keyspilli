@@ -279,6 +279,9 @@ export async function capturePlayerClip(page: Page, options: {
   songId: string; mode: "original" | "chords"; durationMs: number; expectedAttackSeconds: number[];
   expectedAttackSecondsByBus?: { voice: number[]; backing: number[] };
 }): Promise<PlayerCapture> {
+  if (options.signalControl !== undefined && options.signalControl !== "silence" && options.signalControl !== "below-level") {
+    throw new Error("unsupported recorder control");
+  }
   if (options.capturePreCompressor && options.durationMs > 4000) throw new Error("Paired capture duration exceeds4seconds");
   const assets: PlayerCapture["sampleAssets"] = [];
   const assetPromises: Promise<void>[] = [];
