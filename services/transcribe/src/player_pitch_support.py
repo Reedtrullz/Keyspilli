@@ -68,16 +68,15 @@ def build_event_column(refs, event, samples, sample_rate):
     return wave.ravel()
 
 
-def refit_event_set(target, events, refs, sample_rate):
+def refit_event_set(target, events, refs, sample_rate, columns=None):
     import numpy as np
     from scipy.optimize import nnls
     target = np.asarray(target, dtype=np.float64)
     if not events:
         return np.zeros((target.size, 0), dtype=np.float64), np.zeros(0), float(np.linalg.norm(target))
-    matrix = np.asarray([
-        build_event_column(refs, event, target.shape[0], sample_rate)
-        for event in events
-    ]).T
+    if columns is None:
+        columns = [build_event_column(refs, event, target.shape[0], sample_rate) for event in events]
+    matrix = np.asarray(columns).T
     coefficients, error = nnls(matrix, target.ravel(), maxiter=1000)
     return matrix, coefficients, float(error)
 
@@ -92,7 +91,8 @@ def evaluate_pitch_support(target, events, refs, pins, policy):
     if not events or not np.isfinite(target_norm) or target_norm <= 0:
         return support_receipt('not-computed', policy)
     try:
-        _, _, base_error = refit_event_set(target, events, refs, 44100)
+        base_columns = [build_event_column(refs, event, target.shape[0], 44100) for event in events]
+        _, _, base_error = refit_event_set(target, events, refs, 44100, columns=base_columns)
     except (ValueError, IndexError, RuntimeError):
         return support_receipt('ambiguous', policy, policy.removal_margin, policy.alternative_margin)
     if not np.isfinite(base_error):
@@ -102,7 +102,8 @@ def evaluate_pitch_support(target, events, refs, pins, policy):
         try:
             event_pin = pins[event['ref']]
             removed = events[:index] + events[index + 1:]
-            _, _, removed_error = refit_event_set(target, removed, refs, 44100)
+            removed_columns = base_columns[:index] + base_columns[index + 1:]
+            _, _, removed_error = refit_event_set(target, removed, refs, 44100, columns=removed_columns)
             removal_delta = (removed_error - base_error) / target_norm
             if not np.isfinite(removal_delta) or removal_delta < policy.removal_margin:
                 ambiguous = True
@@ -119,7 +120,9 @@ def evaluate_pitch_support(target, events, refs, pins, policy):
             for _, candidate_index in sorted(candidates)[:4]:
                 replacement = dict(event, ref=candidate_index)
                 alternate = events[:index] + [replacement] + events[index + 1:]
-                _, _, alternate_error = refit_event_set(target, alternate, refs, 44100)
+                alternate_columns = base_columns.copy()
+                alternate_columns[index] = build_event_column(refs, replacement, target.shape[0], 44100)
+                _, _, alternate_error = refit_event_set(target, alternate, refs, 44100, columns=alternate_columns)
                 alternative_delta = (base_error - alternate_error) / target_norm
                 if not np.isfinite(alternative_delta) or alternative_delta >= policy.alternative_margin:
                     ambiguous = True

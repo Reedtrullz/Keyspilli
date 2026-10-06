@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from player_pitch_support import PitchSupportPolicy, evaluate_pitch_support
+from player_pitch_support import PitchSupportPolicy, build_event_column, evaluate_pitch_support, refit_event_set
 
 
 class PlayerPitchSupportTests(unittest.TestCase):
@@ -47,6 +47,15 @@ class PlayerPitchSupportTests(unittest.TestCase):
         pins = [dict(pin, expected=[90]) for pin in self.pins]
         result = evaluate_pitch_support(target, [{'ref': 2, 'frame': 0, 'duration': None}], self.refs, pins, self.policy)
         self.assertIn(result['status'], {'supported', 'ambiguous'})
+
+    def test_shared_column_cache_preserves_refit(self):
+        target = self.refs[1] + self.refs[2]
+        events = [{'ref': 1, 'frame': 0, 'duration': None}, {'ref': 2, 'frame': 0, 'duration': None}]
+        columns = [build_event_column(self.refs, event, target.shape[0], 44100) for event in events]
+        direct = refit_event_set(target, events, self.refs, 44100)
+        cached = refit_event_set(target, events, self.refs, 44100, columns=columns)
+        self.assertEqual(direct[1].tolist(), cached[1].tolist())
+        self.assertEqual(direct[2], cached[2])
 
 
 if __name__ == '__main__':
