@@ -40,11 +40,16 @@ class PlayerInputEvidenceTests(unittest.TestCase):
 
 
     def test_support_policy_changes_analyzer_identity(self):
-        from player_pitch_support import PitchSupportPolicy
-        first = player.analyzer_identity(PitchSupportPolicy(.001, .001))
-        second = player.analyzer_identity(PitchSupportPolicy(.002, .001))
+        from player_pitch_support import DEFAULT_POLICY, PitchSupportPolicy
+        first = player.analyzer_identity(DEFAULT_POLICY)
+        second = player.analyzer_identity(PitchSupportPolicy(DEFAULT_POLICY.removal_margin + .001, DEFAULT_POLICY.alternative_margin))
         self.assertNotEqual(first, second)
         self.assertEqual(first, player.analyzer_identity())
+
+
+    def test_selected_development_margins_are_default(self):
+        from player_pitch_support import DEFAULT_POLICY
+        self.assertEqual((DEFAULT_POLICY.removal_margin, DEFAULT_POLICY.alternative_margin), (.002, .01))
 
 
     def test_missing_or_ambiguous_support_never_qualifies_new_method(self):

@@ -10,6 +10,7 @@ import numpy as np
 from scipy.fft import rfft, irfft, next_fast_len
 from scipy.optimize import nnls, minimize_scalar
 from pathlib import Path
+from player_pitch_support import DEFAULT_POLICY, build_event_column, evaluate_pitch_support, refit_event_set, support_receipt
 CONFIG = {'prefixSeconds': 1.2, 'maximumEvents': 8, 'initialDurationsSeconds': [0.15, 0.3, 0.6, None], 'maximumRawResidual': 0.05, 'minimumImprovement': 0.001, 'minimumAmplitude': 0.05, 'minimumRmsDbfs': -50, 'minimumEventGapSeconds': 0.02, 'minimumHistorySeconds': 0.128, 'phaseOptimizationSamples': 1, 'coordinateRechooseRadiusSeconds': 0.01, 'releaseSeconds': 0.5, 'developmentOnly': True, 'usesExpectedNotesOrTargetSamplerStarts': False, 'referenceInventory': 'all88-MIDI21-through108', 'dictionaryBatchAtoms': 16, 'weakCandidatesWithholdAcceptedSet': True, 'maximumRssBytes': 2147483648, 'method': 'batched-native-rate-stereo-waveform-pursuit', 'minimumAmplitudeOrigin': 'velocity8 relative to filtered reference32 has nominal gain0.0625; new development choice, not a retune of the closed28-case study'}
 
 class PlayerHistorySearch:
@@ -56,14 +57,12 @@ class PlayerHistorySearch:
 
     def fit(self, data):
      target=data[:self.N].astype(np.float64);targetnorm=np.linalg.norm(target);level=float(20*np.log10(max(np.sqrt(np.mean(target*target)),1e-12)))
-     if level<self.config['minimumRmsDbfs']:return {'pitches':None,'reason':'below-level','rmsDbfs':level}
+     if level<self.config['minimumRmsDbfs']:return {'pitches':None,'reason':'below-level','rmsDbfs':level,'support':support_receipt('not-computed')}
      active=[];amplitudes=np.zeros(0);reconstruction=np.zeros_like(target);previous=targetnorm
      def column(event):
-      ref=self.refs[event['ref']];pos=np.arange(self.N)-event['frame'];wave=np.column_stack([np.interp(pos,np.arange(self.N),ref[:,ch],left=0,right=0) for ch in range(2)])
-      if event['duration'] is not None:wave*=np.clip(1-((np.arange(self.N)/self.sr-event['frame']/self.sr)-event['duration'])/.5,0,1)[:,None]
-      return wave.ravel()
+      return build_event_column(self.refs,event,self.N,self.sr)
      def refit(events):
-      m=np.asarray([column(e) for e in events]).T;coeff,err=nnls(m,target.ravel(),maxiter=1000);return m,coeff,err
+      return refit_event_set(target,events,self.refs,self.sr)
      for _ in range(self.config['maximumEvents']):
       residual=target-reconstruction
       score,index,frame=self.find_candidate(residual,active=active)
@@ -89,6 +88,7 @@ class PlayerHistorySearch:
       matrix,coeff,error=refit(trial)
       if (previous-error)/targetnorm<self.config['minimumImprovement']:break
       active=trial;amplitudes=coeff;previous=error;reconstruction=(matrix@coeff).reshape(self.N,2)
+     support=evaluate_pitch_support(target,active,self.refs,self.referencepins,DEFAULT_POLICY)
      raw=float(np.linalg.norm(target-reconstruction)/targetnorm);events=[{**self.referencepins[e['ref']],'fittedStartSeconds':e['frame']/self.sr,'fittedReleaseAfterSeconds':e['duration'],'amplitude':float(a)} for e,a in zip(active,amplitudes)];pitches=sorted(set(e['midi'] for e in events if e['amplitude']>=self.config['minimumAmplitude']))
      weak=[e for e in events if 0<e['amplitude']<self.config['minimumAmplitude']]
-     return {'pitches':pitches if raw<=self.config['maximumRawResidual'] and not weak else None,'proposed':pitches,'unresolvedWeakCandidates':weak,'rawResidual':raw,'events':events,'rmsDbfs':level,'fitInterval':{'startSeconds':0,'endSeconds':self.N/self.sr},'currentPresenceEstablished':False}
+     return {'pitches':pitches if raw<=self.config['maximumRawResidual'] and not weak else None,'proposed':pitches,'unresolvedWeakCandidates':weak,'rawResidual':raw,'events':events,'support':support,'rmsDbfs':level,'fitInterval':{'startSeconds':0,'endSeconds':self.N/self.sr},'currentPresenceEstablished':False}
