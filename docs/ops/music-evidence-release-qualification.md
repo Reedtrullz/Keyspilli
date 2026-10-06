@@ -1,0 +1,23 @@
+# Music evidence release qualification
+
+The release candidate exposes opt-in software contracts. No new full-range, real-song, provider-hearing, musical or physical-keyboard admission is granted by its presence.
+
+The maintained reference builder rendered 440 stereo Float32 references from 226 explicitly permitted, already-present assets. Every reference and all 220 newly generated dictionary arrays match the retained development bank byte for byte. The bank uses the upstream [public-domain sample statement](https://github.com/sfzinstruments/SplendidGrandPiano); assets and arrays remain private and are not bundled in the plugin or CI. Exact Float32 AudioParam identity canonicalizes declared decimal profile values to their actual renderer representation without tolerance or fit retuning.
+
+The retained 53/54 result remains a closed development study. A newly captured first control matched its expected history set, but measured end-to-end times were 46–58 seconds and a stage profile took 57 seconds for fitting. Those runs do not meet the new p95 <=20-second gate. Local machine contention and packaging overhead are possible explanations, not established fixes. Keep the analyzer diagnostic and require a fresh, frozen study after any performance change.
+
+The 72-case seed 610672 study freezes 32 core cases covering all 88 pitches, 16 quiet mixtures, 12 repeated/released cases and 12 refusal controls. Its first capture attempt stopped before saving any clip: an observed 172 ms initial sampler offset exceeded the unchanged 150 ms recorder bound. The clock test passed. Retain the failed trace, diagnose the capture scheduling defect, and use an exclusively new attempt; never relax the acceptance bound or score uncaptured fixtures. The existing capture harness deliberately refuses silence/no sampler starts, so silent refusal controls require a separate validated recorder-only path before resumption. They cannot be silently dropped.
+
+The evaluator accepts immutable receipt inventories, validates them before opening the separately stored answer key, rejects duplicate/foreign results, and marks missing results incomplete. A passing controlled screen still leaves current key presence, quiet absence, note-offs, pedal, source fidelity, musical suitability and provider hearing unknown.
+
+A 20-phrase source/arrangement study across ten pieces remains pending. No rights-cleared matching real-source byte set has been selected for this release. Self-authored controlled cases are not presented as real-song qualification. Source/structural/musical/runtime gates each need an exact reviewed receipt; unknown or pending rows block production.
+
+## One bounded next-model feasibility review
+
+The sole additional candidate reviewed is Kong's high-resolution piano transcription, exposed by [piano_transcription_inference](https://github.com/qiuqiangkong/piano_transcription_inference) at commit `0226e74cbc805660e34bbd6a8fed2083890ebb88`. Its [training implementation](https://github.com/bytedance/piano_transcription) is archived; development used Python 3.7/PyTorch 1.4.0. The inference package supports a CPU selection and uses mono 16 kHz input and ten-second segments. Its setup metadata declares MIT, but no repository license document was returned by the GitHub license endpoint. A package classifier is insufficient to settle the model's terms.
+
+Its default constructor invokes an implicit shell download into the user's home when the checkpoint is absent or short, then calls `torch.load`. That behavior conflicts with this release's explicit local-asset boundary. No package or weights were downloaded, no conversion or inference was attempted, and no CPU/RSS/accuracy claim is made. Before any opt-in experiment: resolve code/checkpoint terms, pin the [Zenodo checkpoint](https://zenodo.org/records/4034264) and frontend/code hashes, replace implicit acquisition with explicit local-file validation, use a reviewed safe loading strategy, and prove native/conversion parity. This candidate stays a preparation blocker, not a replacement for the rejected Basic Pitch/Transkun defaults.
+
+## Final owner study
+
+Prepare at most twelve serial compact Gemini attempts: eight supplied-evidence packets, plus contradictory/silence/unknown-source/malformed controls. Malformed and stale evidence must refuse locally and consumes no provider quota. Dispatch, uploads, account selection, installed-helper adoption and musical/keyboard judgments wait for the final reviewed packet. A correctly cited measurement is assisted interpretation, not independent provider hearing. The stopped m04 study remains stopped.

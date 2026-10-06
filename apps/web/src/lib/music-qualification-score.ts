@@ -1,0 +1,12 @@
+import { assertMusic } from '@keyspilli/catalog/src/acoustic-receipt.js';
+import { parsePlayerInputEvidence,type PlayerInputEvidenceReceiptV1 } from '@keyspilli/catalog/src/player-input-evidence.js';
+export interface QualificationAnswer {id:string;group:'core'|'quiet'|'repeat'|'refusal';expected:number[];control:string}
+export function scorePlayerQualification(receipts:Array<{id:string;receipt:PlayerInputEvidenceReceiptV1}>,answers:QualificationAnswer[]){
+ assertMusic(answers.length===72 && new Set(answers.map(x=>x.id)).size===72,'complete72-case answer inventory required');assertMusic(new Set(receipts.map(x=>x.id)).size===receipts.length,'duplicate analyzer result');
+ const byId=new Map(receipts.map(x=>[x.id,parsePlayerInputEvidence(x.receipt)]));assertMusic(receipts.every(x=>answers.some(a=>a.id===x.id)),'foreign result');
+ const rows=answers.map(a=>{const r=byId.get(a.id),accepted=r?.status==='matched',exact=accepted && JSON.stringify(r.historyPitchCandidates)===JSON.stringify(a.expected);return {id:a.id,group:a.group,status:r?.status??'not-run',exact:!!exact,acceptedWrong:!!accepted && (!exact || a.group==='refusal'),refused:a.group==='refusal' && !!r && r.status!=='matched',elapsedSeconds:r?.resources.elapsedSeconds??null,peakRssBytes:r?.resources.peakRssBytes??null};});
+ const counts=Object.fromEntries(['core','quiet','repeat','refusal'].map(group=>[group,{cases:rows.filter(r=>r.group===group).length,exact:rows.filter(r=>r.group===group&&r.exact).length,refused:rows.filter(r=>r.group===group&&r.refused).length}]));
+ const durations=rows.filter(r=>r.group!=='refusal' && r.elapsedSeconds!==null).map(r=>r.elapsedSeconds!).sort((a,b)=>a-b),p95=durations.length?durations[Math.ceil(.95*durations.length)-1]!:null;
+ const allCovered=rows.every(r=>r.status!=='not-run');const passed=allCovered && counts.core!.cases===32 && counts.core!.exact>=30 && counts.quiet!.cases===16 && counts.quiet!.exact>=14 && counts.repeat!.cases===12 && counts.repeat!.exact>=10 && counts.refusal!.cases===12 && counts.refusal!.refused===12 && !rows.some(r=>r.acceptedWrong) && p95!==null && p95<=20;
+ return {schemaVersion:1,kind:'keyspilli-player-input-qualification-score',status:passed?'passed-controlled-input-screen':allCovered?'failed':'incomplete',rows,counts,p95Seconds:p95,productionAdmission:false,currentKeys:'unknown',completeness:'unknown',musicalAcceptance:'not-established',providerCalls:0};
+}

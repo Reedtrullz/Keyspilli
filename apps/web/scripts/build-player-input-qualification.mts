@@ -1,0 +1,8 @@
+import { mkdir,writeFile,readFile } from 'node:fs/promises';
+import { join,resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { makePlayerInputQualification } from '../src/lib/player-input-qualification.js';
+const args=process.argv.slice(2),arg=(n:string)=>args.includes(n)?args[args.indexOf(n)+1]:undefined;const output=arg('--output');if(!output)throw Error('--output NEW_DIR [--seed INTEGER]');const root=resolve(output),corpus=makePlayerInputQualification(Number(arg('--seed')??610672));await mkdir(root,{recursive:false});for(const name of ['capture-fixtures','capture-receipts','media','evaluator-only'])await mkdir(join(root,name));
+const fingerprints=Object.fromEntries(await Promise.all(['services/transcribe/src/player_input_evidence.py','services/transcribe/src/player_history_search.py','apps/web/src/lib/player-input-qualification.ts'].map(async p=>[p,createHash('sha256').update(await readFile(p)).digest('hex')])));
+await writeFile(join(root,'capture-fixtures/bundle.json'),JSON.stringify(corpus.bundle,null,2),{flag:'wx'});await writeFile(join(root,'evaluator-only/answers.json'),JSON.stringify(corpus.answers,null,2),{flag:'wx'});await writeFile(join(root,'freeze.json'),JSON.stringify({schemaVersion:1,kind:corpus.kind,seed:corpus.seed,cases:72,sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),fingerprints,status:'frozen-before-capture-and-scoring',scope:'Self-authored controlled input history; no real-song/provider/musical acceptance',providerCalls:0},null,2),{flag:'wx'});console.log(JSON.stringify({root,cases:72,providerCalls:0}));

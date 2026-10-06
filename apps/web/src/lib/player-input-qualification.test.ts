@@ -1,0 +1,3 @@
+import { it,expect } from 'vitest';
+import { makePlayerInputQualification } from './player-input-qualification.js';
+it('freezes 72 independent controls covering every piano pitch, with sorted starts',()=>{const a=makePlayerInputQualification(610672),b=makePlayerInputQualification(610672);expect(a).toEqual(b);expect(a.answers).toHaveLength(72);expect(a.answers.filter(x=>x.group==='core')).toHaveLength(32);expect(new Set(a.answers.filter(x=>x.group==='core').flatMap(x=>x.expected))).toEqual(new Set(Array.from({length:88},(_,i)=>21+i)));expect(a.answers.filter(x=>x.group==='refusal')).toHaveLength(12);for(const f of a.bundle.fixtures)expect(f.data.notes.map(n=>n.start)).toEqual(f.data.notes.map(n=>n.start).sort((x,y)=>x-y));});
