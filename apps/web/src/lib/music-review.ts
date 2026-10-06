@@ -375,10 +375,10 @@ export async function writeMusicReviewPack(
   await mkdir(output, { recursive: false });
   await mkdir(join(output, "media"));
   let body =
-    "<h1>Music review</h1><p>Local diagnostic evidence. Human listening, source validation and keyboard judgments are pending.</p>";
+    "<h1>Music review</h1><p>Unqualified local diagnostic evidence. A matched input fit can include incorrect octave candidates and does not establish pitch presence. Human listening, source validation and keyboard judgments are pending.</p>";
   for (const { c, bytes } of media) {
     const asset = c.id + ".wav";
-    if(c.playerInput)body+=`<p>Input candidates (first 1.2 s only): ${escape(JSON.stringify(c.playerInput.historyPitchCandidates))}; input SHA256 ${escape(c.playerInput.inputSha256)}; bank SHA256 ${escape(c.playerInput.referenceBankSha256)}</p>`;
+    if(c.playerInput)body+=`<p>Unqualified input candidates (first 1.2 s only): ${escape(JSON.stringify(c.playerInput.historyPitchCandidates))}; input SHA256 ${escape(c.playerInput.inputSha256)}; bank SHA256 ${escape(c.playerInput.referenceBankSha256)}</p>`;
     await writeFile(join(output, "media", asset), bytes, { flag: "wx" });
     body += `<section><h2>${escape(c.id)}</h2><audio controls preload="none" src="media/${asset}"></audio>${waveform(bytes, c.audio.channels)}<p>${escape(`Player input history: ${c.channels.playerInput} (current keys, completeness and audibility unknown) · Acoustic estimate: ${c.channels.acoustic} · Renderer evidence: ${c.channels.renderer} · Playback comparison: ${c.channels.playback} · Source comparison: ${c.channels.source}`)}<br>Channel status describes available evidence; it does not establish model admission or musical acceptance.</p><ul>${c.findings.map((f) => `<li><button type="button" onclick="this.closest('section').querySelector('audio').currentTime=${f.startSeconds};this.closest('section').querySelector('audio').play()">${f.startSeconds.toFixed(2)}–${f.endSeconds.toFixed(2)} s</button> ${escape(f.description)} (${escape(f.origin)})</li>`).join("")}</ul><label>Listening notes <textarea></textarea></label><p>Source review: pending · keyboard review: pending</p></section>`;
   }
