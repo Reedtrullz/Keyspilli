@@ -19,6 +19,11 @@ on:
           - deploy_only
           - rebuild_target
           - rebuild_all
+      promote_reviewed:
+        description: "Skip automatic checks only after the exact reviewed main check and manifest are pinned"
+        required: false
+        default: false
+        type: boolean
       rebuild_confirmation:
         description: "Only for rebuild_all: type REBUILD_ALL_CATALOG"
         required: false
@@ -53,7 +58,8 @@ concurrency:
 
 jobs:
   checks:
-    name: Automatic checks
+    name: ${{ (github.event_name == 'workflow_dispatch' && inputs.promote_reviewed) && 'Promotion prerequisites' || 'Automatic checks' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.promote_reviewed == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -193,7 +199,13 @@ jobs:
     runs-on: ubuntu-24.04
     needs: checks
     timeout-minutes: 5
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.promote_reviewed == true &&
+      inputs.operation == 'deploy_only' &&
+      needs.checks.result == 'skipped'
     permissions:
       contents: read
       checks: read
@@ -203,7 +215,9 @@ jobs:
       - name: Read exact-head check results from GitHub
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" > "$RUNNER_TEMP/music-checks.json"
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" --jq '.check_runs[]' > "$RUNNER_TEMP/check-runs.jsonl"
+          jq -s '{check_runs:.}' "$RUNNER_TEMP/check-runs.jsonl" > "$RUNNER_TEMP/music-checks.json"
       - name: Require reviewed four-gate manifest before publication or deployment
         env:
           KEYSPILLI_MUSIC_RELEASE_MANIFEST_JSON: ${{ vars.KEYSPILLI_MUSIC_RELEASE_MANIFEST_JSON }}
@@ -220,7 +234,14 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [checks, release-readiness]
     timeout-minutes: 30
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.promote_reviewed == true &&
+      inputs.operation == 'deploy_only' &&
+      needs.checks.result == 'skipped' &&
+      needs.release-readiness.result == 'success'
 
     outputs:
       image: ${{ steps.image.outputs.image }}
@@ -234,7 +255,7 @@ jobs:
         id: image
         run: |
           echo "image=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
@@ -296,7 +317,15 @@ jobs:
       - build-and-push
       - release-readiness
     timeout-minutes: 20
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.promote_reviewed == true &&
+      inputs.operation == 'deploy_only' &&
+      needs.checks.result == 'skipped' &&
+      needs.release-readiness.result == 'success' &&
+      needs.build-and-push.result == 'success'
     environment:
       name: production
       url: https://keys.reidar.tech

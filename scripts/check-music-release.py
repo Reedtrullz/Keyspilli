@@ -8,6 +8,7 @@ import argparse,json,os,re
 from pathlib import Path
 
 REQUIRED_CHECKS={'Automatic checks'}
+RUNTIME_SCOPE='isolated-candidate-rehearsal'
 
 def require(condition,message):
  if not condition:raise ValueError(message)
@@ -16,6 +17,7 @@ def validate_manifest(value,commit,checks):
  require(isinstance(value,dict) and value.get('schemaVersion')==1 and value.get('kind')=='keyspilli-music-release','unsupported release manifest')
  require(re.fullmatch('[a-f0-9]{40}',commit) and value.get('commit')==commit,'release revision mismatch')
  require(value.get('operation')=='deploy_only','music promotion must preserve catalog: deploy_only required')
+ require(value.get('runtimeScope')==RUNTIME_SCOPE,f'runtime scope must be {RUNTIME_SCOPE} before production')
  gates=value.get('gates',{})
  require(isinstance(gates,dict) and set(gates)=={'source','structural','musical','runtime'},'all four release gates required')
  for name,row in gates.items():
