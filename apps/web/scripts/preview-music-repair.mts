@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { readLocalEvidenceJson } from "../src/lib/local-audio-evidence.js";
 import {
+  validatePlayerRepairEvidence,
   previewMusicRepair,
   type RepairProposal,
 } from "../src/lib/music-repair-preview.js";
@@ -22,6 +23,7 @@ const snapshot = (await readLocalEvidenceJson(
 const request = (await readLocalEvidenceJson(
   resolve(proposal),
 )) as RepairProposal;
+const player=arg('--player-input');if(player)validatePlayerRepairEvidence(request,(await readLocalEvidenceJson(resolve(player))) as Parameters<typeof validatePlayerRepairEvidence>[1]);
 const preview = previewMusicRepair(snapshot, request);
 const dest = resolve(output);
 await mkdir(dest, { recursive: false });

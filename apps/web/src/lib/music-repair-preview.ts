@@ -1,3 +1,5 @@
+import { comparePlayerHistory } from './player-music-review.js';
+import { parsePlayerInputEvidence,type PlayerInputEvidenceReceiptV1 } from '@keyspilli/catalog/src/player-input-evidence.js';
 import {
   assertMusic,
   finiteSeconds,
@@ -5,7 +7,9 @@ import {
   isHash,
 } from "@keyspilli/catalog/src/acoustic-receipt.js";
 import {
+  compareMusicalIntent,
   validateReplay,
+  type SourceAnchors,
   type MusicalEvent,
   type ReplaySnapshot,
 } from "./music-correspondence.js";
@@ -29,6 +33,7 @@ export interface RepairProposal {
     | "human-validated";
   validationReceiptSha256?: string;
   preservePhraseIds: string[];
+  playerSupport?: {source:SourceAnchors;snapshot:ReplaySnapshot};
 }
 export interface RepairPreview {
   schemaVersion: 1;
@@ -196,4 +201,19 @@ export function previewMusicRepair(
     catalogMutations: 0,
     musicalAcceptance: "not-established",
   };
+}
+
+/** History alone never justifies score edits; inspect a separately pinned authoritative source. */
+export function validatePlayerRepairEvidence(proposal:RepairProposal,receipt:PlayerInputEvidenceReceiptV1):void {
+ const r=parsePlayerInputEvidence(receipt);assertMusic(r.status==='matched','accepted input history required');
+ assertMusic(proposal.evidenceRefs.includes(identityHash(r)),'stale Player evidence');
+ assertMusic(proposal.playerSupport,'independent source support required');
+ const {source,snapshot}=proposal.playerSupport;validateReplay(snapshot);comparePlayerHistory(r,snapshot);assertMusic(proposal.sourceSha256===snapshot.sourceSha256,'changed repair source');
+ assertMusic(proposal.evidenceRefs.includes(identityHash(source)),'changed independent source evidence');
+ assertMusic(source.authority===proposal.sourceAuthority && (source.authority==='self-authored' || (source.authority==='human-validated' && isHash(source.validationReceiptSha256))),'independent source authority required');
+ compareMusicalIntent(source,snapshot,{mode:'original',difficulty:'medium',approvedTransformations:[],maximumHandSpan:12});
+ assertMusic(proposal.findingKind==='authored-discrepancy' && proposal.operations.length>0 && proposal.operations.length<=8,'bounded authored edits required');
+ assertMusic(proposal.phrase.startSeconds>=r.fitInterval.startSeconds && proposal.phrase.endSeconds<=r.fitInterval.endSeconds,'edit outside history scope');
+ for(const op of proposal.operations){assertMusic(op.kind==='replace-pitch','history does not establish missing notes, timing or deletion');const event=snapshot.events.find(e=>e.id===op.eventId);assertMusic(event && r.historyPitchCandidates?.includes(event.midi),'target pitch unsupported by history');assertMusic(source.anchors.some(a=>!a.ambiguous && a.required && a.midi===op.midi && a.phraseId===event.phraseId && a.occurrenceId===event.occurrenceId && a.role===event.role && a.onsetSeconds===event.onsetSeconds),'pitch edit requires matching authoritative source anchor');}
+ previewMusicRepair(snapshot,proposal);
 }

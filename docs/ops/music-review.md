@@ -110,3 +110,13 @@ Phrase-clip p95 describes the measured phrase lengths only. It does not certify
 30-second throughput. Provisional admission also needs a separate measured
 30-second profile (at least 20 successful clips, p95 <=60 seconds); short corpus
 clips leave that profile unqualified even when their latency is low.
+
+## Paired input channel and explicit source-supported previews
+
+Player input receipts require the paired capture and its exact manifest SHA256. Reports show the first 1.2-second history candidates separately from PCM output and source/playback comparisons. They assemble supplied receipts without launching inference. No candidate absence becomes a missing-note claim.
+
+`prepare-music-review-jobs.mts --report REPORT.json --output NEW_DIR` prepares one clip/claim per portable packet without sending requests. A selected helper/schema/configuration can be supplied as a pinned JSON file. Import verifies unchanged packet/audio/helper/schema, declared route/token/timeout configuration and one attempt; raw text stays separate and truncated/invalid replies remain partial. A completed job is a validated advisory response, not musical acceptance.
+
+`preview-music-repair.mts --player-input RECEIPT.json` validates `playerSupport` containing independently pinned authoritative source anchors and the original replay snapshot. Only an explicit source-matching pitch edit within the measured interval is eligible; missing-note, onset and deletion edits cannot be justified by input history. The ordinary source-backed preview path remains available. All previews preserve neighboring phrases and require new capture/listening/source/keyboard checks before publication.
+
+`comparePlayerHistory` additionally requires an explicit `ReplaySnapshot.playerCapture` with the same capture/input hashes and zero clip offset. Unbound source clocks refuse. These declared pins do not independently authenticate recording provenance.

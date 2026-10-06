@@ -24,6 +24,7 @@ export interface ReplaySnapshot {
   sourceSha256: string;
   events: MusicalEvent[];
   tempoBpm?: number;
+  playerCapture?: {captureSha256:string;inputSha256:string;clipOffsetSeconds:0};
 }
 export interface SourceAnchors {
   sha256: string;

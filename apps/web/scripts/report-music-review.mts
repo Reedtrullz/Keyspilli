@@ -11,6 +11,7 @@ if (args[0] === "capabilities") {
     JSON.stringify({
       musicReviewContractVersions: [1],
       acousticReceiptVersions: [1],
+      playerInputEvidenceVersions:[1],
       providerCalls: 0,
       implicitInference: false,
       humanAttestation: false,
