@@ -247,6 +247,7 @@ export function buildMusicReview(input: MusicReviewInput): MusicReviewReport {
         humanReview: "pending",
       },
       limitations: [
+        "Input history fits are unqualified diagnostics; a matched fit can include incorrect octave candidates and does not establish pitch presence",
         "Independent acoustic estimates, renderer context and source claims are separate channels",
         "No inference or provider requests are performed by report assembly",
         "Model/renderer agreement is not source fidelity, musical quality or keyboard acceptance",
