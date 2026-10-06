@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { parsePairedPlayerCapture, parsePlayerInputEvidence, validatePlayerSignalBytes } from '../src/player-input-evidence.js';
+import { parsePairedPlayerCapture, parsePlayerInputEvidence, validatePlayerSignalBytes, type PlayerSignalPinV1 } from '../src/player-input-evidence.js';
 const hash='a'.repeat(64);
-const pin=(encoding='pcm-f32le',channels=2)=>({path:'/fixture.wav',sha256:hash,encoding,sampleRate:44100,channels,frames:128});
+const pin=(encoding:PlayerSignalPinV1['encoding']='pcm-f32le',channels:1|2=2)=>({path:'/fixture.wav',sha256:hash,encoding,sampleRate:44100,channels,frames:128});
 const capture=()=>({schemaVersion:1,kind:'keyspilli-player-paired-capture',id:'control',input:pin(),forwardOutput:pin("pcm-f32le",1),output:pin('pcm-s16le',1),firstSampleContextSeconds:1,renderer:{moduleVersion:'1.0.0',moduleSha256:hash,browserVersion:'151.0'},compressor:{threshold:-24,knee:12,ratio:3,attack:.005,release:.15},sampleAssetPins:[{url:'https://fixture.invalid/sample',sha256:hash,bytes:1024}]});
 const receipt=()=>({schemaVersion:1,kind:'keyspilli-player-input-evidence',captureSha256:hash,inputSha256:hash,analyzerSha256:hash,referenceBankSha256:hash,fitInterval:{startSeconds:0,endSeconds:1.2},status:'matched',historyPitchCandidates:[60,64,67],rawResidual:.01,currentPitchSetEstimate:null,completeness:'unknown',audibility:'not-established',resources:{elapsedSeconds:1,peakRssBytes:1024},limitations:['Provenance labels are assertions; not authenticated acoustic truth.']});
 function wav(float:boolean){const channels=float?2:1, width=float?4:2,b=Buffer.alloc(44+128*channels*width);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(float?3:1,20);b.writeUInt16LE(channels,22);b.writeUInt32LE(44100,24);b.writeUInt32LE(44100*channels*width,28);b.writeUInt16LE(channels*width,32);b.writeUInt16LE(width*8,34);b.write('data',36);b.writeUInt32LE(b.length-44,40);if(float)b.writeFloatLE(1.5,44);return b;}
