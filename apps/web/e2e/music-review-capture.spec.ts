@@ -61,3 +61,15 @@ test("capture fresh phrases through visible sampled Player and return", async ({
     await expect(page).toHaveURL(/\/$/);
   }
 });
+
+// These are explicit recorder controls, never ordinary successful music captures.
+test("silent and below-level controls retain paired evidence", async ({ page }) => {
+ const bundle=JSON.parse(readFileSync(join(root,"capture-fixtures/bundle.json"),"utf8"));
+ for(const [id,signalControl] of [["q-refusal-00","silence"],["q-refusal-02","below-level"]] as const){
+  const capture=await capturePlayerClip(page,{...bundle.captures[id],signalControl});
+  expect(capture.beforeCompressor).toBeDefined();
+  if(signalControl==="silence"){
+   expect(capture.samplerStarts).toEqual([]);expect(capture.rms).toBe(0);expect(capture.beforeCompressor!.peak).toBe(0);
+  }else{expect(capture.samplerStarts.length).toBeGreaterThan(0);expect(capture.rms).toBeGreaterThan(0);expect(capture.rms).toBeLessThan(.0002);}
+ }
+});

@@ -21,6 +21,10 @@ class PlayerHistorySearch:
         self.fftlen = next_fast_len(2 * self.N - 1)
         self.labels = [(i, d) for i in range(len(refs)) for d in self.config["initialDurationsSeconds"]]
         self.cache = Path(dictionary)
+        # Repeated pursuit passes reuse at most 1GiB of immutable FFT blocks.
+        # Working correlations still use 16 atoms; no full matrix is retained.
+        self._fft_blocks = {}
+        self._fft_bytes = 0
 
     def find_candidate(self, residual,active=None,eligible=None,center=None):
      spectrum=rfft(residual.astype(np.float32),self.fftlen,axis=0);best=(-np.inf,0,0);allowed=None if eligible is None else set(eligible)
@@ -30,8 +34,16 @@ class PlayerHistorySearch:
       selected=[i for i in range(start,min(start+self.config['dictionaryBatchAtoms'],len(self.labels))) if allowed is None or i in allowed]
       if not selected:continue
       local=np.asarray(selected)-start
-      mapped=np.load(self.cache/f'{start:04d}-fft.npy',mmap_mode='r',allow_pickle=False);kernels=mapped[local].copy();mapped._mmap.close()
-      mapped=np.load(self.cache/f'{start:04d}-norm.npy',mmap_mode='r',allow_pickle=False);norm=mapped[local].copy();mapped._mmap.close()
+      # Buffered file reads avoid repeated mmap page faults. Cache a bounded
+      # subset for subsequent audio-only passes; read-only arrays never change.
+      selection=slice(int(local[0]),int(local[-1])+1) if np.all(np.diff(local)==1) else local
+      block=self._fft_blocks.get(start)
+      if block is None:
+       block=np.load(self.cache/f'{start:04d}-fft.npy',allow_pickle=False)
+       if self._fft_bytes+block.nbytes<=1024**3:
+        block.flags.writeable=False;self._fft_blocks[start]=block;self._fft_bytes+=block.nbytes
+      kernels=block[selection]
+      norm=np.load(self.cache/f'{start:04d}-norm.npy',allow_pickle=False)[selection]
       correlations=irfft(np.sum(kernels*spectrum[None,:,:],axis=2),self.fftlen,axis=1)[:,self.N-1:self.N-1+self.N]/norm
       if active:
        for event in active:

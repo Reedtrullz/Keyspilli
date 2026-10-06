@@ -61,3 +61,16 @@ class PlayerInputEvidenceTests(unittest.TestCase):
         actual=dict(expected,attack=.004999999888241291,release=.15000000596046448)
         self.assertEqual(player.profile_identity(actual),player.profile_identity(expected))
         self.assertNotEqual(player.profile_identity(dict(actual,ratio=4)),player.profile_identity(expected))
+
+    def test_float_signal_preserves_large_values_and_rejects_nonfinite(self):
+        import struct
+        values = [1.25, -2.0, 0.0, .5]
+        def pin_for(samples):
+            data = struct.pack('<4f', *samples)
+            header = struct.pack('<4sI4s4sIHHIIHH4sI', b'RIFF',36+len(data),b'WAVE',b'fmt ',16,3,2,44100,352800,8,32,b'data',len(data))
+            p=self.tmp_path/'input.wav';p.write_bytes(header+data)
+            return {'path':str(p),'encoding':'pcm-f32le','channels':2,'sampleRate':44100,'frames':2,'sha256':hashlib.sha256(header+data).hexdigest()}
+        b=player.signal(pin_for(values),'pcm-f32le',2)
+        self.assertEqual(struct.unpack('<4f',b[44:]),tuple(values))
+        for bad in [float('nan'),float('inf'),-float('inf')]:
+            with self.assertRaisesRegex(ValueError,'nonfinite'):player.signal(pin_for([bad,0,0,0]),'pcm-f32le',2)

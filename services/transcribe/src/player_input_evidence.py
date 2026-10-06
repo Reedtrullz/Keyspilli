@@ -55,7 +55,9 @@ def signal(pin, encoding, channels):
     width=4 if encoding=='pcm-f32le' else 2
     if len(b)!=44+frames*channels*width or b[:4]!=b'RIFF' or b[8:16]!=b'WAVEfmt ' or b[36:40]!=b'data':raise ValueError('unsupported WAV layout')
     if struct.unpack_from('<I',b,4)[0]!=len(b)-8 or struct.unpack_from('<I',b,16)[0]!=16 or struct.unpack_from('<HHIIHH',b,20)!=(3 if width==4 else 1,channels,44100,44100*channels*width,channels*width,width*8) or struct.unpack_from('<I',b,40)[0]!=len(b)-44:raise ValueError('WAV metadata mismatch')
-    if width==4 and any(not math.isfinite(x[0]) for x in struct.iter_unpack('<f',b[44:])):raise ValueError('nonfinite signal')
+    if width==4:
+        import numpy as np
+        if not np.isfinite(np.frombuffer(b, dtype='<f4', offset=44)).all():raise ValueError('nonfinite signal')
     return b
 
 def capture(path):

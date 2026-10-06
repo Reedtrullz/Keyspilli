@@ -10,3 +10,17 @@ export function scorePlayerQualification(receipts:Array<{id:string;receipt:Playe
  const allCovered=rows.every(r=>r.status!=='not-run');const passed=allCovered && counts.core!.cases===32 && counts.core!.exact>=30 && counts.quiet!.cases===16 && counts.quiet!.exact>=14 && counts.repeat!.cases===12 && counts.repeat!.exact>=10 && counts.refusal!.cases===12 && counts.refusal!.refused===12 && !rows.some(r=>r.acceptedWrong) && p95!==null && p95<=20;
  return {schemaVersion:1,kind:'keyspilli-player-input-qualification-score',status:passed?'passed-controlled-input-screen':allCovered?'failed':'incomplete',rows,counts,p95Seconds:p95,productionAdmission:false,currentKeys:'unknown',completeness:'unknown',musicalAcceptance:'not-established',providerCalls:0};
 }
+
+/** Validate audio-only result identities before evaluator answers are opened. */
+export function validateQualificationResultBindings(freeze:{analyzerSha256:string;referenceBankSha256:string;fingerprints:Record<string,string>},currentFingerprints:Record<string,string>,results:Array<{id:string;receipt:PlayerInputEvidenceReceiptV1}>,captures:Record<string,{captureSha256:string;inputSha256:string}>){
+ assertMusic(JSON.stringify(Object.keys(freeze.fingerprints).sort())===JSON.stringify(Object.keys(currentFingerprints).sort()),'qualification source inventory changed');
+ for(const [path,digest] of Object.entries(freeze.fingerprints))assertMusic(digest===currentFingerprints[path],'qualification source changed');
+ for(const row of results){const pin=captures[row.id];assertMusic(pin,'missing qualification capture binding');assertMusic(row.receipt.analyzerSha256===freeze.analyzerSha256 && row.receipt.referenceBankSha256===freeze.referenceBankSha256,'qualification analyzer/bank changed');assertMusic(row.receipt.captureSha256===pin.captureSha256,'qualification capture changed');if(row.receipt.status==='matched')assertMusic(row.receipt.inputSha256===pin.inputSha256,'qualification input changed');}
+}
+
+export const PLAYER_QUALIFICATION_FILES = [
+ 'services/transcribe/src/player_input_evidence.py','services/transcribe/src/player_history_search.py',
+ 'apps/web/src/lib/player-input-qualification.ts','apps/web/src/lib/music-qualification-score.ts',
+ 'apps/web/scripts/build-player-input-qualification.mts','apps/web/scripts/evaluate-player-input-qualification.mts',
+ 'apps/web/e2e/player-audio-capture.ts','apps/web/e2e/music-review-capture.spec.ts','apps/web/playwright.music-review.config.ts',
+];

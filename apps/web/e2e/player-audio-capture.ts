@@ -263,8 +263,19 @@ wav: floatWav(pre, 2), forwardWav: floatWav(mono, 1), sampleRate: context.sample
   }, { paired: capturePreCompressor });
 }
 
+/** Arm recording immediately before the real UI handler, without an automation round trip. */
+export async function startPlayerCaptureAndPlay(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Play", exact: true }).evaluate(async (element) => {
+    const button = element as HTMLButtonElement;
+    if (button.disabled) throw new Error("Player transport is not ready");
+    await (window as unknown as ProbeWindow).__playerCaptureStart();
+    button.click();
+  });
+}
+
 export async function capturePlayerClip(page: Page, options: {
   capturePreCompressor?: boolean;
+  signalControl?: "silence" | "below-level";
   songId: string; mode: "original" | "chords"; durationMs: number; expectedAttackSeconds: number[];
   expectedAttackSecondsByBus?: { voice: number[]; backing: number[] };
 }): Promise<PlayerCapture> {
@@ -311,9 +322,13 @@ export async function capturePlayerClip(page: Page, options: {
   // derived timeline effects settle before measuring its first transport run.
   await page.waitForLoadState("networkidle", { timeout: 60_000 });
   await page.waitForTimeout(2_000);
-  await page.evaluate(async () => (window as unknown as ProbeWindow).__playerCaptureStart());
-  await page.getByRole("button", { name: "Play", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  if (options.signalControl === "silence") {
+    if (options.expectedAttackSeconds.length || Object.values(options.expectedAttackSecondsByBus ?? {}).some(x => x.length)) throw new Error("Silence control requires no expected starts");
+    await page.evaluate(async () => (window as unknown as ProbeWindow).__playerCaptureStart());
+  } else {
+    await startPlayerCaptureAndPlay(page);
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  }
   await page.waitForTimeout(options.durationMs);
   if (await page.getByRole("button", { name: "Pause", exact: true }).isVisible()) await page.getByRole("button", { name: "Pause", exact: true }).click();
   const result = await page.evaluate(() => (window as unknown as ProbeWindow).__playerCaptureStop());
@@ -322,7 +337,9 @@ export async function capturePlayerClip(page: Page, options: {
   const wav = Buffer.from(result.wav);
   const hash = createHash("sha256").update(wav).digest("hex");
   const durationSeconds = (wav.length - 44) / (result.sampleRate * 2);
-  if (!result.samplerStarts.length) throw new Error("No sampled buffer starts were observed");
+  if (options.signalControl === "silence") {
+    if (result.samplerStarts.length || result.rms !== 0 || result.peak !== 0 || result.beforeCompressor?.peak !== 0) throw new Error("Silence recorder control contains signal or sampled starts");
+  } else if (!result.samplerStarts.length) throw new Error("No sampled buffer starts were observed");
   if (result.oscillatorStarts !== 0) throw new Error(`Sampled Player used oscillator fallback (${result.oscillatorStarts} oscillator starts)`);
   const expectedByBus = options.expectedAttackSecondsByBus;
   const sourceClockOffsetsSeconds: Partial<Record<"voice" | "backing", number>> = {};
@@ -363,7 +380,7 @@ export async function capturePlayerClip(page: Page, options: {
   }
   const uniqueAssets = [...new Map(assets.map(asset => [`${asset.url}|${asset.sha256}`, asset])).values()];
   if (uniqueAssets.length === 0) throw new Error("No sampled-piano asset responses were recorded");
-  if (result.rms < 0.0002 || result.peak > 0.999) throw new Error(`Player PCM failed signal/clipping checks (rms=${result.rms}, peak=${result.peak})`);
+  if ((!options.signalControl && result.rms < 0.0002) || result.peak > 0.999 || (options.signalControl === "below-level" && result.rms === 0)) throw new Error(`Player PCM failed signal/clipping checks (rms=${result.rms}, peak=${result.peak})`);
   const firstExpected = Object.values(expectedByBus ?? {}).flat().sort((a, b) => a - b)[0];
   const firstActual = result.samplerStarts.map(source => source.when).sort((a, b) => a - b)[0];
   const sourceClockOffsetSeconds = firstExpected !== undefined && firstActual !== undefined
@@ -372,7 +389,7 @@ export async function capturePlayerClip(page: Page, options: {
   if (result.beforeCompressor) {
     const pre = Buffer.from(result.beforeCompressor.wav), forward = Buffer.from(result.beforeCompressor.forwardWav);
     if (pre.length > 2 * 1024 * 1024 || forward.length > 2 * 1024 * 1024) throw new Error("Paired capture exceeds2MiB per signal");
-    if (result.beforeCompressor.peak === 0) throw new Error("No compressor-input signal captured");
+    if (result.beforeCompressor.peak === 0 && options.signalControl !== "silence") throw new Error("No compressor-input signal captured");
     beforeCompressor = { ...result.beforeCompressor, wav: pre, sha256: createHash("sha256").update(pre).digest("hex"), forwardWav: forward, forwardSha256: createHash("sha256").update(forward).digest("hex") };
   }
   return {

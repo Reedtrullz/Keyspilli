@@ -21,3 +21,11 @@ Its default constructor invokes an implicit shell download into the user's home 
 ## Final owner study
 
 Prepare at most twelve serial compact Gemini attempts: eight supplied-evidence packets, plus contradictory/silence/unknown-source/malformed controls. Malformed and stale evidence must refuse locally and consumes no provider quota. Dispatch, uploads, account selection, installed-helper adoption and musical/keyboard judgments wait for the final reviewed packet. A correctly cited measurement is assisted interpretation, not independent provider hearing. The stopped m04 study remains stopped.
+
+## Completion follow-up
+
+Capture now arms the recorder and invokes the visible Play button handler in one browser task, keeping automation latency outside the sampled schedule measurement. The150ms check remains unchanged. Silence and below-level recordings require explicit recorder-control modes; ordinary non-silent capture requirements are unchanged.
+
+The fixed pursuit uses a bounded1GiB immutable FFT read cache with16-atom working batches and the existing2GiB RSS gate. It does not change acceptance thresholds, reference samples or score inputs. All actual performance/accuracy qualification remains attached to a separately frozen study.
+
+A version2 freeze pins capture, analyzer, generator, evaluator, bank and dictionary identities. Build with `--reference-manifest ABSOLUTE.json --dictionary ABSOLUTE_DIR`. Evaluate with `--freeze FROZEN.json --captures ANALYZED_MANIFEST_DIR --receipts RESULTS.json --answers PRIVATE_ANSWERS.json --output NEW_DIR`. Source and capture identities are checked before evaluator answers open. Prior version1 studies remain historical and cannot substitute for the new qualification.
