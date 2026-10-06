@@ -109,3 +109,9 @@ that mono downmix alone succeeds on six known controls, while final compression
 invalidates the linear fit. Native compressor correction still omits quiet notes
 despite very small output error. Keep paired input-side findings and final audible
 output evidence distinct; this study does not qualify final-WAV transcription.
+
+## Maintained explicit preparation
+
+`apps/web/scripts/build-player-reference-bank.mts --sample-assets PINNED.json --module LOCAL.mjs --output NEW_BANK` renders only explicitly permitted local pinned assets. It does not fetch missing samples. Dictionary generation is separate: `services/transcribe/src/player_input_evidence.py --build-dictionary MANIFEST.json --output NEW_DIR`. Completion publishes the dictionary identity atomically; inference refuses stale/partial arrays and never rebuilds them.
+
+The maintained fitter consumes only capture/bank/dictionary paths. Use the pinned small Python requirements and single BLAS/OMP thread. `prepare-player-music-review.mts` defaults to no execution; explicit `--execute` validates all paired bytes, applies a 120-second local process limit, and saves failures as unavailable/failed channels. Current keys, audible completeness and musical/source acceptance remain unknown. See [release qualification](music-evidence-release-qualification.md) for the new study's failed capture and pending admission; old 53/54 evidence is not fresh qualification.
