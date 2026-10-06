@@ -26,7 +26,7 @@ class MusicPromotionWorkflowTests(unittest.TestCase):
         job = self.jobs['checks']
         self.assertIn('Promotion prerequisites', job['name'])
         self.assertIn('Automatic checks', job['name'])
-        self.assertIn('inputs.promote_reviewed', job['name'])
+        self.assertIn("github.event.inputs.promote_reviewed == 'true'", job['name'])
         self.assertIn('inputs.promote_reviewed', job['if'])
 
     def test_ordinary_events_never_reach_publication(self):

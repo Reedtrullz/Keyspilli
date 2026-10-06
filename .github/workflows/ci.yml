@@ -58,7 +58,7 @@ concurrency:
 
 jobs:
   checks:
-    name: ${{ (github.event_name == 'workflow_dispatch' && inputs.promote_reviewed) && 'Promotion prerequisites' || 'Automatic checks' }}
+    name: ${{ github.event.inputs.promote_reviewed == 'true' && 'Promotion prerequisites' || 'Automatic checks' }}
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.promote_reviewed == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
