@@ -91,3 +91,9 @@ The Kings & Queens bass-arpeggio filter removed full-chord hits at beats 50.25, 
 ## Optional local evidence report
 
 The [local audio evidence command](ops/local-audio-evidence.md) joins pinned authored render events, recomputed PCM waveform estimates and an optional saved single-clip Anti observation. It makes zero provider calls and preserves unknown acoustic pitch, input disagreements and unestablished musical acceptance. Existing pairwise review profiles and defaults remain unchanged. Use it to inspect evidence before considering source-supported repairs.
+
+## 2026-10-06 — Next-phase acceptance packet
+
+The successor qualification screen is frozen and scored under schema3. It failed the quiet/refusal admission gates despite complete resource coverage, so no production or musical admission follows from it. Source validation now requires explicit timing and a byte/occurrence/role-bound receipt; unknown authorities remain unknown.
+
+The new acceptance pack contains ten publisher-pinned pieces, twenty Original/Chords controls, two retained silent-playback diagnostics and blank owner/source/keyboard fields. It has no autoplay, no provider calls and no pre-filled human judgment. Existing r09/r29/r33 and golden-corpus comments remain separate historical evidence; they do not approve this new packet.

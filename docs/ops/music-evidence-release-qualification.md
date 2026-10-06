@@ -35,3 +35,9 @@ Prepare at most twelve serial compact Gemini attempts: eight supplied-evidence p
 The fixed pursuit uses a bounded1GiB immutable FFT read cache with16-atom working batches and the existing2GiB RSS gate. It does not change acceptance thresholds, reference samples or score inputs. All actual performance/accuracy qualification remains attached to a separately frozen study.
 
 A version2 freeze pins capture, analyzer, generator, evaluator, bank and dictionary identities. Build with `--reference-manifest ABSOLUTE.json --dictionary ABSOLUTE_DIR`. Evaluate with `--freeze FROZEN.json --captures ANALYZED_MANIFEST_DIR --receipts RESULTS.json --answers PRIVATE_ANSWERS.json --output NEW_DIR`. Source and capture identities are checked before evaluator answers open. Prior version1 studies remain historical and cannot substitute for the new qualification.
+
+## Next-phase schema3 screen and source receipts
+
+The next-phase successor uses schema3 freezes with the selected support policy (`0.002` removal, `0.01` alternative), the serial batch runner fingerprint, and an analyzer identity that includes the policy hash. The blind seed610677 screen passed capture and resource coverage but failed admission: core32/32, quiet7/16, repeat12/12, refusal4/12, eight accepted refusal rows, p9517.673 seconds, peak RSS1,439,694,848 bytes, and `productionAdmission=false`. It is immutable and must not be retuned or rescored.
+
+Source authority is now explicit: trusted comparisons require `timingKnown===true`, and `SourceValidationReceiptV1` binds source bytes, phrase occurrence, role, onset, reviewer assertion and mode/difficulty scope. Reports expose `sourceAuthority` and `sourceTimingKnown` while retaining `musicalAcceptance: not-established`. The acceptance-pack builder preserves the ten source-pinned pieces, two silent Chords diagnostics, exact capture/arrangement/phrase hashes and blank reviewer fields with autoplay disabled.
