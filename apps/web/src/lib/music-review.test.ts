@@ -68,3 +68,14 @@ it("keeps source replay and resolved playback event identities separate", () => 
  const v=input();v.clips[0]!.eventsSha256="b".repeat(64);v.clips[0]!.replaySha256="c".repeat(64);v.clips[0]!.correspondence={status:"available",sourceSha256:"d".repeat(64),replaySha256:"c".repeat(64),landmarks:[],difficulty:{status:"not-assessed",reason:"unknown tempo"},musicalAcceptance:"not-established",limitations:[]};
  expect(buildMusicReview(v).clips[0]!.channels.source).toBe("available");v.clips[0]!.replaySha256="e".repeat(64);expect(()=>buildMusicReview(v)).toThrow("stale source correspondence");
 });
+
+it("exposes source authority and timing without claiming acceptance", () => {
+  const v = input();
+  v.clips[0]!.eventsSha256 = "b".repeat(64);
+  v.clips[0]!.replaySha256 = "c".repeat(64);
+  v.clips[0]!.correspondence = { status: "available", sourceSha256: "d".repeat(64), replaySha256: "c".repeat(64), authority: "human-validated", timingKnown: true, landmarks: [], difficulty: { status: "not-assessed", reason: "unknown tempo" }, musicalAcceptance: "not-established", limitations: [] };
+  const report = buildMusicReview(v);
+  expect(report.clips[0]!.channels.sourceAuthority).toBe("human-validated");
+  expect(report.clips[0]!.channels.sourceTimingKnown).toBe(true);
+  expect(report.musicalAcceptance).toBe("not-established");
+});

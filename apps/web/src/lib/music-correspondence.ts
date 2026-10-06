@@ -45,6 +45,8 @@ export interface MusicalComparison {
   status: "available" | "incomplete";
   sourceSha256: string;
   replaySha256: string;
+  authority?: SourceAnchors["authority"];
+  timingKnown?: boolean;
   landmarks: Array<{
     id: string;
     phraseId: string;
@@ -137,9 +139,10 @@ export function compareMusicalIntent(
     "unsupported transformation",
   );
   const trusted =
-    source.authority === "self-authored" ||
-    (source.authority === "human-validated" &&
-      isHash(source.validationReceiptSha256));
+    source.timingKnown === true &&
+    (source.authority === "self-authored" ||
+      (source.authority === "human-validated" &&
+        isHash(source.validationReceiptSha256)));
   const used = new Set<string>();
   const anchorIds = new Set<string>();
   const landmarks = source.anchors.map((a) => {
@@ -160,7 +163,7 @@ export function compareMusicalIntent(
     anchorIds.add(a.id);
     let status: MusicalComparison["landmarks"][number]["status"] = "unknown",
       reason = "Source authority or timing remains unvalidated";
-    if (trusted && source.timingKnown !== false && !a.ambiguous) {
+    if (trusted && source.timingKnown === true && !a.ambiguous) {
       const candidates = snapshot.events.filter(
         (e) =>
           !used.has(e.id) &&
@@ -223,6 +226,8 @@ export function compareMusicalIntent(
       : "available",
     sourceSha256: source.sha256,
     replaySha256: snapshot.sourceSha256,
+    authority: source.authority,
+    timingKnown: source.timingKnown === true,
     landmarks,
     difficulty:
       snapshot.tempoBpm !== undefined &&

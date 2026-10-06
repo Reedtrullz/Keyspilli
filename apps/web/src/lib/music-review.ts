@@ -72,6 +72,8 @@ export interface MusicReviewReport {
         renderer: string;
         playback: string;
         source: string;
+        sourceAuthority: string;
+        sourceTimingKnown: boolean;
       };
       findings: MusicReviewFinding[];
     }
@@ -225,6 +227,8 @@ export function buildMusicReview(input: MusicReviewInput): MusicReviewReport {
         renderer: c.renderer?.status ?? "not-provided",
         playback: c.playback?.status ?? "not-provided",
         source: c.correspondence?.status ?? "not-provided",
+        sourceAuthority: c.correspondence?.authority ?? "unknown",
+        sourceTimingKnown: c.correspondence?.timingKnown === true,
       },
       findings,
     };

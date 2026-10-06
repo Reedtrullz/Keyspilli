@@ -23,6 +23,7 @@ const replay = (): ReplaySnapshot => ({
 const source = (): SourceAnchors => ({
   sha256: "a".repeat(64),
   authority: "self-authored",
+  timingKnown: true,
   anchors: [{ ...event, id: "anchor", required: true }],
 });
 const intent = (): ArrangementIntent => ({
@@ -67,6 +68,12 @@ it("auto-estimated anchors remain unknown", () => {
       intent(),
     ).landmarks[0]!.status,
   ).toBe("unknown");
+});
+
+it("trusted comparisons require explicit source timing", () => {
+  const timing = { ...source() };
+  delete timing.timingKnown;
+  expect(compareMusicalIntent(timing, replay(), intent()).landmarks[0]!.status).toBe("unknown");
 });
 it("does not certify musical acceptance", () => {
   expect(
