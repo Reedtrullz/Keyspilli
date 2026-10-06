@@ -33,7 +33,13 @@ export function PracticeSetupDialog({ articulationEligible=false, describeSetup,
 }) {
   const [setup, setSetup] = useState(initialSetup);
   const dialog = useRef<HTMLDialogElement>(null);
-  const { visible, closing, requestClose } = useDialogMotion(onCancel);
+  const { visible, closing, requestClose } = useDialogMotion(() => {
+    // The parent restores trigger focus on the next frame. Close the native
+    // modal first: passive unmount cleanup can occur after that frame, while
+    // the trigger is still inert and cannot receive focus.
+    dialog.current?.close();
+    onCancel();
+  });
   const motion = dialogMotionClasses(visible, closing);
   useEffect(() => {
     const el = dialog.current;
