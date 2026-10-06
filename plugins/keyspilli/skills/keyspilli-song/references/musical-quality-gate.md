@@ -1,0 +1,50 @@
+# Musical quality gate
+
+Use for each song, regardless of model. The aim is a recognizable, learnable Original and useful backing-only Chords. The repository's preparation scripts prove import and replay, then leave musical status `provisional`; their automatic harmony, diagnosis flags and repairs are candidates, not verdicts. Do not promote them to `ready` just because files render or a model says they sound good.
+
+## Before editing
+
+Pin the requested performance, source bytes/hash, score or chart identity, and any tempo/key/pickup transformation. Pick the most complete trustworthy piano source available; source melody alone does not establish source harmony. Inspect score frames across opening, body, transitions and ending for tempo or meter changes. For example, the American Pie tutorial shows 80 BPM at the opening and a printed 140 BPM Verse after an accelerando; a constant 80 or 120 BPM label cannot describe both. Preserve the performed source seconds or encode a supported tempo map, then compare phrase times and full preview duration with the source. In the run directory, write a compact phrase map with separate recording, symbolic source/tutorial, and output clocks: opening/pickup, each distinct section, transitions, and ending. State the transform direction and verify its endpoints against the final MIDI and preview; never stretch a recording endpoint through a tutorial-to-output transform. For each span note a timestamped source motif or rest, bass/harmonic evidence, uncertain points, and the arrangement decision; mark uninspected spans explicitly. Labels such as "dense phrase" or "continued source sequence" alone are not a musical check. Add spans where diagnosis flags a concrete problem. Do not infer a whole song from its opening bars or copy a reference chart onto a different cover without alignment.
+
+Prefer local evidence over free-form model composition: preserve a verified playable source; reduce excess orchestration by role; correct one cited passage at a time. If evidence is only monophonic, mark new harmony as composed/inferred. If two credible sources disagree, record the conflict and resolve against the chosen performance before writing confident chord labels. Never claim invented notes were transcribed.
+
+## Inspect the actual rendered modes
+
+Use the isolated catalog's Advanced Original and `getSongDetail`/`replayChordsBacking` Chords stream described in [the implementation map](keyspilli-workflow.md), not just input MIDI or chart labels. For every phrase-map span, check:
+
+| Mode | Questions that can reveal a material defect |
+| --- | --- |
+| Original | Is the melody identifiable and complete at phrase entrances and cadences? Are rests, pickup, motifs, bass motion, meter/tempo changes and final release intact? Can two hands play the reduction at the selected difficulty without melody being buried by inner voices or impossible reaches? |
+| Chords | Do root/quality/bass changes fit this performance at the right times? Do attacks, releases and silence leave room to sing? Are register, voicing and hand density useful, with no copied vocal line or wrong repeated hits? Do transitions and ending resolve musically? |
+
+Use `diagnosis.json`, `repair.json`, playback snapshots and round-tripped exports to locate spans. These are structural evidence. Interpret semitone, coverage, density and hand-span flags against the source; a passing proxy can still sound wrong. Compare reference, Original and Chords audio only when an actual audio-capable route can consume the files, the performances are aligned, and the review covers the claimed sections. Record reviewer identity, audio hashes and covered timestamps. Verify each alleged audible defect from score/notes or another source before changing music. Text-only models must not report that they listened.
+
+For a colored-keyboard tutorial, run the read-only gate after writing the final delivery files, from this skill's directory. Pass the directory that actually contains the final manifest, phrase map, import recipe and previews; it may differ from the prepared bundle's parent:
+
+```sh
+python3 scripts/check_tutorial_delivery.py /absolute/run/extracted.json /absolute/run/prepared/bundle \
+  --source-midi /absolute/run/ingested.mid --delivery-root /absolute/run/final \
+  --output /absolute/run/final/gate-receipt.json
+```
+
+The gate maps the exact ingested MIDI's parser-assigned origin IDs back to extracted events by track and ordered pitch, then compares them with Advanced `sourceOrigins`. Keyspilli's parser assigns those IDs when notes **end**, so indexing extraction by note **start** can invent losses. `--source-midi` must be the MIDI used for the bundle; upload base-ID SHA-256 is checked when available. Count retained/dropped attacks only when `retention.status` is `source-midi-reconciled` (or `pitch-consistent` when an older bundle lacks source MIDI and the heuristic itself passes). It groups losses by colored-key lane and 30-second window and flags retained notes whose pitch changed. `source-origin-map-unverified` means retention cannot be counted; do not replace it with a simple input-minus-output count. A reconciled ID map is still not musical fidelity proof. Colors are source lanes, not proved hands or melody. Inspect the tutorial's keyboard/score overlay for hand roles and printed key, meter, or tempo before assigning explicit left/right MIDI tracks or score metadata; record the visual span and recheck the final cadence after ingest. If roles cannot be verified, leave them unknown. Classify losses by role at phrase entrances and cadences before changing notes; do not restore every dropped event blindly. The receipt is always provisional and never certifies a song. If music or delivery files change after the check, rerun it to a new receipt path and update its hash and unresolved codes in the final manifest. Keep earlier receipts when a candidate is rejected.
+
+A high absolute pitch-class/chroma match is only a sanity check. Before using any chroma or onset-correlation alignment score as fidelity evidence, compare the true time alignment against shifted, shuffled and constant-profile controls, then inspect local phrase windows, onset/melody identity and unrepresented active audio. Summarize shifted controls with the **highest** shifted score, never the lowest or average. If true alignment was selected by searching offsets/scales, give controls the same search budget; otherwise state that the margin is optimistic and leave fidelity unverified. The gate reads numeric `negativeControls.shifted`, `.shuffled`, `.constantProfile` and a nonempty `localWindows` list from `previews/source-alignment-check.json`; it flags a true score that fails to exceed any control or a shifted summary weaker than its detailed scores. For a reported grid/offset search, it also requires `negativeControlsMatchedSearch: true` based on actual matched-search control runs, or flags the alignment as unproven. These fields must come from actual calculations on the pinned audio, not model estimates. If the true match does not clearly separate from those controls, mark alignment unverified; do not tune a threshold to the current song. A matching elapsed duration cannot verify meter, downbeats, pickup or musical tempo. Keep an extractor's encoding BPM separate from a verified beat grid.
+
+For each repair: name the issue and source span; save the previous candidate; change the smallest supported musical event(s); regenerate both modes if shared input changed; then replay the changed span, adjacent phrase entrances and full-song ending. Recheck clocks, note retention, melody leakage and import after a tempo or source change; slower tempos can push short ornaments below the importer's minimum duration in beats. Stop repeating a repair method when it cannot improve the evidence. Keep a rejection reason for candidates that make another passage worse.
+
+## Record a decision the next agent can audit
+
+Keep a short `musical-assessment.md` beside the run's diagnosis and manifest. A table is enough: `mode | source span/hash | output span | issue or uncertainty | evidence actually checked (score/symbolic/audio) | edit and recheck | status`. Identify inspected sections and uninspected sections. Set each mode:
+
+Before delivery, inspect the installed product at representative opening, middle, transition and ending points: both modes, all six difficulty rows for a new song, notation/chord display, practice targets and timing. Record what the actual Player exercised; an offline bundle import is a separate check. Where the acting model has no browser or audio access, keep that coverage unknown rather than claiming a product smoke.
+
+- `ready` only after tested import/replay, complete phrase-map review, no known material defect, and a verified preview. Newly composed or substantially repaired music also needs actual aligned audio review covering its distinct sections; symbolic proxies alone leave it provisional. Say `agent-checked`; do not imply owner or independent pianist approval.
+- `provisional` when the playable package works but source alignment, musical judgment, a flagged passage, or listening coverage remains uncertain. Name the exact spans and next evidence needed. Do not turn missing audio access into a claim of hearing.
+- `blocked` when source identity, a required mode, import compatibility, or a material musical defect prevents a usable delivery. Preserve partial assets and the precise blocker.
+
+For a catalog batch, apply the same gate per song and count actually reviewed songs separately from exported songs. Curated/accepted backing can be preserved by source pin, but a source mismatch or provisional chart stays unresolved. This gate does not promise that a weaker model equals an expert musician; it makes unsupported musical conclusions visible and keeps the deliverable honest.
+
+For the optional raw-acoustic/model comparison workflow and isolated repair
+previews, see [music review support](music-review-workflow.md). Its reports remain
+diagnostic; the existing human-only source, listening and keyboard gates apply.

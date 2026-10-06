@@ -1,0 +1,4 @@
+interface:
+  display_name: "Keyspilli Song"
+  short_description: "Prepare Original and Chords from a song or link"
+  default_prompt: "Use $keyspilli-song to prepare this song or YouTube link as Original and backing-only Chords with source evidence, piano previews and verified local import."

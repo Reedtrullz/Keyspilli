@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 2,
+  "id": "inversion-and-bass",
+  "sourceSha256": "befe74bd7801ef7c3a20a7634d1795e2ddd17007442a684d28fe7612c2df1a02",
+  "context": {
+    "schemaVersion": 2,
+    "sourceSha256": "befe74bd7801ef7c3a20a7634d1795e2ddd17007442a684d28fe7612c2df1a02",
+    "sourceEventSha256": "58a10e2ae749842dbc8b4df3d79e87c88ad3a0b2c7a7701c3a8e18fe1f034649",
+    "tempoBpm": 96,
+    "keySig": 0,
+    "keyMode": 0,
+    "timeSig": [
+      4,
+      4
+    ],
+    "timeSigEvents": [
+      {
+        "tick": 0,
+        "beat": 0,
+        "timeSig": [
+          4,
+          4
+        ]
+      }
+    ],
+    "nativeTempoEvents": [
+      {
+        "tick": 0,
+        "beat": 0,
+        "microsecondsPerQuarter": 625000,
+        "bpm": 96
+      }
+    ],
+    "durationBeats": 8,
+    "references": [
+      {
+        "id": "exercise",
+        "location": "Newly authored symbolic teaching exercise; not a recovered song",
+        "status": "verified",
+        "artifactSha256": "befe74bd7801ef7c3a20a7634d1795e2ddd17007442a684d28fe7612c2df1a02",
+        "region": {
+          "unit": "beats",
+          "start": 0,
+          "end": 8
+        },
+        "verificationReceiptSha256": "f6a769bf66ba075798dfe1c7b750b8e74334faad5f562dec1d76b95c816df271"
+      }
+    ],
+    "referenceReceipts": [
+      {
+        "id": "exercise",
+        "receipt": {
+          "schemaVersion": 1,
+          "sourceSha256": "befe74bd7801ef7c3a20a7634d1795e2ddd17007442a684d28fe7612c2df1a02",
+          "artifactSha256": "befe74bd7801ef7c3a20a7634d1795e2ddd17007442a684d28fe7612c2df1a02",
+          "region": {
+            "unit": "beats",
+            "start": 0,
+            "end": 8
+          },
+          "method": "synthetic-author",
+          "roles": [
+            {
+              "sourceNoteId": "midi:0:0",
+              "role": "accompaniment"
+            },
+            {
+              "sourceNoteId": "midi:1:0",
+              "role": "melody"
+            },
+            {
+              "sourceNoteId": "midi:0:1",
+              "role": "accompaniment"
+            },
+            {
+              "sourceNoteId": "midi:1:1",
+              "role": "melody"
+            },
+            {
+              "sourceNoteId": "midi:0:2",
+              "role": "accompaniment"
+            },
+            {
+              "sourceNoteId": "midi:1:2",
+              "role": "melody"
+            },
+            {
+              "sourceNoteId": "midi:0:3",
+              "role": "accompaniment"
+            },
+            {
+              "sourceNoteId": "midi:1:3",
+              "role": "melody"
+            }
+          ]
+        }
+      }
+    ],
+    "spans": [
+      {
+        "id": "whole",
+        "startBeat": 0,
+        "endBeat": 8,
+        "evidenceIds": [
+          "exercise"
+        ]
+      }
+    ],
+    "notes": [
+      {
+        "midi": 48,
+        "start": 0,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:0:0",
+            "track": 0
+          }
+        ],
+        "hand": "L",
+        "id": "midi:0:0",
+        "role": "accompaniment",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 0,
+        "sourceEndSeconds": 1.25
+      },
+      {
+        "midi": 64,
+        "start": 0,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:1:0",
+            "track": 1
+          }
+        ],
+        "hand": "R",
+        "id": "midi:1:0",
+        "role": "melody",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 0,
+        "sourceEndSeconds": 1.25
+      },
+      {
+        "midi": 52,
+        "start": 2,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:0:1",
+            "track": 0
+          }
+        ],
+        "hand": "L",
+        "id": "midi:0:1",
+        "role": "accompaniment",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 1.25,
+        "sourceEndSeconds": 2.5
+      },
+      {
+        "midi": 67,
+        "start": 2,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:1:1",
+            "track": 1
+          }
+        ],
+        "hand": "R",
+        "id": "midi:1:1",
+        "role": "melody",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 1.25,
+        "sourceEndSeconds": 2.5
+      },
+      {
+        "midi": 43,
+        "start": 4,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:0:2",
+            "track": 0
+          }
+        ],
+        "hand": "L",
+        "id": "midi:0:2",
+        "role": "accompaniment",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 2.5,
+        "sourceEndSeconds": 3.75
+      },
+      {
+        "midi": 62,
+        "start": 4,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:1:2",
+            "track": 1
+          }
+        ],
+        "hand": "R",
+        "id": "midi:1:2",
+        "role": "melody",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 2.5,
+        "sourceEndSeconds": 3.75
+      },
+      {
+        "midi": 48,
+        "start": 6,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:0:3",
+            "track": 0
+          }
+        ],
+        "hand": "L",
+        "id": "midi:0:3",
+        "role": "accompaniment",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 3.75,
+        "sourceEndSeconds": 5
+      },
+      {
+        "midi": 60,
+        "start": 6,
+        "dur": 2,
+        "vel": 80,
+        "sourceOrigins": [
+          {
+            "id": "midi:1:3",
+            "track": 1
+          }
+        ],
+        "hand": "R",
+        "id": "midi:1:3",
+        "role": "melody",
+        "evidenceIds": [
+          "exercise"
+        ],
+        "sourceStartSeconds": 3.75,
+        "sourceEndSeconds": 5
+      }
+    ],
+    "contextSha256": "a271361593154ed9964a991edd112796fd6eb2facda7066778acdfa0f61d3b42"
+  },
+  "plan": {
+    "schemaVersion": 2,
+    "contextSha256": "a271361593154ed9964a991edd112796fd6eb2facda7066778acdfa0f61d3b42",
+    "spans": [
+      {
+        "id": "whole",
+        "originalEdits": [],
+        "originalAdditions": [],
+        "chords": [
+          {
+            "beat": 0,
+            "name": "C",
+            "notes": [
+              36,
+              48,
+              52,
+              55
+            ],
+            "durationBeats": 2,
+            "sourceKind": "inferred",
+            "inferred": true,
+            "evidenceIds": [
+              "exercise"
+            ]
+          },
+          {
+            "beat": 2,
+            "name": "C/E",
+            "notes": [
+              40,
+              48,
+              55
+            ],
+            "durationBeats": 2,
+            "sourceKind": "inferred",
+            "inferred": true,
+            "evidenceIds": [
+              "exercise"
+            ]
+          },
+          {
+            "beat": 4,
+            "name": "G",
+            "notes": [
+              43,
+              47,
+              50
+            ],
+            "durationBeats": 2,
+            "sourceKind": "inferred",
+            "inferred": true,
+            "evidenceIds": [
+              "exercise"
+            ]
+          },
+          {
+            "beat": 6,
+            "name": "C",
+            "notes": [
+              36,
+              48,
+              52,
+              55
+            ],
+            "durationBeats": 2,
+            "sourceKind": "inferred",
+            "inferred": true,
+            "evidenceIds": [
+              "exercise"
+            ]
+          }
+        ],
+        "evidenceIds": [
+          "exercise"
+        ],
+        "rationale": "newly authored exercise choices; not recovered song harmony",
+        "unresolved": [
+          "Newly authored teaching harmony only; independent listening/keyboard approval absent."
+        ]
+      }
+    ]
+  },
+  "decisionSha256": "413794871d635778a232e3c698b49af09f2e3507eb0465fb5f3795255974cc63",
+  "files": {
+    "original.mid": "3ca19b638448b48167c1ac94fcc4f0c70aed7511e79c0eaf32d21c4a9f1063e5",
+    "original.musicxml": "0550deffa7234c7fcd4228a5f4c7185a2976e6f73172d55514ba5978e5755ab0",
+    "chords.mid": "e587ceced165342cba97411170a323015cdea4e1c00afd9902c31f8c2daf1121",
+    "chords.musicxml": "aa62bf05c1393ec9bf65b7aaeb897ce353ab780a5a0f425ac481f6aa1210129b"
+  },
+  "expected": {
+    "sourceMelody": "retained exact in compiler",
+    "harmonicOrigin": "authored exercise decisions, model output inferred",
+    "musicalReview": "unapproved"
+  },
+  "reviewStatus": "symbolic-only; unapproved for musical evaluation"
+}
