@@ -284,3 +284,7 @@ export function createPianoTranscriptionAdapter(options: PianoTranscriptionAdapt
     },
   };
 }
+
+/** Explicit raw-seconds boundary. Legacy beat normalization is not measurement. */
+export {parseAcousticReceipt as parseRawPianoReceipt} from '@keyspilli/catalog/src/acoustic-receipt.js';
+export const LEGACY_PIANO_METADATA_ORIGIN = 'container-default' as const;

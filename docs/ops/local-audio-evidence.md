@@ -82,3 +82,11 @@ Authored start groups, estimated energy crossings and model attack claims descri
 Digital silence remains measurable input. Silence with authored note starts is an input disagreement; an empty authored event list is not automatically a musical fault. Quiet nonzero music stays supported. Backing-only Chords is evaluated as its own mode; an absent melody is not automatically an accompaniment defect.
 
 `musicalAcceptance` remains `not-established`, `calibrated` remains false and all saved model claims remain advisory. Keep independent source, playability and musical acceptance checks separate. Do not put the report into the existing repair queue or count it as qualified listening coverage.
+
+## Optional spectral onset support
+
+For re-attacks masked by overlapping decay or release transients, the separate
+[onset evidence command](onset-evidence.md) estimates spectral changes and exports
+a portable measurement bundle for advisory Gemini interpretation. The existing
+energy-crossing estimator and its saved reports retain their original scope.
+Neither estimator establishes pitch, source correctness or musical acceptance.

@@ -1,0 +1,40 @@
+import type { AcousticReceipt } from "../src/acoustic-receipt.js";
+export const sampleReceipt = (): AcousticReceipt => ({
+  schemaVersion: 1,
+  kind: "keyspilli-acoustic-receipt",
+  status: "ok",
+  audio: {
+    sha256: "a".repeat(64),
+    durationSeconds: 2,
+    sampleRate: 32000,
+    channels: 1,
+    frames: 64000,
+    derivativeSha256: "b".repeat(64),
+  },
+  analyzer: {
+    id: "fixture",
+    version: "1",
+    checkpointSha256: "c".repeat(64),
+    codeSha256: "d".repeat(64),
+    frontendSha256: "e".repeat(64),
+    configSha256: "f".repeat(64),
+    runtime: "fixture-only",
+    device: "cpu",
+    precision: "float32",
+    config: {},
+  },
+  notes: [
+    {
+      id: "n",
+      midi: 60,
+      onsetSeconds: 0.2,
+      keyOffsetSeconds: null,
+      soundingOffsetSeconds: null,
+      confidence: null,
+    },
+  ],
+  rejectedRows: 0,
+  metadata: { tempoBpm: null, key: null, meter: null, origin: "unknown" },
+  resources: { elapsedSeconds: 0.1, peakRssBytes: null },
+  limitations: ["Synthetic fixture; no model tested"],
+});
