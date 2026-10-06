@@ -60,6 +60,9 @@ corpus including wrong-pitch, omitted-note, release and out-of-domain controls.
 Current presence/completeness and musical acceptance remain unknown. No Player
 profile is admitted to the production detector by this study.
 
+Follow-up: [audio-only Player search controls](player-search-controls.md) record
+the development search and its separately frozen validation protocol.
+
 All signal processing stays in Keyspilli. Anti continues to provide standalone
 Gemini-through-Antigravity advisory support for connected Google AI accounts.
 This study used zero Gemini calls, zero uploads and no new owner listening.
