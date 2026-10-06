@@ -73,3 +73,17 @@ predeclared analysis configuration, oracle inputs, forward renders and retained
 failed attempts. The initial analysis stopped because it compared browser
 Float32 parameters against decimal literals; the corrected analysis pins the
 actual Float32 values. No scoring thresholds were changed after seeing results.
+
+## Versioned paired capture
+
+Set `KEYSPILLI_MUSIC_REVIEW_PAIRED_MANIFEST=1` for an explicitly paired fixture
+(`capturePreCompressor:true`). The capture harness additionally writes a
+`*-paired.json` manifest: stereo Float32 input, mono Float32 forward control,
+and mono PCM16 audible output share the same audio frame origin and frame count.
+Every WAV is checked against its encoding/rate/channel/frame/hash pin before
+writing. Float32 input is not clipped or normalized. Defaults remain unchanged.
+
+Renderer module/browser versions and sample digests are provenance assertions.
+Hash agreement does not authenticate an unknown recording as genuine Player
+input. Input history is not audible-output perception, current key state or
+complete transcription. Partial writes are failed attempts, not resumable captures.

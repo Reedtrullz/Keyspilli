@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { capturePlayerClip, savePlayerCapture } from "./player-audio-capture";
+import { createHash } from "node:crypto";
 const root = resolve(process.env.KEYSPILLI_MUSIC_REVIEW_RUN!);
 test("capture fresh phrases through visible sampled Player and return", async ({
   page,
@@ -20,8 +21,15 @@ test("capture fresh phrases through visible sampled Player and return", async ({
     }
     expect(capture.sampleAssets.length).toBeGreaterThan(0);
     expect(capture.wav.length).toBeLessThan(2 * 1024 * 1024);
-    savePlayerCapture(join(root, "media", id + ".wav"), capture);
-    if (capture.beforeCompressor) {
+    const pairedManifest = process.env.KEYSPILLI_MUSIC_REVIEW_PAIRED_MANIFEST === "1" && !!capture.beforeCompressor;
+    const rendererModule = resolve("../../node_modules/smplr/dist/index.mjs");
+    savePlayerCapture(join(root, "media", id + ".wav"), capture, pairedManifest ? {
+      id, manifestPath: join(root, "capture-receipts", id + "-paired.json"),
+      renderer: { moduleVersion: JSON.parse(readFileSync(resolve("../../node_modules/smplr/package.json"), "utf8")).version,
+        moduleSha256: createHash("sha256").update(readFileSync(rendererModule)).digest("hex"),
+        browserVersion: page.context().browser()!.version() },
+    } : undefined);
+    if (capture.beforeCompressor && !pairedManifest) {
       writeFileSync(join(root, "media", id + "-before-compressor.wav"), capture.beforeCompressor.wav, { flag: "wx" });
       writeFileSync(join(root, "media", id + "-forward-compressor.wav"), capture.beforeCompressor.forwardWav, { flag: "wx" });
     }

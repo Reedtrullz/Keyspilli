@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parsePairedPlayerCapture, validatePlayerSignalBytes, type PairedPlayerCaptureV1 } from "@keyspilli/catalog/src/player-input-evidence.js";
 import { expect, type Page } from "@playwright/test";
 import { openPlayerTool } from "./player-tools";
 
@@ -379,6 +381,31 @@ export async function capturePlayerClip(page: Page, options: {
   };
 }
 
-export function savePlayerCapture(path: string, capture: PlayerCapture): void {
+export function savePlayerCapture(path: string, capture: PlayerCapture, paired?: {
+  id: string; manifestPath: string; renderer: PairedPlayerCaptureV1["renderer"];
+}): void {
+  let manifest: PairedPlayerCaptureV1 | undefined;
+  if (paired) {
+    const pre = capture.beforeCompressor;
+    if (!pre) throw new Error("Explicit paired manifest requires compressor input");
+    if (pre.firstSampleContextSeconds !== capture.firstSampleContextSeconds) throw new Error("Paired frame clock mismatch");
+    const stem = resolve(path).replace(/\.wav$/, "");
+    manifest = parsePairedPlayerCapture({
+      schemaVersion: 1, kind: "keyspilli-player-paired-capture", id: paired.id,
+      input: { path: stem + "-before-compressor.wav", sha256: pre.sha256, encoding: "pcm-f32le", sampleRate: pre.sampleRate, channels: 2, frames: pre.frames },
+      output: { path: resolve(path), sha256: capture.sha256, encoding: "pcm-s16le", sampleRate: capture.sampleRate, channels: 1, frames: Math.round(capture.durationSeconds * capture.sampleRate) },
+      forwardOutput: { path: stem + "-forward-compressor.wav", sha256: pre.forwardSha256, encoding: "pcm-f32le", sampleRate: pre.sampleRate, channels: 1, frames: pre.frames },
+      firstSampleContextSeconds: capture.firstSampleContextSeconds,
+      renderer: paired.renderer, compressor: pre.compressor, sampleAssetPins: capture.sampleAssets,
+    });
+    validatePlayerSignalBytes(manifest.input, pre.wav);
+    validatePlayerSignalBytes(manifest.output, capture.wav);
+    validatePlayerSignalBytes(manifest.forwardOutput, pre.forwardWav);
+  }
   writeFileSync(path, capture.wav, { flag: "wx" });
+  if (manifest) {
+    writeFileSync(manifest.input.path, capture.beforeCompressor!.wav, { flag: "wx" });
+    writeFileSync(manifest.forwardOutput.path, capture.beforeCompressor!.forwardWav, { flag: "wx" });
+    writeFileSync(paired!.manifestPath, JSON.stringify(manifest, null, 2) + "\n", { flag: "wx" });
+  }
 }
