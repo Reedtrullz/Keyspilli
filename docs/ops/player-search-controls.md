@@ -87,3 +87,9 @@ remain deferred.
 
 Private reproducibility root:
 `output/music-review/20261005-afk/player-search-solution/20261006-014631`.
+
+
+The separate [full-range study](player-full-range-controls.md) retains this failed
+screen, adds all88pitches with bounded dictionary storage, and passes a new
+54-case known-renderer screen including16quieter mixtures. It admits no general
+transcription, completeness or production repair authority.

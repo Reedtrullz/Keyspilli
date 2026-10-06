@@ -9,11 +9,22 @@ if (!run)
   );
 const root = resolve(run);
 const scratch = join(root, "browser-data");
-mkdirSync(scratch, { recursive: true });
-process.env.KEYSPILLI_DATA_DIR = scratch;
 const bundle = JSON.parse(
   readFileSync(join(root, "capture-fixtures/bundle.json"), "utf8"),
-) as { fixtures: Array<{ id: string; title: string; data: unknown }> };
+) as { fixtures: Array<{ id: string; title: string; data: { notes: Array<{ start: number }> } }> };
+// Player's binary-search scheduler requires time-ordered notes. Reject a bad
+// fixture before creating its catalog or recording misleading delayed attacks.
+for (const fixture of bundle.fixtures) {
+  let previous = -Infinity;
+  for (const note of fixture.data.notes) {
+    if (!Number.isFinite(note.start) || note.start < previous) {
+      throw new Error(`Capture fixture ${fixture.id} notes must be ordered by finite start beat`);
+    }
+    previous = note.start;
+  }
+}
+mkdirSync(scratch, { recursive: true });
+process.env.KEYSPILLI_DATA_DIR = scratch;
 const initialized = join(scratch, "initialized.json");
 if (!existsSync(initialized)) {
   const db = getDb();
