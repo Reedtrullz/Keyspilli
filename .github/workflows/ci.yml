@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/keyspilli-listening-review
   push:
     branches:
       - main
@@ -122,6 +123,7 @@ jobs:
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
           python3 deploy/test/test-release-operation.py
+          python3 scripts/test_check_music_release.py
           python3 deploy/test/test-worker-queue.py
           python3 -m unittest \
             deploy.test_worker_resources.WorkerResourceBoundary.test_native_limits_are_bounded_without_shell_commands \
@@ -186,13 +188,37 @@ jobs:
           print("Current web image restored the public seed pair; policy bytes and owned-container cleanup verified")
           PY
 
+  release-readiness:
+    name: Reviewed music release readiness
+    runs-on: ubuntu-24.04
+    needs: checks
+    timeout-minutes: 5
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - name: Check out reviewed revision
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Read exact-head check results from GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" > "$RUNNER_TEMP/music-checks.json"
+      - name: Require reviewed four-gate manifest before publication or deployment
+        env:
+          KEYSPILLI_MUSIC_RELEASE_MANIFEST_JSON: ${{ vars.KEYSPILLI_MUSIC_RELEASE_MANIFEST_JSON }}
+          RELEASE_OPERATION: ${{ inputs.operation || 'deploy_only' }}
+        run: |
+          test "$RELEASE_OPERATION" = deploy_only
+          python3 scripts/check-music-release.py --commit "$GITHUB_SHA" --checks "$RUNNER_TEMP/music-checks.json"
+
   build-and-push:
     name: Build and push images to GHCR
     permissions:
       contents: read
       packages: write
     runs-on: ubuntu-24.04
-    needs: checks
+    needs: [checks, release-readiness]
     timeout-minutes: 30
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
 
@@ -268,6 +294,7 @@ jobs:
     needs:
       - checks
       - build-and-push
+      - release-readiness
     timeout-minutes: 20
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     environment:
