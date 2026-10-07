@@ -91,7 +91,7 @@ export function OwnerMetadata({ song, revision }: { song: Pick<SongRow,"id"|"bas
       {sectionResult.error && <p role="alert" className="text-red-700">{sectionResult.error}</p>}
       <button className="min-h-11 underline" disabled={!hasChanges || Boolean(sectionResult.error) || !draft.title.trim() || !draft.category.trim()} onClick={() => { setPreview(true); setNotice(""); }}>Preview metadata changes</button>
       <button className="min-h-11 underline ml-3" onClick={() => { setDraft({ title: song.title, artist: song.artist, category: song.category, sectionsText: initialSections }); setPreview(false); setNotice("Changes discarded."); }}>Discard metadata changes</button>
-      {preview && <div className="border rounded p-3" aria-label="Metadata change preview"><ul>{changes.map(field => <li key={field}>{field}: {song[field] || "(empty)"} to {draft[field] || "(empty)"}</li>)}
+      {preview && <div className="border rounded p-3" aria-label="Metadata change preview"><ul>{changes.map(field => <li key={field}>{field}: {song[field] || "(empty)"} → {draft[field] || "(empty)"}</li>)}
         {sectionsChanged && <li>sections: {sectionResult.sections ? sectionResult.sections.length + " authored spans" : "clear owner sections"}</li>}</ul>
         <p className="break-all">Reviewed publication: {revision ?? "Legacy unpinned version"}</p><button className="min-h-11 border rounded px-3" onClick={() => void save()}>Save reviewed metadata</button></div>}
     </fieldset>
