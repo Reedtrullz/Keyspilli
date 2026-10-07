@@ -24,6 +24,7 @@ import {
   type TempoProvenance,
 } from "@keyspilli/catalog";
 import { keySignature, writeMidi, writeMusicXml, type Variant } from "@keyspilli/midi";
+import { validateOwnedSections } from "./owned-sections";
 
 export interface SongPatch {
   title?: string;
@@ -38,6 +39,9 @@ export interface SongPatch {
   category?: string;
   style?: string;
   mood?: string;
+  /** Owner-authored practice sections shared by every level of the base.
+   * Null clears them so the player falls back to maps and estimates. */
+  sections?: import("@keyspilli/midi").Section[] | null;
 }
 
 export class SongUpdateError extends Error {
@@ -484,6 +488,8 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
   if (patch.key !== undefined && !isValidKey(patch.key)) {
     throw new SongUpdateError(400, `invalid key: ${patch.key}`);
   }
+  const sectionError = patch.sections === undefined ? null : validateOwnedSections(patch.sections);
+  if (sectionError) throw new SongUpdateError(400, sectionError);
   const normalizedKey = patch.key === undefined ? undefined : normalizeKeyName(patch.key);
   const hasPatch = [
     patch.title,
@@ -495,6 +501,7 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
     patch.category,
     patch.style,
     patch.mood,
+    patch.sections,
   ].some((v) => v !== undefined);
   if (!hasPatch) return rows;
 
@@ -591,6 +598,9 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
     if (value !== undefined) rowPatch[key] = value;
   }
   if (requestedPlayback !== undefined) rowPatch.tempo = playbackTempo;
+  if (patch.sections !== undefined) {
+    rowPatch.sections = patch.sections === null ? null : JSON.stringify(patch.sections);
+  }
   const durationFactor = durationScale(
     calibrationChanged,
     playbackChanged,

@@ -78,6 +78,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      # Runs before fetch-seed/pipeline: the pipeline regenerates
+      # catalog/manifest.json, and the map integrity check must see the
+      # committed manifest rather than the regenerated subset.
+      - name: Audit song section maps
+        run: npm run audit:sections -w @keyspilli/catalog
+
       - name: Fetch seed catalog (public-domain MIDI)
         run: npx tsx packages/catalog/scripts/fetch-seed.ts
 

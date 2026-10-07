@@ -23,6 +23,7 @@
     "calibrate": "tsx scripts/calibrate-limits.ts",
     "audit:playability": "tsx scripts/audit-playability.ts",
     "audit:density-normalization": "tsx scripts/audit-density-normalization.ts",
+    "audit:sections": "tsx scripts/audit-sections.ts",
     "reingest-uploads": "tsx scripts/reingest-uploads.ts",
     "reingest-midi-pack": "tsx scripts/reingest-midi-pack.ts",
     "seed": "tsx scripts/seed.ts",

@@ -5,6 +5,14 @@ or chart map, then musical-form estimates. Inferred labels always include `· es
 The source label is what the symbolic-file author wrote; it is not an official
 artist score or an independently reviewed musical verdict.
 
+An owner may also author section names directly in the owner metadata panel.
+Those row-level sections outrank every other tier because they are a deliberate
+human edit rather than an inference. They are stored as JSON on the song rows of
+the whole base, carry no `evidence` value, and are only applied when the stored
+spans validate; corrupt or malformed row data falls through to the map and
+estimate hierarchy instead of failing song loading. Clearing the field restores
+the normal hierarchy for that base.
+
 `packages/player-core/src/song-form.ts` compares note pitch-class distributions
 and density in eight-bar phrases, groups recurring material, and estimates verse,
 chorus, bridge and sparse bookends. Classical catalog entries use theme/return
@@ -35,6 +43,16 @@ review.
 Queen Somebody To Love is the first chart map: its Ultimate Guitar labels are
 aligned to the arrangement's eight-bar phrases, and its Bridge span is confirmed
 independently by the chart's C-C7-F-Fm-A7-D harmony.
+
+## Auditing coverage
+
+`npm run audit:sections -w @keyspilli/catalog` prints a per-base ledger: bases
+already covered by a source or chart map, bases whose retained seed MIDI still
+holds unmapped timed form markers, Ultimate Guitar candidates, and bases that
+have nothing but estimates. It also fails when a map could never resolve or is
+structurally invalid, and CI runs it after the catalog pipeline. Pass
+`--seed-dir <path>` to scan seed MIDI that lives outside this checkout, since
+that directory is gitignored runtime state.
 
 Difficulty levels on the same declared clock share Advanced's form, so a sparse
 reduction does not get different role names merely because its density changes.

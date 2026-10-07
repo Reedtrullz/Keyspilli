@@ -1,0 +1,224 @@
+#!/usr/bin/env node
+/**
+ * Catalog-wide song-section ledger and section-map integrity gate.
+ *
+ * Read-only. For every known catalog base it reports whether a real section
+ * map already resolves, whether the retained source MIDI carries timed form
+ * markers that are not mapped yet, and whether an Ultimate Guitar candidate
+ * exists. It exits non-zero when a section map could never resolve or is
+ * structurally invalid, so CI can gate map changes.
+ *
+ * Inputs that do not exist locally (seed MIDI, learner review) are reported as
+ * unavailable rather than treated as failures; this checkout may be partial.
+ */
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { basename, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseMidi } from "@keyspilli/midi";
+
+type Evidence = "source" | "chart" | "estimated";
+
+interface Section {
+  id: string;
+  label: string;
+  startBeat: number;
+  endBeat: number;
+  type?: string;
+  evidence?: Evidence;
+}
+
+interface MapEntry {
+  baseId: string;
+  sourceArtifactHash: string;
+  playbackTempoBpm: number;
+  sourceFile?: string;
+  provenance?: string;
+  advancedNotesSha256?: string;
+  sections: Section[];
+}
+
+interface LedgerRow {
+  baseId: string;
+  lane: "mapped-source" | "mapped-chart" | "marker-harvest" | "ug-candidate" | "estimate-only";
+  served: "public" | "blocked" | "unknown";
+  mapped: boolean;
+  seedMarkers: string[] | null;
+  ugCandidate: boolean;
+}
+
+const VALID_EVIDENCE = new Set<string>(["source", "chart", "estimated"]);
+const HEX64 = /^[0-9a-f]{64}$/;
+
+function repoRoot(): string {
+  // scripts/ -> packages/catalog -> packages -> repository root
+  return fileURLToPath(new URL("../../../", import.meta.url));
+}
+
+/**
+ * Seed MIDI is gitignored runtime state, so an operator can point the ledger
+ * at a checkout that has it without moving catalog JSON out of this tree.
+ */
+function seedDir(root: string): string {
+  const flag = process.argv.indexOf("--seed-dir");
+  if (flag >= 0 && process.argv[flag + 1]) return process.argv[flag + 1]!;
+  return join(root, "data/seed-midi");
+}
+
+function readJson<T>(path: string): T | null {
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as T;
+  } catch {
+    return null;
+  }
+}
+
+function validateEntry(entry: MapEntry, errors: string[]): void {
+  const at = "map[" + entry.baseId + "]";
+  if (!entry.baseId || typeof entry.baseId !== "string") errors.push("entry without baseId");
+  if (!HEX64.test(entry.sourceArtifactHash || "")) {
+    errors.push(at + ": sourceArtifactHash must be 64 lowercase hex characters");
+  }
+  if (!Number.isFinite(entry.playbackTempoBpm) || entry.playbackTempoBpm <= 0) {
+    errors.push(at + ": playbackTempoBpm must be positive");
+  }
+  if (!Array.isArray(entry.sections) || entry.sections.length === 0) {
+    errors.push(at + ": sections must be a non-empty array");
+    return;
+  }
+  const ids = new Set<string>();
+  let previousEnd = 0;
+  for (const section of entry.sections) {
+    if (!section || typeof section !== "object") {
+      errors.push(at + ": malformed section object");
+      continue;
+    }
+    if (typeof section.id !== "string" || !section.id) errors.push(at + ": section without id");
+    else if (ids.has(section.id)) errors.push(at + ": duplicate section id " + section.id);
+    else ids.add(section.id);
+    if (typeof section.label !== "string" || !section.label.trim()) {
+      errors.push(at + ": section without label");
+    } else if (section.label.length > 160) {
+      errors.push(at + ": label longer than 160 characters");
+    }
+    if (typeof section.evidence === "string" && !VALID_EVIDENCE.has(section.evidence)) {
+      errors.push(at + ": unknown evidence " + section.evidence);
+    }
+    if (!Number.isFinite(section.startBeat) || section.startBeat < previousEnd) {
+      errors.push(at + ": sections overlap or run backwards before " + section.label);
+    }
+    if (!Number.isFinite(section.endBeat) || section.endBeat <= section.startBeat) {
+      errors.push(at + ": non-positive span for " + section.label);
+    }
+    previousEnd = Number.isFinite(section.endBeat) ? Math.max(previousEnd, section.endBeat) : previousEnd;
+  }
+}
+
+function seedMarkers(path: string): string[] | null {
+  if (!existsSync(path)) return null;
+  try {
+    const parsed = parseMidi(readFileSync(path));
+    return (parsed.sections || []).map((section) => section.label);
+  } catch {
+    return [];
+  }
+}
+
+function main(): number {
+  const root = repoRoot();
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const mapDoc = readJson<{ schemaVersion?: number; entries?: MapEntry[] }>(join(root, "catalog/song-sections.json"));
+  const entries = mapDoc?.entries || [];
+  if (!mapDoc) warnings.push("catalog/song-sections.json missing or unreadable");
+
+  const manifest = readJson<{ songs?: Array<{ id: string; disabled?: boolean; source?: string }> }>(
+    join(root, "catalog/manifest.json"),
+  );
+  const learner = readJson<{ verdicts?: Record<string, { blocked?: boolean }> }>(
+    join(root, "catalog/learner-review.json"),
+  );
+  const ug = readJson<Array<{ artist?: string; song?: string }>>(join(root, "catalog/ug-tabs.json"));
+  const markersDir = seedDir(root);
+  const hasSeed = existsSync(markersDir);
+  if (!hasSeed) warnings.push("data/seed-midi unavailable; marker harvest not assessed in this checkout");
+
+  const manifestIds = new Set((manifest?.songs || []).map((song) => song.id));
+  const blocked = new Set(
+    Object.entries(learner?.verdicts || {})
+      .filter(([, verdict]) => verdict.blocked === true)
+      .map(([baseId]) => baseId),
+  );
+  const seedIds = hasSeed
+    ? new Set(
+        readdirSync(markersDir)
+          .filter((name) => name.endsWith(".mid"))
+          .map((name) => basename(name, ".mid")),
+      )
+    : new Set<string>();
+  const known = new Set([...manifestIds, ...Object.keys(learner?.verdicts || {}), ...seedIds]);
+
+  const mapped = new Map<string, MapEntry>();
+  for (const entry of entries) {
+    validateEntry(entry, errors);
+    if (!known.has(entry.baseId)) {
+      errors.push(
+        "map[" + entry.baseId + "]: baseId is not present in catalog/manifest.json, learner review or data/seed-midi",
+      );
+    }
+    mapped.set(entry.baseId, entry);
+    if (blocked.has(entry.baseId)) {
+      warnings.push("map[" + entry.baseId + "]: target is learner-blocked, so the map cannot resolve until unblocked");
+    }
+  }
+
+  const ugList = ug ? new Set(ug.map((row) => (row.song || "").toLowerCase())) : new Set<string>();
+  const rows: LedgerRow[] = [];
+  for (const baseId of [...known].sort()) {
+    const entry = mapped.get(baseId);
+    const markers = hasSeed ? seedMarkers(join(markersDir, baseId + ".mid")) : null;
+    const lane: LedgerRow["lane"] = entry
+      ? entry.sections[0]?.evidence === "chart"
+        ? "mapped-chart"
+        : "mapped-source"
+      : markers && markers.length
+        ? "marker-harvest"
+        : ugList.has(baseId.toLowerCase()) || ugList.has(baseId)
+          ? "ug-candidate"
+          : "estimate-only";
+    rows.push({
+      baseId,
+      lane,
+      served: blocked.has(baseId) ? "blocked" : manifestIds.has(baseId) ? "public" : "unknown",
+      mapped: Boolean(entry),
+      seedMarkers: markers,
+      ugCandidate: ugList.has(baseId.toLowerCase()),
+    });
+  }
+
+  const counts = rows.reduce<Record<string, number>>((acc, row) => {
+    acc[row.lane] = (acc[row.lane] || 0) + 1;
+    return acc;
+  }, {});
+
+  if (process.argv.includes("--json")) {
+    process.stdout.write(JSON.stringify({ counts, errors, warnings, rows }, null, 2) + "\n");
+  } else {
+    const lines = [
+      "section ledger: " + rows.length + " known bases",
+      JSON.stringify(counts),
+      "maps: " + entries.length,
+      "errors: " + errors.length,
+      "warnings: " + warnings.length,
+    ];
+    for (const error of errors) lines.push("ERROR " + error);
+    for (const warning of warnings) lines.push("WARN  " + warning);
+    const harvest = rows.filter((row) => row.lane === "marker-harvest");
+    for (const row of harvest) lines.push("HARVEST " + row.baseId + " -> " + (row.seedMarkers || []).join(", "));
+    process.stdout.write(lines.join("\n") + "\n");
+  }
+  return errors.length ? 1 : 0;
+}
+
+process.exitCode = main();
