@@ -20,7 +20,8 @@ import {
   type SongRow,
 } from "@keyspilli/catalog";
 import { chordToNotes, inferHarmonyTimeline, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
-import { arithmeticMeasures, completeChordDurations, detectSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
+import { arithmeticMeasures, completeChordDurations, overlaySourceSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
+import { resolveSongSections } from "./song-sections";
 
 type LoadedChordTimeline = NonNullable<Awaited<ReturnType<typeof loadChordTimeline>>>;
 type PlayerChord = Omit<ChordLabel, "sourceKind" | "inferred" | "inferenceType" | "durationBeats"> & {
@@ -542,11 +543,13 @@ export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "le
     } : {}),
     ...(sourceTiming ? { sourceTiming } : {}),
   };
-  // Compute heuristic sections at load time so the player can offer practice
-  // navigation without requiring every checked-in artifact to carry metadata.
-  if (!data.sections && data.measures.length > 0) {
+  // Metadata projection only: retain stored notes and source identity. Source
+  // labels take priority; musical form guesses are visibly marked estimated.
+  const storedSections=data.sections;
+  data.sections=[];
+  if (data.measures.length > 0) {
     try {
-      data.sections = detectSections(data.notes, data.measures, data.timeSig);
+      data.sections = resolveSongSections(song,{...data,sections:storedSections},manifest?.sourceArtifactHash);
     } catch {
       // Section detection is best-effort; never block song loading on it.
     }
@@ -606,6 +609,13 @@ async function loadSongDetailUncached(id: string, requiredRevision?: string | nu
     : data && !sharesTimeline(data, advancedData)
       ? "The Advanced arrangement has different timing from this level."
       : null;
+  // The same song must not change from "verse" to "chorus" merely because
+  // a beginner reduction is sparser. Share the canonical form only on the
+  // same clock; retain an explicitly authored level-specific map.
+  if(data && advancedData && song.level!=="a" && sharesTimeline(data,advancedData)
+    && !data.sections?.some(section=>section.evidence===undefined)) {
+    data={...data,sections:overlaySourceSections(data.sections??[],advancedData.sections??[],data.measures.at(-1)?.endBeat??0)};
+  }
   let chordData = chordUnavailableReason || advanced?.id === song.id ? null : advancedData;
   if (data) {
     // Each level retains its own Original chart; Chords always uses Advanced.
@@ -652,6 +662,8 @@ async function loadSongDetailUncached(id: string, requiredRevision?: string | nu
       }
     }
   }
+  // Alternate-performance Chords projections have their own form clock.
+  if(chordData && !chordData.sections?.length) chordData={...chordData,sections:resolveSongSections(song,chordData)};
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
   return { song: currentSong, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
   });

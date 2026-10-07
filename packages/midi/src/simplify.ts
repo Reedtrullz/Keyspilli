@@ -2892,6 +2892,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const source = src;
     const beat = (value: number): number => midiBeatToNativeSeconds(source, value) * sourceTempo / 60;
     src = { ...source, tempoBpm: sourceTempo, tempoEvents: undefined,
+      ...(source.sections ? {sections:source.sections.map(s=>({...s,startBeat:beat(s.startBeat),endBeat:beat(s.endBeat)}))} : {}),
       durationBeats: beat(source.durationBeats),
       ...(source.sourcePedal?{sourcePedal:{...source.sourcePedal,endBeat:beat(source.sourcePedal.endBeat),changes:source.sourcePedal.changes.map(e=>({...e,beat:beat(e.beat)}))}}:{}),
       notes: source.notes.map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
@@ -3400,6 +3401,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     return {
       level,
       difficultyScore: scores[level]!,
+      ...(src.sections?.length ? {sections:src.sections.map(s=>({...s}))} : {}),
       notes,
       ...(variantWarnings.length ? { warnings:variantWarnings } : {}),
       ...(keepPedal?{sourcePedal:structuredClone(src.sourcePedal)}:{}),
@@ -3443,6 +3445,7 @@ export function buildShortStudyVariants(
       tempoBpm: sourceTempo,
       tempoEvents: undefined,
       durationBeats: beat(source.durationBeats),
+      ...(source.sections ? {sections:source.sections.map(s=>({...s,startBeat:beat(s.startBeat),endBeat:beat(s.endBeat)}))} : {}),
       ...(source.sourcePedal?{sourcePedal:{...source.sourcePedal,endBeat:beat(source.sourcePedal.endBeat),changes:source.sourcePedal.changes.map(e=>({...e,beat:beat(e.beat)}))}}:{}),
       notes: source.notes.map((note) => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
       ...(source.timeSigEvents?.length ? { timeSigEvents: source.timeSigEvents.map((event) => ({ ...event, beat: beat(event.beat) })) } : {}),
@@ -3461,6 +3464,7 @@ export function buildShortStudyVariants(
   const candidates = PUBLIC_DIFFICULTY_ORDER.map((level): Variant => ({
     level,
     difficultyScore: scores[level],
+    ...(parsed.sections?.length ? {sections:parsed.sections.map(s=>({...s}))} : {}),
     ...(parsed.sourcePedal?{sourcePedal:structuredClone(parsed.sourcePedal),warnings:["Source CC64 is retained separately from physical key holds; musical review is unverified."]}:{}),
     notes: notes.map((note) => ({ ...note })),
     chords: [],

@@ -19,6 +19,7 @@ COPY services services
 COPY catalog/manifest.json catalog/manifest.json
 COPY catalog/learner-review.json catalog/learner-review.json
 COPY catalog/chord-sources.json catalog/chord-sources.json
+COPY catalog/song-sections.json catalog/song-sections.json
 COPY catalog/chord-timelines catalog/chord-timelines
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1

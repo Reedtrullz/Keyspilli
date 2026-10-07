@@ -1,0 +1,483 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "baseId": "pink-just-give-me-a-reason",
+      "sourceArtifactHash": "09d41759bbf7bb2d6e333f77412d7263bd0c802c054fc156011111bc7863b1ba",
+      "playbackTempoBpm": 100,
+      "sourceFile": "pink-just-give-me-a-reason.mid",
+      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
+      "sections": [
+        {
+          "id": "source-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 8,
+          "endBeat": 88,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-2",
+          "label": "Refrain",
+          "type": "chorus",
+          "startBeat": 88,
+          "endBeat": 196,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-3",
+          "label": "Refrain",
+          "type": "chorus",
+          "startBeat": 196,
+          "endBeat": 252,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-4",
+          "label": "Coda",
+          "type": "outro",
+          "startBeat": 252,
+          "endBeat": 292,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-5",
+          "label": "Refrain",
+          "type": "chorus",
+          "startBeat": 292,
+          "endBeat": 384,
+          "evidence": "source"
+        }
+      ],
+      "clockEvidence": {
+        "strategy": "source-beats",
+        "sourceOnsetMatch": {
+          "sourceBeats": 0.6584194977843427,
+          "integratedTempo": 0.10672082717872969
+        }
+      },
+      "advancedNotesSha256": "c7debd1cd269b24f422492be001069187fadf9cabf22d46541b240eca2b5523c"
+    },
+    {
+      "baseId": "avenged-sevenfold-afterlife",
+      "sourceArtifactHash": "c1a6bf28385b9ff3a1d3b8bbb62427ba94cd311bfeaefb02196c5ae076a301f3",
+      "playbackTempoBpm": 150,
+      "sourceFile": "avenged-sevenfold-afterlife.mid",
+      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
+      "sections": [
+        {
+          "id": "source-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 16,
+          "endBeat": 64,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-2",
+          "label": "Verse 1",
+          "type": "verse",
+          "startBeat": 64,
+          "endBeat": 96,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-3",
+          "label": "Verse 2",
+          "type": "verse",
+          "startBeat": 96,
+          "endBeat": 128,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-4",
+          "label": "Pre-Chorus",
+          "type": "pre-chorus",
+          "startBeat": 128,
+          "endBeat": 160,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-5",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 160,
+          "endBeat": 244,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-6",
+          "label": "Verse 3",
+          "type": "verse",
+          "startBeat": 244,
+          "endBeat": 276,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-7",
+          "label": "Pre-Chorus",
+          "type": "pre-chorus",
+          "startBeat": 276,
+          "endBeat": 308,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-8",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 308,
+          "endBeat": 404,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-9",
+          "label": "Solo",
+          "type": "interlude",
+          "startBeat": 404,
+          "endBeat": 444,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-10",
+          "label": "Interlude",
+          "type": "interlude",
+          "startBeat": 444,
+          "endBeat": 540,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-11",
+          "label": "Intro Riff",
+          "type": "intro",
+          "startBeat": 540,
+          "endBeat": 556,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-12",
+          "label": "Pre-Chorus",
+          "type": "pre-chorus",
+          "startBeat": 556,
+          "endBeat": 588,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-13",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 588,
+          "endBeat": 652,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-14",
+          "label": "Outro",
+          "type": "outro",
+          "startBeat": 652,
+          "endBeat": 692,
+          "evidence": "source"
+        }
+      ],
+      "clockEvidence": {
+        "strategy": "source-beats",
+        "sourceOnsetMatch": {
+          "sourceBeats": 0.937360594795539,
+          "integratedTempo": 0.937360594795539
+        }
+      },
+      "advancedNotesSha256": "315f8c378ce69a97f2a0cb5c0d9f96c23beba0f0ff665c888407b47100c071f1"
+    },
+    {
+      "baseId": "journey-dont-stop-believin",
+      "sourceArtifactHash": "08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717",
+      "playbackTempoBpm": 118,
+      "sourceFile": "journey-dont-stop-believin.mid",
+      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
+      "sections": [
+        {
+          "id": "source-section-1",
+          "label": "guitar solo",
+          "type": "interlude",
+          "startBeat": 372,
+          "endBeat": 516,
+          "evidence": "source"
+        }
+      ],
+      "clockEvidence": {
+        "strategy": "source-beats",
+        "sourceOnsetMatch": {
+          "sourceBeats": 0.6471329552614997,
+          "integratedTempo": 0.6408317580340265
+        }
+      },
+      "advancedNotesSha256": "d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354"
+    },
+    {
+      "baseId": "britney-spears-oops-i-did-it-again",
+      "sourceArtifactHash": "64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4",
+      "playbackTempoBpm": 95,
+      "sourceFile": "britney-spears-oops-i-did-it-again.mid",
+      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
+      "sections": [
+        {
+          "id": "source-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 0,
+          "endBeat": 32,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-2",
+          "label": "Verse 1a",
+          "type": "verse",
+          "startBeat": 32,
+          "endBeat": 64,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-3",
+          "label": "Verse 1b",
+          "type": "verse",
+          "startBeat": 64,
+          "endBeat": 80,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-4",
+          "label": "Chorus 1",
+          "type": "chorus",
+          "startBeat": 80,
+          "endBeat": 112,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-5",
+          "label": "Verse 2a",
+          "type": "verse",
+          "startBeat": 112,
+          "endBeat": 144,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-6",
+          "label": "Verse 2b",
+          "type": "verse",
+          "startBeat": 144,
+          "endBeat": 160,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-7",
+          "label": "Chorus 2",
+          "type": "chorus",
+          "startBeat": 160,
+          "endBeat": 208,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-8",
+          "label": "Bridge",
+          "type": "bridge",
+          "startBeat": 208,
+          "endBeat": 236,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-9",
+          "label": "Chorus 3",
+          "type": "chorus",
+          "startBeat": 236,
+          "endBeat": 268,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-10",
+          "label": "Chorus 4",
+          "type": "chorus",
+          "startBeat": 268,
+          "endBeat": 300,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-11",
+          "label": "Chorus 5",
+          "type": "chorus",
+          "startBeat": 300,
+          "endBeat": 332.5,
+          "evidence": "source"
+        }
+      ],
+      "clockEvidence": {
+        "strategy": "source-beats",
+        "sourceOnsetMatch": {
+          "sourceBeats": 0.6431349087645827,
+          "integratedTempo": 0.5276697577026623
+        }
+      },
+      "advancedNotesSha256": "84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae"
+    },
+    {
+      "baseId": "abba-lay-all-your-love-on-me",
+      "sourceArtifactHash": "1ff75be0c085c1bf06d8603034d55e287ec63ee8fce11dc77e3efb7ee2127d96",
+      "playbackTempoBpm": 130,
+      "sourceFile": "abba-lay-all-your-love-on-me.mid",
+      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
+      "sections": [
+        {
+          "id": "source-section-1",
+          "label": "Verse 1",
+          "type": "verse",
+          "startBeat": 68,
+          "endBeat": 168,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-2",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 168,
+          "endBeat": 200,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-3",
+          "label": "Verse 2",
+          "type": "verse",
+          "startBeat": 200,
+          "endBeat": 292,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-4",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 292,
+          "endBeat": 356,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-5",
+          "label": "Verse 3",
+          "type": "verse",
+          "startBeat": 356,
+          "endBeat": 456,
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-6",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 456,
+          "endBeat": 615.25,
+          "evidence": "source"
+        }
+      ],
+      "clockEvidence": {
+        "strategy": "source-beats",
+        "sourceOnsetMatch": {
+          "sourceBeats": 0.5929064277932453,
+          "integratedTempo": 0.17019731267401042
+        }
+      },
+      "advancedNotesSha256": "b8d3ee667eb43cc9303041f5bcea9af227a192b4c46fc149747207e03bc5f7ff"
+    },
+    {
+      "baseId": "queen-somebody-to-love",
+      "sourceArtifactHash": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+      "playbackTempoBpm": 108,
+      "sourceFile": "queen-somebody-to-love.mid",
+      "provenance": "Form labels from Ultimate Guitar chords tab 208584; boundaries aligned to this arrangement's measure-level harmony. Not timed markers in the source MIDI, not recording timestamps, and not an official artist form annotation; boundary accuracy awaits owner listening review.",
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 0,
+          "endBeat": 24,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-2",
+          "label": "Instrumental",
+          "type": "interlude",
+          "startBeat": 24,
+          "endBeat": 48,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-3",
+          "label": "Verse 1",
+          "type": "verse",
+          "startBeat": 48,
+          "endBeat": 72,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-4",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 72,
+          "endBeat": 96,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-5",
+          "label": "Verse 2",
+          "type": "verse",
+          "startBeat": 96,
+          "endBeat": 120,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-6",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 120,
+          "endBeat": 144,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-7",
+          "label": "Bridge",
+          "type": "bridge",
+          "startBeat": 144,
+          "endBeat": 192,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-8",
+          "label": "Solo",
+          "type": "interlude",
+          "startBeat": 192,
+          "endBeat": 240,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-9",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 240,
+          "endBeat": 288,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-10",
+          "label": "Verse 3",
+          "type": "verse",
+          "startBeat": 288,
+          "endBeat": 312,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-11",
+          "label": "Outro",
+          "type": "outro",
+          "startBeat": 312,
+          "endBeat": 540,
+          "evidence": "chart"
+        }
+      ]
+    }
+  ]
+}

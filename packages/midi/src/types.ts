@@ -162,6 +162,7 @@ export interface SourcePedalChange {beat:number;channel:number;value:number;sour
 export interface SourcePedalTimeline {version:1;endBeat:number;provenance:"midi-file"|"declared-export";changes:SourcePedalChange[]}
 
 export interface ParsedMidi {
+  sections?: Section[];
   sourcePedal?: SourcePedalTimeline;
   format: number;
   division: number;
@@ -245,6 +246,7 @@ export interface SongMeta {
 }
 
 export interface Variant {
+  sections?: Section[];
   sourcePedal?: SourcePedalTimeline;
   level: DifficultyLevel;
   difficultyScore: number;
@@ -271,6 +273,9 @@ export interface MeasureInfo {
 
 /** A named section of a song (verse, chorus, bridge, etc.) for practice navigation. */
 export interface Section {
+  /** Provenance class: a timed source marker, a chart aligned to this
+   * arrangement's harmony, or a transparently inferred form role. */
+  evidence?: "source" | "chart" | "estimated";
   /** Unique section identifier (e.g., "verse-1", "chorus", "bridge"). */
   id: string;
   /** Human-readable label (e.g., "Verse 1", "Chorus"). */
