@@ -323,3 +323,44 @@ it("checks reviewed revisions and preserves an exact short study during descript
   await expect(update.applySongMetadata(base,{ title: "Stale" },{ expectedRevision: revision })).rejects.toMatchObject({status:409});
   expect(catalog.getSongsByBase(base).map(row=>row.id)).toEqual(rows.map(row=>row.id));
 });
+
+it("authors owner section names across every level and clears back to estimates", async () => {
+  const id = "owned-sections-fixture";
+  const bytes = midi.writeMidi(
+    Array.from({ length: 32 }, (_, i) => ({ midi: 60 + (i % 5), start: i, dur: 1, vel: 80, hand: "R" as const })),
+    { tempoBpm: 120 },
+  );
+  const ingested = await catalog.ingestSource({ baseId: id, buf: bytes, title: "Sections", artist: "Tester", contentType: "standard" });
+  expect(ingested.error).toBeUndefined();
+
+  const api = await import("./catalog-api");
+  const row = (level: string) => catalog.getSongsByBase(id).find((item) => item.level === level)!;
+  const before = (await api.loadSongArtifact(row("a"))).data!;
+  expect((before.sections ?? []).length).toBeGreaterThan(0);
+  expect((before.sections ?? []).every((section) => section.evidence === "estimated")).toBe(true);
+
+  const sections = [
+    { id: "owner-1", label: "Intro", startBeat: 0, endBeat: 8, type: "intro" as const },
+    { id: "owner-2", label: "Verse 1", startBeat: 8, endBeat: 24, type: "verse" as const },
+    { id: "owner-3", label: "Chorus", startBeat: 24, endBeat: 32, type: "chorus" as const },
+  ];
+  await update.applySongMetadata(id, { sections });
+  expect(catalog.getSongsByBase(id).every((item) => item.sections === JSON.stringify(sections))).toBe(true);
+
+  const after = (await api.loadSongArtifact(row("a"))).data!;
+  expect((after.sections ?? []).map((section) => section.label)).toEqual(["Intro", "Verse 1", "Chorus"]);
+  expect((after.sections ?? []).every((section) => section.evidence === undefined)).toBe(true);
+
+  const sibling = (await api.loadSongArtifact(row("b"))).data!;
+  expect((sibling.sections ?? []).map((section) => section.label)).toEqual(["Intro", "Verse 1", "Chorus"]);
+
+  await expect(
+    update.applySongMetadata(id, { sections: [{ id: "bad", label: "Backwards", startBeat: 10, endBeat: 5 }] }),
+  ).rejects.toMatchObject({ status: 400 });
+  expect(catalog.getSongsByBase(id).every((item) => item.sections === JSON.stringify(sections))).toBe(true);
+
+  await update.applySongMetadata(id, { sections: null });
+  expect(catalog.getSongsByBase(id).every((item) => item.sections === null)).toBe(true);
+  const cleared = (await api.loadSongArtifact(row("a"))).data!;
+  expect((cleared.sections ?? []).some((section) => section.evidence === "estimated")).toBe(true);
+});

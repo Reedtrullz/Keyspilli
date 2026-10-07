@@ -20,6 +20,7 @@ import {
   type SongRow,
 } from "@keyspilli/catalog";
 import { chordToNotes, inferHarmonyTimeline, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
+import { parseOwnedSections } from "./owned-sections";
 import { arithmeticMeasures, completeChordDurations, overlaySourceSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 import { resolveSongSections } from "./song-sections";
 
@@ -469,7 +470,9 @@ function unavailableArtifact(errors: string[], manifest?: ArrangementManifest): 
   return { status: "unavailable", errors, ...(manifest ? { manifest } : {}) };
 }
 
-export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "level" | "tempo">): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
+export async function loadSongArtifact(
+  song: Pick<SongRow, "id" | "baseId" | "level" | "tempo"> & Partial<Pick<SongRow, "sections" | "category">>,
+): Promise<{ data: SongData | null; artifact: SongArtifactStatus }> {
   if (existsSync(join(dataDir(), "artifacts", `.${song.baseId}.reconciliation.json`))) {
     return { data: null, artifact: unavailableArtifact(["ARTIFACT_RECONCILIATION_REQUIRED"]) };
   }
@@ -545,7 +548,9 @@ export async function loadSongArtifact(song: Pick<SongRow, "id" | "baseId" | "le
   };
   // Metadata projection only: retain stored notes and source identity. Source
   // labels take priority; musical form guesses are visibly marked estimated.
-  const storedSections=data.sections;
+  // Owner-authored row sections outrank notes.json labels, source maps and
+  // charts. Invalid stored JSON falls through to the normal hierarchy.
+  const storedSections = parseOwnedSections(song.sections) ?? data.sections;
   data.sections=[];
   if (data.measures.length > 0) {
     try {

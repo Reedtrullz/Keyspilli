@@ -55,7 +55,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const input = await readJsonObject(req);
   if (input.response) return input.response;
   const body = input.body;
-  if (Object.keys(body).some(key => !["title","artist","key","category","style","mood","tempo","playbackTempo","calibrationTempo","expectedRevision"].includes(key))) return NextResponse.json({ error: "unsupported metadata field" }, { status: 400 });
+  if (Object.keys(body).some(key => !["title","artist","key","category","style","mood","tempo","playbackTempo","calibrationTempo","sections","expectedRevision"].includes(key))) return NextResponse.json({ error: "unsupported metadata field" }, { status: 400 });
   if (body.expectedRevision !== undefined && body.expectedRevision !== null && (typeof body.expectedRevision !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(body.expectedRevision))) return NextResponse.json({ error: "invalid expected publication revision" }, { status: 400 });
   const patch = {} as SongPatch & TempoRequestPatch;
   for (const k of ["title", "artist", "key", "category", "style", "mood"] as const) {
@@ -64,6 +64,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (typeof v !== "string") return NextResponse.json({ error: `${k} must be a string` }, { status: 400 });
       patch[k] = v;
     }
+  }
+  if (body.sections !== undefined) {
+    if (body.sections !== null && !Array.isArray(body.sections)) {
+      return NextResponse.json({ error: "sections must be an array or null" }, { status: 400 });
+    }
+    patch.sections = body.sections === null ? null : body.sections;
   }
   let tempoRole: ReturnType<typeof parseTempoRequest>["role"];
   try {
