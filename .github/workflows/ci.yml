@@ -90,6 +90,9 @@ jobs:
       - name: Verify chord sources
         run: npm run verify-chord-sources -- --require-catalog
 
+      - name: Audit song section maps
+        run: npm run audit:sections -w @keyspilli/catalog
+
       - name: Calibration drift check
         run: npm run calibrate
 
