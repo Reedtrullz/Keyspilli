@@ -381,6 +381,103 @@
         }
       },
       "advancedNotesSha256": "b8d3ee667eb43cc9303041f5bcea9af227a192b4c46fc149747207e03bc5f7ff"
+    },
+    {
+      "baseId": "queen-somebody-to-love",
+      "sourceArtifactHash": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+      "playbackTempoBpm": 108,
+      "sourceFile": "queen-somebody-to-love.mid",
+      "provenance": "Form labels from Ultimate Guitar chords tab 208584; boundaries aligned to this arrangement's measure-level harmony. Not timed markers in the source MIDI, not recording timestamps, and not an official artist form annotation; boundary accuracy awaits owner listening review.",
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 0,
+          "endBeat": 24,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-2",
+          "label": "Instrumental",
+          "type": "interlude",
+          "startBeat": 24,
+          "endBeat": 48,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-3",
+          "label": "Verse 1",
+          "type": "verse",
+          "startBeat": 48,
+          "endBeat": 72,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-4",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 72,
+          "endBeat": 96,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-5",
+          "label": "Verse 2",
+          "type": "verse",
+          "startBeat": 96,
+          "endBeat": 120,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-6",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 120,
+          "endBeat": 144,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-7",
+          "label": "Bridge",
+          "type": "bridge",
+          "startBeat": 144,
+          "endBeat": 192,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-8",
+          "label": "Solo",
+          "type": "interlude",
+          "startBeat": 192,
+          "endBeat": 240,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-9",
+          "label": "Chorus",
+          "type": "chorus",
+          "startBeat": 240,
+          "endBeat": 288,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-10",
+          "label": "Verse 3",
+          "type": "verse",
+          "startBeat": 288,
+          "endBeat": 312,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-11",
+          "label": "Outro",
+          "type": "outro",
+          "startBeat": 312,
+          "endBeat": 540,
+          "evidence": "chart"
+        }
+      ]
     }
   ]
 }
