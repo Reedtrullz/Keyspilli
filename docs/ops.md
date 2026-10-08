@@ -378,34 +378,30 @@ journalctl -u keyspilli-backup.service --since today
 
 Backups contain a consistent SQLite copy plus a validated tarball of
 `artifacts/` and persisted source/provenance material (`seed-midi/`,
-`transcribed/`, `uploads/`, `manifest.json`, and review metadata), retained 14
-days. The script fails closed when the database, artifact tree, or source
+`transcribed/`, `uploads/`, `manifest.json`, and review metadata). The two newest
+complete, verified local cohorts are retained. The script fails closed when the database, artifact tree, or source
 material is missing and never publishes a dated partial backup. `/backups` is
 currently local to the VPS; copy the dated files off-box if disaster recovery
 outside that host is required.
 
 ### Data retention and backup cost
 
-The 14-day rule in `deploy/backup.sh` applies only to complete, hash-verified
-backup cohorts. The script can delete those old cohorts; this is distinct from
-retaining live catalog and tutorial data. Confirm the deployed script, timer,
-latest coherent pair, restore drill, duration, and actual free space on the host
-before relying on this rule. None of the checks below activates live-data
-deletion.
+The host storage policy retains two complete cohorts after checksum, full
+archive/gzip and read-only SQLite integrity verification. Failed backups do
+not replace good ones. This is distinct from retaining live catalog/tutorial
+data. Confirm installed scripts, timers, restore evidence and actual disk
+headroom before relying on it. See [storage policy](storage-policy.md) for
+locks, interrupted-operation recovery, release-image references and admission.
 
-Retention preserves malformed, incomplete, hash-mismatched, symlinked and
-recently changed cohorts. All three files must have aged past the cutoff; the
-completion manifest must declare schema 1, literal `complete: true`, exact
-filenames, byte counts and matching hashes. Invalid retention settings fail
-before creating a backup. No live tutorial/source directory is deleted.
-Each successful script run emits a `backupRetention` JSON line to stderr with
-elapsed seconds, bytes checked, pruned cohorts/bytes and ambiguous cohorts kept.
-Payload deletion failures keep the remaining completion marker and fail the run;
-the report counts them separately rather than claiming the cohort was preserved.
-Elapsed time covers the data-only script, including archive and retention work;
-it excludes Docker startup and host pause/unpause. Measure the complete host
-service separately using `ExecMainStartTimestampMonotonic` and
-`ExecMainExitTimestampMonotonic`.
+Malformed, incomplete, hash-mismatched, symlinked, linked or open cohorts are
+preserved and reported. Unverified or uncommitted backups block further backup
+creation until reviewed. Deletion persists a recovery journal before unlinking
+payloads; interrupted retirement can resume under the shared lock only after
+two newer good cohorts are verified. JSON events distinguish plans, preservation
+reasons, completed deletions and refusals. No live source directory is deleted.
+Measure complete host service time with `ExecMainStartTimestampMonotonic` and
+`ExecMainExitTimestampMonotonic`. Historical cost evidence below records the
+earlier policy and does not certify current retention or service timing.
 
 | Class | Owner and references | Retention decision |
 | --- | --- | --- |
