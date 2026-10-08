@@ -873,8 +873,26 @@
       "advancedNotesSha256": "764b13112b7bc753a393262bf34b4d1aa60a3ec50c5b2356187f1213b1c96304",
       "playbackTempoBpm": 112,
       "sourceFile": "w-h-doane-near-the-cross.mid",
-      "provenance": "Labels from https://www.mutopiaproject.org/ftp/DoaneWH/NearTheCross/NearTheCross.ly; companion score MIDI bytes exactly match the retained source. Annotation positions checked against raw MIDI key/meter and note events and the actual production quarter-beat clock. Chart evidence, not retained FF06/FF07 form markers or recording timestamps. Encoded traversal only; unencoded repeat/da-capo occurrences are not invented. Not auditioned; no musical acceptance established.",
-      "alignment": {
+      "sections": [
+        {
+          "id": "chart-printed-stanza-excerpt",
+          "label": "Stanza 1 excerpt",
+          "startBeat": 0.0,
+          "endBeat": 45.0,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-1",
+          "label": "Refrain",
+          "startBeat": 48,
+          "endBeat": 96,
+          "type": "chorus",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza label 1. from https://www.mutopiaproject.org/ftp/DoaneWH/NearTheCross/NearTheCross.ly; the score companion MIDI exactly matches retained source bytes. The complete multi-line labelled lyric block uniquely matches one retained timed lyric track at complete cue edges. The excerpt spans first to last matched cue onset, excluding final syllable release; full form boundaries and sequential performed stanzas are not established. Source quarter beats independently match every actual producer pitched onset within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance. The score explicitly separates the following Refrain by comment; only the preceding stanza text is matched here. Existing independently checked Refrain48..96 and its prior evidence are preserved.",
+      "priorAlignment": {
         "strategy": "exact-score-annotation-v1",
         "confidenceScore": 1.0,
         "confidenceDefinition": "Independent producer pitch/onset match ratio at1/16 beat for an exactly matching companion MIDI; uncalibrated correspondence, not musical acceptance.",
@@ -886,16 +904,25 @@
           "Explicit Refrain markup on the soprano A2 after16 three-quarter groups (48 quarter beats), followed by C3-C2.-B-flat2-D3; source ends96. Unnamed preceding passage remains estimated."
         ]
       },
-      "sections": [
-        {
-          "id": "chart-section-1",
-          "label": "Refrain",
-          "startBeat": 48,
-          "endBeat": 96,
-          "type": "chorus",
-          "evidence": "chart"
-        }
-      ]
+      "priorProvenance": "Labels from https://www.mutopiaproject.org/ftp/DoaneWH/NearTheCross/NearTheCross.ly; companion score MIDI bytes exactly match the retained source. Annotation positions checked against raw MIDI key/meter and note events and the actual production quarter-beat clock. Chart evidence, not retained FF06/FF07 form markers or recording timestamps. Encoded traversal only; unencoded repeat/da-capo occurrences are not invented. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "printed-labelled-stanza-excerpt-v2",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum exact complete normalized text coverage, unique complete cue-edge track correspondence and independently checked producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DoaneWH/NearTheCross/NearTheCross.ly",
+        "scoreSha256": "d71c12cafa44cea70dd0fea95d26fab4ee303dbdc1105f7b7a335c66ffc995b3",
+        "companionMidiSha256": "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d",
+        "printedStanza": "1.",
+        "scoreLyricVariable": "verseOne",
+        "normalizedTextSha256": "39f893df1b85a8c7abb252f540e2c28029ea53b928003bead0c640b0c0214339",
+        "matchedCharacters": 92,
+        "matchedLines": 4,
+        "lyricTrack": 2,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "endsAtExplicitRefrainComment": true,
+        "coverage": "printed lyric-cue excerpt; parallel stanzas, release and full form boundaries unresolved"
+      }
     },
     {
       "baseId": "midi-backstreet-boys-i-want-it-that-way-0857fc1d",
@@ -1654,6 +1681,634 @@
           }
         ],
         "coverage": "lyric-cue excerpts only; repeated occurrence ordinals, releases and full form boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "d-d-emmett-oh-boatman-haste",
+      "sourceArtifactHash": "9de47c13635c5a3cdbd7e975cac458f82cbbd00596fb143811b453c27acc09e1",
+      "advancedNotesSha256": "a00d8f9e973a1f794405bc57783ea12f5745e9363d6fffc898d78167d219f871",
+      "playbackTempoBpm": 78,
+      "sourceFile": "d-d-emmett-oh-boatman-haste.mid",
+      "provenance": "Explicit Verse/Chorus voice-variable sequence in https://www.mutopiaproject.org/ftp/EmmettDD/bmh/bmh.ly; its companion MIDI exactly matches retained source bytes. The score places seven two-quarter-beat opening bars, then three17-bar verses each followed by an8-bar chorus, with three-bar lead-ins between iterations and a four-bar tail. Independent source pitch/onset landmarks confirm all six starts on that itinerary; all production pitched onsets match the source quarter-beat clock within1/16 beat. Only the named Verse/Chorus variables are mapped; opening, inter-verse lead-ins and tail remain estimated. Ordinals describe this explicit score itinerary. Chart evidence, not FF06/FF07 timed markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "score-explicit-voice-itinerary-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum exact source/score-companion byte identity, six uniquely matched literal score-opening motifs and independent full-piece producer pitch/onset correspondence; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/EmmettDD/bmh/bmh.ly",
+        "scoreSha256": "db11580abddf0fa56defe78b1486983d655c3c7d514292ab735e8b8592309182",
+        "companionMidiSha256": "9de47c13635c5a3cdbd7e975cac458f82cbbd00596fb143811b453c27acc09e1",
+        "beatsPerPrintedBar": 2,
+        "openingBars": 7,
+        "verseBars": 17,
+        "chorusBars": 8,
+        "betweenIterationBars": 3,
+        "tailBars": 4,
+        "explicitVoiceItinerary": "R2*7 \\soloVerseA \\soloChorusA R2*3 \\soloVerseB \\soloChorusB R2*3 \\soloVerseC \\soloChorusC R2*4",
+        "sourceClockMatchRatio": 1,
+        "sourceOnsetCount": 1228,
+        "landmarks": [
+          {
+            "label": "Verse 1",
+            "startBeat": 14,
+            "endBeat": 48,
+            "sourceTrack": 1,
+            "literalSourceOpeningPitchOnsets": [
+              [
+                15.5,
+                70
+              ],
+              [
+                16,
+                72
+              ],
+              [
+                16.5,
+                72
+              ],
+              [
+                17,
+                70
+              ],
+              [
+                17.75,
+                67
+              ]
+            ]
+          },
+          {
+            "label": "Chorus 1",
+            "startBeat": 48,
+            "endBeat": 64,
+            "sourceTrack": 1,
+            "literalSourceOpeningPitchOnsets": [
+              [
+                48,
+                75
+              ],
+              [
+                49,
+                75
+              ],
+              [
+                50,
+                77
+              ],
+              [
+                50.5,
+                75
+              ],
+              [
+                51,
+                72
+              ]
+            ]
+          },
+          {
+            "label": "Verse 2",
+            "startBeat": 70,
+            "endBeat": 104,
+            "sourceTrack": 1,
+            "literalSourceOpeningPitchOnsets": [
+              [
+                71.5,
+                70
+              ],
+              [
+                72,
+                72
+              ],
+              [
+                72.5,
+                72
+              ],
+              [
+                73,
+                70
+              ],
+              [
+                73.75,
+                67
+              ]
+            ]
+          },
+          {
+            "label": "Chorus 2",
+            "startBeat": 104,
+            "endBeat": 120,
+            "sourceTrack": 1,
+            "literalSourceOpeningPitchOnsets": [
+              [
+                104,
+                75
+              ],
+              [
+                105,
+                75
+              ],
+              [
+                106,
+                77
+              ],
+              [
+                106.5,
+                75
+              ],
+              [
+                107,
+                72
+              ]
+            ]
+          },
+          {
+            "label": "Verse 3",
+            "startBeat": 126,
+            "endBeat": 160,
+            "sourceTrack": 1,
+            "literalSourceOpeningPitchOnsets": [
+              [
+                127.5,
+                70
+              ],
+              [
+                128,
+                72
+              ],
+              [
+                128.5,
+                72
+              ],
+              [
+                129,
+                70
+              ],
+              [
+                129.75,
+                67
+              ]
+            ]
+          },
+          {
+            "label": "Chorus 3",
+            "startBeat": 160,
+            "endBeat": 176,
+            "sourceTrack": 1,
+            "literalSourceOpeningPitchOnsets": [
+              [
+                160,
+                75
+              ],
+              [
+                161,
+                75
+              ],
+              [
+                162,
+                77
+              ],
+              [
+                162.5,
+                75
+              ],
+              [
+                163,
+                72
+              ]
+            ]
+          }
+        ],
+        "coverage": "explicit three Verse/Chorus variable pairs only; unlabelled opening, lead-ins and tail remain estimated"
+      },
+      "sections": [
+        {
+          "id": "chart-score-form-1",
+          "label": "Verse 1",
+          "startBeat": 14,
+          "endBeat": 48,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-score-form-2",
+          "label": "Chorus 1",
+          "startBeat": 48,
+          "endBeat": 64,
+          "type": "chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-score-form-3",
+          "label": "Verse 2",
+          "startBeat": 70,
+          "endBeat": 104,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-score-form-4",
+          "label": "Chorus 2",
+          "startBeat": 104,
+          "endBeat": 120,
+          "type": "chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-score-form-5",
+          "label": "Verse 3",
+          "startBeat": 126,
+          "endBeat": 160,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-score-form-6",
+          "label": "Chorus 3",
+          "startBeat": 160,
+          "endBeat": 176,
+          "type": "chorus",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "e-grieg-ich-liebe-dich",
+      "sourceArtifactHash": "dc758a0b481832f2f883e9b5d278046f3f21bccdb9ec92ce147ceed588143e65",
+      "advancedNotesSha256": "f03b4995032a5c1eddaddb7b2a8b55fc5d34e7961d91d0d28fc6f4c2b6aff37a",
+      "playbackTempoBpm": 90,
+      "sourceFile": "e-grieg-ich-liebe-dich.mid",
+      "sections": [
+        {
+          "id": "chart-printed-stanza-excerpt",
+          "label": "Stanza 1 excerpt",
+          "startBeat": 9.0,
+          "endBeat": 53.5,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza label 1. from https://www.mutopiaproject.org/ftp/GriegE/O5/grieg-ich-liebe-dich/grieg-ich-liebe-dich.ly; the score companion MIDI exactly matches retained source bytes. The complete multi-line labelled lyric block uniquely matches one retained timed lyric track at complete cue edges. The excerpt spans first to last matched cue onset, excluding final syllable release; full form boundaries and sequential performed stanzas are not established. Source quarter beats independently match every actual producer pitched onset within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "printed-labelled-stanza-excerpt-v2",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum exact complete normalized text coverage, unique complete cue-edge track correspondence and independently checked producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/GriegE/O5/grieg-ich-liebe-dich/grieg-ich-liebe-dich.ly",
+        "scoreSha256": "e90442062f5915fbca7f3bc787ce6e1824c0650ca53e8f4dc3522adbf706ab73",
+        "companionMidiSha256": "dc758a0b481832f2f883e9b5d278046f3f21bccdb9ec92ce147ceed588143e65",
+        "printedStanza": "1.",
+        "scoreLyricVariable": "textOneGerman",
+        "normalizedTextSha256": "82b95f7bd133f8ebb53874149c45dd6a3e913168f0b9a26e3f43842a7c695632",
+        "matchedCharacters": 178,
+        "matchedLines": 6,
+        "lyricTrack": 2,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "endsAtExplicitRefrainComment": false,
+        "coverage": "printed lyric-cue excerpt; parallel stanzas, release and full form boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "g-faure-les-djinns",
+      "sourceArtifactHash": "018adb56118559d0717df33afd8f0c3799feb1d9d6363be68f431d015bb954c5",
+      "advancedNotesSha256": "74af1f1217f14d2394e7aad22d03a1707f176b826c1267230aae36f8b421bad8",
+      "playbackTempoBpm": 138,
+      "sourceFile": "g-faure-les-djinns.mid",
+      "provenance": "Printed boxed rehearsal marks A through N from https://www.mutopiaproject.org/ftp/FaureG/O12/djinns/djinns.ly; its MIDI companion exactly matches the retained source bytes. The explicitly selected alphabet formatter includes I. A bounded Catalan-notation duration reader follows the unrepeated soprano voice on its fixed4/4 quarter-beat clock, including multi-bar rests, to locate every actual printed mark and the source end. All3025 actual producer pitched onsets independently match retained MIDI quarter beats within1/16 beat. Labels describe score rehearsal locations, without inferring Verse/Chorus roles or musical form identities. Opening0..40 remains estimated. Chart evidence, not FF06/FF07 timed source markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "score-printed-rehearsal-locations-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact source/companion byte identity, bounded literal score-duration correspondence and independent full producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/FaureG/O12/djinns/djinns.ly",
+        "scoreSha256": "a2764ff9be22deceef4f478f78f3acc5348c800442318f775ab4ba470c65a1fa",
+        "companionMidiSha256": "018adb56118559d0717df33afd8f0c3799feb1d9d6363be68f431d015bb954c5",
+        "scoreVersion": "LilyPond2.18.2",
+        "markFormatter": "format-mark-box-alphabet",
+        "printedMarkLabels": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N"
+        ],
+        "meter": [
+          4,
+          4
+        ],
+        "sourceClockMatchRatio": 1,
+        "sourceOnsetCount": 3025,
+        "sourceEndBeat": 496.0,
+        "scoreMarkers": [
+          {
+            "label": "A",
+            "beat": 40.0
+          },
+          {
+            "label": "B",
+            "beat": 72.0
+          },
+          {
+            "label": "C",
+            "beat": 100.0
+          },
+          {
+            "label": "D",
+            "beat": 140.0
+          },
+          {
+            "label": "E",
+            "beat": 176.0
+          },
+          {
+            "label": "F",
+            "beat": 200.0
+          },
+          {
+            "label": "G",
+            "beat": 232.0
+          },
+          {
+            "label": "H",
+            "beat": 256.0
+          },
+          {
+            "label": "I",
+            "beat": 296.0
+          },
+          {
+            "label": "J",
+            "beat": 324.0
+          },
+          {
+            "label": "K",
+            "beat": 360.0
+          },
+          {
+            "label": "L",
+            "beat": 384.0
+          },
+          {
+            "label": "M",
+            "beat": 420.0
+          },
+          {
+            "label": "N",
+            "beat": 456.0
+          }
+        ],
+        "coverage": "literal boxed score rehearsal locations only; first ten-bar opening remains estimated; conventional musical form roles unresolved"
+      },
+      "sections": [
+        {
+          "id": "chart-rehearsal-a",
+          "label": "Rehearsal A",
+          "startBeat": 40.0,
+          "endBeat": 72.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-b",
+          "label": "Rehearsal B",
+          "startBeat": 72.0,
+          "endBeat": 100.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-c",
+          "label": "Rehearsal C",
+          "startBeat": 100.0,
+          "endBeat": 140.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-d",
+          "label": "Rehearsal D",
+          "startBeat": 140.0,
+          "endBeat": 176.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-e",
+          "label": "Rehearsal E",
+          "startBeat": 176.0,
+          "endBeat": 200.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-f",
+          "label": "Rehearsal F",
+          "startBeat": 200.0,
+          "endBeat": 232.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-g",
+          "label": "Rehearsal G",
+          "startBeat": 232.0,
+          "endBeat": 256.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-h",
+          "label": "Rehearsal H",
+          "startBeat": 256.0,
+          "endBeat": 296.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-i",
+          "label": "Rehearsal I",
+          "startBeat": 296.0,
+          "endBeat": 324.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-j",
+          "label": "Rehearsal J",
+          "startBeat": 324.0,
+          "endBeat": 360.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-k",
+          "label": "Rehearsal K",
+          "startBeat": 360.0,
+          "endBeat": 384.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-l",
+          "label": "Rehearsal L",
+          "startBeat": 384.0,
+          "endBeat": 420.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-m",
+          "label": "Rehearsal M",
+          "startBeat": 420.0,
+          "endBeat": 456.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-n",
+          "label": "Rehearsal N",
+          "startBeat": 456.0,
+          "endBeat": 496.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "o-comeau-ellen-s-song",
+      "sourceArtifactHash": "ef48cc5d390344aa93d3083884ae269f0dc696ac099fd4c19393a0917f7d79e3",
+      "advancedNotesSha256": "aecd154db090f133a70286d90e27b41ed08062432be8efab2208efdd096ee8c7",
+      "playbackTempoBpm": 60,
+      "sourceFile": "o-comeau-ellen-s-song.mid",
+      "sections": [
+        {
+          "id": "chart-printed-stanza-excerpt",
+          "label": "To Ellen stanza excerpt",
+          "startBeat": 1.75,
+          "endBeat": 22.25,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza label To Ellen: from https://www.mutopiaproject.org/ftp/ComeauO/ellens_song/ellens_song.ly; the score companion MIDI exactly matches retained source bytes. The complete multi-line labelled lyric block uniquely matches one retained timed lyric track at complete cue edges. The excerpt spans first to last matched cue onset, excluding final syllable release; full form boundaries and sequential performed stanzas are not established. Source quarter beats independently match every actual producer pitched onset within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "printed-labelled-stanza-excerpt-v2",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum exact complete normalized text coverage, unique complete cue-edge track correspondence and independently checked producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/ComeauO/ellens_song/ellens_song.ly",
+        "scoreSha256": "059216634a7d0c9338d8ba4d28e03bc96aa09fca2b9a07a629833ac5a78ee0f5",
+        "companionMidiSha256": "ef48cc5d390344aa93d3083884ae269f0dc696ac099fd4c19393a0917f7d79e3",
+        "printedStanza": "To Ellen:",
+        "scoreLyricVariable": "printed parallel lyric 0",
+        "normalizedTextSha256": "b90a2650406045907af986470da06ef4e22697c8ad980c3c6a0a929f9d218c68",
+        "matchedCharacters": 174,
+        "matchedLines": 6,
+        "lyricTrack": 2,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "endsAtExplicitRefrainComment": false,
+        "coverage": "printed lyric-cue excerpt; parallel stanzas, release and full form boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "sia-chandelier",
+      "sourceArtifactHash": "635119a328112670ee2af52a897c5f1736e9c63c5cd38d3182e4ca58e1d3936f",
+      "advancedNotesSha256": "51b6246a6e23cdfb39708665027fdacda28eddff49bf58f4bbb457015d1414cc",
+      "playbackTempoBpm": 174,
+      "sourceFile": "sia-chandelier.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Bridge excerpt",
+          "startBeat": 233.50208333333333,
+          "endBeat": 298.00208333333336,
+          "type": "bridge",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-3",
+          "label": "Verse excerpt",
+          "startBeat": 301.00208333333336,
+          "endBeat": 321.50208333333336,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-2",
+          "label": "Bridge excerpt",
+          "startBeat": 489.50208333333336,
+          "endBeat": 554.0020833333333,
+          "type": "bridge",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Section roles from https://tabs.ultimate-guitar.com/tab/sia/chandelier-chords-1474063; complete multi-line chart paragraphs match retained timed MIDI lyric cues at exact cue edges. Identical text may occur more than once: every matched occurrence receives only the generic role agreed by all acquired charts containing that complete text; no occurrence numbers or convenient repeated-harmony assignment is inferred. Excerpts run from first to last matched cue onset, excluding final syllable release; full musical section boundaries and downbeats remain unresolved. Source quarter beats independently match all actual producer pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps, official artist form annotations or musical acceptance. The longer final Bridge paragraph overlaps a shorter complete paragraph agreed by both charts; its competing endpoint is excluded.",
+      "alignment": {
+        "strategy": "complete-paragraph-role-excerpts-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of complete normalized text coverage at cue edges, unanimous role correspondence across acquired charts for identical complete text and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "chartsChecked": [
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/sia/chandelier-chords-1476462",
+            "sha256": "cad75612adf1f0018527cef8f9a46c7463f8b864c8119305c78cd7d89843a5e4"
+          },
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/sia/chandelier-chords-1474063",
+            "sha256": "b83b342af5df6c250e34391e5d5eaab197838d1c3add1dd4ba7bc40aa647a121"
+          }
+        ],
+        "selectedChartUrl": "https://tabs.ultimate-guitar.com/tab/sia/chandelier-chords-1474063",
+        "lyricTrack": 0,
+        "clockMatchRatio": 1,
+        "matchedParagraphs": [
+          {
+            "role": "Bridge",
+            "chartLabels": [
+              "Bridge"
+            ],
+            "matchedCharacters": 241,
+            "matchedLines": 5,
+            "normalizedTextSha256": "90f7fdc57ae7ddcaebc760e5a858b4bbc083bf3994b23717f58cb30052a4f81d",
+            "spans": [
+              [
+                233.50208333333333,
+                298.00208333333336
+              ],
+              [
+                489.50208333333336,
+                554.0020833333333
+              ]
+            ]
+          },
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse"
+            ],
+            "matchedCharacters": 78,
+            "matchedLines": 3,
+            "normalizedTextSha256": "bd24679a5498f7ab2de627415e464ae7714320bcae18d22896e05c14d83c27da",
+            "spans": [
+              [
+                301.00208333333336,
+                321.50208333333336
+              ]
+            ]
+          }
+        ],
+        "coverage": "lyric-cue excerpts only; repeated occurrence ordinals, releases and full form boundaries unresolved",
+        "clockReceiptSha256": "ed122a7843a84a976b07061e3d044bbb0fda271cf62d05a167ade5b366f5ecc9",
+        "excludedParagraphs": [
+          {
+            "matchedCharacters": 445,
+            "reason": "longer final Bridge overlaps the shorter complete paragraph; competing endpoint remains unresolved"
+          }
+        ]
       }
     }
   ]

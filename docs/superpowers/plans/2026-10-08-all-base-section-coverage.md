@@ -35,9 +35,9 @@
 **Interfaces:** Capture all 455 production base identities and notes; verify each retained source file against the manifest hash. Acquisition ledgers record exact URLs, hashes, identity outcomes and explicit remaining scope.
 
 - [x] Capture all 455 notes files and 405 exact retained sources; verify every captured hash.
-- [ ] Complete chord-chart and score acquisition attempts across the full inventory, preserving prior rejected studies.
-- [ ] Scan every captured MIDI for usable FF06/FF07 markers, timed lyrics and parse failures.
-- [ ] Inspect missing source identities without substituting a generated arrangement for the original.
+- [x] Complete chord-chart and score acquisition attempts across the full inventory, preserving prior rejected studies.
+- [x] Scan every captured MIDI for usable FF06/FF07 markers, timed lyrics and parse failures.
+- [x] Inspect missing source identities without substituting a generated arrangement for the original.
 
 ### Task 2: Extend the integrity audit to captured bases
 
@@ -45,10 +45,10 @@
 
 **Interfaces:** `CapturedSectionBase` contains `baseId`, `sourceArtifactHash`, `advancedNotesSha256`, `playbackTempoBpm`, `servedAtCapture`; a pure validator accepts a frozen inventory, rejects malformed/duplicate identities and checks a map against its captured identity.
 
-- [ ] Write failing tests for valid uploaded identity, unknown target, malformed/duplicate capture, stale source/notes/tempo and seed compatibility.
-- [ ] Add captured bases to the known inventory and use captured values to validate applicable map pins.
-- [ ] Preserve seed/learner identities and blocked warnings; capture time does not promise current public service.
-- [ ] Run catalog tests and audit, commit the tested change.
+- [x] Write failing tests for valid uploaded identity, unknown target, malformed/duplicate capture, stale source/notes/tempo and seed compatibility.
+- [x] Add captured bases to the known inventory and use captured values to validate applicable map pins.
+- [x] Preserve seed/learner identities and blocked warnings; capture time does not promise current public service.
+- [x] Run catalog tests and audit, commit the tested change.
 
 ### Task 3: Produce and independently check candidate maps
 
@@ -70,3 +70,9 @@
 - [ ] Open a focused PR, attach it to this task, verify both required checks and CLEAN state, merge and verify main deployment.
 - [ ] Check deployed samples, full public catalog label sweep and selected store-field preservation.
 - [ ] Reconcile remaining bases explicitly and continue additional substantiated batches. Do not claim complete naming while unresolved bases remain.
+
+## Evidence status, 2026-10-08
+
+Every stored base has an acquisition/source disposition. Further searches can add evidence; this marks completion of the full-inventory attempt, not naming completion. PR226 is merged at6cc10a619f758db122ffeed2b714cf37fb84b829 and live-verified:1764 public variants,441 bases,17 named bases,zero numbered labels/errors,stable commit and preserved selected store fields. PR227 is merged at87057b417bcc7ab21ed0f9beeb5b12e07eeec653; its first deployment failed due VPS disk exhaustion before container recreation. Recovery and live verification remain open.
+
+The next batch contains five score-map edits (four new bases), plus one newly substantiated Sia lyric-excerpt map:32 stored/30 served maps expected. Its455-row ledger retains423 stored/411 served unresolved bases,226 captured bases with saved charts,108 byte-matched score sources and219 harmony trials. Five chord-reference affected bases have separately preserved corrected trials; none qualifies at minimum raw cost. Ten Sabaton audio-clock candidates and Status Quo’s conflicting chart roles remain rejected. Catalog-wide naming remains incomplete and Task4 continues.
