@@ -430,8 +430,15 @@ class Policy:
             image = self.inspect("image", [immutable])[0]
             self.run("tag", image["Id"], ref)
             image = self.inspect("image", [ref])[0]
-            if image["Size"] > min(ceiling, record["sizeAdmission"][record["images"].index(ref)]):
-                raise RuntimeError("pulled image exceeds admitted release size; pending record retained")
+            # Native overlay diff walks extracted files; the naive path counts
+            # tar payload bytes. Their Size values can differ for one digest.
+            # Both hosts independently enforce the same role ceiling, and
+            # pre-pull headroom already reserves 3x that ceiling, not CI Size.
+            emit("image-size-check", image=ref, id=image["Id"],
+                 ciBytes=record["sizeAdmission"][record["images"].index(ref)],
+                 hostBytes=image["Size"], ceilingBytes=ceiling, digest=digest)
+            if not 0 < image["Size"] <= ceiling:
+                raise RuntimeError("pulled image exceeds release ceiling or has invalid size; pending record retained")
             record["protectedIds"] = sorted(set(record["protectedIds"] + [image["Id"]]))
             atomic_json(self.record, record)
 

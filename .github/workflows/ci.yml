@@ -287,6 +287,9 @@ jobs:
           python3 - <<'PY'
           import os, shutil, subprocess
           gib = 1024 ** 3
+          driver = subprocess.check_output(["docker", "info", "--format", "{{.Driver}}"], text=True).strip()
+          if driver != "overlay2":
+              raise SystemExit("size admission requires classic overlay2 uncompressed accounting; unsupported runner store")
           # Release runner only: no VPS pull/extraction until this succeeds.
           for role, repo, ceiling in (("web", os.environ["IMAGE_NAME"], 2*gib),
                                      ("worker", os.environ["WORKER_IMAGE_NAME"], 4*gib)):
@@ -297,6 +300,7 @@ jobs:
               size = int(subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Size}}", ref]))
               if not 0 < size <= ceiling:
                   raise SystemExit(f"{role} exceeds uncompressed release ceiling")
+              print(f"{role}: digest={ref} ciBytes={size} ceilingBytes={ceiling}", flush=True)
               with open(os.environ["GITHUB_OUTPUT"], "a") as out:
                   out.write(f"{role}_bytes={size}\n")
           PY

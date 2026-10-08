@@ -57,7 +57,11 @@ CI measures uncompressed image sizes from the published immutable registry
 digests. Releases are limited to 2 GiB web / 4 GiB worker. Before each new pull
 the VPS cleans eligible data and requires 3x that role's ceiling plus 6 GiB;
 the multiplier covers transfer/extraction/store coexistence. Pulls use the
-admitted registry digest and check the result against its measured size.
+admitted registry digest and independently enforce the same role ceiling
+on the VPS, logging both CI and host bytes. Docker's native overlay diff walks
+extracted files while its naive path counts tar payload bytes: the reported
+`Size` can differ for the same digest. CI therefore refuses unsupported image
+stores rather than treating compressed containerd Size as uncompressed admission.
 Already installed immutable releases can be reused without new extraction.
 Manual new releases need the same `--sizes` and `--digests` admission.
 Shared-host writes can still consume the reserve; admission is a conservative
