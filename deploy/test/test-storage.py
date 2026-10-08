@@ -230,6 +230,18 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(any(c[0] == "pull" for c in self.policy.calls))
         self.assertTrue(self.policy.record.exists())
 
+    def test_interrupted_digest_pull_is_pinned_before_tag_publication(self):
+        self.policy.catalog = [make_image(1), make_image(2, "keyspilli-worker"), make_image(3)]
+        self.policy.set_pair([image_id(1), image_id(2)])
+        refs = ["ghcr.io/reedtrullz/keyspilli:aaaaaaa", "ghcr.io/reedtrullz/keyspilli-worker:aaaaaaa"]
+        record = self.policy.begin(refs)
+        record["digests"] = [image_id(50), image_id(51)]
+        storage.atomic_json(self.policy.record, record)
+        self.policy.catalog[2]["RepoTags"] = []
+        self.policy.catalog[2]["RepoDigests"] = ["ghcr.io/reedtrullz/keyspilli@" + image_id(50)]
+        self.policy.cleanup(True, record["token"])
+        self.assertIn(image_id(3), {i["Id"] for i in self.policy.catalog})
+
     def test_real_flock_competing_process_refuses_before_mutation(self):
         path = self.root / "lock"
         with path.open("w") as held:

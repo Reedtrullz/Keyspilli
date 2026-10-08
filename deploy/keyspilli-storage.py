@@ -292,6 +292,9 @@ class Policy:
             for image in images:
                 if set(image.get("RepoTags") or []).intersection(record["images"]):
                     pin(image["Id"], "in-progress deployment candidate")
+                for ref, digest in zip(record["images"], record.get("digests", [])):
+                    if ref.split(":")[0] + "@" + digest in (image.get("RepoDigests") or []):
+                        pin(image["Id"], "in-progress deployment digest")
         return protected
 
     @staticmethod
