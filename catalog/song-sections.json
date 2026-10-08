@@ -477,7 +477,8 @@
           "endBeat": 540,
           "evidence": "chart"
         }
-      ]
+      ],
+      "advancedNotesSha256": "20b5b8d7b7bc2d1e4e6e2807e0d71513d6e37ba0773802ffc575d8947f3d4786"
     },
     {
       "baseId": "the-beatles-help",
@@ -586,6 +587,454 @@
           "type": "intro",
           "startBeat": 0,
           "endBeat": 16,
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-1-3rd-movement-allegretto",
+      "sourceArtifactHash": "ecb927974554efdf3e5ae4446ca5145c65f8c0a9f123cfeb2ffe9bbabf43c140",
+      "advancedNotesSha256": "671b5d9cb1182863fee835fe9182b5ae934cd372e833e033435196a667bef63e",
+      "playbackTempoBpm": 168,
+      "sourceFile": "l-v-beethoven-sonata-no-1-3rd-movement-allegretto.mid",
+      "provenance": "Labels from https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_3/LVB_Sonate_02no1_3.ly; companion score MIDI bytes exactly match the retained source. Annotation positions checked against raw MIDI key/meter and note events and the actual production quarter-beat clock. Chart evidence, not retained FF06/FF07 form markers or recording timestamps. Encoded traversal only; unencoded repeat/da-capo occurrences are not invented. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "exact-score-annotation-v1",
+        "confidenceScore": 1.0,
+        "confidenceDefinition": "Independent producer pitch/onset match ratio at1/16 beat for an exactly matching companion MIDI; uncalibrated correspondence, not musical acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_3/LVB_Sonate_02no1_3.ly",
+        "scoreSha256": "1ed2b4e3a7e59e5043c3c0f65855af4620662672db0e870522759488d3971e40",
+        "companionMidiSha256": "ecb927974554efdf3e5ae4446ca5145c65f8c0a9f123cfeb2ffe9bbabf43c140",
+        "clockReceiptSha256": "bfcd386d6b696a28f8cfb42e297c088d390945025fff711dfdb6ffc96a4c5e9f",
+        "landmarks": [
+          "Upper staff MENUETTO at opening and Trio at the f-minor to F-major change; both raw key-event streams change at120; raw Trio opens C4 followed by A4-G4-A4-F4."
+        ]
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Menuetto",
+          "startBeat": 0,
+          "endBeat": 120,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-2",
+          "label": "Trio",
+          "startBeat": 120,
+          "endBeat": 219,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "f-j-haydn-sonate-i-ii-menuetto",
+      "sourceArtifactHash": "37b97075c873529760c96539f9894ec6eb99cc1065d76344f7b1fc397d6b63d4",
+      "advancedNotesSha256": "00e60187a0fc3bdeed6bed142aba3ad10a4a909476db460e087737f285750587",
+      "playbackTempoBpm": 92,
+      "sourceFile": "f-j-haydn-sonate-i-ii-menuetto.mid",
+      "provenance": "Labels from https://www.mutopiaproject.org/ftp/HaydnFJ/HOB-XVI-27/hob-xvi-27-ii-menuet-trio/hob-xvi-27-ii-menuet-trio.ly; companion score MIDI bytes exactly match the retained source. Annotation positions checked against raw MIDI key/meter and note events and the actual production quarter-beat clock. Chart evidence, not retained FF06/FF07 form markers or recording timestamps. Encoded traversal only; unencoded repeat/da-capo occurrences are not invented. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "exact-score-annotation-v1",
+        "confidenceScore": 1.0,
+        "confidenceDefinition": "Independent producer pitch/onset match ratio at1/16 beat for an exactly matching companion MIDI; uncalibrated correspondence, not musical acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HaydnFJ/HOB-XVI-27/hob-xvi-27-ii-menuet-trio/hob-xvi-27-ii-menuet-trio.ly",
+        "scoreSha256": "53245b0fdd6d0797a1593cf04eeb45a1ebdc99502b53f621312015d6c449c126",
+        "companionMidiSha256": "37b97075c873529760c96539f9894ec6eb99cc1065d76344f7b1fc397d6b63d4",
+        "clockReceiptSha256": "bfcd386d6b696a28f8cfb42e297c088d390945025fff711dfdb6ffc96a4c5e9f",
+        "landmarks": [
+          "Score movement heading II - Menuetto, then Trio at the G-major to G-minor change; both raw key-event streams change at126."
+        ]
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Menuetto",
+          "startBeat": 0,
+          "endBeat": 126,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-2",
+          "label": "Trio",
+          "startBeat": 126,
+          "endBeat": 198,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "f-f-chopin-nocturne",
+      "sourceArtifactHash": "e202d3941ce5f26397f57f59f0e2e4e3ad9e19061fa3c4dc596c5ee6a6a2548e",
+      "advancedNotesSha256": "d45188dccc01e252ccf442cd5da5f75f9e473cd2d79dcd0d927d246bd8442201",
+      "playbackTempoBpm": 66,
+      "sourceFile": "f-f-chopin-nocturne.mid",
+      "provenance": "Labels from https://www.mutopiaproject.org/ftp/ChopinFF/O9/chopin_nocturne_op9_n2/chopin_nocturne_op9_n2.ly; companion score MIDI bytes exactly match the retained source. Annotation positions checked against raw MIDI key/meter and note events and the actual production quarter-beat clock. Chart evidence, not retained FF06/FF07 form markers or recording timestamps. Encoded traversal only; unencoded repeat/da-capo occurrences are not invented. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "exact-score-annotation-v1",
+        "confidenceScore": 1.0,
+        "confidenceDefinition": "Independent producer pitch/onset match ratio at1/16 beat for an exactly matching companion MIDI; uncalibrated correspondence, not musical acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/ChopinFF/O9/chopin_nocturne_op9_n2/chopin_nocturne_op9_n2.ly",
+        "scoreSha256": "f35863a752f5b2805cd50272909b06bb8b1b1a8412d2b549fd13969a4481ab65",
+        "companionMidiSha256": "e202d3941ce5f26397f57f59f0e2e4e3ad9e19061fa3c4dc596c5ee6a6a2548e",
+        "clockReceiptSha256": "bfcd386d6b696a28f8cfb42e297c088d390945025fff711dfdb6ffc96a4c5e9f",
+        "landmarks": [
+          "Upper score explicitly marks Coda in measure25, after the half-quarter pickup plus24 six-quarter measures; raw E-flat5 onset at144.5 matches the printed E-flat4. instruction and subsequent F-E-flat-F-G sequence. Stop at retained source end; padded tail unresolved."
+        ]
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Coda",
+          "startBeat": 144.5,
+          "endBeat": 222.5,
+          "type": "outro",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "j-blumenthal-les-deux-anges",
+      "sourceArtifactHash": "c5c02e67141bcc5e79f794e0b1a038c08ea9c95e46aecd8425df7003e8530ab9",
+      "advancedNotesSha256": "d5213b2b34272890e61690403c413bd2374225638fe9c113a0673c618e9e4b8b",
+      "playbackTempoBpm": 60,
+      "sourceFile": "j-blumenthal-les-deux-anges.mid",
+      "provenance": "Labels from https://www.mutopiaproject.org/ftp/BlumenthalJ/mdeux/mdeux.ly; companion score MIDI bytes exactly match the retained source. Annotation positions checked against raw MIDI key/meter and note events and the actual production quarter-beat clock. Chart evidence, not retained FF06/FF07 form markers or recording timestamps. Encoded traversal only; unencoded repeat/da-capo occurrences are not invented. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "exact-score-annotation-v1",
+        "confidenceScore": 1.0,
+        "confidenceDefinition": "Independent producer pitch/onset match ratio at1/16 beat for an exactly matching companion MIDI; uncalibrated correspondence, not musical acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BlumenthalJ/mdeux/mdeux.ly",
+        "scoreSha256": "0cd9c44eb1388c83d7bd575d4d71d24dea112b2e882f9afd675ac16f6f7a699f",
+        "companionMidiSha256": "c5c02e67141bcc5e79f794e0b1a038c08ea9c95e46aecd8425df7003e8530ab9",
+        "clockReceiptSha256": "bfcd386d6b696a28f8cfb42e297c088d390945025fff711dfdb6ffc96a4c5e9f",
+        "landmarks": [
+          "Upper score THEMA at opening; VARIATION follows20 four-quarter measures at80, with raw B4-E5-D5 triplets at80,80.333333,80.666667; FINALE at6/8 change after40 four-quarter measures; raw staff meter events159.9817708333 and160; arrangement rounds the pickup D4 to160, within1/16 beat. Stop at last retained source note."
+        ]
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Thema",
+          "startBeat": 0,
+          "endBeat": 80,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-2",
+          "label": "Variation",
+          "startBeat": 80,
+          "endBeat": 160,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-3",
+          "label": "Finale",
+          "startBeat": 160,
+          "endBeat": 229.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "w-h-doane-near-the-cross",
+      "sourceArtifactHash": "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d",
+      "advancedNotesSha256": "764b13112b7bc753a393262bf34b4d1aa60a3ec50c5b2356187f1213b1c96304",
+      "playbackTempoBpm": 112,
+      "sourceFile": "w-h-doane-near-the-cross.mid",
+      "provenance": "Labels from https://www.mutopiaproject.org/ftp/DoaneWH/NearTheCross/NearTheCross.ly; companion score MIDI bytes exactly match the retained source. Annotation positions checked against raw MIDI key/meter and note events and the actual production quarter-beat clock. Chart evidence, not retained FF06/FF07 form markers or recording timestamps. Encoded traversal only; unencoded repeat/da-capo occurrences are not invented. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "exact-score-annotation-v1",
+        "confidenceScore": 1.0,
+        "confidenceDefinition": "Independent producer pitch/onset match ratio at1/16 beat for an exactly matching companion MIDI; uncalibrated correspondence, not musical acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DoaneWH/NearTheCross/NearTheCross.ly",
+        "scoreSha256": "d71c12cafa44cea70dd0fea95d26fab4ee303dbdc1105f7b7a335c66ffc995b3",
+        "companionMidiSha256": "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d",
+        "clockReceiptSha256": "bfcd386d6b696a28f8cfb42e297c088d390945025fff711dfdb6ffc96a4c5e9f",
+        "landmarks": [
+          "Explicit Refrain markup on the soprano A2 after16 three-quarter groups (48 quarter beats), followed by C3-C2.-B-flat2-D3; source ends96. Unnamed preceding passage remains estimated."
+        ]
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Refrain",
+          "startBeat": 48,
+          "endBeat": 96,
+          "type": "chorus",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "midi-backstreet-boys-i-want-it-that-way-0857fc1d",
+      "sourceArtifactHash": "0857fc1d6d0f9c9db3211d6b69719d86abd72243fbf03a806647a8c0f4976436",
+      "advancedNotesSha256": "b04299eae3022f4b496323566b0a1fc0d2de4c0703563f8698dbb956b8f88466",
+      "playbackTempoBpm": 99,
+      "sourceFile": "midi-backstreet-boys-i-want-it-that-way-0857fc1d.mid",
+      "provenance": "Timed FF06 form markers retained from this exact user-supplied source MIDI. Independent raw tick/tempo reader confirms the arrangement uses source quarter beats within1/16-beat note quantization. Mixed Chorus t/Br, Verse spec and Verse +1 cues terminate named certainty and remain estimated. Not an official artist form annotation; not auditioned; no musical acceptance established.",
+      "clockEvidence": {
+        "strategy": "source-beats",
+        "sourceOnsetMatch": {
+          "sourceBeats": 1.0,
+          "integratedTempo": 0.9844337090713903
+        },
+        "toleranceBeats": 0.0625
+      },
+      "sections": [
+        {
+          "id": "source-section-1",
+          "label": "Verse",
+          "startBeat": 56,
+          "endBeat": 88,
+          "type": "verse",
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-2",
+          "label": "Chorus",
+          "startBeat": 88,
+          "endBeat": 120,
+          "type": "chorus",
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-3",
+          "label": "Verse",
+          "startBeat": 120,
+          "endBeat": 152,
+          "type": "verse",
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-4",
+          "label": "Bridge",
+          "startBeat": 184,
+          "endBeat": 216,
+          "type": "bridge",
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-5",
+          "label": "Chorus",
+          "startBeat": 280,
+          "endBeat": 312,
+          "type": "chorus",
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-6",
+          "label": "Chorus",
+          "startBeat": 312,
+          "endBeat": 344,
+          "type": "chorus",
+          "evidence": "source"
+        }
+      ]
+    },
+    {
+      "baseId": "mad-world-gary-jules",
+      "sourceArtifactHash": "ade185aa02b4eea5a1695114bc8116de7c7720129b0fda09281dead20fb65b93",
+      "advancedNotesSha256": "7c6d893b8c5560b1c9ac3001d173a32dfe13cdfdfda6d2a3437b128e721ebf2a",
+      "playbackTempoBpm": 92,
+      "sourceFile": "mad-world-gary-jules.mid",
+      "provenance": "Labels from https://tabs.ultimate-guitar.com/tab/gary-jules/mad-world-chords-97039; four-bar harmony alignment transposed +1 semitone matches the retained F-minor arrangement. Only Intro0..16 has a stable boundary (gap0.225). Independently checked source accompaniment begins at0 and main line begins at16; all producer pitched onsets match the raw source quarter clock. Not timed form markers, recording timestamps or official artist annotations. Repeated interior harmonies remain estimated. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "ordered-four-bar-harmony-v1",
+        "phraseBars": 4,
+        "transpose": 1,
+        "confidenceScore": 0.7125,
+        "totalCost": 1.4747023809523814,
+        "ambiguityGap": 0,
+        "boundaryGaps": [
+          null,
+          0.2250000000000001,
+          0,
+          0,
+          0,
+          null
+        ],
+        "chartHtmlSha256": "acf02c6435145c673ca756617247e9e968ab54debf5c04e0e0c54a120f1a954d",
+        "landmarks": [
+          {
+            "label": "Intro",
+            "startBar": 0,
+            "endBar": 4,
+            "basis": "Independent Mido raw source: accompaniment from0, main line first note F4 at16; opening accompaniment follows chart Em-A transposed to Fm-B-flat. All producer pitched onsets match source beats."
+          }
+        ]
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 0,
+          "endBeat": 16,
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "elton-john-circle-of-life",
+      "sourceArtifactHash": "7d79987b9c0cf4d13d091199183a03a36a59f31d49f386851d4b67c8f157622c",
+      "advancedNotesSha256": "9cbde25b24e8de77dda2f954347657cf4b19603c848d6e3f99f766bbd37e95ea",
+      "playbackTempoBpm": 180,
+      "sourceFile": "elton-john-circle-of-life.mid",
+      "provenance": "Label from https://tabs.ultimate-guitar.com/tab/elton-john/circle-of-life-chords-211642; exact complete multi-line chart text uniquely matches the retained source MIDI timed lyric stream. This is a bounded lyric excerpt from the first matched cue onset to the last matched cue onset, excluding the final syllable release; complete section boundaries and downbeats are not established. Source quarter beats independently match pinned producer pitched onsets. Chart evidence, not FF06/FF07 form markers, recording timestamps or an official artist form annotation. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "unique-full-paragraph-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact full normalized text coverage, unique complete match and independent source-to-producer onset correspondence at1/16 beat; uncalibrated, not musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/elton-john/circle-of-life-chords-211642",
+        "chartHtmlSha256": "155a2cd8c8d78a37e4f22c9408b47fc5e3674f5bcbcb2b323de182c4b6a97891",
+        "normalizedTextSha256": "f71eac5cb5838b79830e8df25dbcdcf4fbc274812aed4fa9f5b3dbb9494874e6",
+        "matchedCharacters": 243,
+        "matchedLines": 8,
+        "completeMatchOccurrences": 1,
+        "lyricTrack": 0,
+        "clockMatchRatio": 1.0,
+        "coverage": "lyric cue excerpt only; final syllable release and full form boundaries unresolved"
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Verse 2 excerpt",
+          "startBeat": 278.0083333333333,
+          "endBeat": 339.5083333333333,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "midi-boney-m-rasputin-30a9c304",
+      "sourceArtifactHash": "30a9c304c37cbe8e7a05a05fc6bfb9b6d49480b045a77918c62ab3157f7a1fea",
+      "advancedNotesSha256": "d84bb52bb9281f9fa97734366337e418352c76282e38b0edc612a31a39edbdad",
+      "playbackTempoBpm": 122,
+      "sourceFile": "midi-boney-m-rasputin-30a9c304.mid",
+      "provenance": "Label from https://tabs.ultimate-guitar.com/tab/boney-m-/rasputin-chords-3780665; exact complete multi-line chart text uniquely matches the retained source MIDI timed lyric stream. This is a bounded lyric excerpt from the first matched cue onset to the last matched cue onset, excluding the final syllable release; complete section boundaries and downbeats are not established. Source quarter beats independently match pinned producer pitched onsets. Chart evidence, not FF06/FF07 form markers, recording timestamps or an official artist form annotation. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "unique-full-paragraph-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact full normalized text coverage, unique complete match and independent source-to-producer onset correspondence at1/16 beat; uncalibrated, not musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/boney-m-/rasputin-chords-3780665",
+        "chartHtmlSha256": "a4e21250691380980b4d6ae4c88db05fc51a10ce325f2e035ffd6230b89c85f7",
+        "normalizedTextSha256": "a3716e8da9c6cb08bd3ce9284278ac872f480147f36cdece6ee200cfbadc1127",
+        "matchedCharacters": 144,
+        "matchedLines": 3,
+        "completeMatchOccurrences": 1,
+        "lyricTrack": 0,
+        "clockMatchRatio": 1.0,
+        "coverage": "lyric cue excerpt only; final syllable release and full form boundaries unresolved"
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Bridge excerpt",
+          "startBeat": 319.0,
+          "endBeat": 334.01666666666665,
+          "type": "bridge",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "the-police-every-breath-you-take",
+      "sourceArtifactHash": "d9f9dd22e3780f81ba7fdd51535549322701e9586dd497556dadfa3b4121dd65",
+      "advancedNotesSha256": "dbef6cff59ce664ee92b5026ecd01cafbf59452d94ad8553960e486716d326cd",
+      "playbackTempoBpm": 115,
+      "sourceFile": "the-police-every-breath-you-take.mid",
+      "provenance": "Label from https://tabs.ultimate-guitar.com/tab/the-police/every-breath-you-take-chords-327965; exact complete multi-line chart text uniquely matches the retained source MIDI timed lyric stream. This is a bounded lyric excerpt from the first matched cue onset to the last matched cue onset, excluding the final syllable release; complete section boundaries and downbeats are not established. Source quarter beats independently match pinned producer pitched onsets. Chart evidence, not FF06/FF07 form markers, recording timestamps or an official artist form annotation. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "unique-full-paragraph-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact full normalized text coverage, unique complete match and independent source-to-producer onset correspondence at1/16 beat; uncalibrated, not musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/the-police/every-breath-you-take-chords-327965",
+        "chartHtmlSha256": "0aeeb1a27b80f46816e94ed7571334651987bf3a70c395e5bbdf8edfaf05134b",
+        "normalizedTextSha256": "e2394b44d10d7b2b87a4ed001940bf37abe33bcffe05e3d32009da5f071cb278",
+        "matchedCharacters": 158,
+        "matchedLines": 5,
+        "completeMatchOccurrences": 1,
+        "lyricTrack": 0,
+        "clockMatchRatio": 1.0,
+        "coverage": "lyric cue excerpt only; final syllable release and full form boundaries unresolved"
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Bridge excerpt",
+          "startBeat": 168.5,
+          "endBeat": 207.53125,
+          "type": "bridge",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "j-brahms-brahms-horn-trio",
+      "sourceArtifactHash": "966841ebd41c0cc0f69800462c0326c1ff3ad28fd6ffd4172d49ff95f6add034",
+      "advancedNotesSha256": "7f8c00898d0ef941ee2e4c7f9cf2ca86a3e3a730d354645ce3d274177eee2e68",
+      "playbackTempoBpm": 60,
+      "sourceFile": "j-brahms-brahms-horn-trio.mid",
+      "provenance": "Movement labels from https://www.mutopiaproject.org/ftp/BrahmsJ/O40/BrahmsHornTrio/BrahmsHornTrio-lys.zip; companion MIDI bytes exactly match the retained source. Piano.ly explicitly concatenates the four movement variables and defs.lyi gives Andante/Adagio mesto instructions plus Scherzo/Finale score headings. Outline durations750.5,1086 and259.5 quarter beats match raw meter/tempo boundaries; the encoded2.5-beat inter-movement padding at2096..2098.5 remains estimated. Follows the actual encoded traversal; omitted da-capo/repeats are not invented. Chart evidence, not timed FF06/FF07 form markers, recording timestamps or official artist annotations. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "exact-score-movement-itinerary-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exactly matched companion MIDI and explicit source movement itinerary, independently checked producer pitch/onset clock at1/16 beat; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BrahmsJ/O40/BrahmsHornTrio/BrahmsHornTrio-lys.zip",
+        "scoreSha256": "678c6b83a368220cf3729dda90b5793e0f9f6db8fa8cb0f3bdc33a09c82f4573",
+        "componentSha256": {
+          "defs.lyi": "e684db8c7f2ba783a07561097058f15226cc6cfd6e36cf92192257a77f0645d4",
+          "Piano.ly": "6b8144b061f4655d8f630ac6159c01ec445d1571d36ddf7563c2206de6ff5e56"
+        },
+        "clockReceiptSha256": "a2cbad6bc7dc8049cd98aa72ba0da8977a771355c0bcbabf25f9d169426347c4",
+        "movementDurationsBeats": [
+          750.5,
+          1086,
+          259.5,
+          885
+        ],
+        "interMovementPaddingBeats": 2.5
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Andante",
+          "startBeat": 0,
+          "endBeat": 750.5,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-2",
+          "label": "Scherzo",
+          "startBeat": 750.5,
+          "endBeat": 1836.5,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-3",
+          "label": "Adagio mesto",
+          "startBeat": 1836.5,
+          "endBeat": 2096,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-4",
+          "label": "Finale",
+          "startBeat": 2098.5,
+          "endBeat": 2983.5,
+          "type": "custom",
           "evidence": "chart"
         }
       ]

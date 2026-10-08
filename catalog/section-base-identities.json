@@ -1,0 +1,3193 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-08T07:57:27.534362Z",
+  "deploymentCommit": "283bd81ad4022a206eeba7ed3d1c790b6332594f",
+  "provenance": "Read-only production artifact manifests and actual Advanced notes; servedAtCapture is a snapshot, not current availability or musical acceptance. Legacy bases without a source hash remain in the private 455-base ledger.",
+  "entries": [
+    {
+      "baseId": "1-step-forward-3-steps-back-olivia-rodrigo",
+      "sourceArtifactHash": "068dc3128094d44eac72a21d2433099b4a0845e9ebac3fef35a5503476599578",
+      "advancedNotesSha256": "f7da22b8d4fa3cd398384db3ded9e66041b9c81ce4f90a07be77991f25420c89",
+      "playbackTempoBpm": 84,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "30-seconds-2-mars-bright-lights",
+      "sourceArtifactHash": "f7165f4cd684326997568f73290187b18343ea0c2d03e7b72fd2bb387ac70092",
+      "advancedNotesSha256": "e89adb7d77b1e9a74ba6d7d1ee080f5976b87010898f8e583b1aed8ef0524a4a",
+      "playbackTempoBpm": 114,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "30-seconds-2-mars-city-of-angels",
+      "sourceArtifactHash": "efff05482f62a49a2a484deb6f86857bc395c7af0b9544356f7944e567e5bd7f",
+      "advancedNotesSha256": "dd9ee3883bafc1b2bfcfc9f056c3c5d3b98dabafe886362934623199f5aacd6d",
+      "playbackTempoBpm": 105,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "30-seconds-to-mars-this-is-war",
+      "sourceArtifactHash": "a2317adedcca4506cd717c3c2f65e2c3159ba874d745b082515daf277b42e456",
+      "advancedNotesSha256": "f55485a7848ab49d5232bb4bb6a48674a5b3f957791b589fcb8d60603cc36e1f",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "5sos-heartbreak-girl",
+      "sourceArtifactHash": "294aaffdcbe7116008bca641342d8faa979aeb754150398954ff488a4652cbda",
+      "advancedNotesSha256": "0d14cc43281e5f68d8e81c04c3e2a9c8b5ca69114252bb4796aa1e0f3627695a",
+      "playbackTempoBpm": 165,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-adam-giselle-pas-de-deux-1er-acte",
+      "sourceArtifactHash": "d9150c463049a2b55711aefcebd4c9ede92ca29eaef5e1ed8a8e9c8eb482391b",
+      "advancedNotesSha256": "28fdb24ed086ab7ecdc78f77dd9d79c7f689f3b7bd901a65263dcc354c883776",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-adam-minuit-chretiens",
+      "sourceArtifactHash": "13ec851eb00ca9aba345cad50f03bdb3b189f566f38d094a1e6b839765b3d678",
+      "advancedNotesSha256": "7b130c9251984139380e138be02f0315aee68b5556863d16dc075f86cbd4a368",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-1",
+      "sourceArtifactHash": "9ad9ce80541e03f9bfa5b51352137e0e20f154d81ed04d3db71ace797bf9d6fe",
+      "advancedNotesSha256": "db74ad970768631774f14f9826d37b2ae32f1b81f1655a330b79c49d71363a3f",
+      "playbackTempoBpm": 110,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-2",
+      "sourceArtifactHash": "81b1d3e31c6e147bffc7fe678ed271e10d7a46b2455b17477fee42bacabe6be2",
+      "advancedNotesSha256": "9dce08b7f1c7eb2302684ea9b237d424c09383889f874c6401b39000f3f362d1",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-3",
+      "sourceArtifactHash": "b625d9a1559b614a99a30f83e9d8c39732a73f8c0c43e454060e0d14ae1fff84",
+      "advancedNotesSha256": "63973e260370210a6bda112895cc1e26e6a8e3c2d32f119baa02caa11ac0bda0",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-4",
+      "sourceArtifactHash": "3e695c28acdcbd54890d694114a5efbecffd25fbbc937ee9a5741ec684659c1f",
+      "advancedNotesSha256": "4452e1ce9323858df4953d5f9c9e67a8284435c3e4dfec8550beec053a045b5d",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-5",
+      "sourceArtifactHash": "6d217596cc6ecb1d20e9779621e939b6a5a13641f9daa25dd7c5109d3c7665f1",
+      "advancedNotesSha256": "4c8b0cc28c2b58dffd8bcb64f4fe8b7ea9f7783d41c9d4d40f38200b8246d15f",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-8",
+      "sourceArtifactHash": "d66e23a9863871a2539449738f32d554f3cc56d9f87eea64debda0575ef5099f",
+      "advancedNotesSha256": "7a607aad90392f866fe35cc2a2585cdbd16a8f41610b4ef0656bfdf1bd6869c8",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-dvorak-als-die-alte-mutter",
+      "sourceArtifactHash": "112c8943a0e4bb3ee6dcaa9678d131ed3ac34065671cb46a0b3659da187feaf1",
+      "advancedNotesSha256": "f9570d8be5b553a186c5b7771c5bbd0dbe6f5df6f2069ecff81189e3ee42c36e",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-glazunov-reverie",
+      "sourceArtifactHash": "30265bc595c21fa151072872823b8f36c3e9eb0b9139d9b40427548fda406cce",
+      "advancedNotesSha256": "1e7aa00980a6cbed467cfae0be1147f71b5001f88784c4533d7e072cd887740e",
+      "playbackTempoBpm": 66,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-thousand-miles",
+      "sourceArtifactHash": "2a60eeede4c3592bdd6f0a221e23f1e216d00ec5ead7ed202694956f29a016ee",
+      "advancedNotesSha256": "6951d25939785b43b737e98867cc83e409b84ca19edd0016c30814d71af6ec77",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-thousand-years",
+      "sourceArtifactHash": "98f70261df6382487726c271464dc473b6595eceefb3d1c77de875f8aa357600",
+      "advancedNotesSha256": "6cf25f8ff238322493b3af6b93f92dd85aff0fcb4d7a40f4e314537695dae747",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "a-whole-new-world-aladdin",
+      "sourceArtifactHash": "05ba3dee0c4e9a64e6b60a8dee7b584d1af092066c62a8619e302b1f3e21624f",
+      "advancedNotesSha256": "176925edc8e8412e2a3d2f62f988c46d2571f1cddc32c60a11b16e7a42f16b6d",
+      "playbackTempoBpm": 110,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "abba-lay-all-your-love-on-me",
+      "sourceArtifactHash": "1ff75be0c085c1bf06d8603034d55e287ec63ee8fce11dc77e3efb7ee2127d96",
+      "advancedNotesSha256": "b8d3ee667eb43cc9303041f5bcea9af227a192b4c46fc149747207e03bc5f7ff",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "abba-the-winner-takes-it-all",
+      "sourceArtifactHash": "54fdc6dfba535308b19583a24ca6cb284813bb2ae84e42abe4cac8b062a57eb2",
+      "advancedNotesSha256": "9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664",
+      "playbackTempoBpm": 123,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "adele-hello",
+      "sourceArtifactHash": "b1c54b1d4d6121ea5aceb3eb278348b289a7aec80344ba238f85cb5976382d28",
+      "advancedNotesSha256": "aa6d9588211606f6dbab0bdcec6069689db22cfe2b3069cd378478c05fdd4790",
+      "playbackTempoBpm": 79,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "adele-set-fire-to-the-rain",
+      "sourceArtifactHash": "3045c9385a13aeccc9ee28ab0439eab7f1e8a6eee441328843f2115e89c0b1d8",
+      "advancedNotesSha256": "94881af6ea162556cefcd7ee80ad83700cba0ec86b9c4aeb980f1f2ca4dce98d",
+      "playbackTempoBpm": 108,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "adele-skyfall",
+      "sourceArtifactHash": "e56de5c014ff267a8ae8be82e6991920909e095a9a0845d38ef5a29da4ac9ede",
+      "advancedNotesSha256": "af41511639e95686e2bc88f8bc56bc7fc90ba70644c5870b05dad6773fd7eb18",
+      "playbackTempoBpm": 75,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "aerosmith-i-dont-want-to-miss-a-thing",
+      "sourceArtifactHash": "c3a6296f70f05750c1936043ab4bbe321981eda7a4b5fe56c3eba14ec22f008d",
+      "advancedNotesSha256": "782c8dc03a31c35d49afeeac1e9a462e8a20dd7b8ac97cf5687340dd249b6f17",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "alan-walker-alone",
+      "sourceArtifactHash": "a9ded6ee09116632a96ef333db97572aa0293709c10cf5b53b9b433fc5b50527",
+      "advancedNotesSha256": "4e9a7112712c58b043724980cb7249f8952761aa7344da7f39d25fb9a116c89b",
+      "playbackTempoBpm": 175,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "alan-walker-diamond-heart",
+      "sourceArtifactHash": "bd1cc1d69b77816a68bba53cba9db64c70d704dea8df697387384e0bc2b47bee",
+      "advancedNotesSha256": "0ed708845df9f9d1992f80d14a30ea8b090db0f1f56fa0ae6e5678dd306f8952",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "alan-walker-faded",
+      "sourceArtifactHash": "6a23da6ee277d658481fc3df1c25ccf2dd236bcc3684550f257aed032cc8f823",
+      "advancedNotesSha256": "d488af899c4a7c74a25d1cfecd26849f7ebcf161fd6526167d3670bd8646f8b8",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "alan-walker-k-391-ignite-midi",
+      "sourceArtifactHash": "534f76f76167c598fcfb9aec7ea9ef5aab8f561c15d54308b7fbb990135887b5",
+      "advancedNotesSha256": "a27566b317fc5a0b2edcc19b82510439e2f30921ea664aa6d7009fc736dfb736",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "anonymous-la-native",
+      "sourceArtifactHash": "11b67439a04788d12690286d4f16b00d86a353c30359432700908d24f4ee8725",
+      "advancedNotesSha256": "b208323df2b940433ff0fac14084aef42e3370c04f5a5bcbb82ce5ae9acf6eaa",
+      "playbackTempoBpm": 91,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "anonymous-les-graces",
+      "sourceArtifactHash": "fc60bd414fec124c37df6bef79e4748bb7c1310bdd2d59d354d93b7b864b1966",
+      "advancedNotesSha256": "253a3163222c9189a4458e78c7df7adc1a120262fb023e89b1e8f58ed2016d7d",
+      "playbackTempoBpm": 86,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "another-love-tom-odell",
+      "sourceArtifactHash": "105984927f47c570f53bb33024acc7fc4d19238972ad4151575e3c7f3f28d73e",
+      "advancedNotesSha256": "cbe531890338eac71e00563b46d62c4c35ea2dc70cdc3e28388916075be104b0",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d",
+      "sourceArtifactHash": "7f91d0de3a130f5694f9ee3625300b12e7100f1c4f7b4310f2eb918ab625203d",
+      "advancedNotesSha256": "620a41b0fcf9f44301f6094c8173d2c918e56e1fb5545edf7f5fb13e3da8d5d3",
+      "playbackTempoBpm": 95,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "arian-kermanchi-just-tonight-the-pretty-reckless-piano-cover-video-msm04s3z",
+      "sourceArtifactHash": "b15a712fbdebeec50fad6f713e38e174556583e6d6c0e814dd22151430d7776b",
+      "advancedNotesSha256": "0cd8fc6b7086b8ed71566410b70505fcd753c1aea53aacf124ab72e0a778239e",
+      "playbackTempoBpm": 162,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "as-time-goes-by",
+      "sourceArtifactHash": "8452f0eb3b91f6b1d3907c6262908717702b7457ea88c7f4913bcb5bde4a4b74",
+      "advancedNotesSha256": "00b400961e8cfbadfb1aa8693b55f1d9599a5452ba5d4c53d24ca31f803e4520",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "atlantic-lights-the-greatest-showman-never-enough-loren-allred-piano-cover-msm021rx",
+      "sourceArtifactHash": "44ae358ce61517190010612e6d6679250720f061dd3dddfe82452701495060a2",
+      "advancedNotesSha256": "57ec2ebac3c067942d204f30b27277872aa1997c9a36e6d16e005bdc46f664c5",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "avenged-sevenfold-afterlife",
+      "sourceArtifactHash": "c1a6bf28385b9ff3a1d3b8bbb62427ba94cd311bfeaefb02196c5ae076a301f3",
+      "advancedNotesSha256": "315f8c378ce69a97f2a0cb5c0d9f96c23beba0f0ff665c888407b47100c071f1",
+      "playbackTempoBpm": 150,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "avenged-sevenfold-so-far-away",
+      "sourceArtifactHash": "4e728142de774de33c61ed2768936dca3947746582a356a922b948fce87ce30b",
+      "advancedNotesSha256": "b5d602aaaf6444c6172b008f68d264c8a7e79cf30adef44512d33441ea5a9d8a",
+      "playbackTempoBpm": 71,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "avicii-wake-me-up",
+      "sourceArtifactHash": "446a5a69d42835d217613f5a0da82f58f6909f8c2688ec77e31d0329746d1913",
+      "advancedNotesSha256": "acae4a554cab99f39a71e2c350706e81828e1d30b1e4ec0773efc825a72c0e74",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "b-bartok-romanian-folk-dance-no-2-peasant-costume",
+      "sourceArtifactHash": "34f4fe3c28f6c9a7433631edc97126c649d7733eba62603786a1331f62e61e7f",
+      "advancedNotesSha256": "d9e0d75becf0126c7e085c45587626f84b576875338437fc8881863799ff0397",
+      "playbackTempoBpm": 150,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bad-romance-midi",
+      "sourceArtifactHash": "b2af656a678458df98dc9fca1812a84f564f82516033a5ef67977cfc737d40d6",
+      "advancedNotesSha256": "e892702312c387c780485dc74fa3ab97bab35da5ff30a2b81010260a400bc177",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "beatles-hey-jude",
+      "sourceArtifactHash": "8dcb2646ff17f5244366b2e3c322d4403ee43134494baaab8de200636ddaab45",
+      "advancedNotesSha256": "6d64823d20f56a7be6be9687bba0ac5c9be7bbf50f9a32401e46bcac02f705bc",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "beethoven-moonlight-sonata",
+      "sourceArtifactHash": "77392cb2ddecf02bd142120bbe6465636d29732ce77e54dd565fb8fde9ddd852",
+      "advancedNotesSha256": "ead7de9a7f48b6e6142c4f80e96d4f43d2387b9cc91474c7c6f6c584f8c398c2",
+      "playbackTempoBpm": 45,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "beethoven-symphony-no7",
+      "sourceArtifactHash": "0be8e364abd63acc151c8563c06f61ab11c933c32f3f2ef35f31a27fd03ee305",
+      "advancedNotesSha256": "02ddd1379c615fc657240b64b3059503d756ee02ebdfb0b97cc491530802d5f3",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "beethoven80-brandi-carlile-the-story-piano-msm001p8",
+      "sourceArtifactHash": "21ae0036f6c1ec008555a2fe351006181732a887107a4159490786d4c3c37ec2",
+      "advancedNotesSha256": "02a8fd30af24a900c6931c9cd471e9b1f4845be7e0786a1039a99beffaabaafa",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940",
+      "sourceArtifactHash": "0b034323353ce167cf24664a17bda435c963f58d75c40d75d3860804bb475677",
+      "advancedNotesSha256": "a39db919f07c250adba174560d3882882178dd942a37b136bfd870f490383f9e",
+      "playbackTempoBpm": 152,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "beliver",
+      "sourceArtifactHash": "5f93cad09578fe5ed0a7829ec210b214c236066d61f7d6ba9fec57de7673cd2d",
+      "advancedNotesSha256": "6b0b94005e798b617e3cb20ecee965d048c1907532f41c16cc1651b2e91a34ee",
+      "playbackTempoBpm": 125,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bella-napoli-roy-bianco-die-abbrunzati-boys",
+      "sourceArtifactHash": "97ceda533059ad40e39e9ab9df43f485eb91400f0fce32c7fc18ef9532eccc96",
+      "advancedNotesSha256": "31372148af8b75791dae8eb2cebbdd342eff5248d4a3c6880cc508680447ed21",
+      "playbackTempoBpm": 134,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bert-s-suggests-the-drug-in-me-is-reimagined-piano-cover-from-bert-s-suggest-msm04jfl",
+      "sourceArtifactHash": "14988c3cd04fa46cf6aa83de8d9dc826e1b2c39e7d1fdbfb788c7bdb7ceff537",
+      "advancedNotesSha256": "767a2589f1c064f08bdb5774083f6b35c3b649120517701ab74839593aee6faa",
+      "playbackTempoBpm": 108,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "billie-eilish-bury-a-friend",
+      "sourceArtifactHash": "1ba6eb721a246225e101484cc969107e88f7c7917de8614b0270256c536fab98",
+      "advancedNotesSha256": "42e4aa4a560ac1bd0ea1d17f2c2623ed9709aa5624ee503a397aed7ba7c3bfc2",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "billie-eilish-khalid-lovely",
+      "sourceArtifactHash": "ebe26561692b49fe1d24ee7ca04d01491dda333f51f3d298e3645a0cc5ddaccb",
+      "advancedNotesSha256": "ad626eefef97b988cbaa74f04f132ab497437a75fd18811ce55e53cc5b3743bd",
+      "playbackTempoBpm": 115,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "billy-joel-piano-man",
+      "sourceArtifactHash": "4d3a338a97f7bcb1d6cf3f7f5a88477e72f02d41f2728889e50f1617a68d5e4b",
+      "advancedNotesSha256": "1a80a1e5cab3284ef4c0f8bbc3413547edb4514fd2136542a3e7e9e9ad0732d8",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "blink-182-all-the-small-things-midi",
+      "sourceArtifactHash": "0984ffd6f38c73056735d5255f63005fa77d48d89f0a71949f103ce9b7d6793d",
+      "advancedNotesSha256": "eb8afa2a31c56ac6fd65f47470da882893ad256b8cce62d926fb7f9be8ecd527",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bon-jovi-always",
+      "sourceArtifactHash": "a9fe18ed5f761bb3a4a6d62b54a0f54364f5cf50b6404745a8f7f945474603b4",
+      "advancedNotesSha256": "f40beeb9d0ffeaed9b798bde9fb1173e512f3aa3bc551e957b558e54fca3a3b1",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bon-jovi-bed-of-roses",
+      "sourceArtifactHash": "07775ecf2d6d47387d647ea9231ef12c5a6218f54bffc8af87340f89aad2de9e",
+      "advancedNotesSha256": "99ebe924728d8003891abf990fb3d28f825e0d7f7ffe1a560e537ea29208bfe4",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bonnie-tyler-total-eclipse-of-the-heart",
+      "sourceArtifactHash": "58a723323f4e85764b563bd11acd171f1c8ead8c13f7a499cd35d6687909c945",
+      "advancedNotesSha256": "4a61acb2eae46f6611483fa6bfab7a654a2cb19a75371650827cdda08388a44b",
+      "playbackTempoBpm": 68,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "brahms-opus1-3-format0",
+      "sourceArtifactHash": "3b2149af261dc09575dbb2a496fe0de5e840d0967ff01f0b50deb058a067c201",
+      "advancedNotesSha256": "9cbfaefd7d06a8d9d740c8442f33ba64964a20a72dd7b7b9a4034dd2e41e3292",
+      "playbackTempoBpm": 146,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "break-free-ariana-grande-feat-zedd-arr-by-fonzi-m",
+      "sourceArtifactHash": "4b3494c3696df936d0084a5997ac4322b3bc3270444e2e373f8ac70d78c86bff",
+      "advancedNotesSha256": "65cfdfc8e457c0c892fdacddcab7de33e3913e95b703fb9fd6f3b334988b6729",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "britney-spears-oops-i-did-it-again",
+      "sourceArtifactHash": "64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4",
+      "advancedNotesSha256": "84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+      "playbackTempoBpm": 95,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bruno-mars-when-i-was-your-man",
+      "sourceArtifactHash": "bc9f04f00cf15b0e2ea4ab0b327db829d636ce7942e1a7f57a3744b5bb37f2a9",
+      "advancedNotesSha256": "231e10085926ca9e6985b6ba3ca6eba8949a432319fe3c3d169d74b11c449ef4",
+      "playbackTempoBpm": 74,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bryan-adams-heaven",
+      "sourceArtifactHash": "5208901c4ab429c8cb06745590b6b57d38ad21fcf1b1736201a6ba800148fa5a",
+      "advancedNotesSha256": "89714dd83bf4fb21c57fca8eecb5d746febc94386d51bb674528cfd68bb11304",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "bts-i-need-u-suga-piano-full-solo",
+      "sourceArtifactHash": "b49a3a229066f410f0718b79f3ef644c57ef4297b1211eb8be35fd9c566e9518",
+      "advancedNotesSha256": "3110d9a8dc4a4b00d6e39f985cd1f4b4c7ef2898aa5736e1e7360d72406cf1fe",
+      "playbackTempoBpm": 158,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-1",
+      "sourceArtifactHash": "6ee0bf432211a3e3372ea67266a255d99b0cf9db5ad35ba6dd2787e06b087f14",
+      "advancedNotesSha256": "09adfaf166fd4a4876e6187543d4ddf3ae4428eab357f471bf19e5e775c03f97",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-2",
+      "sourceArtifactHash": "7d8ba07e3836e2a5fac7f7ce3eabc94238b63ed0435b3927f14807677ef64f5a",
+      "advancedNotesSha256": "f6c3ca1811a21cc58daf6cd8dcfc675e05f28f6a62547b27011b1248f57a4a61",
+      "playbackTempoBpm": 118,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-3",
+      "sourceArtifactHash": "8bbe2f4e99c5cffc46904c927e326e1ec084f580fe142fb5397131a896fb7399",
+      "advancedNotesSha256": "ae58eb5e0b185ec4ce8bd4467e6146caed41768410a0136f75337afd758b6ef2",
+      "playbackTempoBpm": 78,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-4",
+      "sourceArtifactHash": "08c4c946c5a93b5ab3da3aec17a02a20d723e3bf461787e9240813744d6f52e7",
+      "advancedNotesSha256": "da822f69829151638f9c1aa442c1c55494eb40cb6507017a784c65ef186f317f",
+      "playbackTempoBpm": 168,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-5",
+      "sourceArtifactHash": "87bd494877ca42f4c3f046d62fad148ce85270cafe0069b62a2380b78c63b6a1",
+      "advancedNotesSha256": "ab8fd4017665ad78e488040760098d297bac77783e184c68d314655ad9ef1674",
+      "playbackTempoBpm": 85,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-6",
+      "sourceArtifactHash": "bc112ad07760fc1e42fd33ac837ea34cd7a7bf47c3ac7521d8da132f7b102f65",
+      "advancedNotesSha256": "19bbc054cf13f30e8de6d84388f9d8aaf100f87ee5ac84f1e221b7aec9dcaa4b",
+      "playbackTempoBpm": 135,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-debussy-deuxieme-arabesque",
+      "sourceArtifactHash": "b7991339535a5436b01f4b0f8fe97304a60a0a7f38d16365692d82f6c6e22d8e",
+      "advancedNotesSha256": "5bec8143e73ca92772e682b6df682c3efcd658a667e1036df6817a2a169a3c8b",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-debussy-prelude-4-les-sons-et-les-parfums-tournent-dans-l-",
+      "sourceArtifactHash": "d8500c6ae6146ffd445da26f06fa9670bd48b88a7552ddd2122a7b2d4f56efa5",
+      "advancedNotesSha256": "b6b838c5644b3994bb7c6f10af2c812516ec87ac73f79edaf5768ace70471be5",
+      "playbackTempoBpm": 84,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-debussy-premiere-arabesque",
+      "sourceArtifactHash": "6732dc10799ec0af47d19d9095562d0671864a750129e0279901def169a34757",
+      "advancedNotesSha256": "43ba6d1e5c5ff4e4ca44f3c95ed3ff22a1ce1844aed9de86b1ca5f489b7bba6e",
+      "playbackTempoBpm": 144,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-debussy-suite-bergamasque-clair-de-lune",
+      "sourceArtifactHash": "4eee9a1546ffde1ff74cb9824ba0e57cbc821185a15185bfea9faed97820bf8c",
+      "advancedNotesSha256": "139fcede053d9451407a27871ec6c24e76f3ad43f1dcbb363f870de80bf6891c",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j",
+      "sourceArtifactHash": "374fa21eccbaad7b994da5b8db779c65cc527a382bf819b82126dfcd678a4297",
+      "advancedNotesSha256": "dd4d0a637e8010aeac2fd7355fc8b1b20574e20bda8e955d064686375db4cc78",
+      "playbackTempoBpm": 66,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-j-brown-ebb-and-flow",
+      "sourceArtifactHash": "c6e100677e3b6ba956fb89678ddb639d72906b40b940d56010b5b0a72921fc2d",
+      "advancedNotesSha256": "81be158ab205cc03df392a11c68d07192c6e784dfbe32cf136326f4c1ed4daa0",
+      "playbackTempoBpm": 54,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-j-brown-september-song",
+      "sourceArtifactHash": "4eaadd593d1a13f03cab0822ddb9ba0fba2832c28c0b7594acb1ffc5995c2874",
+      "advancedNotesSha256": "b18d300c9b98797308abf16a4003a373c5c8cb3b7b45a30fc9e0f31ae48dac27",
+      "playbackTempoBpm": 66,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-j-brown-toccatina",
+      "sourceArtifactHash": "158f49f07196516292ff667a2b2d2e791f0852425b32389396f7fec356ee64f3",
+      "advancedNotesSha256": "617eb561923696891c212a53c9b9e803865607bb85e03d6057199bd78079167c",
+      "playbackTempoBpm": 108,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-p-e-bach-rondo-in-e-flat-major",
+      "sourceArtifactHash": "065d4729bb9467a86cf72d8e109822bf881952cadb1a4a2d7b0c06371b76c49a",
+      "advancedNotesSha256": "f84987f94fa81443e2e6c7e718bc12ed1e2ddf046b3a3dcaf8c597108734980f",
+      "playbackTempoBpm": 66,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-v-alkan-prelude",
+      "sourceArtifactHash": "ae68944db2e646e14e0923a79b95b3a6e2658432e384e8741f3ab108dbc5ac80",
+      "advancedNotesSha256": "50a78996e80fa2731574f881d0eabb3bfb75045069e1f046bc6a24b1e0753098",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-v-alkan-prelude-nr-2",
+      "sourceArtifactHash": "7c46fc41fee852c582da11ea501da314c7243a97f9080d915d82a7fd14cc18b4",
+      "advancedNotesSha256": "1cb28747225985efbc5263612cd9753ced4cfc6af9d4122ed00bf6efe9b3195b",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-v-alkan-toccatina",
+      "sourceArtifactHash": "7233132c9b4568959d5d092b9bfac67eeebb8732e8bd74b006f6d06eaa56eb63",
+      "advancedNotesSha256": "e9fbaa81d4262e33b89597b31481aaa8307b298c1d824a125d14e10e915063b2",
+      "playbackTempoBpm": 180,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "c-w-glover-do-they-think-of-me-at-home",
+      "sourceArtifactHash": "86b83346a64da071cad63543327f28f04c9e098e5e94fa3be2c16a04df4fff16",
+      "advancedNotesSha256": "fe6a0a33ae6ae626bf8725dd7faff0dc088e964fdcaa73bdda268a0bfef2152a",
+      "playbackTempoBpm": 76,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "call-me-maybe-carly-rae-jepsen",
+      "sourceArtifactHash": "18c1113a82cd94be776c6de9396e8a2d20324bec7d4a0b2f0d3549f8919075b5",
+      "advancedNotesSha256": "6283b64f7e923c7d958a84ed9002194611b164633f7e0627f15e9d599a4d25d8",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "calum-scott-you-are-the-reason",
+      "sourceArtifactHash": "4eed4fa67843f07e9a944cda4b7ff122f6f0bae9fd0020407ed85685e181979f",
+      "advancedNotesSha256": "20545557033fe1fec12a0b12a41fc2718ce3f3b455f00bc0706ebe3ea217e1dc",
+      "playbackTempoBpm": 86,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "capital-cities-safe-and-sound",
+      "sourceArtifactHash": "bb069b39777c96de131f5c7e9d9a0cee53cfe4bd345029f00f8be10ceb71f198",
+      "advancedNotesSha256": "a50d9b6adc3de79c3988f64efc6b7f517908a7435dfa10a05b9415e89fab9928",
+      "playbackTempoBpm": 118,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "cher-lloyd-ft-becky-b-oath",
+      "sourceArtifactHash": "3b209ab909d777058a7109a05f24b225f1e6a000a5a0ea311f6c5c6d683cc01e",
+      "advancedNotesSha256": "63452a1ffdb25c05363ed3bbdf44c77a3ef1b701a28735cac1587190e943a7ae",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "children",
+      "sourceArtifactHash": "4501115fff49335ccf84ce80163f89076cc37c3a7b24170b542d18c3c4fd1929",
+      "advancedNotesSha256": "790c0d7ec30e8cdf57ab532cd8efcadf30b6d98236d510e56d5e57f883463af1",
+      "playbackTempoBpm": 67,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "chord-overstreet-hold-on",
+      "sourceArtifactHash": "d776f4e6c3d52807d9b81fa9c4d41c3fccd47471546d21d7bbc2a3788b749d78",
+      "advancedNotesSha256": "9be6d476f9673e385df2a8c73fc7d73c0542c55919da9657c8ad59f7de2be69e",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "christina-perri-human",
+      "sourceArtifactHash": "ea94ca289305af24f8cb7f817a4e796f7b4e5ac644699e98d2dac65fa521b60d",
+      "advancedNotesSha256": "2089169fa9405f93fccc71d526fb1b3a69eea1d2e7ae5d68444db04b3564bc5a",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "christina-perri-jar-of-hearts",
+      "sourceArtifactHash": "0ea7401f716d51179dd91ec486f0dd31ea707ba3a17704f95b34a64d3d5f44ea",
+      "advancedNotesSha256": "5d0f50d7453e247d7a87ceee0e59ac1356b204174839620bfbfa5925ef958a68",
+      "playbackTempoBpm": 40,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "claribel-c-a-barnard-18301869-i-cannot-sing-the-old-songs",
+      "sourceArtifactHash": "806b06d9e1add13cdf4f0343852f1bfa3df2f78f51676d13c9287b7b5fda7898",
+      "advancedNotesSha256": "46fc46f20aba0f24e975714d36a73d3174be26defcb6672e55dc8822c8a7c58b",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "colbie-caillat-try",
+      "sourceArtifactHash": "db7d83d7ac9ba618ca023d50e4b108ff01a8bb0f383f12e1898e0c22cd4a4bf7",
+      "advancedNotesSha256": "b0a28fc522392d27bad4e15581173a6ae0c3e4fec49a233d0e982c1dd57538c1",
+      "playbackTempoBpm": 141,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "coldplay-a-sky-full-of-stars",
+      "sourceArtifactHash": "288c249fdb56c534714797e9bd5593e314c23b25cfa01e75f69d19c193f73c93",
+      "advancedNotesSha256": "30d3fbb2926341cf0ec56ab0268349b5b1d3594d40c7f3eeb8e434f909640a8a",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "coldplay-atlas",
+      "sourceArtifactHash": "da71292d6eb901538890f37c7460d37ef4b03c25e0a5c816678c4cf72a3bb554",
+      "advancedNotesSha256": "d440e0f1539657d5541d00df10f4e548ca52413287db072a62be8116765db1f2",
+      "playbackTempoBpm": 68,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "coldplay-clocks",
+      "sourceArtifactHash": "6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc",
+      "advancedNotesSha256": "053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "coldplay-every-teardrop-is-a-waterfall",
+      "sourceArtifactHash": "1be45ba24082fb6da8ff9417d44983ff3e806b62880107bd00d0081eddac634a",
+      "advancedNotesSha256": "69e5772c9bb5520ff1b56a24e6d7066b4f13e47f7cd87d2c0dc3fd52d503c239",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "coldplay-the-scientist",
+      "sourceArtifactHash": "9e711509438cb419f99d5f7ec708b9224d03a13cb00f748c613523950f1af57e",
+      "advancedNotesSha256": "0143fe03e11c21e212c8e905244329548b28e0ad0bd5354693520d6f9114d986",
+      "playbackTempoBpm": 136,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "creedence-clearwater-revival-have-you-ever-seen-the-rain",
+      "sourceArtifactHash": "76c942348f018193935c3e2fdfe264b6373194615140c0e1ef858bffa107dd1f",
+      "advancedNotesSha256": "ecaa52bc20bd8f037cb71137b89c306811125925bc917f424417694be795648f",
+      "playbackTempoBpm": 115,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "d-d-emmett-oh-boatman-haste",
+      "sourceArtifactHash": "9de47c13635c5a3cdbd7e975cac458f82cbbd00596fb143811b453c27acc09e1",
+      "advancedNotesSha256": "a00d8f9e973a1f794405bc57783ea12f5745e9363d6fffc898d78167d219f871",
+      "playbackTempoBpm": 78,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo",
+      "sourceArtifactHash": "8e4d4b9114800d69904dc4af35376b95ccd1d8c537aac3adbe812c72f0cf482e",
+      "advancedNotesSha256": "7f0ce6f0afdd4a7b6c04c1158339bb3440894cd5f77b686308a99fbe3d24b0b6",
+      "playbackTempoBpm": 75,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "dadebrayant-nothing-more-just-say-when-piano-cover-msm01g4z",
+      "sourceArtifactHash": "67b806367124f910da4bf3f02a1fa1ed57bb8a2358abea77d1b7d8e94a25b7d6",
+      "advancedNotesSha256": "7d6dd8c76ee7f62b7ce55cf9a8a8393daa85a67dc8f00ca5ab22b7e20a4ec494",
+      "playbackTempoBpm": 144,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "david-guetta-ft-sia-she-wolf",
+      "sourceArtifactHash": "3fda2b6b3686650a2c32af7a43e061c9c07ef2c80f93ea2b3fc0ab8edfa5432d",
+      "advancedNotesSha256": "07e69620997ea4d6e9824260073aa17b05877b31a53a0d23f161f8a8482ee903",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "davy-jones",
+      "sourceArtifactHash": "cc534abd8c2a65fe6385830b347a63c1295392c332a63d799898392d099b5814",
+      "advancedNotesSha256": "5f7c9019e12944ab110658cc0d74ab6c51fd66a0bfcb1b8811a0cae82f736a16",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "deadmau5-strobe",
+      "sourceArtifactHash": "2120bdf36643fd67497cb656fd200d29ad3bae8a1b4abc90fb73cdca32425a07",
+      "advancedNotesSha256": "17f54e9a9cbee801721134ca87cf50c7957cc67f7e8ebaf9ef300b8992108d23",
+      "playbackTempoBpm": 82,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "deja-vu-olivia-rodrigo",
+      "sourceArtifactHash": "61e972c6d418a8dbd9b7860670a0fcfee5da2032624cd52feb001a422fd5f4e4",
+      "advancedNotesSha256": "d089c272e0eb1e09e433d7db7b7c547b3e4d28dae2e42a47dd21a0d78ccb3124",
+      "playbackTempoBpm": 84,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "demi-lovato-heart-attack",
+      "sourceArtifactHash": "3afa3b9d60084aaf7e37efbbbf50693e776620853451ffec07dce8ed69c2d3dc",
+      "advancedNotesSha256": "29ad95fa061c842d04743cef21ce380a2385b5438576a0b8cad8005b0320e1ec",
+      "playbackTempoBpm": 150,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "demi-lovato-made-in-the-usa",
+      "sourceArtifactHash": "22440824167874d75014d918f54dc2fe6914235dc22042155705767a985011f7",
+      "advancedNotesSha256": "6993979031cae6af538988667ef6f936ad719cfe812c090279221f4b6b14cd2f",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "demons",
+      "sourceArtifactHash": "8b3ecc533200c4521fa7445649d52c07be88939db6e9066759122bcac952fddc",
+      "advancedNotesSha256": "ede5b67bc42d85a6bf2e146ab65e3f636b66132a5bb341462c57f43f72c796cc",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "despacito-piano-sheet-music-luis-fonsi-ft-daddy-yankee",
+      "sourceArtifactHash": "e3eca3de8dd1fd97c29258367288d87584b57ea8be1dc22da9cd6e91c431eee9",
+      "advancedNotesSha256": "1b5a8f5e983f9273c9962d664eede514c3209e1aed4ed93133a98d26bac22c54",
+      "playbackTempoBpm": 89,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "dorelia-bast-sabaton-en-livstid-i-krig-a-lifetime-of-war-piano-cover-mslzy9fm",
+      "sourceArtifactHash": "241e48e043e206eba24325cc9cfa2b00f7ee0f8e7cf2ea024f5d5ebbdeb2d519",
+      "advancedNotesSha256": "a43e3e7f97b51743c43a8fbbcc0dd182c94bd871ffbc813383e91533428b9d39",
+      "playbackTempoBpm": 136,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "e-grieg-albumblatt-in-e-minor",
+      "sourceArtifactHash": "7b89a0c2e9d83afcf348ba374cc846ad1e045f78caf4f45d3cebcc2e8e53d746",
+      "advancedNotesSha256": "82144c80984d6ae15e965602d2b934cf75ebb8012f3510bc792d9a6d2a3987ef",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "e-grieg-ases-tod",
+      "sourceArtifactHash": "eb0b5f5b76894fe4140f4ab98616472db87e9501827bc92fec144c6253e8375f",
+      "advancedNotesSha256": "f46d4af1e97580ff4794a6490bbc65356764b61e9e12b6db01f9bb128611af28",
+      "playbackTempoBpm": 50,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "e-grieg-hjemkomst",
+      "sourceArtifactHash": "c3b784d07108e5514b418855f414bc22c91ce27afd718efb6086a62c841e19ab",
+      "advancedNotesSha256": "faac59f5c9cb45970a1a9c66b7c5225ff0e8a3927ae51d354aa6a512c6bb0186",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "e-grieg-ich-liebe-dich",
+      "sourceArtifactHash": "dc758a0b481832f2f883e9b5d278046f3f21bccdb9ec92ce147ceed588143e65",
+      "advancedNotesSha256": "f03b4995032a5c1eddaddb7b2a8b55fc5d34e7961d91d0d28fc6f4c2b6aff37a",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "e-grieg-in-the-hall-of-the-mountain-king",
+      "sourceArtifactHash": "0c256a809b5af1faef81b6aad6106088a71d76b12435d5f0775d4ceee60c917e",
+      "advancedNotesSha256": "ba4c5c96222349c9bfba3349610d6455fa4a45208dd1d85661556f2476818a44",
+      "playbackTempoBpm": 138,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "e-grieg-troldtog-march-of-the-dwarfs",
+      "sourceArtifactHash": "9d73618b3ab01976b9138c57ce7e41db3256b0eaad8b9741c909d322c6fb369e",
+      "advancedNotesSha256": "c3f864b2354aec704bdb995c833f28d7de076aae201059ca882ffafe02e7eda2",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ed-sheeran-autumn-leaves",
+      "sourceArtifactHash": "5cdef5ce5735c39d8209ace71d6138d8473cdf58841820f455c96eb2c1e2baa5",
+      "advancedNotesSha256": "a7ff3694a0e06be9b3ad1f20b40fe4dc66562cbdf7d4236942ae06c56d50af5e",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ed-sheeran-happier",
+      "sourceArtifactHash": "36f1fd6e2d0457ac91d1a195862e650565b4696aa9224654782bf374840c2806",
+      "advancedNotesSha256": "61b8fccf05fb0dd879627759edf463e854c466c6aeb34397942bb78448276ab2",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ed-sheeran-lego-house",
+      "sourceArtifactHash": "75c4914e7fad3cd1bd6139feebcca5ddaec186c972dd982de1a54179ed80f2f3",
+      "advancedNotesSha256": "c7751a80ede962f6c638a07e0c9a79f08276c2ffaf6c33708fd6b5b8d5288a06",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ed-sheeran-perfect-piano-arrangement",
+      "sourceArtifactHash": "d3c7addb1b300a0ac3d5db5348a772c2f64796eac741f72c63dfeed4b9d55416",
+      "advancedNotesSha256": "17db9904fa1549020394d078380be978016df5ee7ba7ff776d48c6f374e53230",
+      "playbackTempoBpm": 94,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ed-sheeran-the-a-team",
+      "sourceArtifactHash": "acb5f2ddb2493929178a598427f1a7e7be1a4faab8e7b13d5946e31030785cd2",
+      "advancedNotesSha256": "3ac5fb407fdc1547efc1e0c3e7f03016bccec062ef9c19ad3bfaa3d779063516",
+      "playbackTempoBpm": 85,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ed-sheeran-you-need-me-i-don-t-need-you",
+      "sourceArtifactHash": "b4a592aa09765deff346e2f9ce158feb43ec4b65a93d62349cad0fff09717f7a",
+      "advancedNotesSha256": "42fedfc0a39275e29062ff459a30de3c6523ca984d9230b425e6e072ac009f0a",
+      "playbackTempoBpm": 170,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "elton-john-circle-of-life",
+      "sourceArtifactHash": "7d79987b9c0cf4d13d091199183a03a36a59f31d49f386851d4b67c8f157622c",
+      "advancedNotesSha256": "9cbde25b24e8de77dda2f954347657cf4b19603c848d6e3f99f766bbd37e95ea",
+      "playbackTempoBpm": 180,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "eminem-rap-god",
+      "sourceArtifactHash": "7b85871c13d6e195a888008548d9d1d5baff309880200c58b0fe564a49661c47",
+      "advancedNotesSha256": "bbe1065f089b3d7e1d444a1f26ab1be74f0c95cfda42503d55d9ef68b8ebb89a",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ennio-morricone-chi-mai",
+      "sourceArtifactHash": "e4c932f74699813b215a45c4128bcd25ba05cf61379c75b22087788a4cf4e281",
+      "advancedNotesSha256": "1e21d4ac77fe6f25e67b56842d9d377df1e62b3e09370e9ea18a31eb2ae4b213",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "enya-only-time",
+      "sourceArtifactHash": "90644762b1e22a6620549933192ab9a89a77978be9ec5ccde95f9ab6c4cc2b8d",
+      "advancedNotesSha256": "144421454ea003cfc79568301eee14d923b92a26a0ed40df36c7501b0c45fd04",
+      "playbackTempoBpm": 83,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "eric-clapton-tears-in-heaven",
+      "sourceArtifactHash": "cdd2bf659f501c2b0280d8eb7563a542f0039a2282bf2348a6556fa8ae0db48a",
+      "advancedNotesSha256": "e3f6f799992854d368a1d0eac93f98d01b4fb8d4d3f2897513c76502c0e19b58",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "euphemia-allen-chopsticks",
+      "sourceArtifactHash": "61d827b30de76b18aa12cfcd6402dbf17d91bcace688d7a00a908a209043c062",
+      "advancedNotesSha256": "e75e47acf17d73e0e876e3c13edcacf771a1d5abbe64613cebf30cf023122810",
+      "playbackTempoBpm": 48,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "evanescence-lithium",
+      "sourceArtifactHash": "a6f684b84c09f7aaba7268e5077b86efed2c87f8c2b4ed4dfa6dd532f1a2eef7",
+      "advancedNotesSha256": "521243f8d8d864e559e081c0c16b56f7f4db642c8911776af62c2f6cb5a30ce6",
+      "playbackTempoBpm": 111,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "everybody-talks",
+      "sourceArtifactHash": "67368e1d6c204fa6d04a92394fcf46cd0d2bbc87f40822bca0f78bcc6c139241",
+      "advancedNotesSha256": "130e7a92b19ee6da3da6d036c6f74c0fa7bc6ebd150a64543408af36a7e670df",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-abt-vocalise-o-1",
+      "sourceArtifactHash": "bd6524f98752dd9190376e29dd0bce82d5bd5e57dcdbd549687e7836629434ff",
+      "advancedNotesSha256": "3f1bed6c8b62bc7046d9fcf18bc7bc9e840a062ca9e3992ce0d7b5af2f19d293",
+      "playbackTempoBpm": 110,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-abt-when-the-swallows-homeward-fly-agathe",
+      "sourceArtifactHash": "6d2b25530b4c8ebf87dd9533c3f8833d3f6caff808fd48aa5f5691d848f03efa",
+      "advancedNotesSha256": "e724f5b2fefa3acb1d42074b7d77267cf86e15bb40200afa2b7a68a40e21ad28",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-behr-in-may",
+      "sourceArtifactHash": "3ad66161a162c929a876a35bb7bdee12caa360ff63c5bbb500af35f58915f100",
+      "advancedNotesSha256": "7bd41196c45c06fe06a24629d2d659fa47478e4ab0a935a95d74713df879cff9",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-f-chopin-etude-a-moll",
+      "sourceArtifactHash": "ebee39ee0f9bd743586cbcd4890d3f0e39f24808957302341316a734e42a7989",
+      "advancedNotesSha256": "04324d32ace7e2704df48c5692acae19df96e0a35ff29a95524d7cd564b5154e",
+      "playbackTempoBpm": 144,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-f-chopin-mazurka-op-6-no-1",
+      "sourceArtifactHash": "8ca95d82c2d7a7f7b19d527ee9e3749e406753bdf54a4f278184d683ee5b7b47",
+      "advancedNotesSha256": "a18caa3bba73662bfbaaef21fef7d19f46d9cfedf09f65066c88e51c5c3ec0a6",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-f-chopin-nocturne",
+      "sourceArtifactHash": "e202d3941ce5f26397f57f59f0e2e4e3ad9e19061fa3c4dc596c5ee6a6a2548e",
+      "advancedNotesSha256": "d45188dccc01e252ccf442cd5da5f75f9e473cd2d79dcd0d927d246bd8442201",
+      "playbackTempoBpm": 66,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-f-chopin-nocturne-no-1-in-b-flat-minor",
+      "sourceArtifactHash": "97194fec7586ca37280a3a5641db96f09f515c8358ccba9a9dd6a0f427ff9330",
+      "advancedNotesSha256": "5fdb1425264148061252916e4140f35416b1b6956ee377e3f9a132d0def7baa1",
+      "playbackTempoBpm": 116,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-f-chopin-nocturne-no-3",
+      "sourceArtifactHash": "5e53d35c6ac5ee13f53c2f40b676a257f5598c14d026b578f20134ebc5417fa6",
+      "advancedNotesSha256": "6b905543220db57b71e2172f644eda929dfdde80001dc91d8dbc8f7c341d77cc",
+      "playbackTempoBpm": 99,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-f-chopin-trois-nouvelles-etudes-no-1-f-minor",
+      "sourceArtifactHash": "3a307179dc100e220066f775dc72958cdf9a3e86d201982e81d02062752d00c6",
+      "advancedNotesSha256": "86423c096977d993080ad60bbf56e87d81d3804fa345b659ba1ea65198ca053e",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-j-haydn-sonate-i-i-allegro-con-brio",
+      "sourceArtifactHash": "2f1eb6005ff4d15b39791df25612c574b02c9dd40865781c8919cd946f3e1e24",
+      "advancedNotesSha256": "41231916581f555dc25b7ed9eaec4bc2f4b3aebd07ca2cd4fe8e1b5995993b1e",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "f-j-haydn-sonate-i-ii-menuetto",
+      "sourceArtifactHash": "37b97075c873529760c96539f9894ec6eb99cc1065d76344f7b1fc397d6b63d4",
+      "advancedNotesSha256": "00e60187a0fc3bdeed6bed142aba3ad10a4a909476db460e087737f285750587",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "fall-for-you-second-hand-serenade",
+      "sourceArtifactHash": "2d0da152e3e346d6ec5b469810c0fe10ad242312c439013caa23b36e8da2536e",
+      "advancedNotesSha256": "f85fd8bbb752cdd1b98e4d4ca52a4c837aa5b739305d317b051d80d3434e6cb0",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "fallen-down-reprise-undertale",
+      "sourceArtifactHash": "a1188a7cbb547ccc15ae7e28ce4294020514379a700ef3c50f1e89f2cdadef0c",
+      "advancedNotesSha256": "6afea50546cf1ab108053d2d592d12b5d8157ef2dc4ba9ede91b98d104b5fba0",
+      "playbackTempoBpm": 107,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "farewell-hyrule-king",
+      "sourceArtifactHash": "b4e64eceb5d2a40cd85244cba623ce5fc091a4600d05313957ee26c9282738c5",
+      "advancedNotesSha256": "486def0cfa550626ee3a3b3d76151f2510f682e13a2737b2ed0aa6778fb498ff",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "feed-me-ellie-goulding-relocating-the-lights",
+      "sourceArtifactHash": "f5f97246202bae38aaa7f7f06b923d16b64becff685c8f3595a475be5f4d50d4",
+      "advancedNotesSha256": "92d97437f6f117f4011a2e51ee9f4385efed1525fe59ad8cb5b545650bf60d0a",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "frank-sinatra-fly-me-to-the-moon",
+      "sourceArtifactHash": "5e7d492d2d143b449c69a9f35b3b7ae3372aea444153e690bf452e8870cef1a0",
+      "advancedNotesSha256": "29186bae7a88197545dcbfcde00f2fdf50b9df8368756fb8cdc5d40909287993",
+      "playbackTempoBpm": 94,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "frank-sinatra-my-way",
+      "sourceArtifactHash": "72c52d243e7f019aedf0b80f3abf14bb64e4ac2779d7296769288da10e9d30a4",
+      "advancedNotesSha256": "b56e9470adf34b817bcb9e484edb9ec270d817c8224f5757145d2fc3ece72442",
+      "playbackTempoBpm": 77,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "frode-osen-nomy-you-better-die-young-piano-cover-msm02waq",
+      "sourceArtifactHash": "46ed9d79a4ea392e542cc305df07870dab6bdb8c7fe7b5c35cb2cc136d30710a",
+      "advancedNotesSha256": "a947f3aaf3fa23d26b77a12490c5f0d2f21fa6ebc7c8cf0c14bee7baeadf8680",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-bizet-carmen-prelude",
+      "sourceArtifactHash": "56f763077572437e5975a6bcdad3ca67fafd0694479bbcffef0a23f36d37e878",
+      "advancedNotesSha256": "1bf4a5f68f2e2a82d9bb31d8268b88f431540e0bd5956dec4abd9a54cf9ceb47",
+      "playbackTempoBpm": 116,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-bizet-entr-acte",
+      "sourceArtifactHash": "bd17126777ecb17f51064b0c73b56f7028e0becf0bbeef4f2d96ae9ddc05b43b",
+      "advancedNotesSha256": "e778a05707e007dcb5ebb7d4034b88852c0abcd23f0f586cd3787e6770126901",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-f-handel-entree",
+      "sourceArtifactHash": "a3bd76e941f62b2399e9a0de2eac4cf4ea910f640f7e8a8584ca3ad9dc42ff46",
+      "advancedNotesSha256": "fd6d57cfea49f21530768940dfe3443ff60b43b043ff7717c13bd261d52f1ca8",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-f-handel-fuga",
+      "sourceArtifactHash": "d1d2b8cb3cf21eb8a89feae945f17afafee0a78ff9f29bb8d98f69ed053e284a",
+      "advancedNotesSha256": "c43cb9b6cc89e24ca7dfa35dacf680c17ffd300f12efb473e328cd80a3634e14",
+      "playbackTempoBpm": 88,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-f-handel-gavotte",
+      "sourceArtifactHash": "5d24dcb8a435cb85465f48592a7d0a5674c5fe225e10667d5db571e80ed5cb67",
+      "advancedNotesSha256": "c2ad2def27e0b7d790eb39a3a30cab167e07ce84f3c5157242efa01af2922581",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-f-handel-impertinence",
+      "sourceArtifactHash": "ba50ce19be0683144b3c48e834e302cceecd250189b9804575d340d17bbcaa96",
+      "advancedNotesSha256": "dab7664e04d8b2a86c898474fbeb6cb88e9931cfee960967248913635725006f",
+      "playbackTempoBpm": 104,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-f-handel-ouverture",
+      "sourceArtifactHash": "af5a13a038863a2c323e11bcb6c42377187c0d4382de1cdf42be19129a328f4b",
+      "advancedNotesSha256": "14252900623253d5936c83608da6d53fbd2944a049b2f04a4dec2cdec28c90e8",
+      "playbackTempoBpm": 104,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-f-handel-toccata",
+      "sourceArtifactHash": "c032967fd26bf2a2236985d3a514540f447cf7d2b02fb67ddd98a2ee203f1cd3",
+      "advancedNotesSha256": "95f8db3fa857fabc6d8abb719cb9231083aee0d1890ac13887f73919fce0f279",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-faure-apres-un-reve",
+      "sourceArtifactHash": "a6a34e87018da5c40e21963c3387839221e68827f4827cc705be260d35eb45b1",
+      "advancedNotesSha256": "a9473afaee1118d0c1947636f9e5dbf358ed08af026792c4c5c8f172adbaaf82",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-faure-le-pays-des-reves",
+      "sourceArtifactHash": "ad450c772c357abec13920ba72709be785ab4e6417bdf4aa8d8303f2325abcb0",
+      "advancedNotesSha256": "37ace0fd9476633cbad6b4a0a61b8afcdc3da1da30ceaa75f885f691bf16af20",
+      "playbackTempoBpm": 84,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-faure-les-djinns",
+      "sourceArtifactHash": "018adb56118559d0717df33afd8f0c3799feb1d9d6363be68f431d015bb954c5",
+      "advancedNotesSha256": "74af1f1217f14d2394e7aad22d03a1707f176b826c1267230aae36f8b421bad8",
+      "playbackTempoBpm": 138,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-faure-les-matelots",
+      "sourceArtifactHash": "ef1d221ba54fccd537d4cee4e8b2ab88bf0447bdf86aaab3c387eded574de84a",
+      "advancedNotesSha256": "da41a364a22b1a0fb863653f9f5c00d7e55fb3af744ea71d70ffdb945d5d0cbb",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "g-giordano-caro-mio-ben-come-once-again",
+      "sourceArtifactHash": "267d08fb3fa8e594b84b8a179dd7a0077d7d2cce86547f90514649b673d82a34",
+      "advancedNotesSha256": "1c127d837b6f11ec681a1bb47fab624fbcb9941bf55071909bda9bc511c7f81b",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "game-of-thrones",
+      "sourceArtifactHash": "c698caf92d48c6f5c263af934b840d8c69ca745a10265aa3b281214460a3f3c2",
+      "advancedNotesSha256": "02b255e5c0cecd21874b38c0de227f8e53cfa5d81f6cdbc719ed1a6b76cd4842",
+      "playbackTempoBpm": 168,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "george-michael-careless-whisper",
+      "sourceArtifactHash": "35faa808e9f315dd50024f93f26d8b458e592d1740670c4e6943e767bc92ae4f",
+      "advancedNotesSha256": "5991ece83148d4b8a3588af5d1d6cd9b75148cd23e8b39668ad4d0d659d59fcd",
+      "playbackTempoBpm": 76,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "gloria-gaynor-i-will-survive",
+      "sourceArtifactHash": "df59b0eb90e4c2ecf9c8b9cf13cba3bcdd8c9ea9942bdb09ee54b7664538784a",
+      "advancedNotesSha256": "448373fe2bb4a5c8e510b26dd6a226b5ab3366cb37808bc9029af965564dc8e1",
+      "playbackTempoBpm": 115,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "good-bad-ugly",
+      "sourceArtifactHash": "70bce62a7d096d9b04de727c91353a81d3372b7b5a4a89924a27f951631b85d7",
+      "advancedNotesSha256": "d1cafa028aa079002dc407217cef55381cc3b8927655843067b498e8c8611680",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "green-day-good-riddence",
+      "sourceArtifactHash": "58bb906f35a4d4c145334b4899dc6b09aa5a932f43c3055143148849c5b9b181",
+      "advancedNotesSha256": "db6480b1e59561209cd3a4e88f7a838a6320d165cf26e6b5833a6de45888decc",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "guy-sebastian-ft-lupe-fiasco-battle-scars",
+      "sourceArtifactHash": "e9b1652b755f8f211af69720369ceef6b434e86fc34133cff8dc00199a619c11",
+      "advancedNotesSha256": "eb27ff68d2ea39465c9fad9fed00dee4176f5697f9bc2e08693e1c989897dcb2",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "h-carey-sally-in-our-alley",
+      "sourceArtifactHash": "4468a81c78be880012815d44693f259a1b79c800ba075cb757ddc620808dbdd4",
+      "advancedNotesSha256": "189e034fca05275660a097538cfbd82ca387eafeec5e16098d91dd39cb94bc81",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "h-r-bishop-home-sweet-home",
+      "sourceArtifactHash": "f5f7e4a7f59bf3f6890ec25b3f25d0a2c938cc84a1dfb0f55ab6fc1ac5d995f7",
+      "advancedNotesSha256": "824d5ebc94e92f397fc1f49e21ba3eebda2dda94051d08aea1b6f21b43e7567f",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "hall-of-fame-the-script",
+      "sourceArtifactHash": "a57470d1ad0f6dee431b5bd6fd17d45b3386db252bbad2e8a009c8eb6eddf532",
+      "advancedNotesSha256": "8fb8f4744e7b2a0125e3c033398028757f79cec64372f8b1d5c31b3ef37374b1",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "hans-zimmer-first-step-interstellar",
+      "sourceArtifactHash": "94ca35b7e20d19366577e13fca439500e62af45fa03f2090b801647f31acbd2b",
+      "advancedNotesSha256": "c9196ad7df4fd7cc897abd63fa5b1266df214568161729ed9d1214a59311edc4",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "happier-marshmello-ft-bastille",
+      "sourceArtifactHash": "7ded22a4475ab6114382000a5d066002f14d53f2efa2baa3767cf27a65266c86",
+      "advancedNotesSha256": "09216a9c42a89759e90d752d7fd62ec7283d00e5b91d5164ab786bf53b5fd63a",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "happier-olivia-rodrigo",
+      "sourceArtifactHash": "bd70148be36081b6b6a5d030eff14b2f283d94ec6b364d6c9e50a2c6ce6dba36",
+      "advancedNotesSha256": "2869f819fa0dd6c75a807b26b4fcc1a44aa4f186896a8635d326108450c40582",
+      "playbackTempoBpm": 85,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "happier-than-ever",
+      "sourceArtifactHash": "5157a1edae983695d864d7d358e6542b1051a907352aaa8d895886a7417fe4de",
+      "advancedNotesSha256": "f1a2a5424df6f5524ba90945333886769725687f05cc37602c3970ac8446c91f",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "harry-styles-sign-of-the-times",
+      "sourceArtifactHash": "13e38076bc16f630719841d8b5e5d5487784b5e3b40d49a5d3a33e73be1ab0f0",
+      "advancedNotesSha256": "39fc1179cf52f5237976eb84b5da730b8d4e3cfd9e8fb7215053672c3d89aebe",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "he-s-a-pirate",
+      "sourceArtifactHash": "49e7ce251ad4676be054bb7dde6082705bbfd55a2afce2b7755741260da9999e",
+      "advancedNotesSha256": "20cfe68305a2fe6466588c70a669f181c816330fb247e3d9b940f9bc55ad3e2f",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "hedwig-s-theme",
+      "sourceArtifactHash": "54994c9c137b474d1a1d11c7b3b964192ae546585bc574f1380fff6efb4b3750",
+      "advancedNotesSha256": "7d5699dbac7abb7be6e7c06e18cb9f11f952dacf0ecbf612ee274bd4beee2c2d",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "hopsin-ill-mind-of-hopsin-5",
+      "sourceArtifactHash": "1c5acf5a7eccabcf68bf9a2b16feb2ddc8429eae3e02ada7c3af8a11a227ae49",
+      "advancedNotesSha256": "707e1bf8709e61287af896ba0f4a378f520775aa0051b641e9399980bf917e51",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "hotel-california",
+      "sourceArtifactHash": "318d17439bcd66e04c369e8772822b7618370c509fa70fdf925623994feee9fc",
+      "advancedNotesSha256": "8c1c35709e59b644e5177bd2a0727f5ddd864b51911a93ababbb3425b605b7f8",
+      "playbackTempoBpm": 84,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "httyd-see-you-tomorrow",
+      "sourceArtifactHash": "aa19c31c4a9ed098d2a96da0e191ccf97dbda53785bd13f5b8b09baa9aff18fb",
+      "advancedNotesSha256": "0ecd905bd1e1e6f4c73315efc7f09e95f03d65a79df810619651e3f7f6592bf1",
+      "playbackTempoBpm": 132,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "i-m-f-albeniz-rumores-de-la-caleta",
+      "sourceArtifactHash": "7ab91e79a7d48333b119aa8df08e5dd83a947ab7c07be79f9b11233c05b799cd",
+      "advancedNotesSha256": "8f6dcef8b07b89c9af981378ac4c2c88223386f5064c40e17f402443e3cfb6a9",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "imagine-dragons-radioactive",
+      "sourceArtifactHash": "02d1805f967241b715f2f6014b57d2171ef20ee93429bc1a08aa3f6240c0c7b8",
+      "advancedNotesSha256": "6f397024f42347d41fafc84c177a9f163a34b4c71ec4fc64589a708c296b4a25",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "imogen-heap-hide-and-seek",
+      "sourceArtifactHash": "cecb7ba38383b1c3286cede3646d57a154b1b97f0c20933675018baf7cd7dde5",
+      "advancedNotesSha256": "011cf59158614e229bf409b040684e31650624e2ceeb932ef2dd508555a2edbb",
+      "playbackTempoBpm": 110,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-a-benda-3-satz-aus-der-sonate-in-g-dur",
+      "sourceArtifactHash": "dc8205ec648e788568f743a3850f540edce264b365013c097b0854b46106fcac",
+      "advancedNotesSha256": "17adfadae27a461e6f03782465f4a9b27b965a535e45e417ffec41139a9cabc5",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-andre-sonatine",
+      "sourceArtifactHash": "24f853db9d13d5db864f59a5876ae7bdf02ef2c5a6e17907d0844bf5c8b8d006",
+      "advancedNotesSha256": "47ab46898c0ba0c867fc19b785e76b5aa8633f1b502325312ed66a1ee6a89b8d",
+      "playbackTempoBpm": 104,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-ascher-alice-where-art-thou",
+      "sourceArtifactHash": "5a351c004e7c9290991e44bd323c88ea8a802a07a81bf3b297948e5133edb702",
+      "advancedNotesSha256": "780681772fae78ab929525a9ce6a7d2a1903a8fd56de2388d1e17954cb4c0809",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-blumenthal-les-deux-anges",
+      "sourceArtifactHash": "c5c02e67141bcc5e79f794e0b1a038c08ea9c95e46aecd8425df7003e8530ab9",
+      "advancedNotesSha256": "d5213b2b34272890e61690403c413bd2374225638fe9c113a0673c618e9e4b8b",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-brahms-2-intermezzo",
+      "sourceArtifactHash": "70a6fc324bbc38b067267655d4d5e87ab49dc2de2df99d213885277937e1e7a2",
+      "advancedNotesSha256": "edefac3012153a4592d67c2955be8ae9a523af8bbc41e6499f8b3d8724553578",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-brahms-brahms-horn-trio",
+      "sourceArtifactHash": "966841ebd41c0cc0f69800462c0326c1ff3ad28fd6ffd4172d49ff95f6add034",
+      "advancedNotesSha256": "7f8c00898d0ef941ee2e4c7f9cf2ca86a3e3a730d354645ce3d274177eee2e68",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-brahms-sapphische-ode",
+      "sourceArtifactHash": "dcd5efac22b5e91b7c87685058784396adb9ec5d69915764265ad68158dbb6e1",
+      "advancedNotesSha256": "1c466803f6e0aa2cf56aeccb2faa009a6339a776c56774647160626aeedc1216",
+      "playbackTempoBpm": 68,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-brahms-waltz-no-10",
+      "sourceArtifactHash": "c4ac9774b8215f8ef193230d61c86de7e39ab747ec86620a07a33e3ad63e2be1",
+      "advancedNotesSha256": "2ac27e4a155d3773aa2f2845c758d079a8dce7989f7fe90752007b981fc36030",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-brahms-waltz-no-15",
+      "sourceArtifactHash": "e081ef3fe7023cdf4656e1528df50534b2e3df863cd0a194a04a82206f783ace",
+      "advancedNotesSha256": "c2681100f887f8911dbf9331a26eeb26c2646c9944ca8ea090566254041273b6",
+      "playbackTempoBpm": 116,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-f-f-burgmuller-innocence",
+      "sourceArtifactHash": "39768b50abb623d24986b0e3993518ca92a6f1340d6154fc092f218cb6b97fee",
+      "advancedNotesSha256": "c47ffb562e46e2acd8ae890314f583050516a73f833759951602b4cf74c339ae",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-f-f-burgmuller-l-arabesque",
+      "sourceArtifactHash": "9b689a9b3f178e7bb2b5899d0559e223e9d8de7081d83fc087760ac2b4d378e1",
+      "advancedNotesSha256": "763d16267630ce75183bdb82892664c876fd5183e5e18bf3cfcc3e3dd9baa3b9",
+      "playbackTempoBpm": 152,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-f-f-burgmuller-la-candeur",
+      "sourceArtifactHash": "ad185dbf3cb7e3e187cbe6e38c5ead706cf375b9d441f7191429027436b2a8e4",
+      "advancedNotesSha256": "f868687a4812d7a54bc2fcd622780ab4d5062d2a382e55ffcc2522873cdd71cf",
+      "playbackTempoBpm": 152,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-f-f-burgmuller-la-pastorale",
+      "sourceArtifactHash": "192500ee12358537bf92811064ee4ad0b680c78302d5762175a3c32fe573a577",
+      "advancedNotesSha256": "1ab8ea2ae70f16382a80934de42243c8356cc6e65a32dbd287ba07b10ef1699e",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-f-f-burgmuller-la-petite-reunion",
+      "sourceArtifactHash": "c88010cace8858c30ca95e3075cf5e4afdde19b5ad7c37cceb96159f6c55326c",
+      "advancedNotesSha256": "60768b7b05783ca6147828686437de21d8195bd0299e65c6276285532ee40185",
+      "playbackTempoBpm": 152,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-f-f-burgmuller-progres",
+      "sourceArtifactHash": "d28e280d333d8a97262a4ffeba00fab251d382cd9a17e45a517d6613cb03f722",
+      "advancedNotesSha256": "75581a599bc96d00dfb8e92b95e007f53c46dfc25153a4a57c1db86dc7f809f0",
+      "playbackTempoBpm": 132,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-field-nocturne",
+      "sourceArtifactHash": "23d3f9f1b477bdbc9e2714361e5785b45f634305a4a798f4a69edde5e88b2eee",
+      "advancedNotesSha256": "386bc556116c0a477866845c5f3f1626ff094084b799b556a574f7d58d8f1702",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-k-f-fischer-erato-allemande",
+      "sourceArtifactHash": "84de5ac70c1e8d0d3efd66eb3086468689257a5603d73b2e4136d62de7aa9475",
+      "advancedNotesSha256": "215af70a380c498dce8f89e403fb679349d6d75f2f3c9eb31666df3ebb9cea67",
+      "playbackTempoBpm": 54,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-k-f-fischer-erato-praeludium",
+      "sourceArtifactHash": "407d90786bcdbced5b4110fb6bec7ee34df35cc4f67745592e2c4f1d7fc0d799",
+      "advancedNotesSha256": "9c25e37a11c6d7408250a85395daf63394aa7ca96154b97ea8785f3cd5aeff05",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-s-bach-ach-was-soll-ich-sunder-machen",
+      "sourceArtifactHash": "a8142c537000308336635400d130667eb79cfc2c70ce8d7432aa63a7f5f66294",
+      "advancedNotesSha256": "bb53e9766bb75e12ca08eeac39bf323a96a09ac794626429bdd2d4b5bea613b1",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-s-bach-aus-meines-herzens-grunde-chorale-1",
+      "sourceArtifactHash": "783a5a944f28030876a84c753a47abeeff93c56adb6a3dd7c396d06e07184d10",
+      "advancedNotesSha256": "2d749244288f7e84d6e1d40db9ab23ea69eeff0af58ca86fb5f3b75ee58dc21c",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-s-bach-ermuntre-dich-mein-schwacher-geist",
+      "sourceArtifactHash": "aa1eb3d5952403b37b5c5f2f441b040b73cbff0c3cd1069d1fb3ec88c4b81107",
+      "advancedNotesSha256": "ac649495ea1eddf9c4e2084efb030b8b4c4861d10eb497e02ee8f714a1f71031",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-s-bach-gott-wie-gross-ist-deine-gute",
+      "sourceArtifactHash": "5c12f0a6f778a12dc06d7a37556eb8dea563f95a0d941a18163c4b41d088049b",
+      "advancedNotesSha256": "6915a30f8cf46932a142a368098b8e819ef914a77d9ed36a743fc9451f5e30ae",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-s-bach-ich-dank-dir-lieber-herre",
+      "sourceArtifactHash": "0063beea94fbe0db31ce9dbee1a3a07c7e361322724b4190d80ff63ea817bb11",
+      "advancedNotesSha256": "dd1e8bfd353d7d0c839612b9e907674f4023b9ce6ce29d1f465feb9775cff8f3",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "j-s-bach-polonaise-in-f-major",
+      "sourceArtifactHash": "46ea4fbc4812fb97ca05294a80704fa242e2cdd707804ea545d94a6b4e457b36",
+      "advancedNotesSha256": "6f635f51bf1ae8e30e5130fcc21caad371cc4be5b865f86bb365fb1af1652c6a",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "james-blunt-1973",
+      "sourceArtifactHash": "3bcd9ad9d5e0f20954f3cb545e55f1286d732b74f82e9bdbadf8ddcdf8acd1b1",
+      "advancedNotesSha256": "e177a59292370f8b3c54496117cd410b2663eae7d7de85ee4bd6cb676c662eda",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "jamie-duffy-solas",
+      "sourceArtifactHash": "85df89ad11540f48fa03504774aff25bce737eba0da99d8b7a197cfe61ff8b02",
+      "advancedNotesSha256": "fa145229e1d5e3fe681a461cab6420a0739fbc8475316134a98ea3b915d5d811",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "jessie-j-thunder",
+      "sourceArtifactHash": "54f50e8ceb8bd6de66927418b0566522bc1113c51dd1a12a437ca933c9ea32a1",
+      "advancedNotesSha256": "3c72ca4bc3d340eb684fea82a10b1290800db240e535c3447c44dea690f2f359",
+      "playbackTempoBpm": 108,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "johann-pachelbel-canon-in-d",
+      "sourceArtifactHash": "815010432a8ba8a7841431adb2b040d4f5d5b939f15acd214aa3a68fbb65e3b4",
+      "advancedNotesSha256": "558ce3218d316adf41b67b06c302d41c6ebc124f85e2056c267cadafedb559dd",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "john-lennon-imagine",
+      "sourceArtifactHash": "6f50f9a1a9570a8f47c2af9c33decfe8be1685faddfe56231127c71e668844e3",
+      "advancedNotesSha256": "157cd3dc92e6b3e819567d0cf51eab7a1c03a1b76c1cb3333e0b26d4e7fb8790",
+      "playbackTempoBpm": 73,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "john-newman-cheating",
+      "sourceArtifactHash": "c57bd743410a0eed630e0bef08952a117aa7860cbfc6499b00ea7fe14d0ea7f4",
+      "advancedNotesSha256": "858d9d14405552853679d6ecf001873fd843bd2d200e315f3248ed0c3bdb9c58",
+      "playbackTempoBpm": 126,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "jon-pumper-the-greatest-showman-from-now-on-piano-tutorial-synthesia-msm044ue",
+      "sourceArtifactHash": "52b17159865261cfbbbe63225f2fa3ffa5bbdc2e7105604d6ecd5ddebdfd4cc5",
+      "advancedNotesSha256": "a3d0d1f706e7b70d859be2b60bf640ec90c434dc77a9bcc38d2a0503abf58985",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "journey-dont-stop-believin",
+      "sourceArtifactHash": "08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717",
+      "advancedNotesSha256": "d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354",
+      "playbackTempoBpm": 118,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "journey-separate-ways",
+      "sourceArtifactHash": "67cf74afc7854a09026d10f39a65527b66e5e06d02be929d3873b2ea18baae3e",
+      "advancedNotesSha256": "998c1137df31be883f6eb9625d7f29aac123d35e6875f6a4aefd11558856a3ea",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "jvke-golden-hour",
+      "sourceArtifactHash": "f4dfd728a3867f5f302c26a87063cf801ca39ff0352c6fdc5e5cffd5d820f364",
+      "advancedNotesSha256": "e0d3f471d8bc272f468fbec4a820fa65e2877d8aedbab2bd72c41c418455ced3",
+      "playbackTempoBpm": 94,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "kamerat-mot-kamerat",
+      "sourceArtifactHash": "158d8b5c6f43c45e16d81eca0b5bb0dfa82d3ed8a2190cca7b05e837c1d2127f",
+      "advancedNotesSha256": "91eba40d61c563833a406c8d976b768b3ec9a18804c155d6ffcad685a13195f0",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0",
+      "sourceArtifactHash": "5b59a983e3bfcd803311720e731d67f4190ebb92aecce36bdf2cd5ebb463efbd",
+      "advancedNotesSha256": "a96c5de5d10a1b5b2bc5949f8976cf9a71e43d692be40f97c79558d1567ab964",
+      "playbackTempoBpm": 136,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "keiko-matsui-midnight-stone",
+      "sourceArtifactHash": "6e6b6de4e0dc7d77dba257892403eaae536ce0033151c83f06d89a2f521fbd59",
+      "advancedNotesSha256": "a998597a40d8d2a4b97ca9ada2958b516803041d9c740e1c425ddda4b3cc510c",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-m-gottschalk-the-dying-swan",
+      "sourceArtifactHash": "9b3ea21dcb38121aabf22f8f8f5a26ea2056a780f6811bdbc6c2769124d38b69",
+      "advancedNotesSha256": "307b99d7a6dbf5e44ca1ae3e2d7bc26e3a0daa71d77c6c046e24a31b29a5c33a",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-streabbog-j-l-gobbaerts-les-etoiles-d-or-no-1-valse",
+      "sourceArtifactHash": "d2dee55c2b4942345aed733377d48cc91768fcd8fdd3dc6d84061eaeb754bee3",
+      "advancedNotesSha256": "8148285b46d867fc1b679880c6c43721aa0cde04362adc01d9fdc5c9b354a2f1",
+      "playbackTempoBpm": 150,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-1-1st-movement-allegro",
+      "sourceArtifactHash": "db70c788926524fb75fec6586903ae07e23166c11ac55e0106d97ba80675f75a",
+      "advancedNotesSha256": "c9c4c040c88e372c35004cd78dc27ac747c778c3bf84a43b8c55b44dc415968a",
+      "playbackTempoBpm": 190,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-1-2nd-movement-adagio",
+      "sourceArtifactHash": "d30ffa4c6831d238b5edce0094e5b4ebc0a67272948844c3e12785b7c794fe0a",
+      "advancedNotesSha256": "adfc145492c3e441d6293fcad445c4c0e489bb04c9e8f5c5f1e3d51a3a326a5e",
+      "playbackTempoBpm": 46,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-1-3rd-movement-allegretto",
+      "sourceArtifactHash": "ecb927974554efdf3e5ae4446ca5145c65f8c0a9f123cfeb2ffe9bbabf43c140",
+      "advancedNotesSha256": "671b5d9cb1182863fee835fe9182b5ae934cd372e833e033435196a667bef63e",
+      "playbackTempoBpm": 168,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-1-4th-movement-prestissimo",
+      "sourceArtifactHash": "0657fbc873711d6a22761be2fc19df3fe338f61cbd37806a4314017badb5bf07",
+      "advancedNotesSha256": "300da0830c7303c536a6786ee81178dc7e4d1445ae3e4a3ef36252a4707d1426",
+      "playbackTempoBpm": 180,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b",
+      "sourceArtifactHash": "cabc8de6a267d8dc16bd9baed7d924c58c637b0147196a3d252a925fc6e5dcf9",
+      "advancedNotesSha256": "41fafa38d470cc9e81c0012f286fac67958361a2065115bee57472742295c657",
+      "playbackTempoBpm": 164,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-5-3rd-movement-prestissimo",
+      "sourceArtifactHash": "aeb55b48e5f61de1faeabd07981a67c54c15b9f257de5b20ef202578860edd91",
+      "advancedNotesSha256": "f9beac3bb355a47d39ffa61b82e4cceade84bfb01eef7475da4f64472cd5b44d",
+      "playbackTempoBpm": 166,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "labrinth-jealous",
+      "sourceArtifactHash": "d3fb9276c7fbd188705d2e152467db460b85d7063da80163057226c26e783ff2",
+      "advancedNotesSha256": "191bc10d5840e0d2052fb89d9fce3716b82d4720f61e15941156761455ce05e9",
+      "playbackTempoBpm": 85,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "lady-gaga-applause",
+      "sourceArtifactHash": "cc580a093f4eb477fe71074fd2f26a2865877de3d0492acd97aabe07a5e54a6f",
+      "advancedNotesSha256": "767c93ebf4825b3ed272b0b22c06345d1d93ef3be4885c3f2240310532e7658c",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "lauren-daigle-you-say",
+      "sourceArtifactHash": "6811fdcf32c73053093a20d9028531d6b778552a6493961ef360ead1979f256d",
+      "advancedNotesSha256": "47dcc5e095fda7959c8e747831d97ac18bfddbe3e4dd24d9be7828522149f4ac",
+      "playbackTempoBpm": 74,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "lily-allen-hard-out-here",
+      "sourceArtifactHash": "a1d10d92333a805d7dc32630c7810b3e66e6bfddb9f96c81a5ffb244b5a325d3",
+      "advancedNotesSha256": "ae327317bb4658b0ac6f9b42d77af961efdaa8edb28f3492a59052aec82f7d8a",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "linkin-park-numb",
+      "sourceArtifactHash": "2bf5924fba1223b90ac6a15b8b33a25a20a4f754335043d82d6686cb1b87406c",
+      "advancedNotesSha256": "4a2214dbc82c99dc7e93af8820375de34bd49a0aff40bc51f78329e80c9ee02c",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "lorde-royals",
+      "sourceArtifactHash": "dff6889f68ff7ed27835393fb7baea0eaa6ff4bc36c2bfa5944bdb684bc4f469",
+      "advancedNotesSha256": "f8b76a16064d38872ee60cb93e6e501b0cf545a617f95137e42240e384dd3433",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "love-story-where-do-i-begin",
+      "sourceArtifactHash": "5deb5fee54442ed81f71da8ae697eb90e042d844b33d6d40baa0683afaa8b2c1",
+      "advancedNotesSha256": "5fb5a33ee329e308a9f5388def4099eddf983cfa0e728484b7eb4f7866ea90e2",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ludovico-einaudi-experience",
+      "sourceArtifactHash": "e3b2a9bfc48bade532f271f997c60a8f5f32e8764f300cfafc532c39c2a7486b",
+      "advancedNotesSha256": "ba8390942164f760c7c1386d09dd6dcee62507d14372e245ce75cb13d6b47a38",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ludovico-einaudi-nuvole-bianche",
+      "sourceArtifactHash": "4b56db8719d41c654afa6e0e2cb0dd475db5849679a79cae4398bfdb657c8307",
+      "advancedNotesSha256": "d8d6948819bde99249ab2c6c97cad952f193df61784bbef31567016ab872b75c",
+      "playbackTempoBpm": 40,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "macklemore-ryan-lewis-thrift-shop",
+      "sourceArtifactHash": "c01cfd05711e5df31bde0461bb7a1c6c95b9978e42a8b21720cf46e15f756493",
+      "advancedNotesSha256": "120cf0d1ef217f170546c2f3190cdc41c9a8cc3a67d52d141cfe849bd31ec924",
+      "playbackTempoBpm": 150,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "macklemore-white-walls",
+      "sourceArtifactHash": "65a1f91a66f376f0db3d9d62861acff483af2c94fdb3e3aff7118e258af98640",
+      "advancedNotesSha256": "695e61960b0bffbc55210b444d58c97f5a76d2d665bf527c33d7d15ca27aa83f",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "mad-world-gary-jules",
+      "sourceArtifactHash": "ade185aa02b4eea5a1695114bc8116de7c7720129b0fda09281dead20fb65b93",
+      "advancedNotesSha256": "7c6d893b8c5560b1c9ac3001d173a32dfe13cdfdfda6d2a3437b128e721ebf2a",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "margarita-sipatova-ozzy-osbourne-mama-i-m-coming-home-piano-cover-mslzxjx2",
+      "sourceArtifactHash": "df822bfb5380de3168699cbfba4519cfd4145aba4c018e47fd15a73f6cd74728",
+      "advancedNotesSha256": "7e7ea7ffb90f624777ce5443d56129360b98ab26c5fa280e8b46077eb626086a",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "maroon-5-daylight",
+      "sourceArtifactHash": "bd2a39afffd638be97c75b2b2bf0cc4b2b83bafad9e98537f93c6c8737e9ceca",
+      "advancedNotesSha256": "47055a2fe69cf838f8430acf18d9154f7459fe215981f412e50768d4a823465e",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "maroon-5-maps",
+      "sourceArtifactHash": "38e877c8e481393bce9053b462bc2a00cd0b4f80b8c89948c34926bcabf6cc4f",
+      "advancedNotesSha256": "6b59f87fe819224e3769586c300fde1c7801f7871adf2d8d82d1a7d4385356a7",
+      "playbackTempoBpm": 118,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "maroon-5-payphone",
+      "sourceArtifactHash": "fa17ca175490fc1c35afa1d783fa2128834a62c78702be709f876c6b05cafea0",
+      "advancedNotesSha256": "6e7331bf3a0d981b9db91b4d60007026a41c13a08086bd8f6dd09ed85bd9376a",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "mary-hopkin-those-were-the-days",
+      "sourceArtifactHash": "28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945",
+      "advancedNotesSha256": "5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "massive-attack-teardrop",
+      "sourceArtifactHash": "df806f847150d9bd019877651834c3ed8959d1ffed2fb85fc9a99024d78804bd",
+      "advancedNotesSha256": "865d8f281fc2447e824292998f2a6722379b82fc131960747891ebb4c42a7d9b",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "meat-loaf-id-do-anything-for-love",
+      "sourceArtifactHash": "fbbfb623fc1575bcb5d5078582ddf272b7adf89015da6cdf72d76f755cf902f7",
+      "advancedNotesSha256": "5a66496b875fc3dd2028050341226bb2c303375ec2d0f8793c20f6b3efd86be5",
+      "playbackTempoBpm": 125,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "metalpiano-sabaton-carolus-rex-piano-cover-mslzxtbj",
+      "sourceArtifactHash": "2438d59a4f2546f5634b2234b3e50e0703cbe75da727634e05f93c80d9c823e2",
+      "advancedNotesSha256": "fa45b2f080d1fe6b5e6a9ffb60347a332bcb3881b736c2d86cbb5691d2f4dec6",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-a-ha-take-on-me-b6dcc3d4",
+      "sourceArtifactHash": "b6dcc3d462af80fe643153a56ec333a150a35223adf79ff86ebdd8c2a770f79a",
+      "advancedNotesSha256": "13ab22caa91da6d761cbd3e00c9d2578ce70ff2fb4437fcb73b66c5c7099a44d",
+      "playbackTempoBpm": 169,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-abba-money-money-money-3b9b521f",
+      "sourceArtifactHash": "3b9b521f88c5adfc1c2abdc81a248639ecdf64c8eba97f6967150666fc334476",
+      "advancedNotesSha256": "cec0be325b74a92c1a10d97f8490a1fb461700eadf9a7d30b8899bd2552c2e32",
+      "playbackTempoBpm": 119,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-alan-walker-faded-9be3b1df",
+      "sourceArtifactHash": "9be3b1dfc2512f9bb1d58bee1ee92393e357138303f05eb3bfe3d135431c47a2",
+      "advancedNotesSha256": "14f1b6c0d80bd54e0c3c25bb5019ae9974a97ad10edd0abbe216888e94555dc7",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-alexander-alexandrov-national-anthem-of-russia-7d10a0db",
+      "sourceArtifactHash": "7d10a0db2428f68b554e9531963112ed9f89d76729b6cac4979a5e387d2ac92f",
+      "advancedNotesSha256": "95ebc44e56b8dca53f79885cd161916519d4d30fff9e06aa5babe80bd5879dde",
+      "playbackTempoBpm": 86,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-avicii-levels-36a63933",
+      "sourceArtifactHash": "36a6393397e41d1c779980324eeb1b84915441b3301f94ee78fcea4772e6993e",
+      "advancedNotesSha256": "e651c253fa76ce38f62370e2cc2d56c5d4a8967a52f30897018c2c6076a7b21e",
+      "playbackTempoBpm": 126,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-backstreet-boys-i-want-it-that-way-0857fc1d",
+      "sourceArtifactHash": "0857fc1d6d0f9c9db3211d6b69719d86abd72243fbf03a806647a8c0f4976436",
+      "advancedNotesSha256": "b04299eae3022f4b496323566b0a1fc0d2de4c0703563f8698dbb956b8f88466",
+      "playbackTempoBpm": 99,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-basshunter-dota-48a2a911",
+      "sourceArtifactHash": "48a2a911516cdd39ed5b2c6496326233477dca4a00d8f9db8f1e756e1ff66e2c",
+      "advancedNotesSha256": "fcc40f17c0a51eff1e730420225e0c64c9aa205bae417372f079822a2ea59e1f",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-bon-jovi-livin-on-a-prayer-6b7dba9f",
+      "sourceArtifactHash": "6b7dba9f71214a3bd76b98d6cbf97175858a2bd273c5667716f87194b8246334",
+      "advancedNotesSha256": "be8120e2d45398c480695ce09caf431b82a43e97b9fdc6d64ab1bd8bfb0abfff",
+      "playbackTempoBpm": 123,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-boney-m-rasputin-30a9c304",
+      "sourceArtifactHash": "30a9c304c37cbe8e7a05a05fc6bfb9b6d49480b045a77918c62ab3157f7a1fea",
+      "advancedNotesSha256": "d84bb52bb9281f9fa97734366337e418352c76282e38b0edc612a31a39edbdad",
+      "playbackTempoBpm": 122,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-britney-spears-toxic-ae6f48bb",
+      "sourceArtifactHash": "ae6f48bb2a7c9f43e16cdcfee543adbbac22a9020372fe4a5f240cd0e566932b",
+      "advancedNotesSha256": "409cdbef01953db3dec080dcfe6b0ea9373c289c97b828b4a8632e8257cb98cd",
+      "playbackTempoBpm": 143,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-caramell-caramelldansen-5114ef50",
+      "sourceArtifactHash": "5114ef50ccf234233be4045b45ee98e914ef3266a504f5fbb3c38b57cacb8a57",
+      "advancedNotesSha256": "2ec2df4e28b31c684608d3e0d07436dd98f6a20dd56f16e59356bbfb4b2122ab",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-celine-dion-my-heart-will-go-on-8d18007d",
+      "sourceArtifactHash": "8d18007da89af06a8a8226772c704566ab2c7d182a24a366ecd1b7a0336aa3c9",
+      "advancedNotesSha256": "18371f9f19e11c2324687e8ea577983bbcccf89d3c6b4c457088f6f3080ab8d9",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-coldplay-viva-la-vida-853939d6",
+      "sourceArtifactHash": "853939d6394884325abe1ad605a8aecbb284bf761299162d3616a80d7a1f3881",
+      "advancedNotesSha256": "56511d5235c860ee3183084271b5035e45c6ebf73d647fed9ad48792dbf7ac73",
+      "playbackTempoBpm": 135,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-daniwell-nyan-cat-673517ce",
+      "sourceArtifactHash": "673517ced83329a9ea9126443fa8586393b5b3c48f36eba80b34a9a18ce8b932",
+      "advancedNotesSha256": "5ddb7d3a5422153548f0368f33dee420c2ce489c3cc840e00c29808bc48aa972",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-elton-john-can-you-feel-the-love-tonight-5fb83825",
+      "sourceArtifactHash": "5fb838252401dedb92c01f900180fb1e188ce559ebe415e439a94ad59f167b03",
+      "advancedNotesSha256": "55245026e4830e1188061d86c6447a5275da4b422e6fb7bb89242e70006ea9d0",
+      "playbackTempoBpm": 123,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-elvis-presley-can-t-help-falling-in-love-ff9e90ae",
+      "sourceArtifactHash": "ff9e90aec4290d257d080aaa0757019d383bc1a1c71cc34ed7acf19105caac4d",
+      "advancedNotesSha256": "73129ba7bf4907e44cad8d21243836b071301d0f6435e225028d411194a41f50",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-europe-the-final-countdown-c060e07b",
+      "sourceArtifactHash": "c060e07b41b0fb67be6652d5703c57eac05e2e9bb332e548fbddb9fcacb055f5",
+      "advancedNotesSha256": "89b087831eeb7840e6e99b9a7a52fa7dc4ad422831991c2fb3cdb1c7da2a815d",
+      "playbackTempoBpm": 118,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-file-hans-zimmer-interstellar",
+      "sourceArtifactHash": "98c42ba86d1bb30dc1f3325ad64d4ffe4f368e664e468b735c0609a6ed14722e",
+      "advancedNotesSha256": "11f80a985f98bbd0b9cd41aa8a23b4808c429f9383aa4884102a9bab2facc74b",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-file-keane-somewhere-only-we-know",
+      "sourceArtifactHash": "316d1dd080dbf1a5bbf262b08410c10df520a06da953a6f2844a795968c95003",
+      "advancedNotesSha256": "2b94b1600c400e3046e272a40c0b5b429239d6aa19a0083f7b157a4ffa5f65d5",
+      "playbackTempoBpm": 86,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-guns-n-roses-knockin-on-heaven-s-door-7736e9a0",
+      "sourceArtifactHash": "7736e9a007f8f8518bab89f0ad2d77182852c86b8330c75ef324513a944a0e63",
+      "advancedNotesSha256": "bb437f953ee5c8911764d83b59feda1c40cdf36814cbf84b53e52936c73cc14f",
+      "playbackTempoBpm": 128,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-guns-n-roses-november-rain-b8394da5",
+      "sourceArtifactHash": "b8394da544a7e66c60d81dab97726035f2bc9af476c0b88a4e0dcfe1d1caf1b4",
+      "advancedNotesSha256": "2abf89139cb07ac52707cb945e0869a8be27300a6f311ef3a06c77d740fc8a18",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-guns-n-roses-sweet-child-o-mine-caa63d30",
+      "sourceArtifactHash": "caa63d30a9e548219541697704079f883ae0ba1248f86d4f56b7eb00c1c989fb",
+      "advancedNotesSha256": "dd7d17effa9816346b53fe09b47fdc74972a1a0276bb4f31c84139a6a27de3ce",
+      "playbackTempoBpm": 128,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-halo-2-menu-theme-a3cce270",
+      "sourceArtifactHash": "a3cce270ee1db2d09f3dc3b91d0be279d040c4303e1e9a2daa49edd9b76b49ca",
+      "advancedNotesSha256": "86060a79d8b117e9501280db6faf551f4e7718f6d4fce7bcdd297d9cf3f6ec13",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-john-denver-take-me-home-country-roads-999c4351",
+      "sourceArtifactHash": "999c4351f482d6bb3f4ea2359c41371b8986c6712e80654b036ec528026dee5a",
+      "advancedNotesSha256": "8c437aefce5cd2ea358fd138345cd990006c4a655d51e5dab595a9828d1938d6",
+      "playbackTempoBpm": 88,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-judy-garland-over-the-rainbow-e94ce5ec",
+      "sourceArtifactHash": "e94ce5ece986a6085f7254d2e72d28798a39ae5e0fcd01c2bd4600dcdef30275",
+      "advancedNotesSha256": "4996535d08dd94defdb21fb7a8a833c99af9d3216d297aa23da1ecb85830e66e",
+      "playbackTempoBpm": 62,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-ludwig-van-beethoven-f-r-elise-43bf2280",
+      "sourceArtifactHash": "43bf22800553ead4a03e7e3307bfb72db632f3695dea2137f1f1105c98bbb985",
+      "advancedNotesSha256": "35d4f4869fecc3f23772239f099b546516eaff49320057ae54b72c531ebaa32f",
+      "playbackTempoBpm": 75,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-metallica-master-of-puppets-0b4df018",
+      "sourceArtifactHash": "0b4df0187426ecbc864ee515a93c760d0851f496513702fd741765f40734a7df",
+      "advancedNotesSha256": "bbadbe9dd4676f4e5489c641f38e9154dd222d0555b14c2b321487ee01203fbf",
+      "playbackTempoBpm": 220,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-metallica-nothing-else-matters-90c0cddf",
+      "sourceArtifactHash": "90c0cddfe7b2f562da02b526f241063b3a6a7a5ed460909355eb6a90b4a644ff",
+      "advancedNotesSha256": "1593f3cc09e0d186c9592486c0267a225f13f746a3c506ba3ea9ec4207e6c141",
+      "playbackTempoBpm": 69,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-monty-norman-james-bond-theme-b6643ecd",
+      "sourceArtifactHash": "b6643ecd257383086d8154787e8854ffef447f9678a97da2d15e70a398203bf5",
+      "advancedNotesSha256": "a5cc45613e6fa2c9aafd34ca28b61dcb2a14174e4f64d2b3d883550167ef9e5a",
+      "playbackTempoBpm": 146,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-oasis-wonderwall-3aaafa51",
+      "sourceArtifactHash": "3aaafa51aa099ad6ff085b3a9c130ff729657f38beb8c9184c27080e3f52a442",
+      "advancedNotesSha256": "07458ba9f6b7384663ac966c8f73d426e64ccf8bbbec101b391bf49ea220b74b",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-portal-still-alive-480f7740",
+      "sourceArtifactHash": "480f774080d0607f0014f1821ee827199e8caa5e693eef64005990ef57202962",
+      "advancedNotesSha256": "8e6b0c8a7057dbecc6057b27f09af5409ac9778ec744aee93b910f9c3763a5d7",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-queen-don-t-stop-me-now-1de052c6",
+      "sourceArtifactHash": "1de052c6e428102377ef4ebbd27d810e3a092966b219cff0ed85c20793dab744",
+      "advancedNotesSha256": "ff57535891f31c953df1a52fa30ba590ad3be8ed2b73f27663f95ee7150b42fa",
+      "playbackTempoBpm": 94,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-queen-we-are-the-champions-a9df27e3",
+      "sourceArtifactHash": "a9df27e31ee89f52b5ce23386f0afbe1320f0c36a2c8b00fd9c6da49ccdb6442",
+      "advancedNotesSha256": "c290648c5a52aa257d9226080eaa4961856fedaace78fe7acf7e12ec6319f0a2",
+      "playbackTempoBpm": 95,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-red-hot-chili-peppers-californication-7e7c605b",
+      "sourceArtifactHash": "7e7c605b5d3d79fe026ff65e37b16b2bdbd3fdb60c9109ae5fd1df4bda64be45",
+      "advancedNotesSha256": "ff3ffd841b7b2f1ed79d475fb2ee1d63523b3bf907104d673bdaf343c2e005f3",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-survivor-eye-of-the-tiger-0706a3f8",
+      "sourceArtifactHash": "0706a3f85d7430cd7b71dbc84db5d6608d751c7b4754320d73443bfcd6372021",
+      "advancedNotesSha256": "df7010ba93b2507e4f7f5c2e0d9c0aebf7cb54c188db5595ffe9a7eb637d8afd",
+      "playbackTempoBpm": 119,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-tetris-main-theme-korobeiniki-f8eb8790",
+      "sourceArtifactHash": "f8eb8790ac2e0883793d108ac41ec580583e9789d0e41d38772184f29a4280ec",
+      "advancedNotesSha256": "88ae173fa554a126ef524c316d72d4cc3eaac2f569b8f6bd3a9556be5bafb016",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-the-cranberries-zombie-51c2273c",
+      "sourceArtifactHash": "51c2273cba159253c8537aaad4403c8ad9c0f4f535856145c3e58b2c2d437a71",
+      "advancedNotesSha256": "7d553354ef185bab01cafd2efea3cbd3d5a0084ae07ef52d802b9a9b5fb743e8",
+      "playbackTempoBpm": 165,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-the-elder-scrolls-v-skyrim-dragonborn-dc2ab23d",
+      "sourceArtifactHash": "dc2ab23d0635fb98e85f29614faaa96afb77e2ec71e07494e0ea88034a5638c9",
+      "advancedNotesSha256": "799b4cc1d5b70752b0d1c7d72b0035740d6e5a27ab6b62ef71d2bc85a982ad54",
+      "playbackTempoBpm": 105,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-the-lion-king-hakuna-matata-a17a6721",
+      "sourceArtifactHash": "a17a6721a05f651a18e822c7ec0180829a5094d5b9493530ba511ec3e96469a0",
+      "advancedNotesSha256": "0473ca5e823cf2ea021f0ea0af22e026b7128af14eedd69ea68e298bcdefd87b",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-the-lion-king-i-just-can-t-wait-to-be-king-f90e745c",
+      "sourceArtifactHash": "f90e745cbabf2e3d687f0a1d86628b10af5e91398294793f784963e75a466c7f",
+      "advancedNotesSha256": "d0432892fed5b11910182fef85045d3b2c963aef7ca4b9a6ee998c3e7386baf9",
+      "playbackTempoBpm": 104,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-toto-africa-e089ee1a",
+      "sourceArtifactHash": "e089ee1a0795d5706b0d594c2152e530c6d1abac9f914c7117afa6e14892b190",
+      "advancedNotesSha256": "6c793a32fc5aee729b64083fbcc4022893fceb164a591a0b6a7660b975d51ae7",
+      "playbackTempoBpm": 94,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-traditional-amazing-grace-75c5d830",
+      "sourceArtifactHash": "75c5d8301108ce5f8e6bede983086edfdf7a9f691eb0fdf7cd5013351ecbd286",
+      "advancedNotesSha256": "efbd9047224d074efee98ac813d9d96d5befff74dc338e8a5336cda67791eaf6",
+      "playbackTempoBpm": 75,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-traditional-happy-birthday-to-you-30eca3c8",
+      "sourceArtifactHash": "30eca3c8633cf45821c131bb975937822cc79dfc6eac3786341ed6d8827ee087",
+      "advancedNotesSha256": "40c2a64c91008918154ddd0e192c19ec64d8e9dc76857d4c8344a49814469b84",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-traditional-jingle-bells-745a746d",
+      "sourceArtifactHash": "745a746d4afe1ea2c47325e7ad7907352170aaf883fd857dbe694450401f5496",
+      "advancedNotesSha256": "001b6f7f4cc4354df2aafbbff0a951f9e03400bc494155da898fd0103cf6a1f7",
+      "playbackTempoBpm": 105,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midi-traditional-the-star-spangled-banner-48eb614a",
+      "sourceArtifactHash": "48eb614a72c816758a4ae20cdc01fb7cb8a717486702fed0175fd61f1bfb141f",
+      "advancedNotesSha256": "9e08deccaf1e281b0a085f1467589610485da7d5e8a6a188152debe3d76cdc5d",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "midnight-oil-beds-are-burning",
+      "sourceArtifactHash": "606bdfa4014c1aa2355dfccc5f4889a42ece5b49cb6cee97bc4bdaf337ee7db3",
+      "advancedNotesSha256": "1f691f8eb82339c12b10b825dc79e76cc3615150409246252d304e7442650751",
+      "playbackTempoBpm": 122,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "miley-cyrus-we-can-t-stop",
+      "sourceArtifactHash": "75bac972a2dcd7f2bfb918b50126bde8968bbacbc976086837693c9b9a3b59a9",
+      "advancedNotesSha256": "ceec688e7c73d8c187528b962d5082f76ebfef84e459b56d12de321d725a3a44",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "misc-cartoons-neon-genesis-evangelion-a-cruel-angels-thesis",
+      "sourceArtifactHash": "145148cc61979e134f070f0c2bcfb2dc37fd9c34711dfc0fdeea4c797033834e",
+      "advancedNotesSha256": "12783837b6955c95fb9fc4c639774ab2faab10970654af16fcebff7b25d02956",
+      "playbackTempoBpm": 76,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "misc-traditional-land-of-hope-and-glory",
+      "sourceArtifactHash": "22281b89ec171e4ca977dd2cc56cc40c4b08f74c8436174ecce94975dd79186c",
+      "advancedNotesSha256": "8c670c3c6b302e36cbe93891a5553a75bb92c8766be38f583eb31013947fe761",
+      "playbackTempoBpm": 82,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "monday-ludovico-einaudi",
+      "sourceArtifactHash": "da49de9eb030a2789f45c3279ca959a2de058cfe43072048386e283230a8fdde",
+      "advancedNotesSha256": "388f02b5060241242a3dacd129391bcb0a1197b08508112538e55030959b04ea",
+      "playbackTempoBpm": 108,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "music-for-your-lessons-make-me-wanna-die-the-pretty-reckles-piano-solo-msm034hm",
+      "sourceArtifactHash": "1de4f01539b5fa3c25cdb5c1c032b4923817d75e446d6bd164b62f3fa0842870",
+      "advancedNotesSha256": "6f0a11f884a15367e54a7c8885439ff4373665ea0ef232aa80398b417ce230e8",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "never-gonna-give-you-up",
+      "sourceArtifactHash": "d110ce57304432f95868b18e009828a6094bc19ba26656afef178f966c9d36f0",
+      "advancedNotesSha256": "8895d662837f7c0ae19af9ee0aa5a6aeb916881c0380d2b702d4ad3f3d9a9ac6",
+      "playbackTempoBpm": 114,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "night-2-is-ee-the-stars",
+      "sourceArtifactHash": "fa0911d5e47ac92bc4685c82345765f938186d849bba8a16ece2d44821d38755",
+      "advancedNotesSha256": "d160e6b234c779565621a92275fa6470dbbe5e8bc7a6086db908099f9cf26434",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "nomy-cocaine",
+      "sourceArtifactHash": "db6fc1ac58d172b53bcad7fe09c045583e2663bdcf7b45fa0542213d0955b55b",
+      "advancedNotesSha256": "2a35958e4a5addf45317e70ff6539fc62707c02389ed2b045ad0f6ac17c80b15",
+      "playbackTempoBpm": 107,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "o-comeau-ellen-s-song",
+      "sourceArtifactHash": "ef48cc5d390344aa93d3083884ae269f0dc696ac099fd4c19393a0917f7d79e3",
+      "advancedNotesSha256": "aecd154db090f133a70286d90e27b41ed08062432be8efab2208efdd096ee8c7",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "olectralab-katyusha-piano-cover-mslzvw9f",
+      "sourceArtifactHash": "5f5c3ec898bc64bdef9ccb87f4e78ea4e31e4d3a95605be27e50866c6b88c30e",
+      "advancedNotesSha256": "44738a30ac8e26a0f44cb636cc9642d6a283d425a94e859649f682a927c3e59b",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "olivia-rodrigo-drivers-license",
+      "sourceArtifactHash": "9193f6b474e0d2bd50f98639dfbf77b839824c4481d90e165a62db0179c4ed5e",
+      "advancedNotesSha256": "27386f2793a5cfd75e823ccd23d7863bc0d1e3a9714255dbecf4264bfa0a265b",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "olly-murs-right-place-right-time",
+      "sourceArtifactHash": "f3ef731d041bc636e9427829a8cf97af3a87d46694a7838ab7d3300c04a97519",
+      "advancedNotesSha256": "4d2ba061f358f0e818afbb47dcf474861d6fc26a299babb08d2f515b96d7fe01",
+      "playbackTempoBpm": 134,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "one-day",
+      "sourceArtifactHash": "064de6a4ff9b8bd99b7aacda05623355159b8cd3171ca81c9650f66ce49e12f1",
+      "advancedNotesSha256": "10752592e0550a1017304abe6815031c5b32b543ee59c51dcdc445046e59aeeb",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "onerepublic-counting-stars",
+      "sourceArtifactHash": "d40bf517d4a0d38f2c0a6c8b6cbc3f4a2a803e771bfb3deeae62ecf2d5f952e5",
+      "advancedNotesSha256": "2f437e73c13f4c5e1741ba68be26d984267c624acc5c2285eb9a4199bc2dbf3b",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ordinary-alex-warren",
+      "sourceArtifactHash": "9fac7f2261921be9f660515d0c1fe774657f0da5ce59b2c897fcd8117c3507af",
+      "advancedNotesSha256": "0ac9554bff54815c3dd7023e5df3388dc54d6461993595703cac75032f900aed",
+      "playbackTempoBpm": 168,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "owl-city-feat-carly-rae-jepsen-good-time",
+      "sourceArtifactHash": "1b1d4868ffdf87cafc3a70dbd9b54a7e485a89770a3ea5cde4834760d343b4ba",
+      "advancedNotesSha256": "e6d6c0c49e0e629394f6a43ce54b13fd0d84752ee52e87dcfc99c8f035faa225",
+      "playbackTempoBpm": 110,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ozzy-osbourne-crazy-train",
+      "sourceArtifactHash": "2d7882074b754c03e1efa9daeeabb77f2db5101b9039c5ef187e49e168111db2",
+      "advancedNotesSha256": "df9942284242fa87eade62ba0807c62bf484548b08269d48b0c4ebd97801356f",
+      "playbackTempoBpm": 67,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ozzy-osbourne-dreamer",
+      "sourceArtifactHash": "717a480565b9f70070ad8c1d7fa890f06c63e83027e43ccd74907e53d1cae8eb",
+      "advancedNotesSha256": "101adb21cbc0eb4afd7786394db041670ddcf55ddc67937de2356e468565f958",
+      "playbackTempoBpm": 148,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ozzy-osbourne-mr-crowley",
+      "sourceArtifactHash": "c0eed6965e6208c5065376efe70b7ce3830a21e795e4c6822705b76479510999",
+      "advancedNotesSha256": "a48f37ecd4e9ce008e13ed90e2b6e33e05d9bd1b2b85fa4726a282957b103e60",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "p-cornelius-ein-ton",
+      "sourceArtifactHash": "631bcd481e09c1493191959ec3264c3513c4a93177ffc6d833dea4f4952b659b",
+      "advancedNotesSha256": "1795c3b2bc26f5b48a404d1c685160c92db4057ad568fc186aaebb8744cf0946",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "p-dukas-villanelle",
+      "sourceArtifactHash": "427eb1b9fc2e0abd7ba5dfa1ccc0bf1e1c90d680eb72ffa623f354e9cc5e72ba",
+      "advancedNotesSha256": "f3a1c4a5047b87c44705711496830d438dc4d528c7dcecac4c849123a217c035",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "panic-at-the-disco-girlsgirlsboys",
+      "sourceArtifactHash": "e5480bf5e5aa6249c61fe9b01deb4bc97825dc028e493e3cd5ae5b04a7d8bf7b",
+      "advancedNotesSha256": "9a858751d4b90a7fe16338a83c38349ae841307752c70d4c3813b98567cf9d1d",
+      "playbackTempoBpm": 145,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "paparazzi",
+      "sourceArtifactHash": "5f9e68d6122b019e6c468e640786a969b86ab626c3291077b4b373cc9079cbd8",
+      "advancedNotesSha256": "16d68cdb6e6d3007330d3c43c93bd2635a8a196c606eaf1382353205989a4ad3",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "paradise",
+      "sourceArtifactHash": "fcdc28b034aa13f1736c555ea760b0dc24f953e226ea24b25e1f0268bb8803d0",
+      "advancedNotesSha256": "a75b6e78244c3f798452219d21e9e2fb490bfb4a8127d56731916021321a8b15",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "passenger-let-her-go",
+      "sourceArtifactHash": "fcbcc99a07be3d5333ca1a5ea2513d6ed1ec04d214fd9f581cc0f6f4f68ca02d",
+      "advancedNotesSha256": "addb78648b1736f6a590078f02e77361a069437fd115f7a3e2ed6c2dc03f4f18",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing",
+      "sourceArtifactHash": "da689382614381c113e72788b231cb255478fa27a83ae8740c99ea992b07f2b9",
+      "advancedNotesSha256": "6e5ff111f3157c2cedea21a6f50f6bff0a367afdabd509344ccd16a611fdad35",
+      "playbackTempoBpm": 144,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "peter-tschaikowsky-april",
+      "sourceArtifactHash": "5e29f57f6ede5a5611e8d88c20ff79bac9959a7b159d3894ba17b1bc42652155",
+      "advancedNotesSha256": "baa2518fab51426996977f75c4d64a7ccf1af4e34e5731e85700884b91fd15d0",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "peter-tschaikowsky-august",
+      "sourceArtifactHash": "040b65ae12ba5f22e65954f4dcae658bc22d51539aaf11685b3284deb25f98ef",
+      "advancedNotesSha256": "a4b03862966f887569241865ab315b4e59ef3a5ef3677d99cb1d9874bed9bffe",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "peter-tschaikowsky-dezember",
+      "sourceArtifactHash": "b5115200159673c5fbce465146f9b08267b8733176c026435337f742a613dd7f",
+      "advancedNotesSha256": "b71353102a2bcab5b424fe0b6c6e63a52974e32e403ade192b890c8942e8aa65",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "peter-tschaikowsky-februar",
+      "sourceArtifactHash": "9caf58c0ffa641c7a8293bd770ade1f2c37aeea93846e836cf977c2f297f6512",
+      "advancedNotesSha256": "74e2ae605b8c078ee3faa1c571d5ab1087fa6c4c957f10b233baec44b969b45e",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "peter-tschaikowsky-januar",
+      "sourceArtifactHash": "d7f0b75572a85dd2c179a02f9ca8cb9887286fb5f71e2b4c2d784121635d4150",
+      "advancedNotesSha256": "da31f8f334ca384e6cf54229a8e8da9f7bc591885684b7571a099144ba3015ee",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "peter-tschaikowsky-juli",
+      "sourceArtifactHash": "0a556cb215027b5b74af5406db8b8cc7926c3ab0577a9f7fe4db6e0fc2876a6f",
+      "advancedNotesSha256": "60b1670fee8127a1d87b41250e8c313fe7e59a6395c517fdd6111991f59cb954",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "peter-tschaikowsky-juni",
+      "sourceArtifactHash": "e4519638b609e0f464f0a1a1e74f94e68d02eada15a173bcc69f1cb44e068874",
+      "advancedNotesSha256": "c622c2344c5981a319152586d91cf76cff4e9e7d53ca2c6272cb601dff3a8fb5",
+      "playbackTempoBpm": 117,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-cover-by-pianella-piano-ava-max-kings-queens-mslwtpef",
+      "sourceArtifactHash": "2f0dae9c7c91b2fc8bd4c562f1bb069316489ac9ac3bc1ddc68b1009add8a7d0",
+      "advancedNotesSha256": "7ef169b7e2bda646d78c95a122064c61563f92e1c783178d6316ac15862d02f4",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-cover-by-pianella-piano-hozier-too-sweet-mslzwyl8",
+      "sourceArtifactHash": "1267150753c32ff464efe9a4b3a7458315e24f83f5aa7c7cead6b005658ffde6",
+      "advancedNotesSha256": "9b5c47c86434c0b9f40d7dc02ed5e5f26d820d4dca9dbad86181801cbcb8d422",
+      "playbackTempoBpm": 118,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-cover-by-pianella-piano-lewis-capaldi-someone-you-loved-mslwst4l",
+      "sourceArtifactHash": "9bc42947b9a7d3e6dbf3f5f0c9233441419a89caebf5a801e2412509faff1aa2",
+      "advancedNotesSha256": "5b744962dc880e9e9a6a877861727aceee8ec67a0f86b519444e33e6a96d5da8",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-cover-by-pianella-piano-linkin-park-the-emptiness-machine-msm03cze",
+      "sourceArtifactHash": "bf259d1cf07b87dc7a3ea556a9ada209d4417d572fe924a1c6f03fc51ef4011e",
+      "advancedNotesSha256": "d6fbfb9f6edc754293b3999f3e8927a20e2933553b323ea9e43b5b33ae526640",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-cover-hozier-take-me-to-church-mslwsak4",
+      "sourceArtifactHash": "7abcc382123109bc0b7c4ba67e6d10714b8234117a14835a59008e6f1b90ed7b",
+      "advancedNotesSha256": "c4cce54480ba52ae2a824f9a911a40f6c67ef52ce16f8a4a010dcccf7bc1249d",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-duet-tutorial-levva-livet-age-aleksandersen-mslzwgdw",
+      "sourceArtifactHash": "49fb94d89b5318e86f077c708009d45bd0732dc0d3b1f8caa470ec2d2a5f84ff",
+      "advancedNotesSha256": "10aec7e55d8255861c57ccabc2ad525e56e9c1c917f7af814a255a09e477b6c1",
+      "playbackTempoBpm": 136,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-free-sheet-music-sabaton-christmas-truce-mslzztfn",
+      "sourceArtifactHash": "3ac6764902c4e9c2bd4462ccb91a6c545142bc206ef5427fc2ecee63ffad9af4",
+      "advancedNotesSha256": "f919bc9d0d667055b264a576f88f3bf690855a34dd29c46a7d4383b780f14000",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-free-sheet-music-sabaton-the-final-solution-mslzzcr5",
+      "sourceArtifactHash": "b6a870af88bcf6437b135b763da97b0a9af5586c81d5c614410bfc9598ad6883",
+      "advancedNotesSha256": "b6b6ddf3bc8f93ffff20c856f70fa3d64605604e7bd08cdf39e89fde8938b525",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "piano-see-you-again-wiz-khalifa",
+      "sourceArtifactHash": "374cf8ecdf17db7397c0991e0a4ad7ae4de7fd4d50b4464ac6874498129d4a63",
+      "advancedNotesSha256": "4cf0ac5a82b6e5447667700604b0d6f904a0437ed1ba66ef58b4d5d15b4538f6",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "pianostalgia-p-nk-u-ur-hand-piano-tutorial-msm00c9a",
+      "sourceArtifactHash": "d3d377b50b10c931e3bbfa2fde5e1cfc0e0f2f03d8ec4cfb88f009fb00ce1616",
+      "advancedNotesSha256": "ff712a2371fdf2465c6ff83fd917452efe18bba548c0b4b09780fc922eee2214",
+      "playbackTempoBpm": 136,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "pink-just-give-me-a-reason",
+      "sourceArtifactHash": "09d41759bbf7bb2d6e333f77412d7263bd0c802c054fc156011111bc7863b1ba",
+      "advancedNotesSha256": "c7debd1cd269b24f422492be001069187fadf9cabf22d46541b240eca2b5523c",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "plain-white-tea-s-hey-there-delilah",
+      "sourceArtifactHash": "365c412604af39d61d05ae3571998b2d99b9ad59e2e9f9e0480f63f7f964e586",
+      "advancedNotesSha256": "38af76891d5d9b10873b21b9329c5de6a4b839735e6638324fb02390b7f60fa5",
+      "playbackTempoBpm": 110,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "pompeii-bastille",
+      "sourceArtifactHash": "8a46ec9e4b962e0439904f39b58064b340b5f64a6b42cc19ed5158498b7e4cb6",
+      "advancedNotesSha256": "eccda8aea192e7121c603bc785887dea89587f7a2f54cb8b7add30afa2e69d42",
+      "playbackTempoBpm": 127,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "preview-job-a1441280-05de-46b2-88bc-7acbc5bc29fb",
+      "sourceArtifactHash": "f15e145f6f20fb5a39fe513f3523ed6bf3a03f11d647cdb8d3d6b34990af10c9",
+      "advancedNotesSha256": "112d827e907ff10c8b5454453fc5e306793065659abddb35479e417a42a76a05",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "preview-job-a30f9c99-bc15-4432-8f3c-030e7eb0584a",
+      "sourceArtifactHash": "62b2c20b6e0ea32feaf71935d9fbad7739b8260a98dc0e49cccc9f3753a76b48",
+      "advancedNotesSha256": "81cfec6b6b4dad265384dff479b6213f4cbf073b1d87b666eff5d4a6dfda3cdb",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "preview-job-db7fc4ea-1bfe-40b9-b9cb-df5c33754539",
+      "sourceArtifactHash": "7e4632d93198936ab05be6df9470890aefc269de2662b31b63a688a2394bb453",
+      "advancedNotesSha256": "cbc291d697630a127d7c882ffb48815d2aa574e7bec259259f18945b5a9e8efd",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "queen-bohemian-rhapsody",
+      "sourceArtifactHash": "a06fc911508138ea372240a7d359ba98da12320d8b6d7742dfbc86757b353842",
+      "advancedNotesSha256": "45413fb446b0ae946381ca3f10f615488b49ff40cc8682d1616f4190ee705da0",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "queen-somebody-to-love",
+      "sourceArtifactHash": "4505d3a7cb3c24788e51905eb29a40c501a31f7bd07596d489f63f7430c7a74e",
+      "advancedNotesSha256": "20b5b8d7b7bc2d1e4e6e2807e0d71513d6e37ba0773802ffc575d8947f3d4786",
+      "playbackTempoBpm": 108,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "r-franz-es-hat-die-rose-sich-beklagt",
+      "sourceArtifactHash": "b9fe48ea55750788172552fa161f0c6f491f8a8c13a581fda3e8a0316db1c12f",
+      "advancedNotesSha256": "3c1268e9cf60eab258a7bbaaee9c047ef3d9e9fabbe76015c697d92f43f0cf2e",
+      "playbackTempoBpm": 40,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "r-franz-gute-nacht",
+      "sourceArtifactHash": "ef9b5829202e2645c3b8f3edf7449c3eb01f212eff56c23484bf95adc58d0f1c",
+      "advancedNotesSha256": "26ee8c35d60317566d74d959b5b2c0259741b5f66ba07f05dd26e3ee3ea9101c",
+      "playbackTempoBpm": 81,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rammstein-mein-herz-brennt",
+      "sourceArtifactHash": "e63b8c53cf8fbba5b7df28245cea8051394c857c5f5df57c8b55d2bc6402120b",
+      "advancedNotesSha256": "97997df687bb2613cd5eda08497c884eb8442301d107db4d904ca13f6721ca26",
+      "playbackTempoBpm": 82,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "red-sun-in-the-sky",
+      "sourceArtifactHash": "24a8bdb939c6a58f9cec516c4fffabaecb861df3b7004e97814e1ad3a9373616",
+      "advancedNotesSha256": "1a26fa067c49d9e7d014024e29adff20d9673c7ccf2e432a9cfe1a24cb69d238",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "rhcp-under-the-bridge",
+      "sourceArtifactHash": "b314a8d3af89e02f6a352de8a88fabbca9c2880e2cdcda3525929a06580cd41a",
+      "advancedNotesSha256": "ea7ae44c202ce5e89c4a84a0765fb3f8df74aecec6675090053ad10192d11a83",
+      "playbackTempoBpm": 68,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rihanna-diamonds",
+      "sourceArtifactHash": "bf503839c4cb3bfed7372e231b0c380840dd3cfe4b7bbc70a13e6f442778fcc7",
+      "advancedNotesSha256": "565b5aa3bdbe18e4fdc1043986ba8bfe1ae88950a5d3c4be287469888b8d5d08",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rihanna-stay",
+      "sourceArtifactHash": "1c8e7bd0c55af23f9f23c6759938758eeb699b86d3c4c3a15c58d312bfb91f61",
+      "advancedNotesSha256": "1399185784c9c3d54e6720b3d3439f55dd6cc71d9f57dc31ca369f83a8951e24",
+      "playbackTempoBpm": 115,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rihanna-umbrella",
+      "sourceArtifactHash": "4c4b87b6fe1db8cc96f57962a0a3c2eeb7e3c3fba2ce802a1bb0bca314d19874",
+      "advancedNotesSha256": "043ae49b6b8fd3c2a69bc2b4c73648bec153bb8f1556a74ac1be0f7eea25bd3f",
+      "playbackTempoBpm": 87,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rinerion-adam-s-song-blink-182",
+      "sourceArtifactHash": "a32b2f5ac96de8437de59237ddab53cc18654441d68f833a28d3de8dec14d265",
+      "advancedNotesSha256": "baf60ba3e58dfd021bb11a9f3ec23871b0d4836fe1f44b9055c31750d895ea9c",
+      "playbackTempoBpm": 131,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rinerion-owl-city-fireflies-piano",
+      "sourceArtifactHash": "76ef464902e1f1264de1d702e1e08f33a662d8747f2e67661cfa2b37a5d7f731",
+      "advancedNotesSha256": "e0b063d8148ea4e1207ff2393847d8f198bf5f96229059d8b7fbff07bee202c9",
+      "playbackTempoBpm": 86,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "riyandi-kusuma-james-blunt-you-re-beautiful-piano-cover-by-riyandi-kusuma-mslwth1z",
+      "sourceArtifactHash": "0fa5f48b2869ca9e61da24b93d13c6d529b62b4115f2ab8cf3e5c38026d34ec7",
+      "advancedNotesSha256": "499d00005d5c3d79f8c7b9e20c1918b8a9fe7db76fd1dfb251112622d0888328",
+      "playbackTempoBpm": 162,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "riyandi-kusuma-the-greatest-showman-this-is-me-piano-cover-by-riyandi-kusum-msm02b8j",
+      "sourceArtifactHash": "20c3d21cdd6af38aa723f614ff08299fdc9deaf401944eac5db47d56353a23fb",
+      "advancedNotesSha256": "d11fa489b42d17d75d8ff6a517e1fa1ab58afea53e48b330995b9efd387063b1",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "roar",
+      "sourceArtifactHash": "af54a97913c3f12392776017727ac790b39489a14d67439ae5e8026bfb0f5bf9",
+      "advancedNotesSha256": "de2d6146dd14b7c69ef3dfa10b72c60441154a50bda9b982a003947b07c2f8af",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rocket-man",
+      "sourceArtifactHash": "aea544d84fa5b7c03f7bf5389ae1a524a0dcdb7338368c6b5ca579e47967a753",
+      "advancedNotesSha256": "4246f6ac009c2cff145f8fadcd435d88205ba1bf748b302bd19b7e63df1658f0",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rousseau-j-s-bach-prelude-in-c-major-mslaeupl",
+      "sourceArtifactHash": "7051c89626e41d21e32c4026c744db0bb6271e0d52472b37eb1ad9c1ecdcc87a",
+      "advancedNotesSha256": "aae45cdf848ea55f20e7beedd17932d6b50b0fbe1498050517b2f103cd1278e9",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "rousseau-john-legend-all-of-me-piano-cover-mslwrq3x",
+      "sourceArtifactHash": "504cf2504309905c76338b1e0bd0d4b5b09fd45f3029ba5ebdd1881274ae0d76",
+      "advancedNotesSha256": "2d8212fa850c7dfcbc3dbf0029f4b22a2ee93385fe686214b48b20db28865cfb",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "roxette-listen-to-your-heart",
+      "sourceArtifactHash": "7c476ed6fcdd06e5e91304f48ae4c8e38ad113424177a6f1669f81cdb99e8499",
+      "advancedNotesSha256": "cc07833ef762c3c6969af07397306b15b33336b495568623093f81254bb92833",
+      "playbackTempoBpm": 85,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ryan-leslie-maybachs-diamonds-57z",
+      "sourceArtifactHash": "2c87753e3d5f58c41db75455055f2f7a11155d26cc1b881f18e62f4c04e6c05d",
+      "advancedNotesSha256": "524e813dfe569eabdcfed64d9a52cfabc8bb1d7bb65942269f6e6a3793530ebe",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "s-adams-the-blue-alsatian-mountains",
+      "sourceArtifactHash": "485964453a4b0af07b872f341fea034d72d6fbbf974bc1673d0a65e242f55e45",
+      "advancedNotesSha256": "9738f5de9b249583a2b6d7cd6b95fe33621f2262b707faca22a8e8cd33898d36",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "s-c-doonan-enchanted-island",
+      "sourceArtifactHash": "313c8cdc875e47f3ffaaf475c2fdb427b27adcfbad816dfcb69a173e5c30bf16",
+      "advancedNotesSha256": "4cc7b5568ec1ea7b6ef9e3c5f58d2d29e7e34bd431f9f86309579eb20f0e58a0",
+      "playbackTempoBpm": 150,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "s-c-foster-slumber-my-darling",
+      "sourceArtifactHash": "3235864dce0f7a59f1eb348bda55065263c0366267e32f27ce6240c9dde3f6b5",
+      "advancedNotesSha256": "ff0f82ac66727b246eeca72b054f5591545a283dd4bb770f50903fb1046a7605",
+      "playbackTempoBpm": 48,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sabaton-82nd-all-the-way",
+      "sourceArtifactHash": "d6e0c3563799a46c793afe35c2e6913fd260aaad425401bdae057992f3ad64fc",
+      "advancedNotesSha256": "768528e069231dc4b71a5ffdc146e3fa0afcdc1e19eba785d4107b0369b79041",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sabaton-defence-of-moscow-mtbikryq",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "b68289b335f26446e46085b6fc7a145a3be18ea8e87ee4e6c3a75a09619485a8",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtd717qw",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "b043d9f8f59e01f50c419ba1f025da065cbe6fe56c010afb8b01e334972bd06f",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdq7vdx",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "84a2f052b6b61378fabc17a663da52faf03a9f5ebe8041740c6aba50ccefc168",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdu6jt7",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "16650d4ef8dc0aeb7e6c900af4722c2b420d0a120cc2c3a9520e53e702c85a75",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdwmc2y",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "cbb29362bf329f0c6dc4c14d58543e95714e094733ce9e023b3d09d26a3ea4a9",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtdyy3n2",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "494be2e45383a6b6082f44cb60c5c47385d28750564fee97a192962aea8a25b2",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mte172p8",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "82bf4e1c664d684895cb4da744f94b523d3c19969abbe531647e88b82c8b606b",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mte6ttgh",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "0ddf4291d9a69e672a44d30b7302d78ba113650a3fed1c97d270f33ae04e0586",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtebf9i2",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "849b14aa994946ab4f8c24b898782678a1bb916cf6877e7d525b29999f1eae1a",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-defence-of-moscow-official-music-video-mtept7vy",
+      "sourceArtifactHash": "efd4c143eb3fa335ccfc928f904c4836c084ce7c1854ef12915b6935becbdc4c",
+      "advancedNotesSha256": "dcc3e24aec68d5edf543b385608ce29b484c7f336b36d12a7f7c28c3bfd84a60",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sabaton-sabaton-livgardet-official-music-video-mt9zuznc",
+      "sourceArtifactHash": "70ec7f41b1df5e35c15ef08cfdbcd12f688a253bacb9f0995282080a65e169e4",
+      "advancedNotesSha256": "50cb7608fafb94209434943ff2805f7f9349dbc21593b3dfba40d204b8664cf7",
+      "playbackTempoBpm": 138,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sam-smith-stay-with-me",
+      "sourceArtifactHash": "33b67471a7590f94c1e77db1f879e7e79c63488d3d6f89973181f68fe3e58cc1",
+      "advancedNotesSha256": "5eda0586773070238bf2166c56c048943e09266d8da440b528789137a713be23",
+      "playbackTempoBpm": 89,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "selena-gomez-come-and-get-it",
+      "sourceArtifactHash": "0419119638cfa41229c115bfb057036dd8af395bbb5cf7c9c937c7d6228b7adf",
+      "advancedNotesSha256": "3c0b3aec74fe9e71fe034263f218966ef1d48ca67e9092d4d43b6a22a0980648",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sergei-rachmaninoff-rhapsody-on-a-theme-of-paganini-variatio",
+      "sourceArtifactHash": "38fe7c5855f4e2f90ecfa6ff1e878b91498f422fb9e743ecfec128f6c2a28f25",
+      "advancedNotesSha256": "04b7955c57f97c6046353958e6bbc4112ac39837f0119a315cecbcf93d0521ad",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ses-death",
+      "sourceArtifactHash": "8e36ed4ee42bd55b8924a983c4a6b5939c47dcc64bf5550ff535d5e96a12a340",
+      "advancedNotesSha256": "43bd72ea75d5ce7f6ee0cf1b5518ea004b9883bb98be3fa7e801f20f30c1544c",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "shallow-lady-gaga",
+      "sourceArtifactHash": "0ab2d0a78010edc8ea6946e2839bce8374a6dbc74419366fc8b39bea4efc0ecc",
+      "advancedNotesSha256": "fe787c2ea20aa486c86c6da380b3b8f18575d7d6ea35542e7c1ed093de620734",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3",
+      "sourceArtifactHash": "59d642bc45ab206cc5cd6c41e72a0e7ab5116f652ae330325aed9b3622cd6689",
+      "advancedNotesSha256": "393d8ea6ea5aee1f1dd0dd37e049c237c29a30bd60285eb35589b2225b97864f",
+      "playbackTempoBpm": 103,
+      "servedAtCapture": false
+    },
+    {
+      "baseId": "sheet-music-mary-on-a-cross-ghost-piano-cover-w-lyrics-mslwt86i",
+      "sourceArtifactHash": "426ccb49be0f07032aa9a72fdac92a6f98a3a0af380bb867df008e9f0da9d3f4",
+      "advancedNotesSha256": "cae38e5388316284dd5d23f4afdd24f96992ca8b7f17b7ac6004dece27c4fb37",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sia-chandelier",
+      "sourceArtifactHash": "635119a328112670ee2af52a897c5f1736e9c63c5cd38d3182e4ca58e1d3936f",
+      "advancedNotesSha256": "51b6246a6e23cdfb39708665027fdacda28eddff49bf58f4bbb457015d1414cc",
+      "playbackTempoBpm": 174,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sia-snowman",
+      "sourceArtifactHash": "c2b223e8618d2cee93f8e916ba0cec7b96869298d4fb357304b7a57337be1948",
+      "advancedNotesSha256": "773a4674720167cda50aa7cd2a80930b3da74742b1e02cb597eea706e6e27757",
+      "playbackTempoBpm": 104,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "sir-mix-a-lot-baby-got-back",
+      "sourceArtifactHash": "b6ed38556e6244c864e60af1e95bf84e7300a09e5ad158d43038c957e48feac9",
+      "advancedNotesSha256": "7cc32d242cb81bd42ee1ea4a9f5cebf6b3733a777e1985dff402780bc6d6f924",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "stairway-to-heaven-led-zeppelin",
+      "sourceArtifactHash": "8c19d89ed0ed9943a1f94d07c0c8ccee1a75072d4cdb88064ea00ac9cc936eef",
+      "advancedNotesSha256": "17c03719b65613418879faf81061965853d6e66ce47f359de91ef9e4e9f2e685",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "star-wars-main-theme",
+      "sourceArtifactHash": "17f1169e4f4eaa6639299ebdde158d7e2333c042dba03fc54b64d783a5c3c885",
+      "advancedNotesSha256": "45adcf7cee70e48b2fad67016c1bb1b7051d215100103879b75ebd36cc44b3f7",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "status-quo-in-the-army-now",
+      "sourceArtifactHash": "0cccaa9f5ad91707327ab6c1f311e30e3de6fb3c91d1695f862c646b8772ab65",
+      "advancedNotesSha256": "f61af5ba58446fd7cafc71ae95569a75d1dc16ca584d787d40ec317c359656ad",
+      "playbackTempoBpm": 109,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "status-quo-rockin-all-over-the-world",
+      "sourceArtifactHash": "87981d3384961034e368e340c6ccab99d1928db5efe4a7a500b9668cbe951876",
+      "advancedNotesSha256": "d629d16789cb0bc17f4fb774d1b0f6d32aeb1c000a8ee58813e0a33b859c42d5",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "status-quo-whatever-you-want",
+      "sourceArtifactHash": "79620c3df07591a7e739dad322729fe6d202960f53f3bf638127bad5ce2681c8",
+      "advancedNotesSha256": "8c416ea5d8497dec7adb1f9feda387663b6bb13efc81bdd727d846bb88121c35",
+      "playbackTempoBpm": 98,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "stay-the-kid-laroi-justin-bieber",
+      "sourceArtifactHash": "79000ca738609061f0c93bdb5e12a9859ff7e5b5d627afe490cb910158ad1bc7",
+      "advancedNotesSha256": "79848f9f1c570987028b2917301a459f488163b381ea3918a08bc27e61149852",
+      "playbackTempoBpm": 85,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "stay-the-night-zedd-ft-hayley-williams-fonzimgm",
+      "sourceArtifactHash": "a7c7411809078193ee94829e480551df20044470f4b696ead43784c0e98f3833",
+      "advancedNotesSha256": "9c03580481785e71fc0bdb00594f974e2250079cbc78439713f1c2da9f4a82ce",
+      "playbackTempoBpm": 126,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "still-dre-composition",
+      "sourceArtifactHash": "0952b74054249c2c6d6118586b03838968149ecaf582450e09002544ff859786",
+      "advancedNotesSha256": "1227c3fae19cd34ed78155f1f26e877483e40aeff19af7ca5212a23f84bd72e6",
+      "playbackTempoBpm": 92,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "summertime-sadness",
+      "sourceArtifactHash": "1698ee9a2a9acdab47d6241a3a597ba4c2658cf2ba23432430f9dc2c8a155b0a",
+      "advancedNotesSha256": "cd0edf48616953682bb9f287957189338018a61fdfd98ee82fd0cf5e81e3c55f",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "super-mario-theme",
+      "sourceArtifactHash": "c2212739bcbbdd0ac92662d074e024a00fc0f8fc19190b0bcd27a884a78c6166",
+      "advancedNotesSha256": "20e399ae91ec4ee826aabee4cdf2cd34e60963d5e96b45963a5209d3baf38363",
+      "playbackTempoBpm": 95,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "swedish-house-mafia-dont-you-worry-child",
+      "sourceArtifactHash": "93fae8b2335899244e86f867c429d3d9f932c0e5e93cc637eb62322b6859c32c",
+      "advancedNotesSha256": "50068ae351c81ccc24ad11709bfee22ab23d226b66d2a92b6074ae69821aab53",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "synthesiafreak-gavin-degraw-i-don-t-wanna-be-piano-cover-msm02nur",
+      "sourceArtifactHash": "807a8d91dded004d157b5e38c7b6f1e09ef5831d500eeaa6fedf9c2ecebe43aa",
+      "advancedNotesSha256": "3a6779e27e326e3490c63ea523a0f21366ed182d27a58fc70bc5b3e6104fb3f7",
+      "playbackTempoBpm": 152,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "system-of-a-down-chop-suey",
+      "sourceArtifactHash": "f33b631aa8f37f230661b9d71313f46a1885454cf3689567fc142e6cb9c9f0ea",
+      "advancedNotesSha256": "aa7e5ad619e12cbbd6fc4b41d3ead601e374656c5d34a7ef42f80b497b5df34f",
+      "playbackTempoBpm": 132,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "t-i-sorry",
+      "sourceArtifactHash": "6606a77dcafe3bf9eec3fbcd7bc51c4ce7df4cd8567fc26810a2e54211397a9b",
+      "advancedNotesSha256": "1d3b5a921b320f32e90eb9a7d7b84f6fa79c09ad75e9a21c6cde991902631bcf",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "taylor-swift-i-knew-you-were-trouble",
+      "sourceArtifactHash": "bdcc09369091d70e9c76bde4e0a8323a88f5e588a8a0c2dd23a4fbe2b86f1f84",
+      "advancedNotesSha256": "87a228847a80bc3ebe3a3bbbb343c4900a5bf1b3f914b4d0d518ffea2ed9d18f",
+      "playbackTempoBpm": 155,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "taylor-swift-shake-it-off",
+      "sourceArtifactHash": "0b4771dfaf56505451fa6201fcee325a819f69e8ea1261b42913d8e893c85494",
+      "advancedNotesSha256": "7a0af74dbd47ad030da67f9bfa9bc4a6451716fabce16b8be6bcfea66916ffee",
+      "playbackTempoBpm": 149,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "taylor-swift-we-are-never-getting-back-together",
+      "sourceArtifactHash": "cbf0ac3af3835661b7adf981d891ae0da37e4e98e22c52c3495c35e91625b979",
+      "advancedNotesSha256": "9b9b43244a204d347fec9250e9b15900b1432bb32475bb48028cbb84f1fa06cd",
+      "playbackTempoBpm": 170,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-beatles-blackbird",
+      "sourceArtifactHash": "3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75",
+      "advancedNotesSha256": "4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-beatles-help",
+      "sourceArtifactHash": "278f693cc9859cedee170d7709c49b5e7a1c98de632ea3ed34092c7bff05279a",
+      "advancedNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55",
+      "playbackTempoBpm": 173,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-beatles-let-it-be",
+      "sourceArtifactHash": "41af82c72141e3437e5a1e95ef39481673c1eca2fd09f699f258a3f209f95847",
+      "advancedNotesSha256": "b7fea761f20fe174c64e599041ba3e67f669b9efad4ddf2834dbf45aa34c3b36",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-beatles-yesterday",
+      "sourceArtifactHash": "d61908df3a9166c39f84639258c0449de452807810e7ea00901cf0b2a17125af",
+      "advancedNotesSha256": "6b0e044e9ff99e87f7361f322b92cbab635f41c21198a3b8c397ea526a8fb5d9",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-black-pearl",
+      "sourceArtifactHash": "5cf8be196805ab12a8c2687c7a34bbdc1bb162628f0e52f2a3d63b6064793366",
+      "advancedNotesSha256": "39a2ebd2002216b4e5383d6d3f8dadd1eedf5fd7a543ff78a93fbbcfa1f5947c",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-blood-ritual-and-moonlight-serenade",
+      "sourceArtifactHash": "d15eb83edef40513c2ee2854a272f2d86704eb81410a63910f602296218ce94e",
+      "advancedNotesSha256": "2a492e14c9c88c2aa9af189a1cf1a1d283d8f1f8cab976185224f125c1a13cf9",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-daydream-tears",
+      "sourceArtifactHash": "2f28e99d4f1cd7b85ff61e890fa04378dc369953fbc02008e0c0c79fb02d5973",
+      "advancedNotesSha256": "346497d0335a6dc0da090d50fa8505a18dd3d7cffcb5bd1a543b044b75d7c21f",
+      "playbackTempoBpm": 72,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-office-opening-theme",
+      "sourceArtifactHash": "5245feb558eb3b512a8fe4ad09d30ad87b62a4aa259e5d7d41ad82f8d3b5e8c6",
+      "advancedNotesSha256": "850130c1b0bd10b9b6cdf1daccb8ed46bb7908f9a5d3584a1bb38e38e7076e92",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-pink-pather-theme",
+      "sourceArtifactHash": "3001e3a116801861cff07ecc0c55792150eb5265ee5ef883d4f1c0e2d1764873",
+      "advancedNotesSha256": "bbd6b1160d5cbed6c55cff58943a3675ca529bdfa96d1e18ff0b87952d060e80",
+      "playbackTempoBpm": 124,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-police-every-breath-you-take",
+      "sourceArtifactHash": "d9f9dd22e3780f81ba7fdd51535549322701e9586dd497556dadfa3b4121dd65",
+      "advancedNotesSha256": "dbef6cff59ce664ee92b5026ecd01cafbf59452d94ad8553960e486716d326cd",
+      "playbackTempoBpm": 115,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8",
+      "sourceArtifactHash": "bcdbb1eef809fbf0bee0824a874e98ad3cea321e44d0d87ed0a9633b72371f0e",
+      "advancedNotesSha256": "b1a3051fc7e6f0fbc29d9449f6b8f188fc83507bb944b47ad8b1f0cbd73cd72a",
+      "playbackTempoBpm": 129,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "the-weeknd-blinding-lights",
+      "sourceArtifactHash": "5a18fdae05c35021ca88f213c444712708136c4bb021112cd8fb8d0fe0180ad9",
+      "advancedNotesSha256": "4e2163b95ba9a445772509e066a26f216a56000ebfdc793d17421aca5c3cebe1",
+      "playbackTempoBpm": 168,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "ti-amo",
+      "sourceArtifactHash": "840c4eb2b327b4400fa07197847e43a3c033f52acb225fde0852145b83ebced8",
+      "advancedNotesSha256": "8936c57b870cae4c9ebdcbd648b26b22882581aaeddafddd62421056e7aa400f",
+      "playbackTempoBpm": 87,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "time-zimmer",
+      "sourceArtifactHash": "bf038870f2008e77dfafca86fcb99635cb2ae96ab27b2ba2d935858a1460556b",
+      "advancedNotesSha256": "81f2c3fec697dc55c739238a3a4fe6a74701526662101b23c845ba21b3a553b8",
+      "playbackTempoBpm": 63,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "titanic",
+      "sourceArtifactHash": "f5699145d6dbce720213ca13865919f946bd6ff5117d27efac25c76cc5842876",
+      "advancedNotesSha256": "ef25d2d301f7a1705ea7a295d0090e0a7ae36ff12c207ce6be52c1c5c6164478",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "titanium",
+      "sourceArtifactHash": "78c7b02ad38385c78585b42f2b7fff03edd171baa3fade1b9b0d55cb8e906d3d",
+      "advancedNotesSha256": "379304ea6e2c3d8c41bdb9e90f720e5cc9f4d21a9c3827e95c988e1068615412",
+      "playbackTempoBpm": 135,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "top-piano-tutorials-we-are-charlie-kirk-spalexma-piano-tutorial-mslzw71l",
+      "sourceArtifactHash": "f0d90c0647394c35cf8acc60f516b5ebcec7c1cf3ee4a373dd4fc7607e09676e",
+      "advancedNotesSha256": "af5cffbe4109dd9ad81c84a0ba2238179194733cec6ca8a783d3fd442c8a4da2",
+      "playbackTempoBpm": 136,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "traitor-olivia-rodrigo",
+      "sourceArtifactHash": "385e0e8bf4033a7d81b3c3cd1d871683b949f5f8394d92903fc7d39fe5a04e4b",
+      "advancedNotesSha256": "182ff4feed0a8c9911387c9c765696fa8fcd152065855762593dc7da034d8811",
+      "playbackTempoBpm": 75,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "trentorial-piano-nothing-more-if-it-doesn-t-hurt-piano-tutorial-msm00oe8",
+      "sourceArtifactHash": "bfd1cb0380573d7014a566e955f0175b961e83f20806c365aedb7cf0f330f486",
+      "advancedNotesSha256": "2f29f7cf4e0fe12b1d60bc06165765a11817a42faca767589a6b77d12dd13df1",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "trevor-daniel-falling",
+      "sourceArtifactHash": "dbebe98d2f38a8000b9bcab2e448fe3f74fa9753bc50e38fa36739f0e50483f3",
+      "advancedNotesSha256": "96a464daa07b1d5dc1216065fe95b136798a430b6962c9ca9a858a02e81321cf",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "turret-opera-satb",
+      "sourceArtifactHash": "b1dfa2fd6990f73999dd3e03c1da10bb17a5581473bd7cdf5681403d27d6f24f",
+      "advancedNotesSha256": "b2eba26d942733fdbe2ed5a42afcee3f446813b4a042e415fc4c509bf68e6e9b",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "unravel-animenz-toyko-ghoul",
+      "sourceArtifactHash": "8c66d7442620156beeb7435480a7b6517091f51cd0de4b9e1b0428e448b0eb81",
+      "advancedNotesSha256": "831db03f97bb966f19d83e7eea9092a1af9c20dbec2693881f852a5f4fdfde1a",
+      "playbackTempoBpm": 130,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "up-is-down",
+      "sourceArtifactHash": "34873f45aa33596d196d761b4be4f1fe1efa1e433b07da1eab4705b04fcf029c",
+      "advancedNotesSha256": "f2bdc462870e61505cd41b286e94b0b701d67f8694abf6fb2aa8353d7320b628",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "upload-6a8465df27255e36c8f7f5e8b4bb3a4492d441fb32deb4349448325b7fbc80db",
+      "sourceArtifactHash": "6a8465df27255e36c8f7f5e8b4bb3a4492d441fb32deb4349448325b7fbc80db",
+      "advancedNotesSha256": "269fa2b0854167c515048d44fce08038493866ef93afe57030298cbe616750da",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "upload-b7329e3480695f790dd0e8f64fdb8d86043012023d8f2083ca23649c14a15caa",
+      "sourceArtifactHash": "b7329e3480695f790dd0e8f64fdb8d86043012023d8f2083ca23649c14a15caa",
+      "advancedNotesSha256": "c53062fd64feddf824cb27538f0d7641c727e9a3da48085d6f109e46532d94d3",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "upload-b94b9435e6fe9ea7ef9ec8b44f50352075308f35e3e43b20f0be1d71a6856d31",
+      "sourceArtifactHash": "b94b9435e6fe9ea7ef9ec8b44f50352075308f35e3e43b20f0be1d71a6856d31",
+      "advancedNotesSha256": "22310f909b974a60fe5f969bd9a7d55bb63330756096e52c1a4963892d5c2b35",
+      "playbackTempoBpm": 160,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "upload-cdbec8b732640ad1305c746a918678b7bcbc521a9d9c1488a0ff02f959294b9b",
+      "sourceArtifactHash": "cdbec8b732640ad1305c746a918678b7bcbc521a9d9c1488a0ff02f959294b9b",
+      "advancedNotesSha256": "efd4c3b51891899831196e61a32883c852faa58850c6594f5ba6e3c27bcd1478",
+      "playbackTempoBpm": 68,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "vanilla-ice-ice-ice-baby",
+      "sourceArtifactHash": "8a4d3b7221c941bd0ffca83075118eded30d683b3765c8c8ede8b2cfe586412b",
+      "advancedNotesSha256": "6488e8571a950fedb6ab34acd4bf54b6c990c926fa573baab7544bfdb606f2ea",
+      "playbackTempoBpm": 120,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "vkgoeswild-piano-cover-foo-fighters-my-hero-mslwsk3x",
+      "sourceArtifactHash": "edefff425476d86cb0ddb30c82ef551206158f87a1b05834081c54ed6b2837a7",
+      "advancedNotesSha256": "720c5ff1d07f5a3ad4f3653e38b6a7718b5d0db1ab1b38a4531a44154f4458c6",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "voletarium-countdown",
+      "sourceArtifactHash": "10fad2021ee794790f5afcff3e739e1440b66b856bd71a889cea1ffabdb1698c",
+      "advancedNotesSha256": "b100f1b0c3cdb6806bfed5c7f0a1f976ab6e15d434026e15d05f22cd7b3646bc",
+      "playbackTempoBpm": 135,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "w-h-doane-near-the-cross",
+      "sourceArtifactHash": "09d4a33ac39f9429f3fdf3a45377a7010b36a1f501194b2dba10e91e45d51a0d",
+      "advancedNotesSha256": "764b13112b7bc753a393262bf34b4d1aa60a3ec50c5b2356187f1213b1c96304",
+      "playbackTempoBpm": 112,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "what-falling-in-love-feels-like-jake25-17-fanmade-extended-v",
+      "sourceArtifactHash": "392a6c408fd40a68aca53072e05371867b5d3185b15ba2395b160fc4b568e2af",
+      "advancedNotesSha256": "eab2d8a142e9eb8fbeeb3d936797d0c639d29c072dedd588288c917fc6493a85",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "what-was-i-made-for-billie-eilish",
+      "sourceArtifactHash": "237fe85dd7735a9dc21dfee9b29b112199d17b48182bc3b1f382adbf38108725",
+      "advancedNotesSha256": "3a2e3bcecc981d52586a2c2c45cfba03da2e610899f6cf5ae9248c493e8dccf1",
+      "playbackTempoBpm": 80,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "yann-tiersen-comptine-dun-autre-ete",
+      "sourceArtifactHash": "a437157d70090d206d5b4f18a7c90f22da3e5ba39209c09fd4af70bb3a85c916",
+      "advancedNotesSha256": "0dc2c5c9d77ba06f0b025cdd22eff739152ba06bb46040e1f8b7c97edc9854ff",
+      "playbackTempoBpm": 100,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zedd-ft-foxes-clarity",
+      "sourceArtifactHash": "70046331350e77d10f48ac782641c5f7ae8686567ca1a3510568616841ad8173",
+      "advancedNotesSha256": "664a2b85f49ca8aeb813d81e063f2015e64783a64924e18fed9861d7bbffc48f",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-gerudo-valley",
+      "sourceArtifactHash": "a2f84c101b18b3d5468db9249c94722a9890e0d4e174f0fa17b001926d30a286",
+      "advancedNotesSha256": "a2b4f5f5cce74770424097bf987c049141bec503f154e9e0cb28adc47dd35468",
+      "playbackTempoBpm": 115,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-goron-city",
+      "sourceArtifactHash": "131238ee60f08de2ca565da0c40051a0a3b94ad7445a5dff90c049126b0c64df",
+      "advancedNotesSha256": "1f5b38ea41e47dccf523b00ce8aa67676cffc546574e817f53b39d91284b3adf",
+      "playbackTempoBpm": 114,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-hyrule-field",
+      "sourceArtifactHash": "4e0c2043ba4757b46bcd430bc85854beb6936a12b907d6509bf9600175591cf6",
+      "advancedNotesSha256": "a39be885ef5bcbe470285f55897be48443d77f44b12913abd3865e485047f34c",
+      "playbackTempoBpm": 151,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-inside-the-deku-tree",
+      "sourceArtifactHash": "a4089ca00b2142575409b25fb185c5e6279ee37b0bfa4d5df3702317ff9b88e4",
+      "advancedNotesSha256": "3bcdc9fc78d2ddfab504fe5adcf4b96d50e2ce2d69c8491f2eb3b63bdaca54f2",
+      "playbackTempoBpm": 60,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-kaepora-gaebora",
+      "sourceArtifactHash": "b004009795e25e7277637c920672ffb70654753d8d108c0f583f1bed863108d2",
+      "advancedNotesSha256": "1b3aa96b9453a1f4fa5f6a5e799e7d2bbca88dee929098c349330e27ddde136f",
+      "playbackTempoBpm": 158,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-kakariko-village",
+      "sourceArtifactHash": "fcf6021ab383f1c23929f447208850fa2ed158b145d46bf49ca08ada57995475",
+      "advancedNotesSha256": "244cd55e6115a1df5ded9393abfad6263a1b93abb783a79499926f6b606bb2e4",
+      "playbackTempoBpm": 103,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-kokiri-forest",
+      "sourceArtifactHash": "28bf10abb37bb223d62297d434ad986463dd666b6ca2e6210fc6338391d5e8f5",
+      "advancedNotesSha256": "8fcb6ada4d9eafa8a92648950bebe9227ead6fe7524eca952834187b2bcd031a",
+      "playbackTempoBpm": 102,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-kotake-and-koume",
+      "sourceArtifactHash": "17abc06047965fd9f2afe42519e82110175ae101346f500ec4591754cc9ce16e",
+      "advancedNotesSha256": "e4a16bdfe9b96774b93d48fd6c350f7fdc2f1cda77aa1cf18c6ec2fa3a453733",
+      "playbackTempoBpm": 108,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-lon-lon-ranch",
+      "sourceArtifactHash": "eb929d092dcb2ad2f46658f79c730f8383fea08f45df8bdfd56386a74865b053",
+      "advancedNotesSha256": "4c8d988d9b7b046bcaad84b073f54f15b0a0871268d7dd234588bae8857d1d68",
+      "playbackTempoBpm": 85,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-lost-woods",
+      "sourceArtifactHash": "a9b4ec77d9f4f531c9e6a777951f612465d9712a3208fc41c859a6aa6af353ad",
+      "advancedNotesSha256": "4c633859bf1f229c83b7420cf48cc34e58add610addc7fc5a80b37a259e4c18e",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-market",
+      "sourceArtifactHash": "c25f54f7c6e2c0b69ecdf4ca23d6e583bf97943331196754ad2ee1523a631695",
+      "advancedNotesSha256": "9584e51e44422d5607258453eeceee02dcd2450d9ccc3f6e81b9aec2c099dd4a",
+      "playbackTempoBpm": 145,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-opening-title",
+      "sourceArtifactHash": "2dbef5bac7c23c357d9ace705b86a3fe5da8f9a3f1221c4a2fbb25a7d2ab1fc3",
+      "advancedNotesSha256": "69d412c1ff27c8960ae7027f6e282eb7ac5b030a4817bac2153c64fb8fc7d430",
+      "playbackTempoBpm": 73,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-shop",
+      "sourceArtifactHash": "0a9a9d6f25a549865652e38f6a00a73465b116358ce63f21ba737df836687980",
+      "advancedNotesSha256": "7dd4d62099c6a611f29c13410815933f6845e232892682496f003a48c89d1060",
+      "playbackTempoBpm": 140,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-spirit-temple",
+      "sourceArtifactHash": "09f2b84bdc57c1ce638c3bdb777779709bc1fe1e10a1acdbdf5717e471d662c8",
+      "advancedNotesSha256": "53bb59e16d01799bec5bb4cd9551cd02c5964072a91d78cc30c16379fed9eae7",
+      "playbackTempoBpm": 70,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-temple-of-time",
+      "sourceArtifactHash": "97c8ba2383627dd7a5991b2cb06391ec290b48dcacc471e3b310d69b833828df",
+      "advancedNotesSha256": "d490c475bd63af680d12ad0149ae7a679897a929a7b3f220e503cfe2d5e06779",
+      "playbackTempoBpm": 90,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-zeldas-lullaby",
+      "sourceArtifactHash": "124cd71c93a3ac76cdfd446127e224d68332bce9f8d3bcf5072116e5e49f6aef",
+      "advancedNotesSha256": "7a1d05410770d1712fdee15d57cb163cb55a03d177fbb5253e0cca631d9cff21",
+      "playbackTempoBpm": 96,
+      "servedAtCapture": true
+    },
+    {
+      "baseId": "zelda-ocarina-of-time-zoras-domain",
+      "sourceArtifactHash": "b7f55dbdc287191dcd78c1d4b3c6e0b132303b2ef4c0e53ff3ace5f6e7d59d61",
+      "advancedNotesSha256": "23cdb00c02101d4cde251a5de9272e94de4ee6e5c39197a67f8cefdf6de93da4",
+      "playbackTempoBpm": 74,
+      "servedAtCapture": true
+    }
+  ]
+}
