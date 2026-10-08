@@ -7,6 +7,7 @@ BACKUP_TIMEOUT="${KEYSPILLI_BACKUP_TIMEOUT:-300s}"
 LOCK_FILE="${KEYSPILLI_BACKUP_LOCK:-/run/lock/keyspilli-backup.lock}"
 BACKUP_SCRIPT="${KEYSPILLI_BACKUP_SCRIPT:-{{ app_dir }}/backup.sh}"
 BACKUP_DIR="${KEYSPILLI_BACKUP_DIR:-/backups}"
+POLICY="${KEYSPILLI_STORAGE_POLICY:-{{ app_dir }}/keyspilli-storage.py}"
 PAUSED_BY_US=()
 BACKUP_CONTAINER="keyspilli-backup-$$"
 
@@ -17,7 +18,9 @@ die() {
 
 mkdir -p "$(dirname "$LOCK_FILE")" "$BACKUP_DIR"
 exec 9>"$LOCK_FILE"
-flock -n 9 || die "another backup runner is active"
+flock -n 9 || die "backup/deployment/cleanup lock busy"
+
+python3 "$POLICY" backup-preflight --lock-held --docker "$DOCKER_BIN" --backups "$BACKUP_DIR" --apply
 
 inspect_state() {
   local name="$1" state
@@ -41,6 +44,7 @@ pause_writer() {
 
 unpause_writers() {
   local name state failed=0
+  if [[ -z "${PAUSED_BY_US[*]-}" ]]; then return 0; fi
   for name in "${PAUSED_BY_US[@]}"; do
     if ! "$DOCKER_BIN" unpause "$name" >/dev/null; then
       echo "backup runner: failed to unpause $name" >&2
@@ -75,6 +79,7 @@ trap on_signal TERM INT
 
 pause_writer keyspilli
 pause_writer keyspilli-worker
+python3 "$POLICY" backup-headroom --lock-held --docker "$DOCKER_BIN" --backups "$BACKUP_DIR"
 
 image="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{.Config.Image}}{% endraw %}')" \
   || die "keyspilli-worker image is unavailable"
@@ -95,6 +100,8 @@ worker_revision="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{i
   --volumes-from keyspilli-worker \
   -v "$BACKUP_DIR:/backups" \
   -v "$BACKUP_SCRIPT:/usr/local/bin/keyspilli-backup:ro" \
+  -v "$POLICY:/usr/local/bin/keyspilli-storage.py:ro" \
+  -e KEYSPILLI_STORAGE_POLICY=/usr/local/bin/keyspilli-storage.py \
   -e KEYSPILLI_DATA_DIR=/data \
   -e KEYSPILLI_BACKUP_DIR=/backups \
   -e "KEYSPILLI_BACKUP_WEB_IMAGE_ID=$web_image_id" \
@@ -102,6 +109,9 @@ worker_revision="$("$DOCKER_BIN" inspect keyspilli-worker --format '{% raw %}{{i
   -e "KEYSPILLI_BACKUP_WEB_REVISION=$web_revision" \
   -e "KEYSPILLI_BACKUP_WORKER_REVISION=$worker_revision" \
   --entrypoint /bin/bash \
-  "$image" /usr/local/bin/keyspilli-backup
+  "$worker_image_id" /usr/local/bin/keyspilli-backup
 
+unpause_writers || die "writers did not resume after backup"
+PAUSED_BY_US=()
+python3 "$POLICY" retention --lock-held --backups "$BACKUP_DIR" --apply
 echo "backup runner complete"

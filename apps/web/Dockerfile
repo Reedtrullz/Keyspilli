@@ -1,5 +1,4 @@
-FROM node:22-slim AS build
-ARG VERSION=dev
+FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
@@ -23,10 +22,15 @@ COPY catalog/song-sections.json catalog/song-sections.json
 COPY catalog/chord-timelines catalog/chord-timelines
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG VERSION=dev
 ENV VERSION=$VERSION
 RUN npm run build -w @keyspilli/web
 
-FROM build AS browser-assets
+# Browser dependencies do not inherit changing application files or VERSION.
+FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS browser-assets
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY apps/web/scripts/verify-playwright-runtime.mjs apps/web/scripts/verify-playwright-runtime.mjs
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -45,7 +49,7 @@ RUN if [ "$BUILDPLATFORM" = "$TARGETPLATFORM" ]; then \
       echo "Skipping Chromium launch under cross-architecture emulation"; \
     fi
 
-FROM node:22-slim AS runtime
+FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -53,8 +57,6 @@ ENV PORT=3000
 ENV KEYSPILLI_DATA_DIR=/data
 ENV KEYSPILLI_ORIGIN=http://127.0.0.1:3000
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-ARG VERSION=dev
-ENV VERSION=$VERSION
 # Chromium for PDF export
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
@@ -72,4 +74,6 @@ COPY --from=build /app/catalog/chord-timelines ./catalog/chord-timelines
 RUN mkdir -p /data/uploads && chown -R 1000:1000 /data
 VOLUME /data
 EXPOSE 3000
+ARG VERSION=dev
+ENV VERSION=$VERSION
 CMD ["node", "apps/web/server.js"]

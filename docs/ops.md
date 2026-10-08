@@ -1251,3 +1251,7 @@ Offline reload starts locked. Lock/interruption stops audio and hides the select
 ## Optional auxiliary audio ownership
 
 Normal playback, rhythm taps and MIDI-take recording/replay share one synchronous ownership guard. Completion, cancellation, interruption and unmount release the owner. MIDI capture keeps its raw physical intervals and pedal evidence; frozen-target replay shares the performed replay note/voice/duration limits. No simultaneous internal input echo or grading is enabled during those prototypes.
+
+## Local storage retention
+
+See [the storage policy](storage-policy.md) for two-cohort retention, exact release-image cleanup, shared locks, headroom admission and orphan-layer reporting. Install operational scripts without recreating the app with `deploy/storage-policy.yml`.

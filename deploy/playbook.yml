@@ -227,6 +227,42 @@
       no_log: true
       tags: [always]
 
+
+    - name: Ensure storage policy installation directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: '0755'
+      tags: [always]
+
+    - name: Install scoped storage policy helpers
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ app_dir }}/{{ item }}"
+        owner: root
+        group: root
+        mode: '0750'
+      loop: [keyspilli-storage.py, keyspilli-layer-report.py]
+      tags: [always]
+
+    - name: Begin exclusive persistent deployment transaction
+      ansible.builtin.command:
+        argv: >-
+          {{ ['python3', app_dir + '/keyspilli-storage.py', 'begin', '--images', docker_image, worker_image]
+             + (['--sizes', keyspilli_web_bytes | string, keyspilli_worker_bytes | string,
+                 '--digests', keyspilli_web_digest, keyspilli_worker_digest]
+                if keyspilli_web_bytes is defined and keyspilli_worker_bytes is defined else []) }}
+      register: storage_begin
+      changed_when: true
+      when: not ansible_check_mode
+      tags: [deploy, rollback]
+
+    - name: Remember exclusive deployment token
+      ansible.builtin.set_fact:
+        keyspilli_storage_token: "{{ (storage_begin.stdout | from_json).token }}"
+      when: not ansible_check_mode
+      tags: [deploy, rollback]
+
   tasks:
     - name: Ensure app directory exists
       ansible.builtin.file:
@@ -385,12 +421,29 @@
         - keyspilli-ops-check-deep.timer
       tags: [monitoring]
 
-    - name: Free dangling Keyspilli layers while preserving tagged rollback images
-      # Tagged images are recovery points even when no container uses them.
-      # Reclaim those only through a separately verified retention operation.
-      ansible.builtin.command: docker image prune --force --filter label=org.opencontainers.image.source=https://github.com/Reedtrullz/Keyspilli
-      register: pruned
-      changed_when: "'Total reclaimed space: 0B' not in (pruned.stdout | default(''))"
+    - name: Install scoped storage monitoring units
+      ansible.builtin.template:
+        src: "templates/{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: [keyspilli-storage.service, keyspilli-storage.timer]
+      notify: Reload systemd
+      tags: [backup, monitoring]
+
+    - name: Enable hourly scoped retention and layer reporting
+      ansible.builtin.systemd:
+        name: keyspilli-storage.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      tags: [backup, monitoring]
+
+    - name: Clean eligible Keyspilli data before deployment
+      ansible.builtin.command:
+        argv: [python3, "{{ app_dir }}/keyspilli-storage.py", cleanup, --apply, --token, "{{ keyspilli_storage_token }}"]
+      when: not ansible_check_mode
       tags: [deploy]
 
     - name: Capture current Keyspilli containers before deploy
@@ -459,14 +512,10 @@
 
     - name: Deploy candidate images and verify exact public version
       block:
-        - name: Pull requested GHCR images
-          community.docker.docker_image:
-            name: "{{ item }}"
-            source: pull
-            force_source: true
-          loop:
-            - "{{ docker_image }}"
-            - "{{ worker_image }}"
+        - name: Admit disk headroom and pull exact verified release digests
+          ansible.builtin.command:
+            argv: [python3, "{{ app_dir }}/keyspilli-storage.py", pull, --token, "{{ keyspilli_storage_token }}"]
+          when: not ansible_check_mode
           tags: [deploy]
 
         - name: Render production Compose file
@@ -638,6 +687,12 @@
           no_log: true
           tags: [verify]
 
+        - name: Finish healthy deployment and retire obsolete releases
+          ansible.builtin.command:
+            argv: [python3, "{{ app_dir }}/keyspilli-storage.py", finish, --token, "{{ keyspilli_storage_token }}"]
+          when: not ansible_check_mode
+          tags: [deploy, verify]
+
         - name: Report successful deployment
           ansible.builtin.debug:
             msg:
@@ -722,6 +777,12 @@
         - name: Report rollback result
           ansible.builtin.debug:
             msg: "Rolled back to {{ previous_app_version }} on {{ health_url }}"
+          tags: [rollback]
+
+        - name: Resolve transaction after a verified healthy rollback
+          ansible.builtin.command:
+            argv: [python3, "{{ app_dir }}/keyspilli-storage.py", resolve, --token, "{{ keyspilli_storage_token }}"]
+          when: not ansible_check_mode
           tags: [rollback]
 
         - name: Fail CI after a successful rollback
