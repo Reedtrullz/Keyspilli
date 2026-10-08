@@ -1,6 +1,6 @@
 # Additional printed parent divisions
 
-The eleven additions from PR238 are deployed and live-verified at main3d804bef06ecc2f7880095ff3debfeaa55724b7e. A follow-up Bach371 batch adds two reviewed maps, bringing the working ledger to101stored/99served maps, with354stored/343served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
+The eleven additions from PR238 and the two Bach371 additions from PR239 are deployed and live-verified at main1b61ceb0a9494a7b87d0571ffdde39dffb19aa78. The catalog therefore has101stored/99served maps, with354stored/343served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
 
 ## Evidence and correspondence
 
@@ -42,7 +42,7 @@ Nine candidates passed independent raw/source/producer/opening/endpoint review; 
 
 Fresh local audit passes with zero errors and two existing learner-blocked warnings. Typecheck,2,558tests across282files, production build and diff check pass. Independent whole-diff review passes with no material findings, including all88 prior maps, exactly11 changed ledger rows, source/producer/receipt bindings and17pin/68sample release verifier. Exact-head Automatic checks and container-smoke SUCCESS and CLEAN merge state remain required before merge. Main deployment SUCCESS precedes fresh live acceptance:68samples across17pins, both exact-commit healthy stable containers, full1,764variant/441base label sweep, zero numbered labels/read errors, and unchanged selected2730row/455base store fields.
 
-PR238’s proof is complete: main37835764710SUCCESS,68samples/17pins,97named served bases, exact3d804bef06ecc2f7880095ff3debfeaa55724b7e, zero numbered labels/read errors, both stable healthy containers, store identity730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. The current101stored/99served figures include two Bach candidates that are not yet integrated into a release. Owner listening, recognizability, playability and musical acceptance are outside these claims.
+PR239’s proof is complete: main37848574214SUCCESS,76samples/19pins,99named served bases, exact1b61ceb0a9494a7b87d0571ffdde39dffb19aa78, zero numbered labels/read errors, both stable healthy containers, store identity730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. The101stored/99served figures are now integrated into the deployed catalog. Owner listening, recognizability, playability and musical acceptance are outside these claims.
 
 ## Bach371 follow-up
 

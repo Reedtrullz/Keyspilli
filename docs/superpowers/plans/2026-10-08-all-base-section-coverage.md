@@ -66,25 +66,25 @@
 
 **Files:** PR description, bounded release receipts, all-base ledger and Obsidian log.
 
-- [ ] Run all prescribed local gates and one independent whole-branch review; address material findings.
-- [ ] Open a focused PR, attach it to this task, verify both required checks and CLEAN state, merge and verify main deployment.
-- [ ] Check deployed samples, full public catalog label sweep and selected store-field preservation.
+- [x] Run all prescribed local gates and one independent whole-branch review; address material findings.
+- [x] Open a focused PR, attach it to this task, verify both required checks and CLEAN state, merge and verify main deployment.
+- [x] Check deployed samples, full public catalog label sweep and selected store-field preservation.
 - [ ] Reconcile remaining bases explicitly and continue additional substantiated batches. Do not claim complete naming while unresolved bases remain.
 
 ## Evidence status, 2026-10-08
 
-PR226 through PR229, PR232, PR235, PR236, PR237 and PR238 are merged, deployed
-and live-verified. Latest complete proof3d804bef06ecc2f7880095ff3debfeaa55724b7e
-has1,764variants/441bases/97named served bases, zero numbered labels/errors,
-68samples across17source/note/tempo pins, stable healthy exact-commit containers,
-and unchanged selected2730row/455base store fields. Main37835764710SUCCESS.
+PR226 through PR229, PR232, PR235, PR236, PR237, PR238 and PR239 are merged,
+deployed and live-verified. Latest complete proof1b61ceb0a9494a7b87d0571ffdde39dffb19aa78
+has1,764variants/441bases/99named served bases, zero numbered labels/errors,
+76samples across19source/note/tempo pins, stable healthy exact-commit containers,
+and unchanged selected2730row/455base store fields. Main37848574214SUCCESS.
 The independent storage repair PR234 completed its deployment/retention audit.
 
 A reviewed two-map Bach371 follow-up brings the working ledger to101stored/99served
 maps.354stored/343served bases remain unmapped;75maps are partial and26reach
 numeric extent, neither implying completed internal form. The two Bach entries
-are not yet integrated into a release. Their source, opening, endpoint and
-correspondence receipt passes; No.39 remains rejected and immutable. See
+are deployed. Their source, opening, endpoint and correspondence receipt passes;
+No.39 remains rejected and immutable. See
 `docs/research/2026-10-08-section-printed-parent-supplements.md`.
 
 Four strict first opening trials fail (Alkan1, Brahms118, GriegAlbumblatt,
