@@ -4,14 +4,16 @@ set -euo pipefail
 
 DATA_DIR="${KEYSPILLI_DATA_DIR:-/data}"
 BACKUP_DIR="${KEYSPILLI_BACKUP_DIR:-/backups}"
-RETENTION_DAYS="${KEYSPILLI_RETENTION_DAYS:-14}"
-[[ "$RETENTION_DAYS" =~ ^[1-9][0-9]{0,4}$ ]] || { echo "backup failed: retention must be 1–99999 whole days" >&2; exit 1; }
-started_at="$(python3 -c 'import time; print(time.monotonic())')"
+POLICY="${KEYSPILLI_STORAGE_POLICY:-$(dirname "$0")/keyspilli-storage.py}"
 STAMP="$(date +%F-%H%M%S)"
 
 mkdir -p "$BACKUP_DIR"
+for name in db-$STAMP.sqlite artifacts-$STAMP.tar.gz backup-manifest-$STAMP.json; do
+  [[ ! -e "$BACKUP_DIR/$name" ]] || { echo "backup failed: timestamp collision; refusing overwrite" >&2; exit 1; }
+done
 tmp_dir="$(mktemp -d "$BACKUP_DIR/.keyspilli-backup-$STAMP.XXXXXX")"
 trap 'rm -rf "$tmp_dir"' EXIT
+trap 'exit 143' TERM INT
 
 [[ -f "$DATA_DIR/db.sqlite" ]] || { echo "backup failed: missing SQLite database at $DATA_DIR/db.sqlite" >&2; exit 1; }
 [[ -d "$DATA_DIR/artifacts" ]] || { echo "backup failed: missing artifact directory at $DATA_DIR/artifacts" >&2; exit 1; }
@@ -86,79 +88,36 @@ with open(manifest, "w", encoding="utf-8") as stream:
     stream.write("\n")
 PY
 
-# Publish data first and the completion marker last. Readers only trust a
-# manifest whose two named files and hashes all match.
-mv "$db_tmp" "$BACKUP_DIR/db-$STAMP.sqlite"
-mv "$archive_tmp" "$BACKUP_DIR/artifacts-$STAMP.tar.gz"
-mv "$manifest_tmp" "$BACKUP_DIR/backup-manifest-$STAMP.json"
-
-python3 - "$BACKUP_DIR" "$RETENTION_DAYS" "$started_at" <<'PY'
-import hashlib, json, re, sys, time
-from pathlib import Path
-
-root = Path(sys.argv[1])
-cutoff = time.time() - int(sys.argv[2]) * 86400
-stamp_re = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}$")
-pruned = preserved = verified_bytes = pruned_bytes = 0
-deletion_failures = 0
-def sha256(path):
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-for manifest_path in root.glob("backup-manifest-*.json"):
-    deleting = False
-    try:
-        if manifest_path.lstat().st_mtime >= cutoff:
-            continue
-        if manifest_path.is_symlink() or not manifest_path.is_file():
-            preserved += 1
-            continue
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        stamp = manifest["stamp"]
-        db_name = manifest["dbFile"]
-        archive_name = manifest["archiveFile"]
-        db = root / manifest["dbFile"]
-        archive = root / manifest["archiveFile"]
-        if (manifest.get("complete") is not True or type(manifest.get("schemaVersion")) is not int or manifest["schemaVersion"] != 1
-                or not isinstance(stamp, str) or not stamp_re.fullmatch(stamp)
-                or manifest_path.name != f"backup-manifest-{stamp}.json"
-                or db_name != f"db-{stamp}.sqlite"
-                or archive_name != f"artifacts-{stamp}.tar.gz"
-                or db.is_symlink() or archive.is_symlink() or not db.is_file() or not archive.is_file()
-                or db.stat().st_mtime >= cutoff or archive.stat().st_mtime >= cutoff
-                or type(manifest.get("dbBytes")) is not int or manifest["dbBytes"] != db.stat().st_size
-                or type(manifest.get("archiveBytes")) is not int or manifest["archiveBytes"] != archive.stat().st_size):
-            preserved += 1
-            continue
-        verified_bytes += manifest["dbBytes"] + manifest["archiveBytes"]
-        db_hash, archive_hash = sha256(db), sha256(archive)
-        if db_hash != manifest["dbSha256"] or archive_hash != manifest["archiveSha256"]:
-            preserved += 1
-            continue
-        # Keep the audit marker until both payloads are gone. A partial unlink
-        # failure is an operator error, never a claim that the cohort was kept.
-        deleting = True
-        for path in (db, archive, manifest_path):
-            path.unlink()
-        pruned += 1
-        pruned_bytes += manifest["dbBytes"] + manifest["archiveBytes"]
-    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
-        if deleting:
-            deletion_failures += 1
-        else:
-            preserved += 1
-print(json.dumps({"backupRetention": {
-    "retentionDays": int(sys.argv[2]), "prunedCohorts": pruned,
-    "prunedBytes": pruned_bytes, "preservedAmbiguousCohorts": preserved,
-    "partialDeletionFailures": deletion_failures,
-    "verificationBytes": verified_bytes,
-    "elapsedSeconds": round(time.monotonic() - float(sys.argv[3]), 3),
-}}), file=sys.stderr)
-if deletion_failures:
-    raise SystemExit("backup retention partially failed; preserve remaining markers and investigate")
+# Flush payloads before publication; retirement must not outrun durable data.
+python3 - "$db_tmp" "$archive_tmp" "$manifest_tmp" <<'PY'
+import os, sys
+for name in sys.argv[1:]:
+    with open(name, "rb") as stream:
+        os.fsync(stream.fileno())
 PY
+sync_directory() {
+  python3 - "$BACKUP_DIR" <<'PY'
+import os, sys
+fd = os.open(sys.argv[1], os.O_RDONLY)
+try:
+    os.fsync(fd)
+finally:
+    os.close(fd)
+PY
+}
+# Exclusive hardlink publication cannot overwrite a same-stamp recovery file.
+# Publish and sync data before the completion marker, then sync it too.
+ln "$db_tmp" "$BACKUP_DIR/db-$STAMP.sqlite"
+rm "$db_tmp"
+ln "$archive_tmp" "$BACKUP_DIR/artifacts-$STAMP.tar.gz"
+rm "$archive_tmp"
+sync_directory
+ln "$manifest_tmp" "$BACKUP_DIR/backup-manifest-$STAMP.json"
+rm "$manifest_tmp"
+sync_directory
+
+# Re-verify the published cohort before permitting retention. This data-only
+# path runs under the host runner's flock (or an isolated fixture directory).
+python3 "$POLICY" verify --lock-held --manifest "$BACKUP_DIR/backup-manifest-$STAMP.json"
 
 echo "backup complete: $BACKUP_DIR ($STAMP)"

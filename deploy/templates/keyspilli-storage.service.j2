@@ -1,0 +1,12 @@
+[Unit]
+Description=Scoped Keyspilli storage retention and orphan detection
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 {{ app_dir }}/keyspilli-storage.py cleanup --apply
+ExecStart=/usr/bin/flock -n /run/lock/keyspilli-backup.lock /usr/bin/python3 {{ app_dir }}/keyspilli-layer-report.py --output /var/lib/keyspilli-storage/layer-report.json
+TimeoutStartSec=900
+Nice=15
+IOSchedulingClass=idle

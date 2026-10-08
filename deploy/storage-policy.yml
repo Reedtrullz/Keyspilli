@@ -1,0 +1,70 @@
+---
+# Install policy without reading secrets, recreating services or pulling images.
+# All files are atomically installed within the existing shared backup lock.
+- name: Install Keyspilli storage policy only
+  hosts: keyspilli
+  become: true
+  gather_facts: false
+  vars:
+    app_dir: /opt/apps/keyspilli
+    policy_stage: /opt/apps/keyspilli-policy-install
+  tasks:
+    - name: Create bounded staging directory
+      ansible.builtin.file:
+        path: "{{ policy_stage }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Stage policy and data backup scripts
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ policy_stage }}/{{ item }}"
+        owner: root
+        group: root
+        mode: '0750'
+      loop: [keyspilli-storage.py, keyspilli-layer-report.py, backup.sh]
+
+    - name: Stage backup runner
+      ansible.builtin.template:
+        src: templates/keyspilli-backup-runner.sh.j2
+        dest: "{{ policy_stage }}/keyspilli-backup-runner"
+        mode: '0750'
+
+    - name: Stage monitoring units
+      ansible.builtin.template:
+        src: "templates/{{ item }}.j2"
+        dest: "{{ policy_stage }}/{{ item }}"
+        mode: '0644'
+      loop: [keyspilli-storage.service, keyspilli-storage.timer, keyspilli-replication.service]
+
+    - name: Install all policy files while excluding backups and deployments
+      ansible.builtin.shell: |
+        set -eu
+        exec 9>/run/lock/keyspilli-backup.lock
+        flock -n 9 || { echo 'backup/deployment/cleanup lock busy' >&2; exit 1; }
+        test ! -e /var/lib/keyspilli-storage/deployment.json || { echo 'pending deployment; installation refused' >&2; exit 1; }
+        mkdir -p "{{ app_dir }}/storage-policy-original" /var/lib/keyspilli-storage
+        # Preserve the original installed scripts once; repeated installs use
+        # the same bounded directory rather than accumulating rollback copies.
+        for source in "{{ app_dir }}/backup.sh" /usr/local/sbin/keyspilli-backup-runner; do
+          if [ -f "$source" ] && [ ! -e "{{ app_dir }}/storage-policy-original/$(basename "$source")" ]; then
+            cp -p "$source" "{{ app_dir }}/storage-policy-original/$(basename "$source")"
+          fi
+        done
+        for name in keyspilli-storage.py keyspilli-layer-report.py backup.sh; do
+          install -m 0750 "{{ policy_stage }}/$name" "{{ app_dir }}/.$name.install"
+          mv -f "{{ app_dir }}/.$name.install" "{{ app_dir }}/$name"
+        done
+        install -m 0750 "{{ policy_stage }}/keyspilli-backup-runner" /usr/local/sbin/.keyspilli-backup-runner.install
+        mv -f /usr/local/sbin/.keyspilli-backup-runner.install /usr/local/sbin/keyspilli-backup-runner
+        for name in keyspilli-storage.service keyspilli-storage.timer keyspilli-replication.service; do
+          install -m 0644 "{{ policy_stage }}/$name" "/etc/systemd/system/.$name.install"
+          mv -f "/etc/systemd/system/.$name.install" "/etc/systemd/system/$name"
+        done
+        systemctl daemon-reload
+        systemctl enable --now keyspilli-storage.timer
+      args:
+        executable: /bin/bash
+      when: not ansible_check_mode

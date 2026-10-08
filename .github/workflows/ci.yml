@@ -124,7 +124,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
           python3 deploy/test/test-live-verifier.py
-          python3 deploy/test/test-backup.py
+          sudo python3 deploy/test/test-backup.py
+          sudo python3 deploy/test/test-storage.py
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
           python3 deploy/test/test-release-operation.py
@@ -205,6 +206,10 @@ jobs:
     outputs:
       image: ${{ steps.image.outputs.image }}
       tag: ${{ steps.image.outputs.tag }}
+      web_bytes: ${{ steps.sizes.outputs.web_bytes }}
+      worker_bytes: ${{ steps.sizes.outputs.worker_bytes }}
+      web_digest: ${{ steps.web.outputs.digest }}
+      worker_digest: ${{ steps.worker.outputs.digest }}
 
     steps:
       - name: Check out repository
@@ -227,6 +232,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push web image
+        id: web
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: .
@@ -251,6 +257,7 @@ jobs:
           cache-to: type=gha,mode=min,timeout=120s,ignore-error=true
 
       - name: Build and push worker image
+        id: worker
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: .
@@ -270,6 +277,29 @@ jobs:
           # layers on every release while keeping publication authoritative.
           cache-from: type=gha,scope=worker
           cache-to: type=gha,scope=worker,mode=min,timeout=120s,ignore-error=true
+
+      - name: Attest uncompressed release sizes before VPS admission
+        id: sizes
+        env:
+          WEB_DIGEST: ${{ steps.web.outputs.digest }}
+          WORKER_DIGEST: ${{ steps.worker.outputs.digest }}
+        run: |
+          python3 - <<'PY'
+          import os, shutil, subprocess
+          gib = 1024 ** 3
+          # Release runner only: no VPS pull/extraction until this succeeds.
+          for role, repo, ceiling in (("web", os.environ["IMAGE_NAME"], 2*gib),
+                                     ("worker", os.environ["WORKER_IMAGE_NAME"], 4*gib)):
+              if shutil.disk_usage("/").free < 3*ceiling + 6*gib:
+                  raise SystemExit("release runner lacks disk headroom for size admission")
+              ref = repo + "@" + os.environ[role.upper() + "_DIGEST"]
+              subprocess.run(["docker", "pull", ref], check=True, timeout=900)
+              size = int(subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Size}}", ref]))
+              if not 0 < size <= ceiling:
+                  raise SystemExit(f"{role} exceeds uncompressed release ceiling")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+                  out.write(f"{role}_bytes={size}\n")
+          PY
 
   deploy:
     name: Deploy to VPS with Ansible
@@ -351,6 +381,10 @@ jobs:
             deploy/playbook.yml \
             -e "docker_image=${{ needs.build-and-push.outputs.image }}:${{ needs.build-and-push.outputs.tag }}" \
             -e "worker_image=${{ env.WORKER_IMAGE_NAME }}:${{ needs.build-and-push.outputs.tag }}" \
+            -e "keyspilli_web_bytes=${{ needs.build-and-push.outputs.web_bytes }}" \
+            -e "keyspilli_worker_bytes=${{ needs.build-and-push.outputs.worker_bytes }}" \
+            -e "keyspilli_web_digest=${{ needs.build-and-push.outputs.web_digest }}" \
+            -e "keyspilli_worker_digest=${{ needs.build-and-push.outputs.worker_digest }}"
 
       - name: Verify public deployment version
         shell: bash

@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly scoped Keyspilli storage policy
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
