@@ -50,15 +50,20 @@ describe("song sections",()=>{
   expect(queen!.sections.every(s=>s.evidence==="chart")).toBe(true);
   expect(queen!.sections.some(s=>/^Section \d/.test(s.label))).toBe(false);
  });
- it("resolves the Queen map on its real source bytes and playback clock",()=>{
+ it("resolves Queen for its pinned source, Advanced notes and playback clock",()=>{
   const queen=sourceMaps.entries.find(map=>map.baseId==="queen-somebody-to-love")!;
+  expect(queen.advancedNotesSha256).toMatch(/^[a-f0-9]{64}$/);
   const queenData:SongData={...data,tempoBpm:108,
+   sourceFingerprint:`variant:queen:a:${queen.sourceArtifactHash}:notes:${queen.advancedNotesSha256}`,
    measures:Array.from({length:180},(_,index)=>({index,startBeat:index*3,endBeat:index*3+3}))};
   const maps=sourceMaps.entries as unknown as Parameters<typeof resolveSongSections>[3];
   const sections=resolveSongSections({baseId:"queen-somebody-to-love",category:"Rock"},queenData,queen.sourceArtifactHash,maps);
   expect(sections.map(s=>s.label)).toEqual(queen.sections.map(s=>s.label));
   expect(sections.every(s=>s.evidence==="chart")).toBe(true);
   expect(sections.at(-1)?.endBeat).toBe(540);
+  const changedNotes={...queenData,sourceFingerprint:queenData.sourceFingerprint!.replace(/:notes:.*/,`:notes:${"d".repeat(64)}`)};
+  expect(resolveSongSections({baseId:"queen-somebody-to-love",category:"Rock"},changedNotes,queen.sourceArtifactHash,maps)
+   .every(s=>s.evidence==="estimated")).toBe(true);
   expect(resolveSongSections({baseId:"queen-somebody-to-love",category:"Rock"},queenData,"b".repeat(64),maps)
    .every(s=>s.evidence==="estimated")).toBe(true);
  });
