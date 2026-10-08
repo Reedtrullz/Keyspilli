@@ -66,7 +66,7 @@ c-czerny-50-melodische-ubungsstucke-no-3,true,mapped-partial,1,true,0,true,false
 c-czerny-50-melodische-ubungsstucke-no-4,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 c-czerny-50-melodische-ubungsstucke-no-5,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 c-czerny-50-melodische-ubungsstucke-no-6,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
-c-debussy-deuxieme-arabesque,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+c-debussy-deuxieme-arabesque,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 c-debussy-prelude-4-les-sons-et-les-parfums-tournent-dans-l-,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 c-debussy-premiere-arabesque,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 c-debussy-suite-bergamasque-clair-de-lune,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
@@ -74,7 +74,7 @@ c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j,true,estimate-only-
 c-j-brown-ebb-and-flow,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 c-j-brown-september-song,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 c-j-brown-toccatina,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-c-p-e-bach-rondo-in-e-flat-major,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+c-p-e-bach-rondo-in-e-flat-major,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 c-v-alkan-prelude,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 c-v-alkan-prelude-nr-2,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 c-v-alkan-toccatina,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
@@ -112,7 +112,7 @@ e-grieg-ases-tod,true,estimate-only-unresolved,0,true,0,true,false,,"No substant
 e-grieg-hjemkomst,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 e-grieg-ich-liebe-dich,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 e-grieg-in-the-hall-of-the-mountain-king,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
-e-grieg-troldtog-march-of-the-dwarfs,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+e-grieg-troldtog-march-of-the-dwarfs,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 ed-sheeran-autumn-leaves,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ed-sheeran-happier,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ed-sheeran-lego-house,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
@@ -127,14 +127,14 @@ eric-clapton-tears-in-heaven,true,estimate-only-unresolved,0,true,2,false,true,,
 euphemia-allen-chopsticks,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 evanescence-lithium,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 everybody-talks,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-f-abt-vocalise-o-1,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+f-abt-vocalise-o-1,true,mapped-numeric-extent,1,true,0,true,false,,
 f-abt-when-the-swallows-homeward-fly-agathe,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 f-behr-in-may,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-f-f-chopin-etude-a-moll,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-f-f-chopin-mazurka-op-6-no-1,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+f-f-chopin-etude-a-moll,true,mapped-numeric-extent,1,true,0,true,false,,
+f-f-chopin-mazurka-op-6-no-1,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 f-f-chopin-nocturne,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
-f-f-chopin-nocturne-no-1-in-b-flat-minor,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-f-f-chopin-nocturne-no-3,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+f-f-chopin-nocturne-no-1-in-b-flat-minor,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+f-f-chopin-nocturne-no-3,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 f-f-chopin-trois-nouvelles-etudes-no-1-f-minor,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 f-j-haydn-sonate-i-i-allegro-con-brio,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 f-j-haydn-sonate-i-ii-menuetto,true,mapped-numeric-extent,2,true,0,true,false,,
@@ -186,9 +186,9 @@ j-ascher-alice-where-art-thou,true,mapped-partial,1,true,0,true,false,,Only part
 j-blumenthal-les-deux-anges,true,mapped-partial,3,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-brahms-2-intermezzo,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 j-brahms-brahms-horn-trio,true,mapped-partial,4,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
-j-brahms-sapphische-ode,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-brahms-waltz-no-10,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-brahms-waltz-no-15,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+j-brahms-sapphische-ode,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+j-brahms-waltz-no-10,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+j-brahms-waltz-no-15,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-f-f-burgmuller-innocence,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-f-f-burgmuller-l-arabesque,true,mapped-numeric-extent,1,true,0,true,false,,
 j-f-f-burgmuller-la-candeur,true,mapped-numeric-extent,1,true,0,true,false,,

@@ -73,35 +73,33 @@
 
 ## Evidence status, 2026-10-08
 
-PR226 through PR229, PR232 and PR235 are merged, deployed and live-verified.
-Latest complete proof d3772ee82e0df057824ffcfede4056c32ae46f23 has1,764variants/
-441bases/60named served bases, zero numbered labels/errors,76samples across
-19 source/note/tempo pins, stable healthy containers and selected store fields
-preserved. PR232's proof includes the superseded PR230 deployment scope.
-The independent storage repair PR234 completed deployment/backup-retention audit.
+PR226 through PR229, PR232, PR235, PR236 and PR237 are merged, deployed and
+live-verified. Latest complete proof4ec738db5d24dbba78419aa808694762ec8ca5a3
+has1,764variants/441bases/86named served bases, zero numbered labels/errors,
+88samples across22source/note/tempo pins, stable healthy exact-commit containers,
+and unchanged selected2730row/455base store fields. Main37819181958SUCCESS.
+The independent storage repair PR234 completed its deployment/retention audit.
 
-PR236's ten maps merged at06d713b3fd8d6249af66209de735451fbdd879e4 after
-local/independent review, exact-head Automatic checks/container-smoke SUCCESS
-and CLEAN state plus PR235's complete proof. Its own main/live acceptance
-is pending:72stored/70served maps is expected.
+The next eleven-map printed-parent supplement batch brings the candidate ledger
+to99stored/97served maps.356stored/344served bases remain unmapped;75maps are
+partial and24reach numeric extent, neither implying completed internal form.
+All88preceding maps remain structurally unchanged. Nine candidate independent
+reviews, corrected Chopin wording and final Abt/CPE reviews pass; all
+exact-head release gates remain required. Whole-diff review passes with no
+material findings. Fresh audit0errors/two
+existing warnings, typecheck,2,558tests/282files, build and diff checks pass. See
+`docs/research/2026-10-08-section-printed-parent-supplements.md`.
 
-PR237 follows on actual main with16 reviewed candidates: thirteen original
-collection/movement citations, two Haydn/André annotations and Adams' separately
-frozen complete strict-UTF8 parallel numbered-underlay excerpt.88stored/
-86served is expected;367stored/355served bases remain unmapped. All72 preceding
-maps remain unchanged. Original13/15local and whole-diff gates plus the new
-Adams candidate review pass. Fresh final16-map local audit/typecheck/
-2,558tests/build/diff checks pass; refreshed whole-diff, exact-head CI/smoke
-and predecessor proof remain required. See `docs/research/2026-10-08-section-indexed-collection-movement-followup.md`.
+Four strict first opening trials fail (Alkan1, Brahms118, GriegAlbumblatt,
+DebussyPreludeIV) and remain unchanged/unaccepted despite full clock matches.
+No fingerprint, duration or cutoff is retuned. Further actual printed-parent
+acquisition is prospective research, not new naming or completed disposition.
 
-Broader evidence includes235 captured UG-chart bases,227harmony trials,
+Broader evidence includes235captured UG-chart bases,227harmony trials,
 108byte-matched scores and418original byte matches:403MIDI files
 (401parsed/two retained parse errors), two MusicXML and13audio/video.
 A read-only scan of581primary local music assets finds zero additional
-original matches for the37unfound bases. Source acquisition/rejection
-completes no naming. Gerudo's initial result is invalid due to an origin
-checker defect; control-only repair admits no map and its source trial
-is not retried. Kokiri/As Time Goes By/triad/Åse/public-score failures remain
-unaccepted. Adams' earlier failed studies remain unchanged; the new complete
-parallel UTF8 study accounts for all282cues without omissions or fallback.
-Naming across all bases remains incomplete; Task4 continues.
+original matches for37unfound bases. Earlier lyric/harmony/TAB/score failures
+remain preserved. Gerudo's initial origin-checker defect remains unqualified;
+its control-only repair admits no map and source qualification was not rerun.
+All-base naming remains incomplete; Task4 continues.

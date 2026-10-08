@@ -7919,6 +7919,1124 @@
         "maximumOnsetErrorBeats": 0,
         "coverage": "shared first-to-last lyric cue excerpt of three complete parallel printed underlays only; performed order, releases and full stanza boundaries unresolved"
       }
+    },
+    {
+      "baseId": "c-debussy-deuxieme-arabesque",
+      "sourceArtifactHash": "b7991339535a5436b01f4b0f8fe97304a60a0a7f38d16365692d82f6c6e22d8e",
+      "advancedNotesSha256": "5bec8143e73ca92772e682b6df682c3efcd658a667e1036df6817a2a169a3c8b",
+      "playbackTempoBpm": 120,
+      "sourceFile": "c-debussy-deuxieme-arabesque.mid",
+      "provenance": "The second score prints Deuxième Arabesque and Claude Debussy. A separate retained first score prints Première Arabesque / des Deux Arabesques with the same composer. The parent relationship is a supported cross-document inference: the second score does not itself print the collection parent. Both printed sources are cited and byte-pinned: https://www.mutopiaproject.org/ftp/DebussyC/L66/debussy_Arabesque_1/debussy_Arabesque_1.ly; https://www.mutopiaproject.org/ftp/DebussyC/L66/debussy_Arabesque_2/debussy_Arabesque_2.ly. The complete 16-attack upper opening 4/4 bar preserves all triplet sixteenths and staccato eighth written durations and matches the full retained track1 prefix at beat0 within1/64 beat, with exact pitch, register, cardinality, onset and nominal duration. The complete lower staff, including its initial C4-D4-Fsharp4 whole-note chord, is included in full producer correspondence. The companion MIDI of the second score exactly matches retained original bytes; every actual producer attack matches a distinct same-pitch raw source onset within1/16 beat without source reuse. Conservative named extent ends at the minimum pitched source and producer endpoint 436.5; padded tail remains estimated. No new internal A/B role, FF06/FF07 source authority, artist-credit correction or owner musical acceptance is claimed. Earlier single-score selection remains preserved; no failed source study was retried.",
+      "sections": [
+        {
+          "id": "chart-paired-second-arabesque",
+          "label": "Deux Arabesques — Deuxième Arabesque",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0,
+          "endBeat": 436.5
+        }
+      ],
+      "alignment": {
+        "strategy": "paired-printed-collection-hierarchy-with-exact-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete printed landmark and full one-to-one producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability or acceptance. Collection relation is supported cross-document inference.",
+        "printedSources": [
+          {
+            "url": "https://www.mutopiaproject.org/ftp/DebussyC/L66/debussy_Arabesque_1/debussy_Arabesque_1.ly",
+            "sha256": "b3ddf344b94e48f90e9a4337f597463c9740249590538c7c3ab64803a9f09e69"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/DebussyC/L66/debussy_Arabesque_2/debussy_Arabesque_2.ly",
+            "sha256": "81297616c57e3f1314de6b3eda2d607a73f052bbb031398c537ba85b255a399f"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "secondScoreDoesNotPrintParent": true,
+        "companionMidiSha256": "b7991339535a5436b01f4b0f8fe97304a60a0a7f38d16365692d82f6c6e22d8e",
+        "fixedSpecsSha256": "f4ee8cf45274a0fc7490a0c117f68778d64a020e2dff7738a5f1dc16dc4a4305",
+        "sourceCorrespondenceReceiptSha256": "742fb3200b79e55c645910a22bd74f5d7bf71a3e67ad9bb26f6440ddb674fb7f",
+        "completePrintedLandmark": [
+          [
+            0.0,
+            76,
+            0.16666666666666666
+          ],
+          [
+            0.16666666666666666,
+            78,
+            0.16666666666666666
+          ],
+          [
+            0.3333333333333333,
+            76,
+            0.16666666666666666
+          ],
+          [
+            0.5,
+            69,
+            0.5
+          ],
+          [
+            1.0,
+            81,
+            0.16666666666666666
+          ],
+          [
+            1.1666666666666667,
+            83,
+            0.16666666666666666
+          ],
+          [
+            1.3333333333333333,
+            81,
+            0.16666666666666666
+          ],
+          [
+            1.5,
+            74,
+            0.5
+          ],
+          [
+            2.0,
+            76,
+            0.16666666666666666
+          ],
+          [
+            2.1666666666666665,
+            78,
+            0.16666666666666666
+          ],
+          [
+            2.3333333333333335,
+            76,
+            0.16666666666666666
+          ],
+          [
+            2.5,
+            69,
+            0.5
+          ],
+          [
+            3.0,
+            81,
+            0.16666666666666666
+          ],
+          [
+            3.1666666666666665,
+            83,
+            0.16666666666666666
+          ],
+          [
+            3.3333333333333335,
+            81,
+            0.16666666666666666
+          ],
+          [
+            3.5,
+            74,
+            0.5
+          ]
+        ],
+        "sourceTrack": 1,
+        "distinctProducerAttacks": 1540,
+        "distinctSourceAttacksUsed": 1540,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666685614,
+        "sourcePitchedEndBeat": 436.5,
+        "producerLastNoteEndBeat": 436.5,
+        "coverage": "named collection division on encoded traversal; padded tail remains estimated"
+      }
+    },
+    {
+      "baseId": "f-f-chopin-nocturne-no-1-in-b-flat-minor",
+      "sourceArtifactHash": "97194fec7586ca37280a3a5641db96f09f515c8358ccba9a9dd6a0f427ff9330",
+      "advancedNotesSha256": "5fdb1425264148061252916e4140f35416b1b6956ee377e3f9a132d0def7baa1",
+      "playbackTempoBpm": 116,
+      "sourceFile": "f-f-chopin-nocturne-no-1-in-b-flat-minor.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://s9.imslp.org/files/imglnks/usimg/b/b5/IMSLP112335-PMLP02312-FChopin_Nocturnes%2C_Op.9_Joseffy.pdf; https://www.mutopiaproject.org/ftp/ChopinFF/O9/nocturne_in_b-flat_minor/nocturne_in_b-flat_minor.ly. complete RH quarter-note-unit6/4 pickup and first full bar, all14 attacks and nominal written durations; no rests, graces, ties or tuplets in the fixed opening. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all1597 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0 to the lesser pitched source/producer endpoint511.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Nocturnes, Op.9 — No.1",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0,
+          "endBeat": 511.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://s9.imslp.org/files/imglnks/usimg/b/b5/IMSLP112335-PMLP02312-FChopin_Nocturnes%2C_Op.9_Joseffy.pdf",
+            "sha256": "5dbadef8e3d7962a7260efbfb589fc842f0387adbd7992331f656f889c3b3817"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/ChopinFF/O9/nocturne_in_b-flat_minor/nocturne_in_b-flat_minor.ly",
+            "sha256": "16f561852483be12ac49f3f1976118b3e0e8a6e95e3877c1a6d642ea5de98838"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "97194fec7586ca37280a3a5641db96f09f515c8358ccba9a9dd6a0f427ff9330",
+        "fixedSpecsSha256": "25f586cdd406f5532d4a0beefe86f34659c02c48baca2134864b7e3df9330e39",
+        "sourceCorrespondenceReceiptSha256": "642aec7672d2902fff5b11cef70e82a582bbf35707a8cb12cc5c1dd7ae841d8a",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 82,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 84,
+            "dur": 0.5
+          },
+          {
+            "start": 1,
+            "midi": 85,
+            "dur": 0.5
+          },
+          {
+            "start": 1.5,
+            "midi": 81,
+            "dur": 0.5
+          },
+          {
+            "start": 2,
+            "midi": 82,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 78,
+            "dur": 0.5
+          },
+          {
+            "start": 3,
+            "midi": 77,
+            "dur": 1
+          },
+          {
+            "start": 4,
+            "midi": 77,
+            "dur": 1
+          },
+          {
+            "start": 5,
+            "midi": 77,
+            "dur": 1
+          },
+          {
+            "start": 6,
+            "midi": 77,
+            "dur": 1
+          },
+          {
+            "start": 7,
+            "midi": 78,
+            "dur": 0.5
+          },
+          {
+            "start": 7.5,
+            "midi": 77,
+            "dur": 0.5
+          },
+          {
+            "start": 8,
+            "midi": 75,
+            "dur": 0.5
+          },
+          {
+            "start": 8.5,
+            "midi": 72,
+            "dur": 0.5
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete RH quarter-note-unit6/4 pickup and first full bar, all14 attacks and nominal written durations; no rests, graces, ties or tuplets in the fixed opening",
+        "distinctProducerAttacks": 1597,
+        "distinctSourceAttacksUsed": 1597,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0625,
+        "firstPitchedBeat": 0,
+        "sourcePitchedEndBeat": 511.0,
+        "producerLastNoteEndBeat": 511,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "f-f-chopin-nocturne-no-3",
+      "sourceArtifactHash": "5e53d35c6ac5ee13f53c2f40b676a257f5598c14d026b578f20134ebc5417fa6",
+      "advancedNotesSha256": "6b905543220db57b71e2172f644eda929dfdde80001dc91d8dbc8f7c341d77cc",
+      "playbackTempoBpm": 99,
+      "sourceFile": "f-f-chopin-nocturne-no-3.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://s9.imslp.org/files/imglnks/usimg/b/b5/IMSLP112335-PMLP02312-FChopin_Nocturnes%2C_Op.9_Joseffy.pdf; https://www.mutopiaproject.org/ftp/ChopinFF/O9/chopin_nocturne_op9_n3/chopin_nocturne_op9_n3.ly. complete RH6/8 pickup and first full bar, all7 attacks and nominal written durations; both written sixteenth rests retained; C-double-sharp and D-natural share MIDI74 while remaining distinct written spellings; no graces, ties or tuplets in the fixed opening. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all2370 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0 to the lesser pitched source/producer endpoint536.25; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Nocturnes, Op.9 — No.3",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0,
+          "endBeat": 536.25
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://s9.imslp.org/files/imglnks/usimg/b/b5/IMSLP112335-PMLP02312-FChopin_Nocturnes%2C_Op.9_Joseffy.pdf",
+            "sha256": "5dbadef8e3d7962a7260efbfb589fc842f0387adbd7992331f656f889c3b3817"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/ChopinFF/O9/chopin_nocturne_op9_n3/chopin_nocturne_op9_n3.ly",
+            "sha256": "2f81f8558010dbb2ff68ac8b9cf05577097143d67032580b1bb5690d9c9b63bb"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "5e53d35c6ac5ee13f53c2f40b676a257f5598c14d026b578f20134ebc5417fa6",
+        "fixedSpecsSha256": "25f586cdd406f5532d4a0beefe86f34659c02c48baca2134864b7e3df9330e39",
+        "sourceCorrespondenceReceiptSha256": "642aec7672d2902fff5b11cef70e82a582bbf35707a8cb12cc5c1dd7ae841d8a",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 78,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 75,
+            "dur": 0.5
+          },
+          {
+            "start": 1.25,
+            "midi": 74,
+            "dur": 0.25
+          },
+          {
+            "start": 1.5,
+            "midi": 75,
+            "dur": 0.5
+          },
+          {
+            "start": 2,
+            "midi": 74,
+            "dur": 0.5
+          },
+          {
+            "start": 2.75,
+            "midi": 73,
+            "dur": 0.25
+          },
+          {
+            "start": 3,
+            "midi": 74,
+            "dur": 0.5
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete RH6/8 pickup and first full bar, all7 attacks and nominal written durations; both written sixteenth rests retained; C-double-sharp and D-natural share MIDI74 while remaining distinct written spellings; no graces, ties or tuplets in the fixed opening",
+        "distinctProducerAttacks": 2370,
+        "distinctSourceAttacksUsed": 2370,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0625,
+        "firstPitchedBeat": 0,
+        "sourcePitchedEndBeat": 536.25,
+        "producerLastNoteEndBeat": 536.25,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "j-brahms-waltz-no-10",
+      "sourceArtifactHash": "c4ac9774b8215f8ef193230d61c86de7e39ab747ec86620a07a33e3ad63e2be1",
+      "advancedNotesSha256": "2ac27e4a155d3773aa2f2845c758d079a8dce7989f7fe90752007b981fc36030",
+      "playbackTempoBpm": 160,
+      "sourceFile": "j-brahms-waltz-no-10.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/0/09/IMSLP138189-PMLP06507-JBrahms_16_Waltzes,_Op.39_pno_solo_fe_rsl.pdf; https://www.mutopiaproject.org/ftp/BrahmsJ/O39/waltz-op39-10/waltz-op39-10.ly. complete first3/4 RH bar, all six two-note chord attacks /12 notes, nominal eighth durations. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all432 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint95.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Walzer, Op.39 — No.10",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 95.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/0/09/IMSLP138189-PMLP06507-JBrahms_16_Waltzes,_Op.39_pno_solo_fe_rsl.pdf",
+            "sha256": "9f0ff03f547575a50ed3c75d3066beaf19eaf8e41719ef7dffa78c3a39ca1fa5"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/BrahmsJ/O39/waltz-op39-10/waltz-op39-10.ly",
+            "sha256": "4c5185979521c4fc3f9a237db583f17f16e317e46b31110074a5e7f6e6ba3144"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "c4ac9774b8215f8ef193230d61c86de7e39ab747ec86620a07a33e3ad63e2be1",
+        "fixedSpecsSha256": "c1e3cdb5c6c54cd45fc8839515b5c3ed6b472e1acf745fcff9b817f6f63afc5e",
+        "sourceCorrespondenceReceiptSha256": "fb63629ebc05cdd721aaf6f057eb7e6bcb634f2ca5604f3411c564a6135ec703",
+        "completePrintedOpening": [
+          {
+            "start": 0.0,
+            "midi": 60,
+            "dur": 0.5
+          },
+          {
+            "start": 0.0,
+            "midi": 64,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 62,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 66,
+            "dur": 0.5
+          },
+          {
+            "start": 1.0,
+            "midi": 60,
+            "dur": 0.5
+          },
+          {
+            "start": 1.0,
+            "midi": 64,
+            "dur": 0.5
+          },
+          {
+            "start": 1.5,
+            "midi": 62,
+            "dur": 0.5
+          },
+          {
+            "start": 1.5,
+            "midi": 66,
+            "dur": 0.5
+          },
+          {
+            "start": 2.0,
+            "midi": 64,
+            "dur": 0.5
+          },
+          {
+            "start": 2.0,
+            "midi": 67,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 66,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 69,
+            "dur": 0.5
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete first3/4 RH bar, all six two-note chord attacks /12 notes, nominal eighth durations",
+        "distinctProducerAttacks": 432,
+        "distinctSourceAttacksUsed": 432,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.010416666666671404,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 95.0,
+        "producerLastNoteEndBeat": 95,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "j-brahms-waltz-no-15",
+      "sourceArtifactHash": "e081ef3fe7023cdf4656e1528df50534b2e3df863cd0a194a04a82206f783ace",
+      "advancedNotesSha256": "c2681100f887f8911dbf9331a26eeb26c2646c9944ca8ea090566254041273b6",
+      "playbackTempoBpm": 116,
+      "sourceFile": "j-brahms-waltz-no-15.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/0/09/IMSLP138189-PMLP06507-JBrahms_16_Waltzes,_Op.39_pno_solo_fe_rsl.pdf; https://www.mutopiaproject.org/ftp/BrahmsJ/O39/waltz-op39-15/waltz-op39-15.ly. complete first3/4 RH bar, four two-note chord attacks /8 notes, all nominal durations. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all706 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint131.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Walzer, Op.39 — No.15",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 131.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/0/09/IMSLP138189-PMLP06507-JBrahms_16_Waltzes,_Op.39_pno_solo_fe_rsl.pdf",
+            "sha256": "9f0ff03f547575a50ed3c75d3066beaf19eaf8e41719ef7dffa78c3a39ca1fa5"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/BrahmsJ/O39/waltz-op39-15/waltz-op39-15.ly",
+            "sha256": "64cef49cf056947e8d4f900535dbc28a4a841653ff1e2a936534e928e2209a65"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "e081ef3fe7023cdf4656e1528df50534b2e3df863cd0a194a04a82206f783ace",
+        "fixedSpecsSha256": "c1e3cdb5c6c54cd45fc8839515b5c3ed6b472e1acf745fcff9b817f6f63afc5e",
+        "sourceCorrespondenceReceiptSha256": "fb63629ebc05cdd721aaf6f057eb7e6bcb634f2ca5604f3411c564a6135ec703",
+        "completePrintedOpening": [
+          {
+            "start": 0.0,
+            "midi": 63,
+            "dur": 1.5
+          },
+          {
+            "start": 0.0,
+            "midi": 72,
+            "dur": 1.5
+          },
+          {
+            "start": 1.5,
+            "midi": 60,
+            "dur": 0.5
+          },
+          {
+            "start": 1.5,
+            "midi": 68,
+            "dur": 0.5
+          },
+          {
+            "start": 2.0,
+            "midi": 60,
+            "dur": 0.5
+          },
+          {
+            "start": 2.0,
+            "midi": 68,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 63,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 72,
+            "dur": 0.5
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete first3/4 RH bar, four two-note chord attacks /8 notes, all nominal durations",
+        "distinctProducerAttacks": 706,
+        "distinctSourceAttacksUsed": 706,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666671404,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 131.0,
+        "producerLastNoteEndBeat": 131,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "f-f-chopin-etude-a-moll",
+      "sourceArtifactHash": "ebee39ee0f9bd743586cbcd4890d3f0e39f24808957302341316a734e42a7989",
+      "advancedNotesSha256": "04324d32ace7e2704df48c5692acae19df96e0a35ff29a95524d7cd564b5154e",
+      "playbackTempoBpm": 144,
+      "sourceFile": "f-f-chopin-etude-a-moll.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/a/ab/IMSLP916162-PMLP1969-Chopin_Op10_DF9702.pdf; https://www.mutopiaproject.org/ftp/ChopinFF/O10/10-02-i/10-02-i.ly. complete first4/4 RH bar, both chromatic upper voice and all four middle-voice two-note sixteenth chords with their remaining skips;24 pitched attacks. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all1381 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint196.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Études, Op.10 — No.2",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 196.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/a/ab/IMSLP916162-PMLP1969-Chopin_Op10_DF9702.pdf",
+            "sha256": "29d2ad01530d1c296f65ecaa8162065fc9971886190d9a18dc85bd3c454a97d4"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/ChopinFF/O10/10-02-i/10-02-i.ly",
+            "sha256": "2471fb07690a2b8f7550d8d96b686c4bb3907556a8002b57fcef71111e503c1c"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "ebee39ee0f9bd743586cbcd4890d3f0e39f24808957302341316a734e42a7989",
+        "fixedSpecsSha256": "c1e3cdb5c6c54cd45fc8839515b5c3ed6b472e1acf745fcff9b817f6f63afc5e",
+        "sourceCorrespondenceReceiptSha256": "fb63629ebc05cdd721aaf6f057eb7e6bcb634f2ca5604f3411c564a6135ec703",
+        "completePrintedOpening": [
+          {
+            "start": 0.0,
+            "midi": 69,
+            "dur": 0.25
+          },
+          {
+            "start": 0.25,
+            "midi": 70,
+            "dur": 0.25
+          },
+          {
+            "start": 0.5,
+            "midi": 71,
+            "dur": 0.25
+          },
+          {
+            "start": 0.75,
+            "midi": 72,
+            "dur": 0.25
+          },
+          {
+            "start": 1.0,
+            "midi": 73,
+            "dur": 0.25
+          },
+          {
+            "start": 1.25,
+            "midi": 74,
+            "dur": 0.25
+          },
+          {
+            "start": 1.5,
+            "midi": 75,
+            "dur": 0.25
+          },
+          {
+            "start": 1.75,
+            "midi": 76,
+            "dur": 0.25
+          },
+          {
+            "start": 2.0,
+            "midi": 77,
+            "dur": 0.25
+          },
+          {
+            "start": 2.25,
+            "midi": 78,
+            "dur": 0.25
+          },
+          {
+            "start": 2.5,
+            "midi": 79,
+            "dur": 0.25
+          },
+          {
+            "start": 2.75,
+            "midi": 80,
+            "dur": 0.25
+          },
+          {
+            "start": 3.0,
+            "midi": 81,
+            "dur": 0.25
+          },
+          {
+            "start": 3.25,
+            "midi": 82,
+            "dur": 0.25
+          },
+          {
+            "start": 3.5,
+            "midi": 83,
+            "dur": 0.25
+          },
+          {
+            "start": 3.75,
+            "midi": 84,
+            "dur": 0.25
+          },
+          {
+            "start": 0.0,
+            "midi": 60,
+            "dur": 0.25
+          },
+          {
+            "start": 0.0,
+            "midi": 64,
+            "dur": 0.25
+          },
+          {
+            "start": 1.0,
+            "midi": 64,
+            "dur": 0.25
+          },
+          {
+            "start": 1.0,
+            "midi": 69,
+            "dur": 0.25
+          },
+          {
+            "start": 2.0,
+            "midi": 69,
+            "dur": 0.25
+          },
+          {
+            "start": 2.0,
+            "midi": 74,
+            "dur": 0.25
+          },
+          {
+            "start": 3.0,
+            "midi": 74,
+            "dur": 0.25
+          },
+          {
+            "start": 3.0,
+            "midi": 77,
+            "dur": 0.25
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete first4/4 RH bar, both chromatic upper voice and all four middle-voice two-note sixteenth chords with their remaining skips;24 pitched attacks",
+        "distinctProducerAttacks": 1381,
+        "distinctSourceAttacksUsed": 1381,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 196.0,
+        "producerLastNoteEndBeat": 196,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "f-f-chopin-mazurka-op-6-no-1",
+      "sourceArtifactHash": "8ca95d82c2d7a7f7b19d527ee9e3749e406753bdf54a4f278184d683ee5b7b47",
+      "advancedNotesSha256": "a18caa3bba73662bfbaaef21fef7d19f46d9cfedf09f65066c88e51c5c3ec0a6",
+      "playbackTempoBpm": 60,
+      "sourceFile": "f-f-chopin-mazurka-op-6-no-1.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/e/e6/IMSLP00458-Chopin_-_4_Mazurkas,_Op_6.pdf; https://www.mutopiaproject.org/ftp/ChopinFF/O6/Mazurka-Op6-No1/Mazurka-Op6-No1.ly. complete cadenzaOn quarter pickup plus first3/4 RH bar,8 printed note segments realized as7 attacks; pickup Fsharp4 ties into first triplet note with combined4/3 duration; second RH voice all skips. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all849 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint220.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Quatre Mazurkas, Op.6 — No.1",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 220.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/e/e6/IMSLP00458-Chopin_-_4_Mazurkas,_Op_6.pdf",
+            "sha256": "a41f226ae555f39d2e1bb6c9e592cd6abd01f1d61036ae657e5ba4fb8fc79751"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/ChopinFF/O6/Mazurka-Op6-No1/Mazurka-Op6-No1.ly",
+            "sha256": "db382b27592842827bea486f4d3d716eeb7cf07eec721adfaae84ce1cd23ea18"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "8ca95d82c2d7a7f7b19d527ee9e3749e406753bdf54a4f278184d683ee5b7b47",
+        "fixedSpecsSha256": "c1e3cdb5c6c54cd45fc8839515b5c3ed6b472e1acf745fcff9b817f6f63afc5e",
+        "sourceCorrespondenceReceiptSha256": "fb63629ebc05cdd721aaf6f057eb7e6bcb634f2ca5604f3411c564a6135ec703",
+        "completePrintedOpening": [
+          {
+            "start": 0.0,
+            "midi": 66,
+            "dur": 1.3333333333333333
+          },
+          {
+            "start": 1.3333333333333333,
+            "midi": 68,
+            "dur": 0.3333333333333333
+          },
+          {
+            "start": 1.6666666666666667,
+            "midi": 66,
+            "dur": 0.3333333333333333
+          },
+          {
+            "start": 2.0,
+            "midi": 65,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 66,
+            "dur": 0.5
+          },
+          {
+            "start": 3.0,
+            "midi": 68,
+            "dur": 0.75
+          },
+          {
+            "start": 3.75,
+            "midi": 62,
+            "dur": 0.25
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete cadenzaOn quarter pickup plus first3/4 RH bar,8 printed note segments realized as7 attacks; pickup Fsharp4 ties into first triplet note with combined4/3 duration; second RH voice all skips",
+        "distinctProducerAttacks": 849,
+        "distinctSourceAttacksUsed": 849,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.052083333333328596,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 220.0,
+        "producerLastNoteEndBeat": 220,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "e-grieg-troldtog-march-of-the-dwarfs",
+      "sourceArtifactHash": "9d73618b3ab01976b9138c57ce7e41db3256b0eaad8b9741c909d322c6fb369e",
+      "advancedNotesSha256": "c3f864b2354aec704bdb995c833f28d7de076aae201059ca882ffafe02e7eda2",
+      "playbackTempoBpm": 120,
+      "sourceFile": "e-grieg-troldtog-march-of-the-dwarfs.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/7/76/IMSLP32347-PMLP01780-Grieg_Lyrische_Stuecke_Op_54_Peters_7637_600dpi.pdf; https://www.mutopiaproject.org/ftp/GriegE/O54/Troldtog/Troldtog.ly. complete first2/4bar in allvoices, RHfull-barrest and4LHeighthattacks; nominaldurationsstayfixeddespitestaccatomarks; no convenientlaterRHwindow. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all2037 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint386.5; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Lyrische Stücke, Op.54 — No.3. Troldtog",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 386.5
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/7/76/IMSLP32347-PMLP01780-Grieg_Lyrische_Stuecke_Op_54_Peters_7637_600dpi.pdf",
+            "sha256": "d4eb80816d62d5ad4a4c31a25098fb6a5adbd15c9fdcfa3d0784e5e951280b60"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/GriegE/O54/Troldtog/Troldtog.ly",
+            "sha256": "c05a86d065044ddfa4136d1ac422dc438bad623eea6d1a5d1fa5f533df6f950c"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "9d73618b3ab01976b9138c57ce7e41db3256b0eaad8b9741c909d322c6fb369e",
+        "fixedSpecsSha256": "89d8dcb90ab5bdb0a30eb86723eefa0be441bdbb0902b0fadc65da6f11021500",
+        "sourceCorrespondenceReceiptSha256": "48c07a91aada9c39616cf3e375c5ee2ac2776ea29ba91ef8317cb174db36c3fd",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 38,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 45,
+            "dur": 0.5
+          },
+          {
+            "start": 1,
+            "midi": 38,
+            "dur": 0.5
+          },
+          {
+            "start": 1.5,
+            "midi": 45,
+            "dur": 0.5
+          }
+        ],
+        "sourceTrackScope": "all",
+        "openingDescription": "complete first2/4bar in allvoices, RHfull-barrest and4LHeighthattacks; nominaldurationsstayfixeddespitestaccatomarks; no convenientlaterRHwindow",
+        "distinctProducerAttacks": 2037,
+        "distinctSourceAttacksUsed": 2037,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.04166666666665719,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 386.5,
+        "producerLastNoteEndBeat": 386.5,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "j-brahms-sapphische-ode",
+      "sourceArtifactHash": "dcd5efac22b5e91b7c87685058784396adb9ec5d69915764265ad68158dbb6e1",
+      "advancedNotesSha256": "1c466803f6e0aa2cf56aeccb2faa009a6339a776c56774647160626aeedc1216",
+      "playbackTempoBpm": 68,
+      "sourceFile": "j-brahms-sapphische-ode.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints the matching composer, opus and part index. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/d/d8/IMSLP23137-PMLP52878-BraWV,_S._387.pdf; https://www.mutopiaproject.org/ftp/BrahmsJ/O94/brahms-sapphische-ode/brahms-sapphische-ode.ly. complete first2/2bar across singer, RH and bothLHvoices; singerfullbarrest andLHsecondvoiceskips;12RHattacks at.5,1.5,2.5,3.5 with finalchordtiescontinuingto4.5 andoneLHC3@2 tiedthrough6;13pitchedattacks total; nominaltieddurationsfixedbeforeMIDI. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all547 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.5 to the lesser pitched source/producer endpoint128.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Fünf Lieder, Op.94 — No.4. Sapphische Ode",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.5,
+          "endBeat": 128.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/d/d8/IMSLP23137-PMLP52878-BraWV,_S._387.pdf",
+            "sha256": "8537c593aa6c4149f0560f32ce5dfa99e4520a66c1809400dd9252fa31a6448a"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/BrahmsJ/O94/brahms-sapphische-ode/brahms-sapphische-ode.ly",
+            "sha256": "f189cd3a2b6e6ac7af3c10935c928d02d27d0e9d989c9c22313306e33d0c9f0c"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "dcd5efac22b5e91b7c87685058784396adb9ec5d69915764265ad68158dbb6e1",
+        "fixedSpecsSha256": "5d82e51d1987aa08f6bfa1546a028fbfa0cd1ae0706d4df53ce7754b7310863a",
+        "sourceCorrespondenceReceiptSha256": "17441c8954100d308c1e69f1c8360cb1bc5418eed1c57183d0da3e5369776d7a",
+        "completePrintedOpening": [
+          {
+            "start": 0.5,
+            "midi": 53,
+            "dur": 1
+          },
+          {
+            "start": 0.5,
+            "midi": 57,
+            "dur": 1
+          },
+          {
+            "start": 0.5,
+            "midi": 60,
+            "dur": 1
+          },
+          {
+            "start": 1.5,
+            "midi": 53,
+            "dur": 1
+          },
+          {
+            "start": 1.5,
+            "midi": 57,
+            "dur": 1
+          },
+          {
+            "start": 1.5,
+            "midi": 60,
+            "dur": 1
+          },
+          {
+            "start": 2.5,
+            "midi": 53,
+            "dur": 1
+          },
+          {
+            "start": 2.5,
+            "midi": 57,
+            "dur": 1
+          },
+          {
+            "start": 2.5,
+            "midi": 60,
+            "dur": 1
+          },
+          {
+            "start": 3.5,
+            "midi": 53,
+            "dur": 1
+          },
+          {
+            "start": 3.5,
+            "midi": 57,
+            "dur": 1
+          },
+          {
+            "start": 3.5,
+            "midi": 60,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 48,
+            "dur": 4
+          }
+        ],
+        "sourceTrackScope": "all",
+        "openingDescription": "complete first2/2bar across singer, RH and bothLHvoices; singerfullbarrest andLHsecondvoiceskips;12RHattacks at.5,1.5,2.5,3.5 with finalchordtiescontinuingto4.5 andoneLHC3@2 tiedthrough6;13pitchedattacks total; nominaltieddurationsfixedbeforeMIDI",
+        "distinctProducerAttacks": 547,
+        "distinctSourceAttacksUsed": 547,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.5,
+        "sourcePitchedEndBeat": 128.0,
+        "producerLastNoteEndBeat": 128,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "f-abt-vocalise-o-1",
+      "sourceArtifactHash": "bd6524f98752dd9190376e29dd0bce82d5bd5e57dcdbd549687e7836629434ff",
+      "advancedNotesSha256": "3f1bed6c8b62bc7046d9fcf18bc7bc9e840a062ca9e3992ce0d7b5af2f19d293",
+      "playbackTempoBpm": 110,
+      "sourceFile": "f-abt-vocalise-o-1.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the retained exact-companion score prints Franz Abt and Vocalise №1 and cites the Spicker Practical Singing Tutor, PDFpage84; the additional actual printed page identifies Part III, Twenty Solfeggi No1. The differing individual titles are disclosed; solfege syllables supply no stanza/form role. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/9/92/IMSLP39796-PMLP86519-Abt,_Franz_-_Practical_Singing_Tutor_for_All_Voices_%28Mezzo-soprano_or_Alto%29,_Op._474.pdf; https://www.mutopiaproject.org/ftp/AbtF/Vocalise1/Vocalise1.ly. complete first4/4 vocalbar, E4 at0 andD4at2, nominalhalf-note durations2each; no graces/ties/tuplets; accompaniment remains includedinfullproducerclock, notthefixedvocalstafffingerprint. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all142 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint64.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Practical Singing Tutor — Part III, Twenty Solfeggi No.1",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 64.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/9/92/IMSLP39796-PMLP86519-Abt,_Franz_-_Practical_Singing_Tutor_for_All_Voices_%28Mezzo-soprano_or_Alto%29,_Op._474.pdf",
+            "sha256": "21696a84c4aa881266e3282d0ae9605103f4dda95f0aec7890b71cecccbef258"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/AbtF/Vocalise1/Vocalise1.ly",
+            "sha256": "aa50b699783d99604572a4137094d447b999fa6cd56c12fc2b827de3153276c6"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "bd6524f98752dd9190376e29dd0bce82d5bd5e57dcdbd549687e7836629434ff",
+        "fixedSpecsSha256": "07b96bb37ea4ab6033db1c6d404c14fef586ff78868f0f68e717d111c134aa19",
+        "sourceCorrespondenceReceiptSha256": "d44ea1ef5e170685631c8a091aa9dd81b3ed13a02348a932a0f7f9eadf55b753",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 64,
+            "dur": 2
+          },
+          {
+            "start": 2,
+            "midi": 62,
+            "dur": 2
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete first4/4 vocalbar, E4 at0 andD4at2, nominalhalf-note durations2each; no graces/ties/tuplets; accompaniment remains includedinfullproducerclock, notthefixedvocalstafffingerprint",
+        "distinctProducerAttacks": 142,
+        "distinctSourceAttacksUsed": 142,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 64.0,
+        "producerLastNoteEndBeat": 64,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "c-p-e-bach-rondo-in-e-flat-major",
+      "sourceArtifactHash": "065d4729bb9467a86cf72d8e109822bf881952cadb1a4a2d7b0c06371b76c49a",
+      "advancedNotesSha256": "f84987f94fa81443e2e6c7e718bc12ed1e2ddf046b3a3dcaf8c597108734980f",
+      "playbackTempoBpm": 66,
+      "sourceFile": "c-p-e-bach-rondo-in-e-flat-major.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the additional 1787 cover explicitly names Clavier-Sonaten und freye Fantasien nebst einigen Rondos fürs Fortepiano für Kenner und Liebhaber, sechste Sammlung, by Carl Philipp Emanuel Bach; its first music page prints Rondo in E-flat. The retained score prints Rondo in E-flat Major H.288; linking that individual piece to the parent is cross-document and cross-edition inference based on composer, key and complete opening, not a printed Wq.61 or ordinal claim. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/4/46/IMSLP509128-PMLP198344-cpe_bach_Clavier-Sonaten_f%C3%BCr_Kenner_6_wq61_bn_5.1-198249.pdf; https://www.mutopiaproject.org/ftp/BachCPE/cpe-bach-rondo/cpe-bach-rondo.ly. complete2/4 RH eighth-note pickup and first full bar, all7 attacks across MDI and MDII: upper B-flat4/B-flat4/G5/F5/E-flat5 eighths, lower G4 pickup eighth then G4 half-note; no grace/tie/tuplet/rest in either selected opening voice; sounding relative registers and nominal durations retained. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all1595 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint495.5; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Für Kenner und Liebhaber, sechste Sammlung — Rondo",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 495.5
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/4/46/IMSLP509128-PMLP198344-cpe_bach_Clavier-Sonaten_f%C3%BCr_Kenner_6_wq61_bn_5.1-198249.pdf",
+            "sha256": "720001008c63013abfe32cce692c2ac712375ce90e4dc062ac14dfea8bc9a42b"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/BachCPE/cpe-bach-rondo/cpe-bach-rondo.ly",
+            "sha256": "0fd77861b5c2783e1ff59c96360e5044ad2b055a06bb18878f95e0c5276c5bf8"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "065d4729bb9467a86cf72d8e109822bf881952cadb1a4a2d7b0c06371b76c49a",
+        "fixedSpecsSha256": "096072d195931c43b1721bc4eabffe28f3dd35ad607b8da20c898927e7c7d3b7",
+        "sourceCorrespondenceReceiptSha256": "1ec58e8980bc411693d6e22d0dc7e81b149b45e22af423345bb42756feab204a",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 70,
+            "dur": 0.5
+          },
+          {
+            "start": 0,
+            "midi": 67,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 70,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 67,
+            "dur": 2
+          },
+          {
+            "start": 1,
+            "midi": 79,
+            "dur": 0.5
+          },
+          {
+            "start": 1.5,
+            "midi": 77,
+            "dur": 0.5
+          },
+          {
+            "start": 2,
+            "midi": 75,
+            "dur": 0.5
+          }
+        ],
+        "sourceTrackScope": 1,
+        "openingDescription": "complete2/4 RH eighth-note pickup and first full bar, all7 attacks across MDI and MDII: upper B-flat4/B-flat4/G5/F5/E-flat5 eighths, lower G4 pickup eighth then G4 half-note; no grace/tie/tuplet/rest in either selected opening voice; sounding relative registers and nominal durations retained",
+        "distinctProducerAttacks": 1595,
+        "distinctSourceAttacksUsed": 1595,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666685614,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 495.5,
+        "producerLastNoteEndBeat": 495.5,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
     }
   ]
 }
