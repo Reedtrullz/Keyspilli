@@ -534,6 +534,7 @@
               - compose.production.yml
             state: present
             recreate: always
+            pull: never
             remove_orphans: true
             wait: true
             wait_timeout: 120
@@ -742,6 +743,7 @@
               - compose.production.yml
             state: present
             recreate: always
+            pull: never
             remove_orphans: true
             wait: true
             wait_timeout: 120

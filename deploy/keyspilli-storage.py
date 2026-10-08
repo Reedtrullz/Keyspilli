@@ -57,6 +57,8 @@ def manifest_document(path):
     if regular(path).st_size > 32768:
         raise ValueError("oversized manifest")
     d = json.loads(path.read_text())
+    if not isinstance(d, dict):
+        raise ValueError("invalid manifest root")
     stamp = d.get("stamp")
     if (d.get("complete") is not True or type(d.get("schemaVersion")) is not int
             or d["schemaVersion"] != 1 or not isinstance(stamp, str)
@@ -394,6 +396,8 @@ class Policy:
 
     def pull(self, token):
         record = self.transaction(token)
+        if record is None:
+            raise RuntimeError("pull requires a pending deployment token")
         self.cleanup(True, token)
         root = self.run("info", "--format", "{{.DockerRootDir}}")
         # Remote compressed manifest sizes cannot bound extraction. Enforce a
@@ -431,6 +435,8 @@ class Policy:
 
     def finish(self, token):
         record = self.transaction(token)
+        if record is None:
+            raise RuntimeError("finish requires a pending deployment token")
         containers = {c["Name"]: c for c in self.containers()}
         for name, ref in zip(("/keyspilli", "/keyspilli-worker"), record["images"]):
             c = containers[name]
@@ -449,6 +455,8 @@ class Policy:
 
     def resolve(self, token):
         record = self.transaction(token)
+        if record is None:
+            raise RuntimeError("resolve requires a pending deployment token")
         # Explicit operator action after inspecting a canceled/rolled-back run.
         # A concurrent pull owns the flock, so resolution cannot race it.
         for c in self.containers():

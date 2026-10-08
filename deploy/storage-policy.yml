@@ -37,7 +37,7 @@
         src: "templates/{{ item }}.j2"
         dest: "{{ policy_stage }}/{{ item }}"
         mode: '0644'
-      loop: [keyspilli-storage.service, keyspilli-storage.timer]
+      loop: [keyspilli-storage.service, keyspilli-storage.timer, keyspilli-replication.service]
 
     - name: Install all policy files while excluding backups and deployments
       ansible.builtin.shell: |
@@ -59,7 +59,7 @@
         done
         install -m 0750 "{{ policy_stage }}/keyspilli-backup-runner" /usr/local/sbin/.keyspilli-backup-runner.install
         mv -f /usr/local/sbin/.keyspilli-backup-runner.install /usr/local/sbin/keyspilli-backup-runner
-        for name in keyspilli-storage.service keyspilli-storage.timer; do
+        for name in keyspilli-storage.service keyspilli-storage.timer keyspilli-replication.service; do
           install -m 0644 "{{ policy_stage }}/$name" "/etc/systemd/system/.$name.install"
           mv -f "/etc/systemd/system/.$name.install" "/etc/systemd/system/$name"
         done
