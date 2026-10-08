@@ -43,6 +43,23 @@ describe("extract-ug-sections", () => {
     expect(chart.sections.map((section) => section.label)).toEqual(["Outro"]);
   });
 
+  it("excludes chord diagrams before the actual form", () => {
+    const chart = parseChartHtml(page("[Chords]\n[ch]C[/ch] x32010\n[ch]G[/ch] 320003\n[Intro]\n[ch]Am[/ch]"));
+    expect(chart.sections).toEqual([{ label: "Intro", chords: ["Am"] }]);
+  });
+
+  it("does not append metadata chords to the preceding passage", () => {
+    const chart = parseChartHtml(page("[Verse]\n[ch]C[/ch]\n[Chord diagrams]\n[ch]G[/ch] 320003\n[Chorus]\n[ch]Am[/ch]"));
+    expect(chart.sections).toEqual([
+      { label: "Verse", chords: ["C"] },
+      { label: "Chorus", chords: ["Am"] },
+    ]);
+  });
+
+  it("rejects a chord reference without named form headings", () => {
+    expect(() => parseChartHtml(page("[Chords]\n[ch]C[/ch] x32010"))).toThrow(/No form headings/);
+  });
+
   it("rejects pages without a usable tab payload", () => {
     expect(() => parseChartHtml("<html></html>")).toThrow(/js-store data-content/);
     expect(() => parseChartHtml(page(""))).toThrow(/wiki_tab content/);

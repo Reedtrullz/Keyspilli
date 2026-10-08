@@ -26,6 +26,7 @@ export interface ExtractedChart {
 const SECTION_HEADER = /^\[([A-Za-z][A-Za-z0-9 /-]*)\]$/;
 const CHORD_TAG = /\[ch\](.*?)\[\/ch\]/gi;
 const STRUCTURAL_TAGS = new Set(["tab", "ch", "/tab", "/ch"]);
+const CHORD_REFERENCE_HEADERS = new Set(["chords", "chord diagrams"]);
 
 function decodeAttributeEntities(value: string): string {
   return value
@@ -68,6 +69,10 @@ export function parseChartHtml(html: string): ExtractedChart {
     const header = SECTION_HEADER.exec(line);
     if (header) {
       const label = header[1]!.trim();
+      if (CHORD_REFERENCE_HEADERS.has(label.toLowerCase())) {
+        current = null;
+        continue;
+      }
       if (!STRUCTURAL_TAGS.has(label.toLowerCase())) {
         current = { label, chords: [] };
         sections.push(current);

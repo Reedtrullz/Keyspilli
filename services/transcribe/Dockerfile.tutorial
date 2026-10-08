@@ -37,7 +37,14 @@ CMD ["--help"]
 
 FROM extractor AS worker
 COPY --from=node-build /usr/local/bin/node /usr/local/bin/node
-COPY --from=node-build /app /app
+# Keep dependencies in their own layer so a catalog/source change does not
+# duplicate the entire node_modules payload in every retained release image.
+COPY --from=node-build /app/node_modules /app/node_modules
+COPY --from=node-build /app/package.json /app/package-lock.json /app/tsconfig.base.json /app/
+COPY --from=node-build /app/packages /app/packages
+COPY --from=node-build /app/services /app/services
+COPY --from=node-build /app/catalog /app/catalog
+COPY --from=node-build /app/apps/web /app/apps/web
 RUN cmp /app/requirements.txt /app/services/transcribe/requirements-tutorial.txt \
     && cmp /app/src/tutorial_keys.py /app/services/transcribe/src/tutorial_keys.py \
     && cmp /app/src/tutorial_timing.py /app/services/transcribe/src/tutorial_timing.py
