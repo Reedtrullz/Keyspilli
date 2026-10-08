@@ -3677,6 +3677,1459 @@
         "maximumOnsetErrorBeats": 0.041666666666685614,
         "coverage": "first-to-last cue of one complete chart paragraph only; releases, full section boundaries and artist identity unresolved"
       }
+    },
+    {
+      "baseId": "anonymous-la-native",
+      "sourceArtifactHash": "11b67439a04788d12690286d4f16b00d86a353c30359432700908d24f4ee8725",
+      "advancedNotesSha256": "b208323df2b940433ff0fac14084aef42e3370c04f5a5bcbb82ce5ae9acf6eaa",
+      "playbackTempoBpm": 91,
+      "sourceFile": "anonymous-la-native.mid",
+      "provenance": "Explicit printed named division La Native in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/Anonymous/lanative/lanative.ly. The score companion MIDI exactly matches retained source bytes. The complete printed sixteenth-note pickup independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end48.5. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "La Native",
+          "startBeat": 0.0,
+          "endBeat": 48.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/Anonymous/lanative/lanative.ly",
+        "scoreSha256": "b451ae1c77e689b7e49ef207ad050c41ffd5c91c4fde1f9154068223128738f8",
+        "printedHeadingHierarchy": {
+          "title": "The Lancer's Quadrilles",
+          "subtitle": "La Native (#3)"
+        },
+        "companionMidiSha256": "11b67439a04788d12690286d4f16b00d86a353c30359432700908d24f4ee8725",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed sixteenth-note pickup",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              66
+            ]
+          ],
+          [
+            0.25,
+            [
+              67
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              66
+            ]
+          ],
+          [
+            0.25,
+            [
+              67
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 172,
+        "distinctMatchedRawOnsets": 172,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.005208333333335702,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 48.5,
+        "producerLastNoteEndBeat": 48.5,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "anonymous-les-graces",
+      "sourceArtifactHash": "fc60bd414fec124c37df6bef79e4748bb7c1310bdd2d59d354d93b7b864b1966",
+      "advancedNotesSha256": "253a3163222c9189a4458e78c7df7adc1a120262fb023e89b1e8f58ed2016d7d",
+      "playbackTempoBpm": 86,
+      "sourceFile": "anonymous-les-graces.mid",
+      "provenance": "Explicit printed named division Les Graces in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/Anonymous/lesgraces/lesgraces.ly. The score companion MIDI exactly matches retained source bytes. The complete printed three-eighth-note pickup before the grace note independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end60.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Les Graces",
+          "startBeat": 0.0,
+          "endBeat": 60.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/Anonymous/lesgraces/lesgraces.ly",
+        "scoreSha256": "610d9c7fa486100cdee419807bb910cd9d1fc9cff744634a044acd6e35c5d0bc",
+        "printedHeadingHierarchy": {
+          "title": "The Lancer's Quadrilles",
+          "subtitle": "Les Graces (#4)"
+        },
+        "companionMidiSha256": "fc60bd414fec124c37df6bef79e4748bb7c1310bdd2d59d354d93b7b864b1966",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed three-eighth-note pickup before the grace note",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              74
+            ]
+          ],
+          [
+            0.5,
+            [
+              73
+            ]
+          ],
+          [
+            1,
+            [
+              74
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              74
+            ]
+          ],
+          [
+            0.5,
+            [
+              73
+            ]
+          ],
+          [
+            1.0,
+            [
+              74
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 228,
+        "distinctMatchedRawOnsets": 228,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.059895833333333925,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 60.0,
+        "producerLastNoteEndBeat": 60.0,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "e-grieg-in-the-hall-of-the-mountain-king",
+      "sourceArtifactHash": "0c256a809b5af1faef81b6aad6106088a71d76b12435d5f0775d4ceee60c917e",
+      "advancedNotesSha256": "ba4c5c96222349c9bfba3349610d6455fa4a45208dd1d85661556f2476818a44",
+      "playbackTempoBpm": 138,
+      "sourceFile": "e-grieg-in-the-hall-of-the-mountain-king.mid",
+      "provenance": "Explicit printed named division In the Hall of the Mountain King in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/GriegE/O46/Dans_l_antre_du_roi_de_la_montagne/Dans_l_antre_du_roi_de_la_montagne.ly. The score companion MIDI exactly matches retained source bytes. The complete printed opening octave/whole-note bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end350.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "In the Hall of the Mountain King",
+          "startBeat": 0.0,
+          "endBeat": 350.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/GriegE/O46/Dans_l_antre_du_roi_de_la_montagne/Dans_l_antre_du_roi_de_la_montagne.ly",
+        "scoreSha256": "5ce52c65f3a019062baa72d8c85313274d2542dbf68a759d8712df4bea827b95",
+        "printedHeadingHierarchy": {
+          "title": "In the Hall of the Mountain King",
+          "subsubtitle": "(From “Peer Gynt” Suite I)",
+          "opus": "op. 46, no. 4"
+        },
+        "companionMidiSha256": "0c256a809b5af1faef81b6aad6106088a71d76b12435d5f0775d4ceee60c917e",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed opening octave/whole-note bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              54,
+              66
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              54,
+              66
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 1343,
+        "distinctMatchedRawOnsets": 1343,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.059895833333314386,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 350.03125,
+        "producerLastNoteEndBeat": 350.0,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "c-debussy-suite-bergamasque-clair-de-lune",
+      "sourceArtifactHash": "4eee9a1546ffde1ff74cb9824ba0e57cbc821185a15185bfea9faed97820bf8c",
+      "advancedNotesSha256": "139fcede053d9451407a27871ec6c24e76f3ad43f1dcbb363f870de80bf6891c",
+      "playbackTempoBpm": 60,
+      "sourceFile": "c-debussy-suite-bergamasque-clair-de-lune.mid",
+      "provenance": "Explicit printed named division Clair de Lune in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DebussyC/L75/debussy_Ste_Bergamesq_Clair/debussy_Ste_Bergamesq_Clair.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first9/8 bar, following explicit cross-staff transfer and ties independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.5 to the lesser of raw pitched-note release extent and actual producer note end322.5. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Clair de Lune",
+          "startBeat": 0.5,
+          "endBeat": 322.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DebussyC/L75/debussy_Ste_Bergamesq_Clair/debussy_Ste_Bergamesq_Clair.ly",
+        "scoreSha256": "c1c58f806a8939fc5a157707ea479403abb9655a4820b25bb6b98e39fd781e7a",
+        "printedHeadingHierarchy": {
+          "title": "Suite Bergamasque – Clair de Lune"
+        },
+        "companionMidiSha256": "4eee9a1546ffde1ff74cb9824ba0e57cbc821185a15185bfea9faed97820bf8c",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed first9/8 bar, following explicit cross-staff transfer and ties",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0.5,
+            [
+              65,
+              68
+            ]
+          ],
+          [
+            1,
+            [
+              77,
+              80
+            ]
+          ],
+          [
+            3,
+            [
+              73,
+              77
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.5,
+            [
+              65,
+              68
+            ]
+          ],
+          [
+            1.0,
+            [
+              77,
+              80
+            ]
+          ],
+          [
+            3.0,
+            [
+              73,
+              77
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 1310,
+        "distinctMatchedRawOnsets": 1310,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.044270833333328596,
+        "firstPitchedBeat": 0.5,
+        "sourcePitchedNoteEndBeat": 322.5,
+        "producerLastNoteEndBeat": 322.5,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-bizet-carmen-prelude",
+      "sourceArtifactHash": "56f763077572437e5975a6bcdad3ca67fafd0694479bbcffef0a23f36d37e878",
+      "advancedNotesSha256": "1bf4a5f68f2e2a82d9bb31d8268b88f431540e0bd5956dec4abd9a54cf9ceb47",
+      "playbackTempoBpm": 116,
+      "sourceFile": "g-bizet-carmen-prelude.mid",
+      "provenance": "Explicit printed named division Prelude in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BizetG/prelude/prelude.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first2/4 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end318.625. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Prelude",
+          "startBeat": 0.0,
+          "endBeat": 318.625,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BizetG/prelude/prelude.ly",
+        "scoreSha256": "eb185d3b2e692b282cae745d7a35b8c379bc7d7b2620c9b63429d49ee41ee4fb",
+        "printedHeadingHierarchy": {
+          "title": "Prelude",
+          "subtitle": "From Carmen"
+        },
+        "companionMidiSha256": "56f763077572437e5975a6bcdad3ca67fafd0694479bbcffef0a23f36d37e878",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed first2/4 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              69,
+              73,
+              76,
+              81
+            ]
+          ],
+          [
+            0.5,
+            [
+              81
+            ]
+          ],
+          [
+            0.75,
+            [
+              81
+            ]
+          ],
+          [
+            1,
+            [
+              81
+            ]
+          ],
+          [
+            1.25,
+            [
+              76
+            ]
+          ],
+          [
+            1.5,
+            [
+              74
+            ]
+          ],
+          [
+            1.75,
+            [
+              76
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              69,
+              73,
+              76,
+              81
+            ]
+          ],
+          [
+            0.5,
+            [
+              81
+            ]
+          ],
+          [
+            0.75,
+            [
+              81
+            ]
+          ],
+          [
+            1.0,
+            [
+              81
+            ]
+          ],
+          [
+            1.25,
+            [
+              76
+            ]
+          ],
+          [
+            1.5,
+            [
+              74
+            ]
+          ],
+          [
+            1.75,
+            [
+              76
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 1875,
+        "distinctMatchedRawOnsets": 1875,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.05989583333334281,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 318.6302083333333,
+        "producerLastNoteEndBeat": 318.625,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-bizet-entr-acte",
+      "sourceArtifactHash": "bd17126777ecb17f51064b0c73b56f7028e0becf0bbeef4f2d96ae9ddc05b43b",
+      "advancedNotesSha256": "e778a05707e007dcb5ebb7d4034b88852c0abcd23f0f586cd3787e6770126901",
+      "playbackTempoBpm": 60,
+      "sourceFile": "g-bizet-entr-acte.mid",
+      "provenance": "Explicit printed named division Entr'acte in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BizetG/actii/actii.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first2/4 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end178.5. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Entr'acte",
+          "startBeat": 0.0,
+          "endBeat": 178.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BizetG/actii/actii.ly",
+        "scoreSha256": "9fecf9635e54b3a4228bfb60583106fc464d77e3a8796a0eb40c9f3b7a10c6da",
+        "printedHeadingHierarchy": {
+          "title": "Entr'acte",
+          "subtitle": "to Act II from Carmen"
+        },
+        "companionMidiSha256": "bd17126777ecb17f51064b0c73b56f7028e0becf0bbeef4f2d96ae9ddc05b43b",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed first2/4 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              55
+            ]
+          ],
+          [
+            0.75,
+            [
+              62
+            ]
+          ],
+          [
+            1,
+            [
+              62
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              55
+            ]
+          ],
+          [
+            0.75,
+            [
+              62
+            ]
+          ],
+          [
+            1.0,
+            [
+              62
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 838,
+        "distinctMatchedRawOnsets": 838,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.05989583333334281,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 178.5,
+        "producerLastNoteEndBeat": 178.5,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "i-m-f-albeniz-rumores-de-la-caleta",
+      "sourceArtifactHash": "7ab91e79a7d48333b119aa8df08e5dd83a947ab7c07be79f9b11233c05b799cd",
+      "advancedNotesSha256": "8f6dcef8b07b89c9af981378ac4c2c88223386f5064c40e17f402443e3cfb6a9",
+      "playbackTempoBpm": 60,
+      "sourceFile": "i-m-f-albeniz-rumores-de-la-caleta.mid",
+      "provenance": "Explicit printed named division Rumores de la Caleta in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/AlbenizIMF/O71/Rumores_de_la-caleta/Rumores_de_la-caleta.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first3/4 cross-staff tuplet bar; raw compiler ticks differ from nominal septuplet times by less than1/64 beat independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end261.9921875. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Rumores de la Caleta",
+          "startBeat": 0.0,
+          "endBeat": 261.9921875,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/AlbenizIMF/O71/Rumores_de_la-caleta/Rumores_de_la-caleta.ly",
+        "scoreSha256": "43881448fd59b1f6dfe29e595e786d4a9ebbc3ce9920e697808170518b9e8190",
+        "printedHeadingHierarchy": {
+          "title": "Rumores de la Caleta",
+          "subtitle": "Malagueña",
+          "subsubtitle": "No. 6 from Recuerdos de viaje"
+        },
+        "companionMidiSha256": "7ab91e79a7d48333b119aa8df08e5dd83a947ab7c07be79f9b11233c05b799cd",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed first3/4 cross-staff tuplet bar; raw compiler ticks differ from nominal septuplet times by less than1/64 beat",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0.0,
+            [
+              45
+            ]
+          ],
+          [
+            0.14285714285714285,
+            [
+              52
+            ]
+          ],
+          [
+            0.2857142857142857,
+            [
+              57
+            ]
+          ],
+          [
+            0.42857142857142855,
+            [
+              61
+            ]
+          ],
+          [
+            0.5714285714285714,
+            [
+              64
+            ]
+          ],
+          [
+            0.7142857142857143,
+            [
+              69
+            ]
+          ],
+          [
+            0.8571428571428571,
+            [
+              73
+            ]
+          ],
+          [
+            1.0,
+            [
+              81
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              45
+            ]
+          ],
+          [
+            0.140625,
+            [
+              52
+            ]
+          ],
+          [
+            0.28125,
+            [
+              57
+            ]
+          ],
+          [
+            0.4270833333333333,
+            [
+              61
+            ]
+          ],
+          [
+            0.5677083333333334,
+            [
+              64
+            ]
+          ],
+          [
+            0.7083333333333334,
+            [
+              69
+            ]
+          ],
+          [
+            0.8489583333333334,
+            [
+              73
+            ]
+          ],
+          [
+            0.9895833333333334,
+            [
+              81
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 1419,
+        "distinctMatchedRawOnsets": 1419,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.05729166666666663,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 261.9921875,
+        "producerLastNoteEndBeat": 262,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "a-adam-giselle-pas-de-deux-1er-acte",
+      "sourceArtifactHash": "d9150c463049a2b55711aefcebd4c9ede92ca29eaef5e1ed8a8e9c8eb482391b",
+      "advancedNotesSha256": "28fdb24ed086ab7ecdc78f77dd9d79c7f689f3b7bd901a65263dcc354c883776",
+      "playbackTempoBpm": 80,
+      "sourceFile": "a-adam-giselle-pas-de-deux-1er-acte.mid",
+      "provenance": "Explicit printed named division Pas de deux (1er acte) in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/AdamA/giselle/giselle.ly. The score companion MIDI exactly matches retained source bytes. The complete printed pickup of the retained piano arrangement independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end95.5. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. It names only this retained piano arrangement and does not establish completeness of the original ballet number. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Pas de deux (1er acte)",
+          "startBeat": 0.0,
+          "endBeat": 95.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/AdamA/giselle/giselle.ly",
+        "scoreSha256": "4352366151952c4eb12146437364c86081b1401ac40ccef78882d9493cd31570",
+        "printedHeadingHierarchy": {
+          "title": "Giselle",
+          "subtitle": "Pas de deux (1er acte)"
+        },
+        "companionMidiSha256": "d9150c463049a2b55711aefcebd4c9ede92ca29eaef5e1ed8a8e9c8eb482391b",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed pickup of the retained piano arrangement",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              71
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              71
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 409,
+        "distinctMatchedRawOnsets": 409,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 95.5,
+        "producerLastNoteEndBeat": 95.5,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "c-debussy-premiere-arabesque",
+      "sourceArtifactHash": "6732dc10799ec0af47d19d9095562d0671864a750129e0279901def169a34757",
+      "advancedNotesSha256": "43ba6d1e5c5ff4e4ca44f3c95ed3ff22a1ce1844aed9de86b1ca5f489b7bba6e",
+      "playbackTempoBpm": 144,
+      "sourceFile": "c-debussy-premiere-arabesque.mid",
+      "provenance": "Explicit printed named division Première Arabesque in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DebussyC/L66/debussy_Arabesque_1/debussy_Arabesque_1.ly. The score companion MIDI exactly matches retained source bytes. The complete encoded RH-voice first4/4 bar, including explicit skips and transparent overlap notes; the first and last overlap pitches are visibly printed in the LH voice independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end423.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Première Arabesque",
+          "startBeat": 0.0,
+          "endBeat": 423.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DebussyC/L66/debussy_Arabesque_1/debussy_Arabesque_1.ly",
+        "scoreSha256": "b3ddf344b94e48f90e9a4337f597463c9740249590538c7c3ab64803a9f09e69",
+        "printedHeadingHierarchy": {
+          "title": "Première Arabesque",
+          "subtitle": "des Deux Arabesques"
+        },
+        "companionMidiSha256": "6732dc10799ec0af47d19d9095562d0671864a750129e0279901def169a34757",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete encoded RH-voice first4/4 bar, including explicit skips and transparent overlap notes; the first and last overlap pitches are visibly printed in the LH voice",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              61
+            ]
+          ],
+          [
+            1,
+            [
+              73
+            ]
+          ],
+          [
+            1.3333333333333333,
+            [
+              76
+            ]
+          ],
+          [
+            1.6666666666666667,
+            [
+              78
+            ]
+          ],
+          [
+            2,
+            [
+              80
+            ]
+          ],
+          [
+            2.3333333333333335,
+            [
+              75
+            ]
+          ],
+          [
+            2.6666666666666665,
+            [
+              71
+            ]
+          ],
+          [
+            3.6666666666666665,
+            [
+              59
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              61
+            ]
+          ],
+          [
+            1.0,
+            [
+              73
+            ]
+          ],
+          [
+            1.3333333333333333,
+            [
+              76
+            ]
+          ],
+          [
+            1.6666666666666667,
+            [
+              78
+            ]
+          ],
+          [
+            2.0,
+            [
+              80
+            ]
+          ],
+          [
+            2.3333333333333335,
+            [
+              75
+            ]
+          ],
+          [
+            2.6666666666666665,
+            [
+              71
+            ]
+          ],
+          [
+            3.6666666666666665,
+            [
+              59
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 1430,
+        "distinctMatchedRawOnsets": 1430,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666685614,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 423.0,
+        "producerLastNoteEndBeat": 423,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-f-handel-entree",
+      "sourceArtifactHash": "a3bd76e941f62b2399e9a0de2eac4cf4ea910f640f7e8a8584ca3ad9dc42ff46",
+      "advancedNotesSha256": "fd6d57cfea49f21530768940dfe3443ff60b43b043ff7717c13bd261d52f1ca8",
+      "playbackTempoBpm": 92,
+      "sourceFile": "g-f-handel-entree.mid",
+      "provenance": "Explicit printed named division Entrée in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/02-entree/02-entree.ly. The score companion MIDI exactly matches retained source bytes. The complete printed eighth-note pickup independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end76.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. The Aylesford collection relation does not establish a continuous suite or measured fugue structure. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Entrée",
+          "startBeat": 0.0,
+          "endBeat": 76.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/02-entree/02-entree.ly",
+        "scoreSha256": "98f74046810edbb5747d86a6b01860a0fc011cf468e2053167be9c11c5ca1fb8",
+        "printedHeadingHierarchy": {
+          "title": "Entrée",
+          "subtitle": "from the Aylesford Pieces"
+        },
+        "companionMidiSha256": "a3bd76e941f62b2399e9a0de2eac4cf4ea910f640f7e8a8584ca3ad9dc42ff46",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed eighth-note pickup",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              74
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              74
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 370,
+        "distinctMatchedRawOnsets": 370,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 76.0,
+        "producerLastNoteEndBeat": 76.0,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-f-handel-fuga",
+      "sourceArtifactHash": "d1d2b8cb3cf21eb8a89feae945f17afafee0a78ff9f29bb8d98f69ed053e284a",
+      "advancedNotesSha256": "c43cb9b6cc89e24ca7dfa35dacf680c17ffd300f12efb473e328cd80a3634e14",
+      "playbackTempoBpm": 88,
+      "sourceFile": "g-f-handel-fuga.mid",
+      "provenance": "Explicit printed named division Fuga in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/05-fuga/05-fuga.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first4/4 RH bar; no measured fugue structure inferred independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end76.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. The Aylesford collection relation does not establish a continuous suite or measured fugue structure. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Fuga",
+          "startBeat": 0.0,
+          "endBeat": 76.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/05-fuga/05-fuga.ly",
+        "scoreSha256": "6da8a4d068a43439f3c15676f137ce47e7882d613ccff3568a6f3fd739874cba",
+        "printedHeadingHierarchy": {
+          "title": "Fuga",
+          "subtitle": "from the Aylesford Pieces"
+        },
+        "companionMidiSha256": "d1d2b8cb3cf21eb8a89feae945f17afafee0a78ff9f29bb8d98f69ed053e284a",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed first4/4 RH bar; no measured fugue structure inferred",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              67
+            ]
+          ],
+          [
+            1.5,
+            [
+              71
+            ]
+          ],
+          [
+            2,
+            [
+              69
+            ]
+          ],
+          [
+            2.5,
+            [
+              62
+            ]
+          ],
+          [
+            3,
+            [
+              74
+            ]
+          ],
+          [
+            3.5,
+            [
+              72
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              67
+            ]
+          ],
+          [
+            1.5,
+            [
+              71
+            ]
+          ],
+          [
+            2.0,
+            [
+              69
+            ]
+          ],
+          [
+            2.5,
+            [
+              62
+            ]
+          ],
+          [
+            3.0,
+            [
+              74
+            ]
+          ],
+          [
+            3.5,
+            [
+              72
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 145,
+        "distinctMatchedRawOnsets": 145,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 76.0,
+        "producerLastNoteEndBeat": 76,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-f-handel-gavotte",
+      "sourceArtifactHash": "5d24dcb8a435cb85465f48592a7d0a5674c5fe225e10667d5db571e80ed5cb67",
+      "advancedNotesSha256": "c2ad2def27e0b7d790eb39a3a30cab167e07ce84f3c5157242efa01af2922581",
+      "playbackTempoBpm": 92,
+      "sourceFile": "g-f-handel-gavotte.mid",
+      "provenance": "Explicit printed named division Gavotte in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/03-gavotte/03-gavotte.ly. The score companion MIDI exactly matches retained source bytes. The complete printed quarter-note pickup independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end80.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. The Aylesford collection relation does not establish a continuous suite or measured fugue structure. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Gavotte",
+          "startBeat": 0.0,
+          "endBeat": 80.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/03-gavotte/03-gavotte.ly",
+        "scoreSha256": "bb2e0d7934ea0bd933e74935da868e401a5079297002b5d3cad943c0bebe48d7",
+        "printedHeadingHierarchy": {
+          "title": "Gavotte",
+          "subtitle": "from the Aylesford Pieces"
+        },
+        "companionMidiSha256": "5d24dcb8a435cb85465f48592a7d0a5674c5fe225e10667d5db571e80ed5cb67",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed quarter-note pickup",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              67
+            ]
+          ],
+          [
+            0.5,
+            [
+              69
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              67
+            ]
+          ],
+          [
+            0.5,
+            [
+              69
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 235,
+        "distinctMatchedRawOnsets": 235,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 80.0,
+        "producerLastNoteEndBeat": 80,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-f-handel-impertinence",
+      "sourceArtifactHash": "ba50ce19be0683144b3c48e834e302cceecd250189b9804575d340d17bbcaa96",
+      "advancedNotesSha256": "dab7664e04d8b2a86c898474fbeb6cb88e9931cfee960967248913635725006f",
+      "playbackTempoBpm": 104,
+      "sourceFile": "g-f-handel-impertinence.mid",
+      "provenance": "Explicit printed named division Impertinence in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/06-impertinence/06-impertinence.ly. The score companion MIDI exactly matches retained source bytes. The complete printed pickup and first4/4 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end80.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. The Aylesford collection relation does not establish a continuous suite or measured fugue structure. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Impertinence",
+          "startBeat": 0.0,
+          "endBeat": 80.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/06-impertinence/06-impertinence.ly",
+        "scoreSha256": "9c08b514641dfc0ae566fdf01819473634aae1afc3feabc63a730752919bb62d",
+        "printedHeadingHierarchy": {
+          "title": "Impertinence",
+          "subtitle": "from the Aylesford Pieces"
+        },
+        "companionMidiSha256": "ba50ce19be0683144b3c48e834e302cceecd250189b9804575d340d17bbcaa96",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed pickup and first4/4 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              62
+            ]
+          ],
+          [
+            1,
+            [
+              67
+            ]
+          ],
+          [
+            2,
+            [
+              70
+            ]
+          ],
+          [
+            3,
+            [
+              69
+            ]
+          ],
+          [
+            4,
+            [
+              67
+            ]
+          ],
+          [
+            4.5,
+            [
+              66
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              62
+            ]
+          ],
+          [
+            1.0,
+            [
+              67
+            ]
+          ],
+          [
+            2.0,
+            [
+              70
+            ]
+          ],
+          [
+            3.0,
+            [
+              69
+            ]
+          ],
+          [
+            4.0,
+            [
+              67
+            ]
+          ],
+          [
+            4.5,
+            [
+              66
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 147,
+        "distinctMatchedRawOnsets": 147,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666671404,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 80.0,
+        "producerLastNoteEndBeat": 80,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-f-handel-ouverture",
+      "sourceArtifactHash": "af5a13a038863a2c323e11bcb6c42377187c0d4382de1cdf42be19129a328f4b",
+      "advancedNotesSha256": "14252900623253d5936c83608da6d53fbd2944a049b2f04a4dec2cdec28c90e8",
+      "playbackTempoBpm": 104,
+      "sourceFile": "g-f-handel-ouverture.mid",
+      "provenance": "Explicit printed named division Ouvertüre in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/01-overture/01-overture.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first4/4 RH bar across its two voices independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end130.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. The Aylesford collection relation does not establish a continuous suite or measured fugue structure. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Ouvertüre",
+          "startBeat": 0.0,
+          "endBeat": 130.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/01-overture/01-overture.ly",
+        "scoreSha256": "90db45236e1fe8b9048e39b135995ba0709ce722b0fc12563fbe81d1f5fc33ca",
+        "printedHeadingHierarchy": {
+          "title": "Ouvertüre",
+          "subtitle": "from the Aylesford Pieces"
+        },
+        "companionMidiSha256": "af5a13a038863a2c323e11bcb6c42377187c0d4382de1cdf42be19129a328f4b",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed first4/4 RH bar across its two voices",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              70,
+              74,
+              79
+            ]
+          ],
+          [
+            1.5,
+            [
+              70,
+              77,
+              82
+            ]
+          ],
+          [
+            2,
+            [
+              70,
+              77,
+              82
+            ]
+          ],
+          [
+            3,
+            [
+              74,
+              77,
+              81
+            ]
+          ],
+          [
+            3.5,
+            [
+              79
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              70,
+              74,
+              79
+            ]
+          ],
+          [
+            1.5,
+            [
+              70,
+              77,
+              82
+            ]
+          ],
+          [
+            2.0,
+            [
+              70,
+              77,
+              82
+            ]
+          ],
+          [
+            3.0,
+            [
+              74,
+              77,
+              81
+            ]
+          ],
+          [
+            3.5,
+            [
+              79
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 568,
+        "distinctMatchedRawOnsets": 568,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 130.0,
+        "producerLastNoteEndBeat": 130.0,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "g-f-handel-toccata",
+      "sourceArtifactHash": "c032967fd26bf2a2236985d3a514540f447cf7d2b02fb67ddd98a2ee203f1cd3",
+      "advancedNotesSha256": "95f8db3fa857fabc6d8abb719cb9231083aee0d1890ac13887f73919fce0f279",
+      "playbackTempoBpm": 92,
+      "sourceFile": "g-f-handel-toccata.mid",
+      "provenance": "Explicit printed named division Toccata in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/04-toccata/04-toccata.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first4/4 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end84.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. The Aylesford collection relation does not establish a continuous suite or measured fugue structure. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Toccata",
+          "startBeat": 0.0,
+          "endBeat": 84.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/04-toccata/04-toccata.ly",
+        "scoreSha256": "8741d2948c8253528cf099f2c7e3cd1dce9cae8593f781d1baf660e079ca0d98",
+        "printedHeadingHierarchy": {
+          "title": "Toccata",
+          "subtitle": "from the Aylesford Pieces"
+        },
+        "companionMidiSha256": "c032967fd26bf2a2236985d3a514540f447cf7d2b02fb67ddd98a2ee203f1cd3",
+        "sourceClockReceiptSha256": "a843c92f1b8518c608835ae06069c5c29d6c0681115becb5ffba70ee6d935387",
+        "distinctOnsetReceiptSha256": "d6735f390300963d7e9fccc58aa4ff75fe11dcc1ddd89a5d86ff507254322cc7",
+        "landmarkDescription": "complete printed first4/4 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              79
+            ]
+          ],
+          [
+            1,
+            [
+              67
+            ]
+          ],
+          [
+            3.25,
+            [
+              82
+            ]
+          ],
+          [
+            3.5,
+            [
+              81
+            ]
+          ],
+          [
+            3.75,
+            [
+              79
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              79
+            ]
+          ],
+          [
+            1.0,
+            [
+              67
+            ]
+          ],
+          [
+            3.25,
+            [
+              82
+            ]
+          ],
+          [
+            3.5,
+            [
+              81
+            ]
+          ],
+          [
+            3.75,
+            [
+              79
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 344,
+        "distinctMatchedRawOnsets": 344,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 84.0,
+        "producerLastNoteEndBeat": 84,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
     }
   ]
 }
