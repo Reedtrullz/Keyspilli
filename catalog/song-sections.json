@@ -713,7 +713,7 @@
         "companionMidiSha256": "c5c02e67141bcc5e79f794e0b1a038c08ea9c95e46aecd8425df7003e8530ab9",
         "clockReceiptSha256": "bfcd386d6b696a28f8cfb42e297c088d390945025fff711dfdb6ffc96a4c5e9f",
         "landmarks": [
-          "Upper score THEMA at opening, FINALE at6/8 change after40 four-quarter measures; raw staff meter events159.9817708333 and160; arrangement rounds the pickup D4 to160, within1/16 beat. Stop at last retained source note."
+          "Upper score THEMA at opening; VARIATION follows20 four-quarter measures at80, with raw B4-E5-D5 triplets at80,80.333333,80.666667; FINALE at6/8 change after40 four-quarter measures; raw staff meter events159.9817708333 and160; arrangement rounds the pickup D4 to160, within1/16 beat. Stop at last retained source note."
         ]
       },
       "sections": [
@@ -721,12 +721,20 @@
           "id": "chart-section-1",
           "label": "Thema",
           "startBeat": 0,
-          "endBeat": 160,
+          "endBeat": 80,
           "type": "custom",
           "evidence": "chart"
         },
         {
           "id": "chart-section-2",
+          "label": "Variation",
+          "startBeat": 80,
+          "endBeat": 160,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-3",
           "label": "Finale",
           "startBeat": 160,
           "endBeat": 229.5,
