@@ -12,6 +12,31 @@
 
 **Revision:** 2026-10-08. Replaces the previous six-task plan. Existing work and failed evidence remain retained. Task numbering here is internal to this plan, not the user's earlier resolved Task 1.
 
+## Execution Outcome
+
+Completed on 8 October 2026 as a verified local software candidate. Tasks 1-8 and
+10-12 passed; Task 9 completed with an explicit pre-dispatch block. Its four
+unchecked actual-binding/upload/admission branches are not applicable after that
+block, not pending software implementation and not live successes. No owner
+listening, qualification study, pianist, merge, publication or adoption occurred.
+
+Code candidate: Keyspilli `ebb77a52174583e1fe6a947b56b3df5818c68192`; Anti
+`25a47ceedbf5a07a1f7b4ac884e53abf591060b1`. Documentation-only closeout commits do
+not change the frozen checker/helper/package bytes.
+
+Evidence root: `output/music-review/score-review-completion-20261008-native-01/`.
+Final result `final-reviewed/queen/result/index.html`; repair proof and local
+capture receipts, live block, packages, source inventories, integration instructions
+and 455 verified checksums are indexed there. Final checks: 2,691 Keyspilli tests,
+all workspace typechecks/build; Anti 3,727 passed/one skipped; wheel and rebuilt
+sdist each 932 installed tests plus four subtests; deterministic 24-member plugin
+and extracted host probe; final desktop/mobile pages and paired Player captures.
+
+See [Completion Receipt](../../ops/score-review-completion-2026-10-08.md) and the
+retained SDD progress ledger for actual outcomes and limitations. The packet's
+integration receipt records newer main dependencies and older remote PR heads;
+no current-candidate CI, live provider readiness or musical acceptance is claimed.
+
 ## Review Corrections
 
 | Gap in the previous plan | Current source evidence | Correction |
@@ -116,12 +141,12 @@ If Task 9 blocks/fails, continue Tasks 10-12 with live readiness explicitly bloc
 
 **Interfaces:** Consumes current status/historical receipts. Produces full HEADs, dirty-file hashes, runtime identities, evidence locations, budget and separate software/live readiness.
 
-- [ ] Read applicable instructions, both specs, status/diffs/logs and the old ledger. Preserve the five modified Keyspilli files. Observed heads: Keyspilli `50555506`, Anti `d2dfbcc`; record full current SHAs at execution.
-- [ ] Verify disk headroom. Run tracked `plugins/keyspilli/skills/keyspilli-song/scripts/check_checkout.py` against this explicit checkout with `--node "$KEYSPILLI_NODE"`. Confirm engine/SQLite ABI and existing audio_review/music_review contracts; retain the returned executable.
-- [ ] From Anti cwd run `"$ANTI_PYTHON" -c 'import codex_antigravity_auth,sys; print(sys.executable); print(codex_antigravity_auth.__file__)'`. Require this worktree's import path. Record helper/schema hashes and tracked bundle copies from git ls-files.
-- [ ] Verify old Queen report/state/response hashes against TASK5_LIVE_SMOKE.json. Read historic attempt totals from the retained packet; unknown totals stay unknown. No provider request occurs.
-- [ ] Inventory port/process ownership read-only. Do not assume 51123/3242 is free or running. The old listening page is a legacy artifact, not a closeout gate.
-- [ ] Create the exclusive new root/ledger. Prerequisite failures get precise blocked receipts; continue independent local work where possible.
+- [x] Read applicable instructions, both specs, status/diffs/logs and the old ledger. Preserve the five modified Keyspilli files. Observed heads: Keyspilli `50555506`, Anti `d2dfbcc`; record full current SHAs at execution.
+- [x] Verify disk headroom. Run tracked `plugins/keyspilli/skills/keyspilli-song/scripts/check_checkout.py` against this explicit checkout with `--node "$KEYSPILLI_NODE"`. Confirm engine/SQLite ABI and existing audio_review/music_review contracts; retain the returned executable.
+- [x] From Anti cwd run `"$ANTI_PYTHON" -c 'import codex_antigravity_auth,sys; print(sys.executable); print(codex_antigravity_auth.__file__)'`. Require this worktree's import path. Record helper/schema hashes and tracked bundle copies from git ls-files.
+- [x] Verify old Queen report/state/response hashes against TASK5_LIVE_SMOKE.json. Read historic attempt totals from the retained packet; unknown totals stay unknown. No provider request occurs.
+- [x] Inventory port/process ownership read-only. Do not assume 51123/3242 is free or running. The old listening page is a legacy artifact, not a closeout gate.
+- [x] Create the exclusive new root/ledger. Prerequisite failures get precise blocked receipts; continue independent local work where possible.
 
 **Acceptance:** All inherited WIP, frozen evidence and runtimes are identified without moving primary checkouts or consuming quota.
 
@@ -131,14 +156,14 @@ If Task 9 blocks/fails, continue Tasks 10-12 with live readiness explicitly bloc
 
 **Interfaces:** Retain buildEvidenceV2ReviewPrompt, validateListenEnvelope and AUDIO_REVIEW_LIMITS. Extend AntiCommandInput with optional `responseSchemaJson: string`. CLI loads/hashes/retains the schema and fingerprints it; legacy calls omit it.
 
-- [ ] Inspect the existing scoreContext/4096/limitations patch. Add `rejects_string_empty_and_overlong_limitations`, `pins_evidence_schema_in_dry_run_and_resume` and `keeps_legacy_prompt_bytes`. Assert Global Constraints, valid compared/abstained results and unchanged retained provider text.
-- [ ] Retain/add controls for digital-zero, corrupt, missing and changed WAVs with zero helper invocation and zero /v1/models lookup. Quiet nonzero clips remain measurable; wrong attachment order/hash and out-of-clip findings reject.
-- [ ] Add no-resume cases for profile/schema/prompt/helper/route/media/cap changes and submitted/ambiguous jobs. Count generation POSTs separately from dry-run helper calls and metadata GETs.
-- [ ] Run current focused tests for baseline, then each new test to show the intended red failure before implementing missing behavior. Do not invent a red phase for already implemented behavior.
-- [ ] Pass serialized JSON to Anti's existing --response-schema; it accepts JSON text, not a filename. Use supported native fields. Strict local validation still owns length/cardinality/cross-field rules.
-- [ ] Update dry-run validation for Anti's exact appended `Requested output schema: ...` text. Verify full assembled prompt/schema bytes; do not reduce this to substring checks. Preserve raw encoding/fences.
-- [ ] Run `"$KEYSPILLI_NODE" node_modules/vitest/vitest.mjs run apps/web/src/lib/audio-review.test.ts apps/web/src/lib/audio-review-cli.test.ts`, typecheck and git diff --check. Record actual passing counts.
-- [ ] Commit reviewed contract/schema/tests/docs only. Document that 4096 is the current transport ceiling and legacy prompt bytes remain stable; do not claim old argument budgets were unchanged if inherited WIP changed them.
+- [x] Inspect the existing scoreContext/4096/limitations patch. Add `rejects_string_empty_and_overlong_limitations`, `pins_evidence_schema_in_dry_run_and_resume` and `keeps_legacy_prompt_bytes`. Assert Global Constraints, valid compared/abstained results and unchanged retained provider text.
+- [x] Retain/add controls for digital-zero, corrupt, missing and changed WAVs with zero helper invocation and zero /v1/models lookup. Quiet nonzero clips remain measurable; wrong attachment order/hash and out-of-clip findings reject.
+- [x] Add no-resume cases for profile/schema/prompt/helper/route/media/cap changes and submitted/ambiguous jobs. Count generation POSTs separately from dry-run helper calls and metadata GETs.
+- [x] Run current focused tests for baseline, then each new test to show the intended red failure before implementing missing behavior. Do not invent a red phase for already implemented behavior.
+- [x] Pass serialized JSON to Anti's existing --response-schema; it accepts JSON text, not a filename. Use supported native fields. Strict local validation still owns length/cardinality/cross-field rules.
+- [x] Update dry-run validation for Anti's exact appended `Requested output schema: ...` text. Verify full assembled prompt/schema bytes; do not reduce this to substring checks. Preserve raw encoding/fences.
+- [x] Run `"$KEYSPILLI_NODE" node_modules/vitest/vitest.mjs run apps/web/src/lib/audio-review.test.ts apps/web/src/lib/audio-review-cli.test.ts`, typecheck and git diff --check. Record actual passing counts.
+- [x] Commit reviewed contract/schema/tests/docs only. Document that 4096 is the current transport ceiling and legacy prompt bytes remain stable; do not claim old argument budgets were unchanged if inherited WIP changed them.
 
 **Acceptance:** Prompt, schema, validator, retained bytes and fingerprint agree; input failures remain local.
 
@@ -148,13 +173,13 @@ If Task 9 blocks/fails, continue Tasks 10-12 with live readiness explicitly bloc
 
 **Interfaces:** Anti listen gains --account-binding-json via existing load_account_binding_file/verify_gateway_binding. Shared bounded-audio metadata includes account_binding_config_sha256, account_binding_gateway_instance and account_binding_verified_before_attempt. Keyspilli evidence-v2 live requires this flag and verifies all three fields. "Before attempt" means before backend generation, not before adapter reservation.
 
-- [ ] Add `bound_listen_verifies_inventory_and_posts_once` and `bound_listen_refuses_stale_busy_or_unsupported_binding`. Preserve model query parameters in HTTP bridges. Assert one selected lease, no refresh/rotation, header-only binding, release on failure/cancellation and no raw identity in output/Google payload.
-- [ ] Add Keyspilli `evidence_v2_live_requires_binding`, `refuses_binding_file_drift_before_dispatch`, `rejects_mismatched_binding_receipt` and `binding_change_cannot_resume`. Legacy unbound tests pass; dry-run makes no network call.
-- [ ] Run new cases red. Expose the existing binding parser on listen and move binding metadata outside the review-music-only branch. Keep the pairwise listen response contract; do not switch to the incompatible music profile.
-- [ ] Extend AntiCommandInput with optional `accountBindingJson: string`. Require absolute bounded nonsymlink file/exact existing fields. Hash sorted compact JSON consistently with Anti; re-read before invocation and enforce successful verification metadata.
-- [ ] Fingerprint private config digest/gateway instance/schema. Raw binding JSON goes only to the private header, never manifest/prompt/report/package. Recover a prior authorized account only if exactly one current eligible row matches; otherwise retain a pre-dispatch block.
-- [ ] Test through the real helper/gateway stub bridge, not fabricated success metadata. Anti cwd: `"$ANTI_PYTHON" -m pytest tests/test_account_binding.py tests/test_server_account_binding.py tests/test_account_binding_helper.py tests/test_wav_audio.py tests/test_gemini_music_review.py`. Run Keyspilli focused audio tests.
-- [ ] Sync only tracked Anti release bundle copies discovered in Task 1, verify parity, preserve installed/canonical copies, and commit both repositories separately with dependency SHAs.
+- [x] Add `bound_listen_verifies_inventory_and_posts_once` and `bound_listen_refuses_stale_busy_or_unsupported_binding`. Preserve model query parameters in HTTP bridges. Assert one selected lease, no refresh/rotation, header-only binding, release on failure/cancellation and no raw identity in output/Google payload.
+- [x] Add Keyspilli `evidence_v2_live_requires_binding`, `refuses_binding_file_drift_before_dispatch`, `rejects_mismatched_binding_receipt` and `binding_change_cannot_resume`. Legacy unbound tests pass; dry-run makes no network call.
+- [x] Run new cases red. Expose the existing binding parser on listen and move binding metadata outside the review-music-only branch. Keep the pairwise listen response contract; do not switch to the incompatible music profile.
+- [x] Extend AntiCommandInput with optional `accountBindingJson: string`. Require absolute bounded nonsymlink file/exact existing fields. Hash sorted compact JSON consistently with Anti; re-read before invocation and enforce successful verification metadata.
+- [x] Fingerprint private config digest/gateway instance/schema. Raw binding JSON goes only to the private header, never manifest/prompt/report/package. Recover a prior authorized account only if exactly one current eligible row matches; otherwise retain a pre-dispatch block.
+- [x] Test through the real helper/gateway stub bridge, not fabricated success metadata. Anti cwd: `"$ANTI_PYTHON" -m pytest tests/test_account_binding.py tests/test_server_account_binding.py tests/test_account_binding_helper.py tests/test_wav_audio.py tests/test_gemini_music_review.py`. Run Keyspilli focused audio tests.
+- [x] Sync only tracked Anti release bundle copies discovered in Task 1, verify parity, preserve installed/canonical copies, and commit both repositories separately with dependency SHAs.
 
 **Acceptance:** Bound pairwise calls use the selected current lease; stale binding produces no backend call or silent recovery.
 
@@ -164,13 +189,13 @@ If Task 9 blocks/fails, continue Tasks 10-12 with live readiness explicitly bloc
 
 **Interfaces:** `validateScoreReviewInput(value: unknown): ScoreReviewInputV1`; `loadSymbolicReviewInput(input: ScoreReviewInputV1): Promise<NormalizedScoreReviewInput>`. Input types are defined in the completion spec. Define NormalizedScoreReviewMode with expected/replayed event arrays, pins, intent, occurrence, basis, clock, coverage and unavailable reasons; NormalizedScoreReviewInput contains input/manifest hashes, source authority/relationship/validated anchors and the mode map. Events retain id, occurrenceId, midi, onsetSeconds, keyReleaseSeconds, originalBeat, nullable role/hand and provenance.
 
-- [ ] Build genuine small MIDI/XML/MXL fixtures with existing test writers. Add `parses_pinned_midi_and_xml_without_import`, `preserves_duplicates_and_occurrences`, `integrates_native_tempo_changes`, `refuses_unsupported_repeat_clock`, `handles_cross_boundary_releases`. Assert actual pitches/times, 16 MiB/20,000 event limits and zero catalog/provider access.
-- [ ] Add cases for wrong mode/occurrence, stale sidecar, artifact manifest masquerading as event JSON, mislabeled MIDI, unsupported controls and unknown role/hand. Sidecars bind event IDs/source/delivery/replay hashes/mode/occurrence. Track/right-hand/highest-pitch is never semantic authority.
-- [ ] Run new cases red. Read/hash bytes and use existing parsers. XML/MXL uses adaptNativeSymbolicBytes's bounded byte API; no ingestSource/catalog write. MIDI native time uses parseMidi/midiBeatToNativeSeconds.
-- [ ] Define resolved-events-v1 with source hash, occurrence, attack/key release, speed/transpose/tempo/sustain/settings pins and resolver/capture provenance. MIDI-only comparisons stay supplied-symbolic-files; validated resolver evidence permits resolved-player-events.
-- [ ] Define clock/role/hand sidecar validators in this module. Verify actual clock mappings, apply origins/speed/transpose once, select half-open phrase attacks and retain crossing notes. Unknown clocks give in-clock measurements and not-run cross-clock conformance. Retain full-file validation and explicit release coverage.
-- [ ] Derive new Queen inventories from actual bytes. Reused documentary timing/settings digests without physical receipts are provenance gaps; do not rewrite the old manifest. Keep its VintageDreams audio classified synthetic-control.
-- [ ] Run normalization tests plus relevant existing native adapter/MIDI timing/Player tests; retain sample input/inventories and commit the read-only layer.
+- [x] Build genuine small MIDI/XML/MXL fixtures with existing test writers. Add `parses_pinned_midi_and_xml_without_import`, `preserves_duplicates_and_occurrences`, `integrates_native_tempo_changes`, `refuses_unsupported_repeat_clock`, `handles_cross_boundary_releases`. Assert actual pitches/times, 16 MiB/20,000 event limits and zero catalog/provider access.
+- [x] Add cases for wrong mode/occurrence, stale sidecar, artifact manifest masquerading as event JSON, mislabeled MIDI, unsupported controls and unknown role/hand. Sidecars bind event IDs/source/delivery/replay hashes/mode/occurrence. Track/right-hand/highest-pitch is never semantic authority.
+- [x] Run new cases red. Read/hash bytes and use existing parsers. XML/MXL uses adaptNativeSymbolicBytes's bounded byte API; no ingestSource/catalog write. MIDI native time uses parseMidi/midiBeatToNativeSeconds.
+- [x] Define resolved-events-v1 with source hash, occurrence, attack/key release, speed/transpose/tempo/sustain/settings pins and resolver/capture provenance. MIDI-only comparisons stay supplied-symbolic-files; validated resolver evidence permits resolved-player-events.
+- [x] Define clock/role/hand sidecar validators in this module. Verify actual clock mappings, apply origins/speed/transpose once, select half-open phrase attacks and retain crossing notes. Unknown clocks give in-clock measurements and not-run cross-clock conformance. Retain full-file validation and explicit release coverage.
+- [x] Derive new Queen inventories from actual bytes. Reused documentary timing/settings digests without physical receipts are provenance gaps; do not rewrite the old manifest. Keep its VintageDreams audio classified synthetic-control.
+- [x] Run normalization tests plus relevant existing native adapter/MIDI timing/Player tests; retain sample input/inventories and commit the read-only layer.
 
 **Acceptance:** Real bytes become typed inventories with honest clocks/basis; unknown Queen authority does not prevent a partial diagnosis.
 
@@ -180,13 +205,13 @@ If Task 9 blocks/fails, continue Tasks 10-12 with live readiness explicitly bloc
 
 **Interfaces:** `buildSymbolicReviewReceipt(input: NormalizedScoreReviewInput): SymbolicReviewReceiptV1`. Define schemaVersion=1, kind=keyspilli-symbolic-review, input/manifest/code/policy hashes, per-mode scoreConformance/sourceFidelity/structuralPlayability, findings, coverage, limitations, musicalAcceptance=not-established and productionAdmission=false. Each check has CheckStatus, basis, evidence hashes and reason; playability starts not-run until Task 6 supplies it.
 
-- [ ] Add `detects_missing_extra_wrong_pitch_and_wrong_release`, `does_not_merge_repeated_identical_notes`, `comparison_is_order_independent`, `unknown_authority_never_passes_fidelity`, `cannot_promote_self_roundtrip`, `empty_or_partial_coverage_is_explicit`. Assert event/occurrence/time and fixed 5 ms attack/release boundaries.
-- [ ] Add source cases for unknown timing, estimated roles, changed/missing reviewer receipt, wrong mode/difficulty/occurrence, Chords melody omission and unresolved alternate voicing. Empty anchors never pass fidelity; a receipt hash alone is insufficient.
-- [ ] Run red. Compare independently parsed delivery intent and replay with multiplicity-preserving one-to-one matching. Reuse matching primitives where applicable, explicitly verify releases/unmatched events, and keep ambiguous pairing unresolved.
-- [ ] Define stable finding IDs from input hash/mode/occurrence/check/event IDs. Findings contain expected/actual pitch/attack/release, location/basis and next action. A completed comparison with a discrepancy is failed, not an invalid-input exception.
-- [ ] Use compareMusicalIntent only for scoped landmarks. Read/hash/validate actual human receipts and scope before use. Unknown roles stay outside trusted anchors with incomplete coverage; never cast nullable roles into MusicalEvent or invent human/self-authored authority for a real song.
-- [ ] Score conformance names the supplied-delivery basis and cannot certify song fidelity/audible realization. Partial/boundary-censored checks show checked scope plus unresolved coverage, not full-phrase passed. Approved transforms are separate from literal equality.
-- [ ] Run symbolic/correspondence/source-validation tests. Retain Queen's actual measured differences and authority limits plus self-authored local positive/negative software controls; commit the checker.
+- [x] Add `detects_missing_extra_wrong_pitch_and_wrong_release`, `does_not_merge_repeated_identical_notes`, `comparison_is_order_independent`, `unknown_authority_never_passes_fidelity`, `cannot_promote_self_roundtrip`, `empty_or_partial_coverage_is_explicit`. Assert event/occurrence/time and fixed 5 ms attack/release boundaries.
+- [x] Add source cases for unknown timing, estimated roles, changed/missing reviewer receipt, wrong mode/difficulty/occurrence, Chords melody omission and unresolved alternate voicing. Empty anchors never pass fidelity; a receipt hash alone is insufficient.
+- [x] Run red. Compare independently parsed delivery intent and replay with multiplicity-preserving one-to-one matching. Reuse matching primitives where applicable, explicitly verify releases/unmatched events, and keep ambiguous pairing unresolved.
+- [x] Define stable finding IDs from input hash/mode/occurrence/check/event IDs. Findings contain expected/actual pitch/attack/release, location/basis and next action. A completed comparison with a discrepancy is failed, not an invalid-input exception.
+- [x] Use compareMusicalIntent only for scoped landmarks. Read/hash/validate actual human receipts and scope before use. Unknown roles stay outside trusted anchors with incomplete coverage; never cast nullable roles into MusicalEvent or invent human/self-authored authority for a real song.
+- [x] Score conformance names the supplied-delivery basis and cannot certify song fidelity/audible realization. Partial/boundary-censored checks show checked scope plus unresolved coverage, not full-phrase passed. Approved transforms are separate from literal equality.
+- [x] Run symbolic/correspondence/source-validation tests. Retain Queen's actual measured differences and authority limits plus self-authored local positive/negative software controls; commit the checker.
 
 **Acceptance:** Exact-note output has an independent checker receipt detecting extras/releases; source fidelity remains scoped.
 
@@ -196,11 +221,11 @@ If Task 9 blocks/fails, continue Tasks 10-12 with live readiness explicitly bloc
 
 **Interfaces:** `buildStructuralPlayability(mode: NormalizedScoreReviewMode): StructuralPlayabilityReceiptV1`. Bind delivery/replay/tempo/hand/policy hashes/difficulty; include overall CheckStatus, component metrics/statuses, located failures, fingering=not-assessed, keyboardAcceptance=not-established and limitations.
 
-- [ ] Add `screens_range_density_and_hand_span`, `missing_hands_or_tempo_blocks_only_affected_metrics`, `variable_tempo_is_not_flattened`, `invalid_notes_cannot_disappear_from_metrics`, `silence_does_not_imply_a_musical_defect`. Assert piano range 21-108, explicit maximumHandSpan and current difficulty limits.
-- [ ] Run red. Reuse measurePlayability/assessPlayability/PLAYABILITY_AUDIT_CONFIG/PLAYABILITY_LIMITS. Locate range, simultaneous/sounding span, density, rapid-region and leap issues.
-- [ ] Validate events before metrics because existing helpers can filter invalid rows. Unknown hands block hand-specific metrics; measure global range where possible without assigning hands.
-- [ ] Use native elapsed times and constant-tempo segments for variable tempo, with explicit cross-boundary intervals. Unsupported components stay not-run and incomplete screens cannot pass overall. No fingering/hand-size/pianist claim is created.
-- [ ] Run structural/symbolic tests, emit Queen's mechanical receipt where supported and name missing pins as agent data-recovery actions; commit.
+- [x] Add `screens_range_density_and_hand_span`, `missing_hands_or_tempo_blocks_only_affected_metrics`, `variable_tempo_is_not_flattened`, `invalid_notes_cannot_disappear_from_metrics`, `silence_does_not_imply_a_musical_defect`. Assert piano range 21-108, explicit maximumHandSpan and current difficulty limits.
+- [x] Run red. Reuse measurePlayability/assessPlayability/PLAYABILITY_AUDIT_CONFIG/PLAYABILITY_LIMITS. Locate range, simultaneous/sounding span, density, rapid-region and leap issues.
+- [x] Validate events before metrics because existing helpers can filter invalid rows. Unknown hands block hand-specific metrics; measure global range where possible without assigning hands.
+- [x] Use native elapsed times and constant-tempo segments for variable tempo, with explicit cross-boundary intervals. Unsupported components stay not-run and incomplete screens cannot pass overall. No fingering/hand-size/pianist claim is created.
+- [x] Run structural/symbolic tests, emit Queen's mechanical receipt where supported and name missing pins as agent data-recovery actions; commit.
 
 **Acceptance:** Actionable mechanical checks work without a pianist or owner review.
 
@@ -212,14 +237,14 @@ If Task 9 blocks/fails, continue Tasks 10-12 with live readiness explicitly bloc
 
 CLI: `review-score.mts INPUT.json OUTPUT_DIR --offline [--anti-result REPORT.json]`, or `--send-audio --max-requests 1 --anti-python PATH --anti-script PATH --base-url URL --model ID --account-binding-json PATH`. Modes are exclusive; no flag defaults offline. `capabilities` requires no inputs and exposes versioned contracts.
 
-- [ ] Add `offline_review_works_without_anti`, `joins_only_matching_saved_observations`, `retains_local_results_when_audio_fails`, `escapes_text_and_refuses_output_overwrite`, `reports_partial_coverage_without_overall_approval`. Assert zero offline network/helper calls, matching saved job/manifest/profile/media pins and no private binding identity in pages.
-- [ ] Add invalid-input/no-mode/absent-Anti/multiple-jobs-under-cap/stale-receipt/ambiguous-result CLI cases. Exit 0 means a valid completed diagnosis, even with failed musical checks; exit 2 invalid input/prerequisite; exit 3 attempted provider rejection/failure with local results retained. Keep child adapter semantics internal.
-- [ ] Run red. Compose existing modules and execFile argument arrays, never shell interpolation. Saved results are read-only and never authorize uploading. Media checks precede gateway metadata reads. Live mode explicitly selects evidence-v2 and Task 3 binding requirements.
-- [ ] Emit input.json, symbolic-review.json, structural-playability.json (per-mode receipt map), report.json/report.md/index.html and repair-queue.json with real hashes. Retain media/evidence under safe local names. Old reports remain visibly legacy.
-- [ ] Do not trust manifest-declared exactNotes/playability passed statuses. Admit them only through an opened, hash-verified, semantically compatible checker receipt bound to the same mode/input/scope. Show legacy declarations separately when that receipt is absent; never let them overwrite the newly computed checks.
-- [ ] Lead the page with severity, phrase/occurrence/time, evidence origin, scope and next actions. Playback/score links are optional. No mandatory listening textarea, role/chord quiz, reviewer-recruitment task or overall correct badge. Expert limits are informational.
-- [ ] Verify desktop/mobile in the existing Playwright harness: text fits, links/assets load, keyboard focus works, no uncaught errors, empty/blocked/error states are readable and untrusted text is escaped. HTTP 200 alone cannot pass this task.
-- [ ] Run focused libraries/CLI/browser tests and selected-Node capabilities; commit commands and workflow.
+- [x] Add `offline_review_works_without_anti`, `joins_only_matching_saved_observations`, `retains_local_results_when_audio_fails`, `escapes_text_and_refuses_output_overwrite`, `reports_partial_coverage_without_overall_approval`. Assert zero offline network/helper calls, matching saved job/manifest/profile/media pins and no private binding identity in pages.
+- [x] Add invalid-input/no-mode/absent-Anti/multiple-jobs-under-cap/stale-receipt/ambiguous-result CLI cases. Exit 0 means a valid completed diagnosis, even with failed musical checks; exit 2 invalid input/prerequisite; exit 3 attempted provider rejection/failure with local results retained. Keep child adapter semantics internal.
+- [x] Run red. Compose existing modules and execFile argument arrays, never shell interpolation. Saved results are read-only and never authorize uploading. Media checks precede gateway metadata reads. Live mode explicitly selects evidence-v2 and Task 3 binding requirements.
+- [x] Emit input.json, symbolic-review.json, structural-playability.json (per-mode receipt map), report.json/report.md/index.html and repair-queue.json with real hashes. Retain media/evidence under safe local names. Old reports remain visibly legacy.
+- [x] Do not trust manifest-declared exactNotes/playability passed statuses. Admit them only through an opened, hash-verified, semantically compatible checker receipt bound to the same mode/input/scope. Show legacy declarations separately when that receipt is absent; never let them overwrite the newly computed checks.
+- [x] Lead the page with severity, phrase/occurrence/time, evidence origin, scope and next actions. Playback/score links are optional. No mandatory listening textarea, role/chord quiz, reviewer-recruitment task or overall correct badge. Expert limits are informational.
+- [x] Verify desktop/mobile in the existing Playwright harness: text fits, links/assets load, keyboard focus works, no uncaught errors, empty/blocked/error states are readable and untrusted text is escaped. HTTP 200 alone cannot pass this task.
+- [x] Run focused libraries/CLI/browser tests and selected-Node capabilities; commit commands and workflow.
 
 **Acceptance:** One offline command returns useful results without Anti and asks the user for no musical labor.
 
@@ -229,12 +254,12 @@ CLI: `review-score.mts INPUT.json OUTPUT_DIR --offline [--anti-result REPORT.jso
 
 **Interfaces:** `buildScoreReviewRepairActions(report: ScoreReviewReportV1): ScoreReviewRepairAction[]` returns software-reproducer, bounded-preview, advisory-only or data-recovery actions with finding/input/evidence hashes. `createScoreReviewRepairPreview(input: { snapshot: ReplaySnapshot; proposal: RepairProposal }, action: ScoreReviewRepairAction): RepairPreview` verifies action binding and delegates eligible edits to previewMusicRepair.
 
-- [ ] Add controls for trusted authored wrong/extra notes, a scheduling fault, unknown authority, provider-only chord advice and stale target snapshot. Assert 1-8 edits/one phrase, protected neighbor hash, correct source/finding scope, zero catalog writes/provider calls.
-- [ ] Run red. Route confirmed checker findings without relaxing existing repair authority. Playback faults create software reproducers, not pitch edits. Self-authored controls can exercise edits without making Queen self-authored.
-- [ ] Exercise one full control: input -> report -> preview -> fresh MIDI/Player resolver -> new report. Intended mismatch disappears, neighbors remain and no new discrepancy appears. This is the required software repair proof.
-- [ ] Extend the control through existing rendering/paired capture with the known compatible sampled piano. Pin bank/settings, scheduled notes, key release/sustain and capture clock. Missing tools block this distinct realization subgate, with completed software repair proof retained; never substitute a synthetic/MIDI-only hearing claim.
-- [ ] Process Queen into a located queue. Unknown-source/provider-only actions remain suggestions/data recovery; no catalog edit or renewed pitch-fit study. All rechecks here are local, with no second Gemini request.
-- [ ] Run repair/Player/CLI integration tests, retain before/after receipts and commit.
+- [x] Add controls for trusted authored wrong/extra notes, a scheduling fault, unknown authority, provider-only chord advice and stale target snapshot. Assert 1-8 edits/one phrase, protected neighbor hash, correct source/finding scope, zero catalog writes/provider calls.
+- [x] Run red. Route confirmed checker findings without relaxing existing repair authority. Playback faults create software reproducers, not pitch edits. Self-authored controls can exercise edits without making Queen self-authored.
+- [x] Exercise one full control: input -> report -> preview -> fresh MIDI/Player resolver -> new report. Intended mismatch disappears, neighbors remain and no new discrepancy appears. This is the required software repair proof.
+- [x] Extend the control through existing rendering/paired capture with the known compatible sampled piano. Pin bank/settings, scheduled notes, key release/sustain and capture clock. Missing tools block this distinct realization subgate, with completed software repair proof retained; never substitute a synthetic/MIDI-only hearing claim.
+- [x] Process Queen into a located queue. Unknown-source/provider-only actions remain suggestions/data recovery; no catalog edit or renewed pitch-fit study. All rechecks here are local, with no second Gemini request.
+- [x] Run repair/Player/CLI integration tests, retain before/after receipts and commit.
 
 **Acceptance:** A supported automatic repair is demonstrated; unsupported edits are refused with a concrete reason.
 
@@ -244,10 +269,10 @@ CLI: `review-score.mts INPUT.json OUTPUT_DIR --offline [--anti-result REPORT.jso
 
 **Interfaces:** Consumes passing Tasks 2-3/7-8. Receipt separates adapter reservation, helper invocation, observed gateway/backend generation, valid response, comparison/abstention and binding identity. Unknown observed dispatch counts stay unknown.
 
-- [ ] Verify final prerequisite hashes. Create one-job Queen manifest with ID `queen-original-replay-completion-$RUN_ID`, retaining old audio pins/synthetic classification, unverified alignment and phrase limits. Build input.json with this new manifest hash and Task 4-6 evidence. Never relabel old outcomes.
-- [ ] Run a pre-gateway adapter dry-run with an explicitly synthetic valid local binding fixture and real schema pins. Expect one job, zero reserved attempts, no HTTP, exact assembled prompt/config digest and 4096 ceiling. This checks local assembly only; the synthetic binding cannot be dispatched.
-- [ ] Use existing explicit session upload/account authorization at execution; do not request it again merely for a new directory. This plan-editing turn performs no upload. Without an unambiguously authorized eligible account, record blocked-before-dispatch and continue other work.
-- [ ] Inspect startup behavior before starting a gateway. If startup would refresh credentials, or process-local account references cannot be matched to the previously authorized account, record a pre-dispatch block and do not start it. Only when both constraints are satisfied, confirm a free loopback port and start the source-pinned gateway. Do not use anti.py start to prove source identity: find_cli may choose an installed PATH executable. Record owned PID/import/health/catalog/source pins.
+- [x] Verify final prerequisite hashes. Create one-job Queen manifest with ID `queen-original-replay-completion-$RUN_ID`, retaining old audio pins/synthetic classification, unverified alignment and phrase limits. Build input.json with this new manifest hash and Task 4-6 evidence. Never relabel old outcomes.
+- [x] Run a pre-gateway adapter dry-run with an explicitly synthetic valid local binding fixture and real schema pins. Expect one job, zero reserved attempts, no HTTP, exact assembled prompt/config digest and 4096 ceiling. This checks local assembly only; the synthetic binding cannot be dispatched.
+- [x] Use existing explicit session upload/account authorization at execution; do not request it again merely for a new directory. This plan-editing turn performs no upload. Without an unambiguously authorized eligible account, record blocked-before-dispatch and continue other work.
+- [x] Inspect startup behavior before starting a gateway. If startup would refresh credentials, or process-local account references cannot be matched to the previously authorized account, record a pre-dispatch block and do not start it. Only when both constraints are satisfied, confirm a free loopback port and start the source-pinned gateway. Do not use anti.py start to prove source identity: find_cli may choose an installed PATH executable. Record owned PID/import/health/catalog/source pins.
 - [ ] Read /v1/account-bindings?model=gemini-3.1-pro from that serving instance. Preserve the exact native model/account selection. Write only the existing four binding fields to an exclusive private mode-0600 file; never print references/inventory or read encrypted credentials. Busy/expired/stale/auth/capability failure blocks with zero generation.
 - [ ] Run a separate fresh no-HTTP dry-run with the actual binding file, verify its canonical identity and final code/media/schema pins, then freeze the input. Set ANTI_BASE_URL and PRIVATE_BINDING_PATH from these verified values. The synthetic dry-run is not the live dispatch pin.
 - [ ] Submit exactly once through the integrated command:
@@ -262,8 +287,8 @@ CLI: `review-score.mts INPUT.json OUTPUT_DIR --offline [--anti-result REPORT.jso
 ```
 
 - [ ] Require ordered audio pins, complete bounded output, strict domain JSON, matching binding digest/instance and pre-backend verification. Valid abstention admits only the response contract; compared coverage stays zero. Neither compared nor abstained establishes hearing.
-- [ ] On auth/capability/429/5xx/timeout/cancellation/schema/transport failure retain raw output and last-known state. No retry/resume/rotation/model change/budget increase/cleanup generation. Record terminal success/abstention/block/failure honestly.
-- [ ] Stop only the owned temporary gateway/helpers, preserving user services and the old page. Separate historical totals from this run's at-most-one reserved attempt.
+- [x] On auth/capability/429/5xx/timeout/cancellation/schema/transport failure retain raw output and last-known state. No retry/resume/rotation/model change/budget increase/cleanup generation. Record terminal success/abstention/block/failure honestly.
+- [x] Stop only the owned temporary gateway/helpers, preserving user services and the old page. Separate historical totals from this run's at-most-one reserved attempt.
 
 **Acceptance:** One budgeted attempt or explicit pre-dispatch block is retained; live readiness reflects only demonstrated transport/schema.
 
@@ -273,11 +298,11 @@ CLI: `review-score.mts INPUT.json OUTPUT_DIR --offline [--anti-result REPORT.jso
 
 **Interfaces:** Inventory tool `--source DIR --check` refuses stale/missing/extra/unsafe members. `--source DIR --update` hashes the reviewed declared member list, excludes self-hash and writes sorted inventory. It does not bless undeclared files or accept installed/canonical paths. Existing packager flags stay --source/--output/--manifest.
 
-- [ ] Add inventory tests for stale hash, undeclared/private/symlink/traversal/missing members, idempotent update and read-only check. Run red; reuse packager exclusions/limits, preserving undeclared-file refusal.
-- [ ] Extend plugin preflight with versioned score_review offline/binding/receipt capabilities and absent/incompatible/compatible host self-tests. Old ordinary preparation still works; compatible never means provider available.
-- [ ] Document Task 7 commands and automatic findings/repair limits. New workflow has no manual-form prerequisite. Preserve historic study stops and host/application ownership.
-- [ ] Review source diff, refresh inventory and run --check, test_package_keyspilli_plugin.py and plugin self-tests. Use available frontmatter/JSON/link validation; do not install dependencies merely to run an optional validator.
-- [ ] Build twice into distinct new paths:
+- [x] Add inventory tests for stale hash, undeclared/private/symlink/traversal/missing members, idempotent update and read-only check. Run red; reuse packager exclusions/limits, preserving undeclared-file refusal.
+- [x] Extend plugin preflight with versioned score_review offline/binding/receipt capabilities and absent/incompatible/compatible host self-tests. Old ordinary preparation still works; compatible never means provider available.
+- [x] Document Task 7 commands and automatic findings/repair limits. New workflow has no manual-form prerequisite. Preserve historic study stops and host/application ownership.
+- [x] Review source diff, refresh inventory and run --check, test_package_keyspilli_plugin.py and plugin self-tests. Use available frontmatter/JSON/link validation; do not install dependencies merely to run an optional validator.
+- [x] Build twice into distinct new paths:
 
 ```sh
 python3 scripts/package-keyspilli-plugin.py --source plugins/keyspilli \
@@ -288,9 +313,9 @@ python3 scripts/package-keyspilli-plugin.py --source plugins/keyspilli \
   --manifest "$EVIDENCE_ROOT/packages/keyspilli-b.json"
 ```
 
-- [ ] Require identical archive hashes, exact inventories and extracted byte parity. Check actual commands/schema/binding/relative links and absence of private paths/accounts/credentials/recordings. Probe the pinned host from the extracted plugin offline.
-- [ ] Build Anti wheel/sdist from Anti cwd with `"$ANTI_PYTHON" -m build --sdist --wheel --outdir "$EVIDENCE_ROOT/packages/anti"`, using the already available build runtime. Run `"$ANTI_PYTHON" scripts/check_artifacts.py --dist "$EVIDENCE_ROOT/packages/anti"` and `"$ANTI_PYTHON" scripts/check_installed.py --dist "$EVIDENCE_ROOT/packages/anti"`. Verify helper/schema bytes in isolated temporary environments with account/keyring access stubbed; dependency installation into those temporary test environments follows the existing maintained script, never the installed gateway. Preserve gateway/package versions and record artifact/host hashes. A missing required build tool remains a concrete blocker, not a waived packaging gate.
-- [ ] Commit reviewed release-source/inventory/docs. Adoption remains false and existing prereleases/canonical/loaded copies stay unchanged.
+- [x] Require identical archive hashes, exact inventories and extracted byte parity. Check actual commands/schema/binding/relative links and absence of private paths/accounts/credentials/recordings. Probe the pinned host from the extracted plugin offline.
+- [x] Build Anti wheel/sdist from Anti cwd with `"$ANTI_PYTHON" -m build --sdist --wheel --outdir "$EVIDENCE_ROOT/packages/anti"`, using the already available build runtime. Run `"$ANTI_PYTHON" scripts/check_artifacts.py --dist "$EVIDENCE_ROOT/packages/anti"` and `"$ANTI_PYTHON" scripts/check_installed.py --dist "$EVIDENCE_ROOT/packages/anti"`. Verify helper/schema bytes in isolated temporary environments with account/keyring access stubbed; dependency installation into those temporary test environments follows the existing maintained script, never the installed gateway. Preserve gateway/package versions and record artifact/host hashes. A missing required build tool remains a concrete blocker, not a waived packaging gate.
+- [x] Commit reviewed release-source/inventory/docs. Adoption remains false and existing prereleases/canonical/loaded copies stay unchanged.
 
 **Acceptance:** Reproducible artifacts reference compatible host code and cannot bypass inventory pins.
 
@@ -300,12 +325,12 @@ python3 scripts/package-keyspilli-plugin.py --source plugins/keyspilli \
 
 **Interfaces:** Consumes final candidate heads/artifacts/receipts/live disposition. Produces per-lane readiness and exact integration/dependency order.
 
-- [ ] Run final Keyspilli full tests, workspace typecheck and production build with selected Node; run full Anti pytest with existing credential/network isolation. Retain actual commands/counts. Repeat only affected checks after a necessary new fix.
-- [ ] Re-run the focused final-head report browser check/extracted plugin probe. Verify all input/media pins, no catalog/canonical-installed changes and no unauthorized account configuration/credential setup. Disclose expected gateway lease/cooldown bookkeeping separately if the live attempt produced it. A diagnosis containing defects is not an approval.
-- [ ] Review both branch diffs natively for schema/legacy compatibility, reservation/cancellation, binding redaction, clock conversion, multiplicity, coverage, renderer provenance and repair authority. Verify meaningful fixes with discriminating tests; no subagent/provider review required.
-- [ ] Refresh main/PR ancestry read-only. Prepare exact candidate dependency/integration order and rollback/adoption instructions without merging or discarding WIP. New CI is not-run unless actual exact-head checks were observed; old CI is historic.
-- [ ] Record software-ready, live-contract-ready|blocked|failed, scope-dependent source fidelity, musicalAcceptance not-established, installedAdoption false and productionAdmission false separately.
-- [ ] Future requested production adoption uses refreshed ADR0004 and existing release/restore/deploy guards. Prepare current concrete gaps; add no generic approval checklist or automatic deployment.
+- [x] Run final Keyspilli full tests, workspace typecheck and production build with selected Node; run full Anti pytest with existing credential/network isolation. Retain actual commands/counts. Repeat only affected checks after a necessary new fix.
+- [x] Re-run the focused final-head report browser check/extracted plugin probe. Verify all input/media pins, no catalog/canonical-installed changes and no unauthorized account configuration/credential setup. Disclose expected gateway lease/cooldown bookkeeping separately if the live attempt produced it. A diagnosis containing defects is not an approval.
+- [x] Review both branch diffs natively for schema/legacy compatibility, reservation/cancellation, binding redaction, clock conversion, multiplicity, coverage, renderer provenance and repair authority. Verify meaningful fixes with discriminating tests; no subagent/provider review required.
+- [x] Refresh main/PR ancestry read-only. Prepare exact candidate dependency/integration order and rollback/adoption instructions without merging or discarding WIP. New CI is not-run unless actual exact-head checks were observed; old CI is historic.
+- [x] Record software-ready, live-contract-ready|blocked|failed, scope-dependent source fidelity, musicalAcceptance not-established, installedAdoption false and productionAdmission false separately.
+- [x] Future requested production adoption uses refreshed ADR0004 and existing release/restore/deploy guards. Prepare current concrete gaps; add no generic approval checklist or automatic deployment.
 
 **Acceptance:** Required local software gates pass at final candidate heads; unresolved required software failures stay incomplete.
 
@@ -315,13 +340,13 @@ python3 scripts/package-keyspilli-plugin.py --source plugins/keyspilli \
 
 **Interfaces:** COMPLETION.json records task/software/live status, unresolved source/realization scope, package identities and actual external non-actions. NEXT_ACTIONS.md lists concrete agent tasks or optional adoption decisions, never listening homework.
 
-- [ ] Validate every receipt's exact input/code/policy pins. Index leaf artifacts with path/hash/lane/status; inaccessible/legacy evidence stays identified, never fresh success.
-- [ ] Finalize mutable leaves before checksums. Exclude checksum self-hash and recursive index hashes; include finalized index in checksums and freeze afterward. Verify from the evidence root with `shasum -a 256 -c SHA256SUMS_NATIVE.txt`.
-- [ ] Present dispositions for input integrity, literal conformance, source fidelity, structural playability, Player realization, transport/schema/provider interpretation and expert limits. Link located findings/repair previews/new offline page.
-- [ ] Finish ledger incrementally with actual counts, reservation versus observed dispatch, package hashes and remaining tasks. A blocked live smoke completes a diagnostic task, not a live capability. Missing implementation/build/test remains incomplete.
-- [ ] Use Obsidian skill to log evidence-backed summary in today's Oslo daily note and existing Anti music-review project note. No raw binding or invented attestation is stored.
-- [ ] Open new local static HTML through open_in_codex when useful. No dev/listening server is required. Stop owned temporary processes, preserve user services and inspect bounded temp leftovers.
-- [ ] Return usable CLI/report and candidate/package paths, software/live status and next actual action. Owner choices concern concrete optional adoption/publication/deployment outside this scope.
+- [x] Validate every receipt's exact input/code/policy pins. Index leaf artifacts with path/hash/lane/status; inaccessible/legacy evidence stays identified, never fresh success.
+- [x] Finalize mutable leaves before checksums. Exclude checksum self-hash and recursive index hashes; include finalized index in checksums and freeze afterward. Verify from the evidence root with `shasum -a 256 -c SHA256SUMS_NATIVE.txt`.
+- [x] Present dispositions for input integrity, literal conformance, source fidelity, structural playability, Player realization, transport/schema/provider interpretation and expert limits. Link located findings/repair previews/new offline page.
+- [x] Finish ledger incrementally with actual counts, reservation versus observed dispatch, package hashes and remaining tasks. A blocked live smoke completes a diagnostic task, not a live capability. Missing implementation/build/test remains incomplete.
+- [x] Use Obsidian skill to log evidence-backed summary in today's Oslo daily note and existing Anti music-review project note. No raw binding or invented attestation is stored.
+- [x] Open new local static HTML through open_in_codex when useful. No dev/listening server is required. Stop owned temporary processes, preserve user services and inspect bounded temp leftovers.
+- [x] Return usable CLI/report and candidate/package paths, software/live status and next actual action. Owner choices concern concrete optional adoption/publication/deployment outside this scope.
 
 **Acceptance:** Offline workflow and evidence/fixes are reproducible without listening exercises.
 
