@@ -90,14 +90,17 @@ def reconcile(root, api_images, proc=Path("/proc")):
     orphan = set(records) - protected
     known_caches = {r["cache"] for r in records.values()} | mount_caches | runtime
     unknown = {p.name for p in (root / "overlay2").iterdir() if p.is_dir() and p.name != "l"} - known_caches
-    paths = [root / "overlay2" / records[c]["cache"] for c in orphan]
+    orphan_caches = {records[c]["cache"] for c in orphan}
+    paths = [root / "overlay2" / cache for cache in sorted(orphan_caches | unknown)]
     sizes = {}
     if paths:
         output = subprocess.check_output(["du", "-s", "-x", "-B1", *map(str, paths)], text=True, timeout=180)
         sizes = {Path(line.split(None, 1)[1]).name: int(line.split(None, 1)[0]) for line in output.splitlines()}
     return {"registeredLayers": len(records), "apiImages": len(api_images), "imageConfigs": len(configs),
             "containerMountRecords": len(mounts), "orphanCandidateChains": sorted(orphan),
-            "orphanCandidateBytes": sum(sizes.values()), "unregisteredCacheDirectories": sorted(unknown),
+            "orphanCandidateBytes": sum(sizes.get(c, 0) for c in orphan_caches),
+            "unregisteredCacheDirectories": sorted(unknown),
+            "unregisteredCacheBytes": sum(sizes.get(c, 0) for c in unknown),
             "action": "report only; fresh operator investigation required"}
 
 

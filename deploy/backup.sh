@@ -88,11 +88,33 @@ with open(manifest, "w", encoding="utf-8") as stream:
     stream.write("\n")
 PY
 
-# Publish data first and the completion marker last. Readers only trust a
-# manifest whose two named files and hashes all match.
-mv "$db_tmp" "$BACKUP_DIR/db-$STAMP.sqlite"
-mv "$archive_tmp" "$BACKUP_DIR/artifacts-$STAMP.tar.gz"
-mv "$manifest_tmp" "$BACKUP_DIR/backup-manifest-$STAMP.json"
+# Flush payloads before publication; retirement must not outrun durable data.
+python3 - "$db_tmp" "$archive_tmp" "$manifest_tmp" <<'PY'
+import os, sys
+for name in sys.argv[1:]:
+    with open(name, "rb") as stream:
+        os.fsync(stream.fileno())
+PY
+sync_directory() {
+  python3 - "$BACKUP_DIR" <<'PY'
+import os, sys
+fd = os.open(sys.argv[1], os.O_RDONLY)
+try:
+    os.fsync(fd)
+finally:
+    os.close(fd)
+PY
+}
+# Exclusive hardlink publication cannot overwrite a same-stamp recovery file.
+# Publish and sync data before the completion marker, then sync it too.
+ln "$db_tmp" "$BACKUP_DIR/db-$STAMP.sqlite"
+rm "$db_tmp"
+ln "$archive_tmp" "$BACKUP_DIR/artifacts-$STAMP.tar.gz"
+rm "$archive_tmp"
+sync_directory
+ln "$manifest_tmp" "$BACKUP_DIR/backup-manifest-$STAMP.json"
+rm "$manifest_tmp"
+sync_directory
 
 # Re-verify the published cohort before permitting retention. This data-only
 # path runs under the host runner's flock (or an isolated fixture directory).
