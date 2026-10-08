@@ -365,9 +365,11 @@ class Policy:
 
     def backup_preflight(self, apply):
         self.cleanup(apply)
-        _, invalid = inventory_cohorts(self.backups)
+        verified, invalid = inventory_cohorts(self.backups)
         if invalid:
             raise RuntimeError("unverified backup manifests remain; preserve good cohorts and resolve the reported files before creating another backup")
+        if apply and len(verified) > 2:
+            raise RuntimeError("older verified cohort still held; inspect linked/open or changed recovery files before another backup")
         for payload in self.backups.iterdir():
             match = re.fullmatch(r"(?:db-(\d{4}-\d{2}-\d{2}-\d{6})\.sqlite|artifacts-(\d{4}-\d{2}-\d{2}-\d{6})\.tar\.gz)", payload.name)
             if match and not (self.backups / f"backup-manifest-{match[1] or match[2]}.json").exists():

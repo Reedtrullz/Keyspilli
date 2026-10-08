@@ -11,7 +11,10 @@ The archive includes artifacts, hidden reconciliation journals, seed MIDI,
 uploads/transcriptions and the existing review/harmony stores. Live data is
 never a retention target. A second backup within the same timestamp refuses to
 overwrite a cohort. Canceled backups clean their own staging via traps; an
-abandoned staging directory, uncommitted payload or unverified manifest blocks further backups until inspected. Retirement
+abandoned staging directory, uncommitted payload or unverified manifest blocks further backups until inspected.
+If cleanup cannot retire an older verified cohort because it remains linked,
+open or changed, admission also refuses another backup, preventing repeated
+operations from accumulating held recovery copies. Retirement
 persists verified identities in the manifest before unlinking payloads. A
 subsequent locked cleanup resumes partial retirement only while two newer
 verified cohorts exist. Remaining manifests continue to pin their images.

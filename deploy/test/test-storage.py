@@ -184,6 +184,19 @@ class StorageTests(unittest.TestCase):
             storage.retention(self.policy.backups, True)
         self.assertTrue(old.exists())
 
+    def test_held_old_cohort_blocks_further_backup_growth(self):
+        self.policy.catalog = [make_image(1), make_image(2, "keyspilli-worker")]
+        self.policy.set_pair([image_id(1), image_id(2)])
+        for n in (1, 2, 3):
+            cohort(self.policy.backups, n, [image_id(1), image_id(2)])
+        old = self.policy.backups / "artifacts-2026-10-08-000001.tar.gz"
+        os.link(old, self.root / "interrupted-replication")
+        with patch.object(self.policy, "backup_headroom"), self.assertRaisesRegex(RuntimeError, "older verified cohort still held"):
+            self.policy.backup_preflight(True)
+        good, invalid = storage.inventory_cohorts(self.policy.backups)
+        self.assertEqual(len(good), 3)
+        self.assertFalse(invalid)
+
     def test_partial_unlink_pins_images_and_reports_failure(self):
         markers = [cohort(self.policy.backups, n, [image_id(1), image_id(2)]) for n in (1, 2, 3)]
         unlink = Path.unlink
