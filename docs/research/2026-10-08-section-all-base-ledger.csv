@@ -199,10 +199,10 @@ j-field-nocturne,true,estimate-only-unresolved,0,true,0,true,false,,"No substant
 j-k-f-fischer-erato-allemande,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-k-f-fischer-erato-praeludium,true,mapped-numeric-extent,1,true,0,true,false,,
 j-s-bach-ach-was-soll-ich-sunder-machen,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-s-bach-aus-meines-herzens-grunde-chorale-1,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+j-s-bach-aus-meines-herzens-grunde-chorale-1,true,mapped-numeric-extent,1,true,0,true,false,,
 j-s-bach-ermuntre-dich-mein-schwacher-geist,true,mapped-numeric-extent,1,true,0,true,false,,
 j-s-bach-gott-wie-gross-ist-deine-gute,true,mapped-numeric-extent,1,true,0,true,false,,
-j-s-bach-ich-dank-dir-lieber-herre,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+j-s-bach-ich-dank-dir-lieber-herre,true,mapped-numeric-extent,1,true,0,true,false,,
 j-s-bach-polonaise-in-f-major,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 james-blunt-1973,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 jamie-duffy-solas,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.

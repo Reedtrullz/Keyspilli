@@ -1,6 +1,6 @@
 # Additional printed parent divisions
 
-Eleven candidate additions follow fully verified PR237 at main4ec738db5d24dbba78419aa808694762ec8ca5a3. The candidate ledger has99stored/97served maps, with356stored/344served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
+The eleven additions from PR238 are deployed and live-verified at main3d804bef06ecc2f7880095ff3debfeaa55724b7e. A follow-up Bach371 batch adds two reviewed maps, bringing the working ledger to101stored/99served maps, with354stored/343served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
 
 ## Evidence and correspondence
 
@@ -42,4 +42,15 @@ Nine candidates passed independent raw/source/producer/opening/endpoint review; 
 
 Fresh local audit passes with zero errors and two existing learner-blocked warnings. Typecheck,2,558tests across282files, production build and diff check pass. Independent whole-diff review passes with no material findings, including all88 prior maps, exactly11 changed ledger rows, source/producer/receipt bindings and17pin/68sample release verifier. Exact-head Automatic checks and container-smoke SUCCESS and CLEAN merge state remain required before merge. Main deployment SUCCESS precedes fresh live acceptance:68samples across17pins, both exact-commit healthy stable containers, full1,764variant/441base label sweep, zero numbered labels/read errors, and unchanged selected2730row/455base store fields.
 
-PR237’s predecessor proof is complete: main37819181958SUCCESS,88samples/22pins,86named served bases, exact4ec738db, zero numbered labels/read errors, both stable healthy containers, store identity730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. Current99stored/97served figures are candidates, not deployed acceptance. Owner listening, recognizability, playability and musical acceptance are outside these claims.
+PR238’s proof is complete: main37835764710SUCCESS,68samples/17pins,97named served bases, exact3d804bef06ecc2f7880095ff3debfeaa55724b7e, zero numbered labels/read errors, both stable healthy containers, store identity730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. The current101stored/99served figures include two Bach candidates that are not yet integrated into a release. Owner listening, recognizability, playability and musical acceptance are outside these claims.
+
+## Bach371 follow-up
+
+Two immutable first trials qualify for parent-collection naming: No.1 `Aus meines Herzens Grunde` and No.2 `Ich dank dir lieber Herre`. Their fixed four-voice openings match16and23attacks respectively, with all214and212producer attacks assigned to distinct same-pitch source attacks at zero onset error. The additional Dörffel printed music, retained collection cover and exact companion scores are byte-pinned; the individual-to-collection relationship remains cross-document and cross-edition inference.
+
+| Base | Printed parent division | Quarter-beat interval | Distinct producer attacks |
+|---|---|---:|---:|
+| j-s-bach-aus-meines-herzens-grunde-chorale-1 | 371 Vierstimmige Choräle — No.1 | 0..63 | 214 |
+| j-s-bach-ich-dank-dir-lieber-herre | 371 Vierstimmige Choräle — No.2 | 0..52 | 212 |
+
+No.39 `Ach was soll ich Sünder machen` remains rejected and immutable: its fixed opening expects20attacks but the source contains19, missing one simultaneous G3 eighth. The full217-attack producer clock does not override that opening failure, and no qualification is retried or retuned. The two accepted entries claim neither internal form nor musical acceptance.
