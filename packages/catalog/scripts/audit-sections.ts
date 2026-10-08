@@ -90,7 +90,7 @@ export function validateCapturedMap(entry: Pick<MapEntry,"baseId"|"sourceArtifac
   for (const field of ["sourceArtifactHash","playbackTempoBpm"] as const) {
     if (entry[field] !== identity[field]) errors.push(`map[${entry.baseId}]: ${field} differs from captured playback identity`);
   }
-  if (entry.advancedNotesSha256 !== undefined && entry.advancedNotesSha256 !== identity.advancedNotesSha256) {
+  if (entry.advancedNotesSha256 !== identity.advancedNotesSha256) {
     errors.push(`map[${entry.baseId}]: advancedNotesSha256 differs from captured playback identity`);
   }
 }

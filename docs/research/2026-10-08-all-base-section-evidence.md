@@ -8,7 +8,7 @@ The private evidence is under `output/section-all-bases/`: inventory, captured s
 
 Exact FF06/FF07 form markers use `source` after an independent raw-tick/tempo clock check. Unknown or mixed labels end the preceding certainty; they are not swallowed into the preceding named passage. Backstreet Boys' retained upload contributes six bounded Verse/Chorus/Bridge spans; mixed `Chorus t/Br`, `Verse spec` and `Verse +1` intervals remain estimated.
 
-External score annotations use `chart`, even when the score's companion MIDI exactly matches the retained MIDI. Source score hashes and URLs, explicit annotations, raw key/meter events, source note sequences and producer onset correspondence support the mapping. This is distinct from the source-marker tier. Beethoven and Haydn provide Menuetto/Trio boundaries; Chopin explicitly marks Coda; Blumenthal explicitly marks Thema/Finale; Doane explicitly marks Refrain. Maps follow the traversal actually encoded in the retained MIDI. Printed repeat and da-capo directions do not create unencoded occurrences. Padded trailing bars remain estimated where they extend beyond the retained source.
+External score annotations use `chart`, even when the score's companion MIDI exactly matches the retained MIDI. Source score hashes and URLs, explicit annotations, raw key/meter events, source note sequences and producer onset correspondence support the mapping. This is distinct from the source-marker tier. Brahms provides four explicitly concatenated movements (Andante, Scherzo, Adagio mesto and Finale), with the actual2.5-beat inter-movement padding left estimated; Beethoven and Haydn provide Menuetto/Trio boundaries; Chopin explicitly marks Coda; Blumenthal explicitly marks Thema/Finale; Doane explicitly marks Refrain. Maps follow the traversal actually encoded in the retained MIDI. Printed repeat and da-capo directions do not create unencoded occurrences. Padded trailing bars remain estimated where they extend beyond the retained source.
 
 Harmony alignment retains the0.15 ambiguity threshold in eight-bar-equivalent cost units. Mad World's Intro has a0.225 boundary gap and0.7125 local confidence. Its exact retained MIDI has accompaniment from beat0, a distinct main line beginning at16, and an independent source-to-producer onset correspondence check. The repeated interior harmonies remain ambiguous and are not published.
 
@@ -25,3 +25,7 @@ Ruling: the owner's autonomous handoff already authorizes chart extraction, alig
 ## Acceptance
 
 Every new map is pinned to the exact production source fingerprint, Advanced notes SHA-256 and playback BPM. Source or chart names do not establish artist authority, hearing, recognizability, playability or musical acceptance. Naming is not complete while any base still has only estimates; completing acquisition attempts or rejecting an alignment does not complete that base's naming.
+
+## Reviewed batch
+
+The batch contains11 new maps: six score maps, one exact retained upload-marker map, one harmony Intro and three bounded lyric excerpts. The identity audit requires the actual Advanced-notes pin for every captured map. Queen's existing unpinned map now carries its verified production hash; its labels and boundaries are unchanged. Seed maps without captured production bytes retain their previous contract.

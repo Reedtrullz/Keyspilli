@@ -477,7 +477,8 @@
           "endBeat": 540,
           "evidence": "chart"
         }
-      ]
+      ],
+      "advancedNotesSha256": "20b5b8d7b7bc2d1e4e6e2807e0d71513d6e37ba0773802ffc575d8947f3d4786"
     },
     {
       "baseId": "the-beatles-help",

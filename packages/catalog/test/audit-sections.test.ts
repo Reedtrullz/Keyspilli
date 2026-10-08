@@ -53,7 +53,12 @@ it.each([
  const errors:string[]=[];validateCapturedMap(input,capturedSectionBases(capture,errors),errors);expect(errors.join(" ")).toContain(message);
 });
 
-it("allows an existing map that intentionally omits an Advanced-note pin",()=>{
+it("rejects a captured map without its required Advanced-note pin",()=>{
  const errors:string[]=[];const {advancedNotesSha256,...withoutNotes}=map;
- validateCapturedMap(withoutNotes,capturedSectionBases(capture,errors),errors);expect(errors).toEqual([]);
+ validateCapturedMap(withoutNotes,capturedSectionBases(capture,errors),errors);expect(errors.join(" ")).toContain("advancedNotesSha256");
+});
+
+it("preserves unpinned seed-map behavior when production notes have not been captured",()=>{
+ const errors:string[]=[];const {advancedNotesSha256,...withoutNotes}=map;
+ validateCapturedMap({...withoutNotes,baseId:"uncaptured-seed"},capturedSectionBases(capture,errors),errors);expect(errors).toEqual([]);
 });
