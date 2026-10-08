@@ -95,3 +95,27 @@ I Made For have no eligible stable minimum-cost harmony span. Ten Sabaton record
 clock studies, Status Quo's conflicting roles, 37 unfound original sources and two
 raw parse errors remain unresolved. Catalog-wide naming remains incomplete;
 Task4 continues with additional evidence and the release gates above.
+
+
+## Named-division continuation
+
+The following fifteen reviewed candidates identify explicit named divisions of
+larger printed works/collections, with complete opening landmarks and distinct
+source attack correspondence. The draft ledger now has 62 stored / 60 served
+maps expected and 393 stored / 381 served bases unmapped. These counts include
+the pending PR232 twelve; live verification remains at PR229's 31 served bases.
+PR230 deployment was superseded by the concurrent storage-policy releases;
+its maps must be sampled in the next safe release. See
+`docs/research/2026-10-08-section-named-division-followup.md` for prospective
+scope, conservative endpoints, rejected TAB/public-score trials and the
+403-MIDI / two-MusicXML symbolic-source census. Local gates and whole-diff review
+remain required before publishing this batch. No acquisition or rejected study
+is treated as completed naming.
+
+
+The storage repair PR234 completed deployment and live backup/retention audit.
+PR232 merged after exact-head CI/smoke SUCCESS/CLEAN at
+b4f73280ef7406ce46d44f91639d7b4ea1f47372; main section acceptance is pending.
+The fifteen-map branch is rebased onto this main with its reviewed maps intact.
+Latest complete section sweep still remains PR229 until the new release proof
+finishes. Subsequent draft merges wait for that proof.
