@@ -533,6 +533,62 @@
         }
       ],
       "advancedNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55"
+    },
+    {
+      "baseId": "bonnie-tyler-total-eclipse-of-the-heart",
+      "sourceArtifactHash": "58a723323f4e85764b563bd11acd171f1c8ead8c13f7a499cd35d6687909c945",
+      "playbackTempoBpm": 68,
+      "sourceFile": "bonnie-tyler-total-eclipse-of-the-heart.mid",
+      "advancedNotesSha256": "4a61acb2eae46f6611483fa6bfab7a654a2cb19a75371650827cdda08388a44b",
+      "provenance": "Labels from https://tabs.ultimate-guitar.com/tab/bonnie-tyler/total-eclipse-of-the-heart-chords-87254; boundaries aligned to arrangement harmony. Not timed source markers, recording timestamps, or an official artist form annotation. Not auditioned; no musical acceptance established. Only the four-bar Intro has a separated boundary and an independent piano-only/cue-track-entry landmark; the rest remains estimated. Confidence is algorithmic separation, not calibrated probability.",
+      "alignment": {
+        "strategy": "ordered-four-bar-harmony-v1",
+        "phraseBars": 4,
+        "confidenceScore": 0.6,
+        "totalCost": 5.943353174603175,
+        "ambiguityGap": 0.009375000000000355,
+        "boundaryGaps": [
+          null,
+          0.16458333333333375,
+          0.03214285714285747,
+          0.04017857142857206,
+          0.037499999999999645,
+          0.009375000000000355,
+          0.02852182539682513,
+          null
+        ],
+        "chartSha256": "7e610dea4933afa7c21fcb34ef8ffa9527f6b5682c44c0d71d8b8793dd3de985",
+        "alignmentNotesSha256": "4a61acb2eae46f6611483fa6bfab7a654a2cb19a75371650827cdda08388a44b",
+        "identityReceiptSha256": "3c9ecfecfa73b55f38163e83276962075e55c344ada13d10e00a2bdc77069bda",
+        "notesOrigin": "production",
+        "sectionScores": [
+          {
+            "sectionId": "chart-section-1",
+            "confidenceScore": 0.6,
+            "startGap": null,
+            "endGap": 0.16458333333333375
+          }
+        ],
+        "transpose": 1,
+        "landmarks": [
+          {
+            "label": "Intro",
+            "basis": "Independent retained seed inspection: only the piano track sounds before beat 16; it plays a B-flat-minor figure across four bars on this clock. The separate cue track first enters at beat 16 (pitches 70, 72, 73 at 16, 16.5, 16.75); the main melody track enters at beat 18. All 36 opening producer pitch/onset pairs and all 2197 full-piece pairs match raw-source onsets within 0.04 beat. Chart Am is transposed +1 semitone to the retained B-flat-minor opening. Track names and cue notes are supporting symbolic landmarks, not timed form markers, retained lyrics, an artist score or listening evidence.",
+            "matched": true,
+            "sectionId": "chart-section-1"
+          }
+        ]
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 0,
+          "endBeat": 16,
+          "evidence": "chart"
+        }
+      ]
     }
   ]
 }

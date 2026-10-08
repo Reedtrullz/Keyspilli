@@ -22,6 +22,7 @@ export interface Landmark {
   basis: string;
 }
 export interface AlignmentResult {
+  phraseBars: 4 | 8;
   sections: Section[];
   publishableSections: Section[];
   boundaryGaps: (number | null)[];
@@ -36,6 +37,21 @@ export interface AlignmentResult {
   rationale: string[];
 }
 const pc = (midi: number) => ((Math.round(midi) % 12) + 12) % 12;
+
+// These chart spellings are only needed for offline comparison; extending
+// them here does not change the playback chord parser or voicing contract.
+function alignmentHarmony(name: string, transpose: number): {tones:Set<number>;root:number} {
+  const extension = name.match(/^([A-Ga-g](?:#|b|♯|♭)?)(m7b5|dim7|7sus4|\(b5\))(\/[A-Ga-g](?:#|b|♯|♭)?)?$/);
+  if (!extension) {
+    const parsed = parseChordSymbol(name, {transpose});
+    return {tones:new Set(chordPitchClasses(parsed)),root:parsed.bassPc??parsed.rootPc};
+  }
+  const parsed = parseChordSymbol(extension[1]! + (extension[3]??""), {transpose});
+  const intervals:Record<string,number[]> = {m7b5:[0,3,6,10],dim7:[0,3,6,9],"7sus4":[0,5,7,10],"(b5)":[0,4,6]};
+  const tones = new Set(intervals[extension[2]!]!.map(interval=>pc(parsed.rootPc+interval)));
+  if (parsed.bassPc!==undefined) tones.add(parsed.bassPc);
+  return {tones,root:parsed.bassPc??parsed.rootPc};
+}
 
 /** Same onset, upper-register and density features as inferSongForm; bass is
  * the lowest simultaneous onset, not an asserted instrument/hand identity. */
@@ -82,28 +98,28 @@ function sectionType(label: string): Section["type"] {
 }
 
 /** Score each measure against the section's chord set; the ordered DP assigns
- * whole eight-bar phrases, not individual chords. Costs sum phrase means,
+ * whole phrases, not individual chords. Costs sum eight-bar-equivalent means,
  * so an alternative's gap is in assignment-cost units (not a probability). */
 export function alignChartSections(chart: ExtractedChart, bars: readonly HarmonyMeasure[], options: {
-  transpose?: number; landmarks?: readonly Landmark[];
+  transpose?: number; landmarks?: readonly Landmark[]; phraseBars?: 4 | 8;
 } = {}): AlignmentResult {
   if (!bars.length || bars.length > 512) throw new Error("Expected 1-512 measures");
+  const phraseBars = options.phraseBars ?? 8;
+  if (phraseBars !== 4 && phraseBars !== 8) throw new Error("Expected a four- or eight-bar phrase grid");
+  const phraseCount = Math.ceil(bars.length / phraseBars), sectionCount = chart.sections.length;
+  if (phraseCount > 64) throw new Error("Alignment exceeds the bounded 64 phrases");
   if (chart.source !== "ultimate-guitar" || !Number.isInteger(chart.tabId) || chart.tabId! <= 0) throw new Error("Invalid chart identity");
   if (chart.sections.length > 32) throw new Error("Chart exceeds the bounded 32-section alignment limit");
-  if (!chart.sections.length || chart.sections.length > Math.ceil(bars.length / 8)) throw new Error("Chart has more sections than eight-bar phrases or is empty");
+  if (!sectionCount || sectionCount > phraseCount) throw new Error(`Chart has more sections than ${phraseBars}-bar phrases or is empty`);
   const transpose = options.transpose ?? 0;
   if (!Number.isInteger(transpose) || Math.abs(transpose) > 11) throw new Error("Invalid chart transpose");
   const chords = chart.sections.map(section => {
     if (!section.label.trim() || /^Section\s+\d+$/i.test(section.label.trim())) throw new Error("Expected a named chart section");
     if (!section.chords.length) throw new Error(`No chords in ${section.label}`);
-    return [...new Set(section.chords)].map(name => {
-      const parsed = parseChordSymbol(name, { transpose });
-      return { tones: new Set(chordPitchClasses(parsed)), root: parsed.bassPc ?? parsed.rootPc };
-    });
+    return [...new Set(section.chords)].map(name => alignmentHarmony(name, transpose));
   });
-  const phraseCount = Math.ceil(bars.length / 8), sectionCount = chart.sections.length;
   const phrases = Array.from({ length: phraseCount }, (_, index) => {
-    const run = bars.slice(index * 8, (index + 1) * 8), vector = Array<number>(24).fill(0);
+    const run = bars.slice(index * phraseBars, (index + 1) * phraseBars), vector = Array<number>(24).fill(0);
     for (const bar of run) for (let i = 0; i < 24; i++) vector[i]! += bar.vector[i]!;
     const startBeat = run[0]!.startBeat, endBeat = run.at(-1)!.endBeat;
     return { startBeat, endBeat, vector, density: vector.slice(0, 12).reduce((a,b)=>a+b,0) / (endBeat-startBeat) };
@@ -117,9 +133,10 @@ export function alignChartSections(chart: ExtractedChart, bars: readonly Harmony
         const union = new Set([...sounding, ...chord.tones]).size;
         return 1 - overlap/union + (bar.lowestPitchClass === chord.root ? 0 : .30);
       })) : .35;
-      // Last partial phrase has the same weight as a full phrase.
-      const phraseBars = Math.min(8, bars.length - Math.floor((prefix.length-1)/8)*8);
-      prefix.push(prefix.at(-1)! + cost/phraseBars);
+      // A four-bar mean weighs half an eight-bar mean; keep the 0.15 gap
+      // threshold in the existing units. Partial tails keep that grid weight.
+      const runBars = Math.min(phraseBars, bars.length - Math.floor((prefix.length-1)/phraseBars)*phraseBars);
+      prefix.push(prefix.at(-1)! + cost/runBars * phraseBars/8);
     }
     return prefix;
   });
@@ -131,7 +148,7 @@ export function alignChartSections(chart: ExtractedChart, bars: readonly Harmony
         if (exclude?.boundary === section && exclude.phrase === end) continue;
         const candidates: Path[] = [];
         for (let start = section - 1; start < end; start++) {
-          const lo = start*8, hi = Math.min(end*8,bars.length), prefix = prefixes[section-1]!;
+          const lo = start*phraseBars, hi = Math.min(end*phraseBars,bars.length), prefix = prefixes[section-1]!;
           const cost = prefix[hi]! - prefix[lo]!;
           for (const previous of dp[section-1]![start]!) candidates.push({cost:previous.cost+cost,ends:[...previous.ends,end]});
         }
@@ -160,19 +177,19 @@ export function alignChartSections(chart: ExtractedChart, bars: readonly Harmony
     const section = valid ? sections.find(s=>s.label===landmark.label && s.startBeat===bars[landmark.startBar]?.startBeat && s.endBeat===bars[landmark.endBar-1]?.endBeat) : undefined;
     return {label:landmark.label,basis:landmark.basis,matched:Boolean(section),sectionId:section?.id??null};
   });
-  const fit = Math.max(0, 1-best.cost/phraseCount);
+  const fit = Math.max(0, 1-best.cost/(phraseCount*phraseBars/8));
   const fullConfidence = fit * (gap === null ? 0 : Math.min(1,gap/.15));
   const publishableSections = sections.filter((section,index)=>{
     const before = boundaryGaps[index], after = boundaryGaps[index+1];
-    const lo = (index===0?0:best.ends[index-1]!)*8, hi = Math.min(best.ends[index]!*8,bars.length);
-    const fit = 1-(prefixes[index]![hi]!-prefixes[index]![lo]!)/(best.ends[index]!-(index===0?0:best.ends[index-1]!));
+    const lo = (index===0?0:best.ends[index-1]!)*phraseBars, hi = Math.min(best.ends[index]!*phraseBars,bars.length);
+    const fit = 1-(prefixes[index]![hi]!-prefixes[index]![lo]!)/((best.ends[index]!-(index===0?0:best.ends[index-1]!))*phraseBars/8);
     return gap !== null && (before === null || before! >= .15) && (after === null || after! >= .15) && fit >= .35 &&
       landmarks.some(l=>l.matched && l.sectionId===section.id) && landmarks.every(l=>l.matched);
   });
   const sectionScores = sections.map((section,index)=>{
     const before = boundaryGaps[index], after = boundaryGaps[index+1];
-    const lo = (index===0?0:best.ends[index-1]!)*8, hi = Math.min(best.ends[index]!*8,bars.length);
-    const fit = Math.max(0,1-(prefixes[index]![hi]!-prefixes[index]![lo]!)/(best.ends[index]!-(index===0?0:best.ends[index-1]!)));
+    const lo = (index===0?0:best.ends[index-1]!)*phraseBars, hi = Math.min(best.ends[index]!*phraseBars,bars.length);
+    const fit = Math.max(0,1-(prefixes[index]![hi]!-prefixes[index]![lo]!)/((best.ends[index]!-(index===0?0:best.ends[index-1]!))*phraseBars/8));
     const separation = gap===null ? 0 : Math.min(1,Math.min(before??Infinity,after??Infinity)/.15);
     return {sectionId:section.id,confidenceScore:fit*separation,startGap:before!,endGap:after!};
   });
@@ -180,18 +197,20 @@ export function alignChartSections(chart: ExtractedChart, bars: readonly Harmony
   const publishable = publishableSections.length > 0;
   const alternativePaths = [...solutions.slice(1),...boundaryAlternatives.filter((p):p is Path=>Boolean(p))];
   const unique = [...new Map(alternativePaths.map(p=>[p.ends.join(","),p])).values()].sort((a,b)=>a.cost-b.cost);
-  return {sections,publishableSections,boundaryGaps,sectionScores,totalCost:best.cost,ambiguityGap:gap,confidenceScore,publishable,phrases,landmarks,
+  return {phraseBars,sections,publishableSections,boundaryGaps,sectionScores,totalCost:best.cost,ambiguityGap:gap,confidenceScore,publishable,phrases,landmarks,
     alternatives:unique.map(p=>({totalCost:p.cost,boundaries:[0,...p.ends].map(i=>i===phraseCount?bars.at(-1)!.endBeat:phrases[i]!.startBeat)})),
-    rationale:[`${phraseCount} eight-bar phrases; ${sectionCount} ordered nonempty section runs; total cost ${best.cost.toFixed(6)}.`,
-      `Next-best gap ${gap===null?"unavailable":gap.toFixed(6)}; ambiguity threshold 0.15 assignment-cost units.`,
+    rationale:[`${phraseCount} ${phraseBars}-bar phrases; ${sectionCount} ordered nonempty section runs; total cost ${best.cost.toFixed(6)}.`,
+      `Next-best gap ${gap===null?"unavailable":gap.toFixed(6)}; ambiguity threshold 0.15 eight-bar-equivalent assignment-cost units.`,
       `Chart transpose ${transpose} semitones; confidence ${confidenceScore.toFixed(4)} is uncalibrated algorithmic separation, not musical acceptance.`,
       `${landmarks.filter(l=>l.matched).length}/${landmarks.length} independent landmarks match; ${publishable?"candidate eligible for review":"keep estimate-only"}.`],
   };
 }
 
 function main(): void {
-  const [chartFile, midiFile, notesFile, baseId, sourceUrl, identityFile, landmarkFile, transposeText] = process.argv.slice(2);
-  if (!chartFile || !midiFile || !notesFile || !baseId || !sourceUrl || !identityFile) throw new Error("Usage: align-chart-sections <chart.json> <seed.mid> <notes.json> <baseId> <chart-url> <identity.json> [landmarks.json] [transpose]");
+  const [chartFile, midiFile, notesFile, baseId, sourceUrl, identityFile, landmarkFile, transposeText, phraseBarsText] = process.argv.slice(2);
+  if (!chartFile || !midiFile || !notesFile || !baseId || !sourceUrl || !identityFile) throw new Error("Usage: align-chart-sections <chart.json> <seed.mid> <notes.json> <baseId> <chart-url> <identity.json> [landmarks.json] [transpose] [phraseBars]");
+  const phraseBars = phraseBarsText===undefined?8:Number(phraseBarsText);
+  if (phraseBars!==4 && phraseBars!==8) throw new Error("Expected a four- or eight-bar phrase grid");
   if (!/^https:\/\/tabs\.ultimate-guitar\.com\/tab\//.test(sourceUrl) || !/^[a-z0-9-]+$/.test(baseId)) throw new Error("Invalid base id or chart URL");
   const midiBytes = readFileSync(midiFile), parsed = parseMidi(midiBytes);
   if (!parsed.notes.length) throw new Error("Seed MIDI has no pitched notes");
@@ -216,11 +235,12 @@ function main(): void {
   const result = alignChartSections(chart, analyzeArrangement(data.notes,data.measures), {
     landmarks:landmarkFile?JSON.parse(readFileSync(landmarkFile,"utf8")) as Landmark[]:[],
     transpose:transposeText===undefined?0:Number(transposeText),
+    phraseBars,
   });
   const candidate = {baseId,sourceArtifactHash:sha(midiBytes),playbackTempoBpm:data.tempoBpm,sourceFile:basename(midiFile),
     ...(identity.notesOrigin==="production"?{advancedNotesSha256:sha(notesBytes)}:{}),
     provenance:`Labels from ${sourceUrl}; boundaries aligned to arrangement harmony. Not timed source markers, recording timestamps, or an official artist form annotation. Not auditioned; no musical acceptance established.`,
-    alignment:{strategy:"ordered-eight-bar-harmony-v1",confidenceScore:result.confidenceScore,totalCost:result.totalCost,
+    alignment:{strategy:phraseBars===4?"ordered-four-bar-harmony-v1":"ordered-eight-bar-harmony-v1",phraseBars,confidenceScore:result.confidenceScore,totalCost:result.totalCost,
       ambiguityGap:result.ambiguityGap,boundaryGaps:result.boundaryGaps,chartSha256:sha(chartBytes),alignmentNotesSha256:sha(notesBytes),identityReceiptSha256:sha(identityBytes),notesOrigin:identity.notesOrigin,sectionScores:result.sectionScores,transpose:transposeText===undefined?0:Number(transposeText),landmarks:result.landmarks},
     sections:result.publishableSections};
   process.stderr.write(result.rationale.join("\n")+"\n");
