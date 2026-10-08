@@ -5130,6 +5130,1140 @@
         "producerLastNoteEndBeat": 84,
         "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
       }
+    },
+    {
+      "baseId": "j-f-f-burgmuller-la-candeur",
+      "sourceArtifactHash": "ad185dbf3cb7e3e187cbe6e38c5ead706cf375b9d441f7191429027436b2a8e4",
+      "advancedNotesSha256": "f868687a4812d7a54bc2fcd622780ab4d5062d2a382e55ffcc2522873cdd71cf",
+      "playbackTempoBpm": 152,
+      "sourceFile": "j-f-f-burgmuller-la-candeur.mid",
+      "provenance": "Explicit printed named division La Candeur in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-01/25EF-01.ly. The score companion MIDI exactly matches retained source bytes. The complete first4/4 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end92.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "La Candeur",
+          "startBeat": 0.0,
+          "endBeat": 92.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-01/25EF-01.ly",
+        "scoreSha256": "d1720877ca1b813148cb3c09cc0f26ca5e88c63aab321d2765efde0dd91ec6d6",
+        "printedHeadingHierarchy": {
+          "title": "La Candeur",
+          "piece": "25 Etudes faciles",
+          "opus": "Opus 100."
+        },
+        "companionMidiSha256": "ad185dbf3cb7e3e187cbe6e38c5ead706cf375b9d441f7191429027436b2a8e4",
+        "sourceClockReceiptSha256": "6cfc5890f907397a84ed778dae858cdf91cf100e0a4e64ca29904610ea4cb189",
+        "distinctOnsetReceiptSha256": "c2a2e645b7a9025858e2c5aac85f2b30711def6d68538aa662f68094490d8848",
+        "landmarkDescription": "complete first4/4 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0.0,
+            [
+              79
+            ]
+          ],
+          [
+            0.5,
+            [
+              76
+            ]
+          ],
+          [
+            1.0,
+            [
+              74
+            ]
+          ],
+          [
+            1.5,
+            [
+              72
+            ]
+          ],
+          [
+            2.0,
+            [
+              79
+            ]
+          ],
+          [
+            2.5,
+            [
+              76
+            ]
+          ],
+          [
+            3.0,
+            [
+              74
+            ]
+          ],
+          [
+            3.5,
+            [
+              72
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              79
+            ]
+          ],
+          [
+            0.5,
+            [
+              76
+            ]
+          ],
+          [
+            1.0,
+            [
+              74
+            ]
+          ],
+          [
+            1.5,
+            [
+              72
+            ]
+          ],
+          [
+            2.0,
+            [
+              79
+            ]
+          ],
+          [
+            2.5,
+            [
+              76
+            ]
+          ],
+          [
+            3.0,
+            [
+              74
+            ]
+          ],
+          [
+            3.5,
+            [
+              72
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 218,
+        "distinctMatchedRawOnsets": 218,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 92.0,
+        "producerLastNoteEndBeat": 92.0,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-f-f-burgmuller-l-arabesque",
+      "sourceArtifactHash": "9b689a9b3f178e7bb2b5899d0559e223e9d8de7081d83fc087760ac2b4d378e1",
+      "advancedNotesSha256": "763d16267630ce75183bdb82892664c876fd5183e5e18bf3cfcc3e3dd9baa3b9",
+      "playbackTempoBpm": 152,
+      "sourceFile": "j-f-f-burgmuller-l-arabesque.mid",
+      "provenance": "Explicit printed named division l'Arabesque in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-02/25EF-02.ly. The score companion MIDI exactly matches retained source bytes. The complete first nonempty2/4 RH bar after two explicit RH rest bars; LH opening retained independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end66.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "l'Arabesque",
+          "startBeat": 0.0,
+          "endBeat": 66.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-02/25EF-02.ly",
+        "scoreSha256": "9ee203a6c2059700b10d45a7a1fd7a122803793af9a2e328d634bee538819a94",
+        "printedHeadingHierarchy": {
+          "title": "l'Arabesque",
+          "piece": "25 Etudes faciles",
+          "opus": "Opus 100."
+        },
+        "companionMidiSha256": "9b689a9b3f178e7bb2b5899d0559e223e9d8de7081d83fc087760ac2b4d378e1",
+        "sourceClockReceiptSha256": "6cfc5890f907397a84ed778dae858cdf91cf100e0a4e64ca29904610ea4cb189",
+        "distinctOnsetReceiptSha256": "c2a2e645b7a9025858e2c5aac85f2b30711def6d68538aa662f68094490d8848",
+        "landmarkDescription": "complete first nonempty2/4 RH bar after two explicit RH rest bars; LH opening retained",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            4,
+            [
+              69
+            ]
+          ],
+          [
+            4.25,
+            [
+              71
+            ]
+          ],
+          [
+            4.5,
+            [
+              72
+            ]
+          ],
+          [
+            4.75,
+            [
+              71
+            ]
+          ],
+          [
+            5,
+            [
+              69
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            4.0,
+            [
+              69
+            ]
+          ],
+          [
+            4.25,
+            [
+              71
+            ]
+          ],
+          [
+            4.5,
+            [
+              72
+            ]
+          ],
+          [
+            4.75,
+            [
+              71
+            ]
+          ],
+          [
+            5.0,
+            [
+              69
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 232,
+        "distinctMatchedRawOnsets": 232,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 66.0,
+        "producerLastNoteEndBeat": 66,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-f-f-burgmuller-la-pastorale",
+      "sourceArtifactHash": "192500ee12358537bf92811064ee4ad0b680c78302d5762175a3c32fe573a577",
+      "advancedNotesSha256": "1ab8ea2ae70f16382a80934de42243c8356cc6e65a32dbd287ba07b10ef1699e",
+      "playbackTempoBpm": 100,
+      "sourceFile": "j-f-f-burgmuller-la-pastorale.mid",
+      "provenance": "Explicit printed named division La Pastorale in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-03/25EF-03.ly. The score companion MIDI exactly matches retained source bytes. The complete first6/8 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end85.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "La Pastorale",
+          "startBeat": 0.0,
+          "endBeat": 85.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-03/25EF-03.ly",
+        "scoreSha256": "be3b90be0fcfe7d92e34ef189cb633f7007e38ea8d5f290e4c3e5a988f097c81",
+        "printedHeadingHierarchy": {
+          "title": "La Pastorale",
+          "piece": "25 Etudes faciles",
+          "opus": "Opus 100."
+        },
+        "companionMidiSha256": "192500ee12358537bf92811064ee4ad0b680c78302d5762175a3c32fe573a577",
+        "sourceClockReceiptSha256": "6cfc5890f907397a84ed778dae858cdf91cf100e0a4e64ca29904610ea4cb189",
+        "distinctOnsetReceiptSha256": "c2a2e645b7a9025858e2c5aac85f2b30711def6d68538aa662f68094490d8848",
+        "landmarkDescription": "complete first6/8 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0.0,
+            [
+              67
+            ]
+          ],
+          [
+            0.5,
+            [
+              71
+            ]
+          ],
+          [
+            1.0,
+            [
+              72
+            ]
+          ],
+          [
+            1.5,
+            [
+              74
+            ]
+          ],
+          [
+            2.0,
+            [
+              71
+            ]
+          ],
+          [
+            2.5,
+            [
+              76
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              67
+            ]
+          ],
+          [
+            0.5,
+            [
+              71
+            ]
+          ],
+          [
+            1.0,
+            [
+              72
+            ]
+          ],
+          [
+            1.5,
+            [
+              74
+            ]
+          ],
+          [
+            2.0,
+            [
+              71
+            ]
+          ],
+          [
+            2.5,
+            [
+              76
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 325,
+        "distinctMatchedRawOnsets": 325,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.010416666666671404,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 85.0,
+        "producerLastNoteEndBeat": 85,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-f-f-burgmuller-la-petite-reunion",
+      "sourceArtifactHash": "c88010cace8858c30ca95e3075cf5e4afdde19b5ad7c37cceb96159f6c55326c",
+      "advancedNotesSha256": "60768b7b05783ca6147828686437de21d8195bd0299e65c6276285532ee40185",
+      "playbackTempoBpm": 152,
+      "sourceFile": "j-f-f-burgmuller-la-petite-reunion.mid",
+      "provenance": "Explicit printed named division La Petite Réunion in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-04/25EF-04.ly. The score companion MIDI exactly matches retained source bytes. The complete first nonempty4/4 RH bar after one explicit RH rest bar; LH opening retained independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end119.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "La Petite Réunion",
+          "startBeat": 0.0,
+          "endBeat": 119.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-04/25EF-04.ly",
+        "scoreSha256": "97c25bd304d8972a6aca488d2f61b52b4cb229c17bcec14b5922bb4d92f6aeee",
+        "printedHeadingHierarchy": {
+          "title": "La Petite Réunion",
+          "piece": "25 Etudes faciles",
+          "opus": "Opus 100."
+        },
+        "companionMidiSha256": "c88010cace8858c30ca95e3075cf5e4afdde19b5ad7c37cceb96159f6c55326c",
+        "sourceClockReceiptSha256": "6cfc5890f907397a84ed778dae858cdf91cf100e0a4e64ca29904610ea4cb189",
+        "distinctOnsetReceiptSha256": "c2a2e645b7a9025858e2c5aac85f2b30711def6d68538aa662f68094490d8848",
+        "landmarkDescription": "complete first nonempty4/4 RH bar after one explicit RH rest bar; LH opening retained",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            4.0,
+            [
+              74,
+              77
+            ]
+          ],
+          [
+            4.5,
+            [
+              72,
+              76
+            ]
+          ],
+          [
+            5.0,
+            [
+              71,
+              74
+            ]
+          ],
+          [
+            5.5,
+            [
+              69,
+              72
+            ]
+          ],
+          [
+            6.0,
+            [
+              67,
+              71
+            ]
+          ],
+          [
+            6.5,
+            [
+              65,
+              69
+            ]
+          ],
+          [
+            7.0,
+            [
+              64,
+              67
+            ]
+          ],
+          [
+            7.5,
+            [
+              62,
+              65
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            4.0,
+            [
+              74,
+              77
+            ]
+          ],
+          [
+            4.5,
+            [
+              72,
+              76
+            ]
+          ],
+          [
+            5.0,
+            [
+              71,
+              74
+            ]
+          ],
+          [
+            5.5,
+            [
+              69,
+              72
+            ]
+          ],
+          [
+            6.0,
+            [
+              67,
+              71
+            ]
+          ],
+          [
+            6.5,
+            [
+              65,
+              69
+            ]
+          ],
+          [
+            7.0,
+            [
+              64,
+              67
+            ]
+          ],
+          [
+            7.5,
+            [
+              62,
+              65
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 388,
+        "distinctMatchedRawOnsets": 388,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 119.0,
+        "producerLastNoteEndBeat": 119,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-f-f-burgmuller-innocence",
+      "sourceArtifactHash": "39768b50abb623d24986b0e3993518ca92a6f1340d6154fc092f218cb6b97fee",
+      "advancedNotesSha256": "c47ffb562e46e2acd8ae890314f583050516a73f833759951602b4cf74c339ae",
+      "playbackTempoBpm": 112,
+      "sourceFile": "j-f-f-burgmuller-innocence.mid",
+      "provenance": "Explicit printed named division Innocence in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-05/25EF-05.ly. The score companion MIDI exactly matches retained source bytes. The complete first3/4 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end50.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Innocence",
+          "startBeat": 0.0,
+          "endBeat": 50.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-05/25EF-05.ly",
+        "scoreSha256": "f19c5f5986cfc75d56263a4cab98eac7d3927c10bce75917766e49351280286a",
+        "printedHeadingHierarchy": {
+          "title": "Innocence",
+          "piece": "25 Etudes faciles",
+          "opus": "Opus 100."
+        },
+        "companionMidiSha256": "39768b50abb623d24986b0e3993518ca92a6f1340d6154fc092f218cb6b97fee",
+        "sourceClockReceiptSha256": "6cfc5890f907397a84ed778dae858cdf91cf100e0a4e64ca29904610ea4cb189",
+        "distinctOnsetReceiptSha256": "c2a2e645b7a9025858e2c5aac85f2b30711def6d68538aa662f68094490d8848",
+        "landmarkDescription": "complete first3/4 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0.0,
+            [
+              81
+            ]
+          ],
+          [
+            0.25,
+            [
+              79
+            ]
+          ],
+          [
+            0.5,
+            [
+              77
+            ]
+          ],
+          [
+            0.75,
+            [
+              76
+            ]
+          ],
+          [
+            1.0,
+            [
+              77
+            ]
+          ],
+          [
+            1.25,
+            [
+              76
+            ]
+          ],
+          [
+            1.5,
+            [
+              74
+            ]
+          ],
+          [
+            1.75,
+            [
+              72
+            ]
+          ],
+          [
+            2.0,
+            [
+              74
+            ]
+          ],
+          [
+            2.25,
+            [
+              72
+            ]
+          ],
+          [
+            2.5,
+            [
+              70
+            ]
+          ],
+          [
+            2.75,
+            [
+              69
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              81
+            ]
+          ],
+          [
+            0.25,
+            [
+              79
+            ]
+          ],
+          [
+            0.5,
+            [
+              77
+            ]
+          ],
+          [
+            0.75,
+            [
+              76
+            ]
+          ],
+          [
+            1.0,
+            [
+              77
+            ]
+          ],
+          [
+            1.25,
+            [
+              76
+            ]
+          ],
+          [
+            1.5,
+            [
+              74
+            ]
+          ],
+          [
+            1.75,
+            [
+              72
+            ]
+          ],
+          [
+            2.0,
+            [
+              74
+            ]
+          ],
+          [
+            2.25,
+            [
+              72
+            ]
+          ],
+          [
+            2.5,
+            [
+              70
+            ]
+          ],
+          [
+            2.75,
+            [
+              69
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 211,
+        "distinctMatchedRawOnsets": 211,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 50.0,
+        "producerLastNoteEndBeat": 50,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-f-f-burgmuller-progres",
+      "sourceArtifactHash": "d28e280d333d8a97262a4ffeba00fab251d382cd9a17e45a517d6613cb03f722",
+      "advancedNotesSha256": "75581a599bc96d00dfb8e92b95e007f53c46dfc25153a4a57c1db86dc7f809f0",
+      "playbackTempoBpm": 132,
+      "sourceFile": "j-f-f-burgmuller-progres.mid",
+      "provenance": "Explicit printed named division Progrès in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-06/25EF-06.ly. The score companion MIDI exactly matches retained source bytes. The complete first4/4 RH bar independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end64.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Progrès",
+          "startBeat": 0.0,
+          "endBeat": 64.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-06/25EF-06.ly",
+        "scoreSha256": "e3f05f6bd21543333f1843d1f024f721bba34f63699de71e09def1d0d6f5ad61",
+        "printedHeadingHierarchy": {
+          "title": "Progrès",
+          "piece": "25 Etudes faciles",
+          "opus": "Opus 100."
+        },
+        "companionMidiSha256": "d28e280d333d8a97262a4ffeba00fab251d382cd9a17e45a517d6613cb03f722",
+        "sourceClockReceiptSha256": "6cfc5890f907397a84ed778dae858cdf91cf100e0a4e64ca29904610ea4cb189",
+        "distinctOnsetReceiptSha256": "c2a2e645b7a9025858e2c5aac85f2b30711def6d68538aa662f68094490d8848",
+        "landmarkDescription": "complete first4/4 RH bar",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              64
+            ]
+          ],
+          [
+            0.5,
+            [
+              65
+            ]
+          ],
+          [
+            0.75,
+            [
+              67
+            ]
+          ],
+          [
+            1,
+            [
+              69
+            ]
+          ],
+          [
+            1.25,
+            [
+              71
+            ]
+          ],
+          [
+            1.5,
+            [
+              72
+            ]
+          ],
+          [
+            1.75,
+            [
+              74
+            ]
+          ],
+          [
+            2,
+            [
+              76
+            ]
+          ],
+          [
+            2.5,
+            [
+              71
+            ]
+          ],
+          [
+            3,
+            [
+              72
+            ]
+          ],
+          [
+            3.5,
+            [
+              69
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              64
+            ]
+          ],
+          [
+            0.5,
+            [
+              65
+            ]
+          ],
+          [
+            0.75,
+            [
+              67
+            ]
+          ],
+          [
+            1.0,
+            [
+              69
+            ]
+          ],
+          [
+            1.25,
+            [
+              71
+            ]
+          ],
+          [
+            1.5,
+            [
+              72
+            ]
+          ],
+          [
+            1.75,
+            [
+              74
+            ]
+          ],
+          [
+            2.0,
+            [
+              76
+            ]
+          ],
+          [
+            2.5,
+            [
+              71
+            ]
+          ],
+          [
+            3.0,
+            [
+              72
+            ]
+          ],
+          [
+            3.5,
+            [
+              69
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 182,
+        "distinctMatchedRawOnsets": 182,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 64.0,
+        "producerLastNoteEndBeat": 64,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "b-bartok-romanian-folk-dance-no-2-peasant-costume",
+      "sourceArtifactHash": "34f4fe3c28f6c9a7433631edc97126c649d7733eba62603786a1331f62e61e7f",
+      "advancedNotesSha256": "d9e0d75becf0126c7e085c45587626f84b576875338437fc8881863799ff0397",
+      "playbackTempoBpm": 150,
+      "sourceFile": "b-bartok-romanian-folk-dance-no-2-peasant-costume.mid",
+      "provenance": "Explicit printed named division Peasant Costume in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BartokB/rom_folk_dance_1_bartok/rom_folk_dance_1_bartok.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first2/4 RH bar in absolute pitches independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end32.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Peasant Costume",
+          "startBeat": 0.0,
+          "endBeat": 32.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BartokB/rom_folk_dance_1_bartok/rom_folk_dance_1_bartok.ly",
+        "scoreSha256": "453e8cef2d870c1137048a0ffb2ff8e6b9389224bfeba46e8cbcbfbcc4f0ae67",
+        "printedHeadingHierarchy": {
+          "title": "Romanian Folk Dance No.2",
+          "subtitle": "Peasant Costume"
+        },
+        "companionMidiSha256": "34f4fe3c28f6c9a7433631edc97126c649d7733eba62603786a1331f62e61e7f",
+        "sourceClockReceiptSha256": "e5ccdc50c1ff4ed08b4ef8ade5f256852c5e0fbf14be60e37897a2f1cd144b29",
+        "distinctOnsetReceiptSha256": "7caa333904b4f135e25fecbeb3f30cc3b3771536ee8c331fcf9534e87e90168c",
+        "landmarkDescription": "complete printed first2/4 RH bar in absolute pitches",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              62
+            ]
+          ],
+          [
+            0.5,
+            [
+              64
+            ]
+          ],
+          [
+            1,
+            [
+              65
+            ]
+          ],
+          [
+            1.5,
+            [
+              67
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              62
+            ]
+          ],
+          [
+            0.5,
+            [
+              64
+            ]
+          ],
+          [
+            1.0,
+            [
+              65
+            ]
+          ],
+          [
+            1.5,
+            [
+              67
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 106,
+        "distinctMatchedRawOnsets": 106,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.052083333333333925,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 32.0,
+        "producerLastNoteEndBeat": 32,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "midi-a-ha-take-on-me-b6dcc3d4",
+      "sourceArtifactHash": "b6dcc3d462af80fe643153a56ec333a150a35223adf79ff86ebdd8c2a770f79a",
+      "advancedNotesSha256": "13ab22caa91da6d761cbd3e00c9d2578ce70ff2fb4437fcb73b66c5c7099a44d",
+      "playbackTempoBpm": 169,
+      "sourceFile": "midi-a-ha-take-on-me-b6dcc3d4.mid",
+      "provenance": "Verse classification from https://tabs.ultimate-guitar.com/tab/a-ha/take-on-me-chords-390284. A prospectively fixed first-two-line prefix of a three-line Verse paragraph has70 normalized characters, matching exactly one complete contiguous FF05 lyric-event window on retained MIDI track0 from101.80208333333333 to131.40625 source quarter beats. All acquired chart paragraphs containing the prefix agree on Verse; no occurrence ordinal is retained. Every one of1609 actual producer attacks independently matches a distinct retained raw MIDI attack within1/16 beat, maximum error0.0625. The excerpt runs only first-to-last matched cue; releases and complete Verse boundary remain unresolved. Original complete-paragraph studies and the other fixed-prefix failures remain rejected. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-fixed-verse-prefix-excerpt",
+          "label": "Verse lyric excerpt",
+          "startBeat": 101.80208333333333,
+          "endBeat": 131.40625,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "fixed-two-line-chart-lyric-prefix-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact fixed-prefix/event-edge correspondence and full distinct producer pitch/onset match ratio; uncalibrated correspondence, not occurrence-role certainty, full boundary confidence or musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/a-ha/take-on-me-chords-390284",
+        "chartHtmlSha256": "c22420624b687bf53287ee3e289e0b4185e3812b833705f1cce7b85a586bece5",
+        "fixedPrefixLines": 2,
+        "fullChartParagraphLines": 3,
+        "matchedCharacters": 70,
+        "normalizedTextSha256": "f2b50fd5eb64c33c1baa256128cde5cf8dc15f36922e1735b2e9dc42ddada42e",
+        "lyricTrack": 0,
+        "uniqueCompleteEventWindows": 1,
+        "correspondenceReceiptSha256": "5a8275251fa6962102b1826a8f0b60cf31c96a64b5596dee84c885381244f201",
+        "sourceClockReceiptSha256": "bdeeafaf042bce28de4642e2829bf63686ee3c7325182d7f324af26bd38d40f6",
+        "distinctOnsetReceiptSha256": "1a467d5948aa820493bd73765232700441481f25289641c91382495f514f1579",
+        "producerPitchedOnsets": 1609,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0625,
+        "coverage": "first-to-last cue of prospectively fixed two-line chart paragraph prefix only; releases and full section boundary unresolved"
+      }
+    },
+    {
+      "baseId": "midi-oasis-wonderwall-3aaafa51",
+      "sourceArtifactHash": "3aaafa51aa099ad6ff085b3a9c130ff729657f38beb8c9184c27080e3f52a442",
+      "advancedNotesSha256": "07458ba9f6b7384663ac966c8f73d426e64ccf8bbbec101b391bf49ea220b74b",
+      "playbackTempoBpm": 90,
+      "sourceFile": "midi-oasis-wonderwall-3aaafa51.mid",
+      "provenance": "Outro classification from https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-39144. One complete four-line chart paragraph with97 normalized characters uniquely matches complete contiguous FF01 karaoke text-event edges on retained MIDI track2 from297.25 to322.75 quarter beats. The source carries explicit @L language and @T title karaoke headers; no FF01 text is promoted to the source tier. Every one of2575 actual producer attacks independently matches a distinct retained raw MIDI attack within1/16 beat, maximum error0.041667. All acquired paragraphs containing this text agree on Outro; no occurrence ordinal is retained. The excerpt excludes releases and full Outro boundaries. Other full-paragraph studies remain unqualified, including Bon Jovi different matching track groups and Europe without a unique complete match. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-complete-karaoke-outro-excerpt",
+          "label": "Outro lyric excerpt",
+          "startBeat": 297.25,
+          "endBeat": 322.75,
+          "type": "outro",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "complete-chart-karaoke-text-event-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact complete paragraph/event-edge correspondence with actual karaoke headers and full distinct producer pitch/onset match ratio; uncalibrated correspondence, not full boundary confidence or musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-39144",
+        "chartHtmlSha256": "e3b1122112ecc1df74f08d171992deb4a554932707cba72e713e348284a389e7",
+        "rawTextEventType": "FF01",
+        "karaokeHeaders": "@L and @T retained",
+        "completeParagraphLines": 4,
+        "matchedCharacters": 97,
+        "normalizedTextSha256": "f25f9f3efeeabfe83b0958bfe81acd3d23af849a2ef4152d801cec1cc7137f1d",
+        "corroboratingTracks": [
+          2
+        ],
+        "uniqueCompleteEventWindows": 1,
+        "correspondenceReceiptSha256": "c41c4815f5d2b5a9815bb90ec9c832ee94b89bde08816b533e93713e5000e434",
+        "sourceClockReceiptSha256": "9f78af9ee3107358fedd0147e51f3a4bd8b74c4364c4d3a5d251e92591472fb5",
+        "distinctOnsetReceiptSha256": "93f08e18b94a6efa4f8fe418580ff6c3089dbff3ec0271f965f659f9fa848315",
+        "producerPitchedOnsets": 2575,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.04166666666665719,
+        "coverage": "first-to-last cue of complete labelled chart paragraph only; releases and full Outro boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "bon-jovi-always",
+      "sourceArtifactHash": "a9fe18ed5f761bb3a4a6d62b54a0f54364f5cf50b6404745a8f7f945474603b4",
+      "advancedNotesSha256": "f40beeb9d0ffeaed9b798bde9fb1173e512f3aa3bc551e957b558e54fca3a3b1",
+      "playbackTempoBpm": 72,
+      "sourceFile": "bon-jovi-always.mid",
+      "provenance": "Bridge and Pre-Chorus classifications from complete labelled Ultimate Guitar chart paragraphs. The retained source has two FF01 karaoke text tracks2and4 with explicit@L/@T headers. Their whole-track streams differ, so the original global-track uniqueness study remains rejected. In a separately specified per-character study, every normalized character of each complete qualifying paragraph has exactly equal beat coordinates in every matching track window. The139-character Pre-Chorus and114-character Bridge qualify; Verse paragraphs and the other Pre-Chorus retain discrepant internal cue times and remain unqualified, including equal endpoint cases. All1594 actual producer attacks independently match distinct raw source attacks within1/16quarterbeat, maximum error0.058333. The map labels only generic first-to-last cue excerpts, excluding releases, occurrence ordinals and full form boundaries. The separate integrated source-tempo clock fails and is excluded. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-cross-track-prechorus-excerpt-1",
+          "label": "Pre-Chorus lyric excerpt",
+          "startBeat": 163.55,
+          "endBeat": 179.98333333333332,
+          "type": "pre-chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-cross-track-bridge-excerpt-1",
+          "label": "Bridge lyric excerpt",
+          "startBeat": 213.00833333333333,
+          "endBeat": 242.54166666666666,
+          "type": "bridge",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "complete-chart-karaoke-cross-track-character-clock-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact per-character complete paragraph clock agreement across every matching karaoke track window and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not full boundary certainty or musical probability.",
+        "charts": [
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/bon-jovi/always-chords-194951",
+            "htmlSha256": "d3f709729b93c7497e99df3b844673fbe2edaa4447f850a9255d4b0e09595b67",
+            "role": "Bridge",
+            "matchedCharacters": 114,
+            "completeParagraphLines": 7,
+            "normalizedTextSha256": "878fcfb36f4dbdf01684fe71a6998cfa751cc755276b4a2b499786f0cf8c2b88"
+          },
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/bon-jovi/always-chords-17511",
+            "htmlSha256": "1e6bdceb1c4b72f04774c12ec21b2e7829f61289538053d9ad89f61ad58f2d4f",
+            "role": "Pre-Chorus",
+            "matchedCharacters": 139,
+            "completeParagraphLines": 4,
+            "normalizedTextSha256": "19c7210b4c1b0037997ed42e02fb2237d015ad0d98f58b45fab7a7da7d85cb7a"
+          }
+        ],
+        "rawTextEventType": "FF01",
+        "karaokeHeaders": "@L and @T retained",
+        "corroboratingTracks": [
+          2,
+          4
+        ],
+        "characterClockTolerance": 0,
+        "correspondenceReceiptSha256": "3f56d9dbdf3bce3a8c47643e0935745b726925a0863040da308aa9b30c34e607",
+        "sourceClockReceiptSha256": "72cdd3ed01151999b8304f87f52a026ff4cefa280203eb4d222f9e2aecd2c31e",
+        "distinctOnsetReceiptSha256": "f6c6222d5e0461099175983eaaee3c1aa9eba556df733c4696f7429c04ffa956",
+        "producerPitchedOnsets": 1594,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.05833333333333712,
+        "coverage": "first-to-last cue excerpts of complete paragraphs with exact all-track character-time corroboration; releases/full boundaries and discrepant paragraphs unresolved"
+      }
     }
   ]
 }

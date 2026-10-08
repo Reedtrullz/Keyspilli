@@ -101,29 +101,27 @@ do not count as completed naming.
 
 ## Release status
 
-PR229 remains the latest fully verified release in this report: commit
- d52f6efde7ce1f417f4f8f2f449ac2e673defae8, 1,764 variants / 441 bases / 31 named
-bases, zero numbered labels/read errors, stable healthy containers and preserved
-selected store fields (2,730 rows / 455 bases, SHA-256
+PR232 is fully verified live at b4f73280ef7406ce46d44f91639d7b4ea1f47372:
+1,764 variants /441 bases /45 named served bases, zero numbered labels or
+read errors,60 sample reads across15 pinned bases, stable healthy containers,
+and preserved selected store fields (2,730 rows /455 bases, SHA-256
 730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6).
-PR230's two maps are merged; its deployment was superseded while storage-policy
-work landed in PR231/PR233. The old deployment is not restarted. PR232's twelve
-maps merged at b4f73280ef7406ce46d44f91639d7b4ea1f47372 after exact-head
-Automatic checks/container-smoke SUCCESS and CLEAN state. The storage repair
-PR234 passed its deployment and final live backup/retention audit. PR232's
-main deployment and section live acceptance are now pending.
-The next safe release verification includes both PR230 maps and all twelve from
-PR232, with fifteen pinned bases / sixty sample reads plus the full catalog
-sweep. This fifteen-map batch remains unreleased until its prescribed local,
-independent review, exact-head CI/smoke, CLEAN merge and deployment gates pass.
+This proof includes both PR230 maps and all twelve PR232 additions. The
+independent storage repair PR234 completed deployment and its final live
+backup/retention audit; section release holds are cleared.
 
+This fifteen-map cohort passed the prescribed local audit (zero errors,
+two existing blocked-map warnings), typecheck,2,558 tests across282 files,
+production build and diff check after rebasing onto current main. Independent
+whole-diff review passed: all47 prior maps unchanged and fifteen additions
+exactly equal the reviewed candidates. Exact head5c4720997a24f6f9ed6974516ac721e80189b4bd
+had Automatic checks and container-smoke SUCCESS with CLEAN merge state.
+PR235 merged at d3772ee82e0df057824ffcfede4056c32ae46f23 after PR232's
+complete live proof. Its own main deployment and full live acceptance remain
+pending;60 named served bases is an expected count.
 
-The final integrated fifteen-map draft passed the prescribed local section audit
-(zero errors, two pre-existing blocked-map warnings), typecheck, 2,558 tests across
-282 files and production build. `git diff --check` passed. Independent whole-diff review passed: all 47 previous maps remain unchanged,
-and the fifteen additions exactly equal the corrected reviewed candidates. PR232's first Automatic checks attempt hit the thirty-minute
-job limit during Ubuntu browser-dependency downloads; all preceding checks passed.
-The complete first-attempt log is retained and the single unchanged failed-job retry completed successfully. No assertion
-or timeout was weakened. This fifteen-map branch now uses current main, with
-all reviewed maps unchanged. Fresh exact-head CI and release gates remain
-required before its own merge.
+PR232's first CI attempt timed out during Ubuntu browser-dependency downloads.
+Its complete log and the single successful unchanged retry are retained.
+No assertion or timeout was weakened. Subsequent releases wait for PR235's
+stable commit/health,76 sample reads across19 pins, selected store preservation,
+and the full catalog sweep.

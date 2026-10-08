@@ -37,7 +37,7 @@ atlantic-lights-the-greatest-showman-never-enough-loren-allred-piano-cover-msm02
 avenged-sevenfold-afterlife,true,mapped-partial,16,true,2,false,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 avenged-sevenfold-so-far-away,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 avicii-wake-me-up,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-b-bartok-romanian-folk-dance-no-2-peasant-costume,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+b-bartok-romanian-folk-dance-no-2-peasant-costume,true,mapped-numeric-extent,1,true,0,true,false,,
 bad-romance-midi,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 beatles-hey-jude,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 beethoven-moonlight-sonata,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
@@ -51,7 +51,7 @@ billie-eilish-bury-a-friend,true,estimate-only-unresolved,0,true,2,false,true,,N
 billie-eilish-khalid-lovely,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 billy-joel-piano-man,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 blink-182-all-the-small-things-midi,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-bon-jovi-always,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
+bon-jovi-always,true,mapped-partial,2,true,2,false,true,,Only part of numeric extent is named; unresolved intervals remain estimated.
 bon-jovi-bed-of-roses,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 bonnie-tyler-total-eclipse-of-the-heart,true,mapped-partial,1,true,2,false,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 brahms-opus1-3-format0,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
@@ -189,12 +189,12 @@ j-brahms-brahms-horn-trio,true,mapped-partial,4,true,0,true,false,,Only part of 
 j-brahms-sapphische-ode,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 j-brahms-waltz-no-10,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 j-brahms-waltz-no-15,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-f-f-burgmuller-innocence,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-f-f-burgmuller-l-arabesque,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-f-f-burgmuller-la-candeur,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-f-f-burgmuller-la-pastorale,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-f-f-burgmuller-la-petite-reunion,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-f-f-burgmuller-progres,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+j-f-f-burgmuller-innocence,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+j-f-f-burgmuller-l-arabesque,true,mapped-numeric-extent,1,true,0,true,false,,
+j-f-f-burgmuller-la-candeur,true,mapped-numeric-extent,1,true,0,true,false,,
+j-f-f-burgmuller-la-pastorale,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+j-f-f-burgmuller-la-petite-reunion,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+j-f-f-burgmuller-progres,true,mapped-numeric-extent,1,true,0,true,false,,
 j-field-nocturne,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 j-k-f-fischer-erato-allemande,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-k-f-fischer-erato-praeludium,true,mapped-numeric-extent,1,true,0,true,false,,
@@ -245,7 +245,7 @@ mary-hopkin-those-were-the-days,true,estimate-only-unresolved,0,true,1,false,tru
 massive-attack-teardrop,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 meat-loaf-id-do-anything-for-love,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 metalpiano-sabaton-carolus-rex-piano-cover-mslzxtbj,true,estimate-only-unresolved,0,false,2,false,true,,No substantiated map: base remains estimate-only.; No exact original-source byte match found in inspected retained source/audio paths.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-midi-a-ha-take-on-me-b6dcc3d4,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
+midi-a-ha-take-on-me-b6dcc3d4,true,mapped-partial,1,true,2,false,true,,Only part of numeric extent is named; unresolved intervals remain estimated.
 midi-abba-money-money-money-3b9b521f,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 midi-alan-walker-faded-9be3b1df,true,estimate-only-unresolved,0,true,0,false,false,Could not decode key with 2 flats and mode 161,No substantiated map: base remains estimate-only.; Independent raw MIDI parsing failed; raw bytes and error retained.
 midi-alexander-alexandrov-national-anthem-of-russia-7d10a0db,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
@@ -274,7 +274,7 @@ midi-ludwig-van-beethoven-f-r-elise-43bf2280,true,estimate-only-unresolved,0,tru
 midi-metallica-master-of-puppets-0b4df018,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 midi-metallica-nothing-else-matters-90c0cddf,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 midi-monty-norman-james-bond-theme-b6643ecd,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
-midi-oasis-wonderwall-3aaafa51,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
+midi-oasis-wonderwall-3aaafa51,true,mapped-partial,1,true,2,false,true,,Only part of numeric extent is named; unresolved intervals remain estimated.
 midi-portal-still-alive-480f7740,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 midi-queen-don-t-stop-me-now-1de052c6,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 midi-queen-we-are-the-champions-a9df27e3,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
