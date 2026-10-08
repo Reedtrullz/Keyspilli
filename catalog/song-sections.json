@@ -6264,6 +6264,1661 @@
         "maximumOnsetErrorBeats": 0.05833333333333712,
         "coverage": "first-to-last cue excerpts of complete paragraphs with exact all-track character-time corroboration; releases/full boundaries and discrepant paragraphs unresolved"
       }
+    },
+    {
+      "baseId": "j-s-bach-ermuntre-dich-mein-schwacher-geist",
+      "sourceArtifactHash": "aa1eb3d5952403b37b5c5f2f441b040b73cbff0c3cd1069d1fb3ec88c4b81107",
+      "advancedNotesSha256": "ac649495ea1eddf9c4e2084efb030b8b4c4861d10eb497e02ee8f714a1f71031",
+      "playbackTempoBpm": 70,
+      "sourceFile": "j-s-bach-ermuntre-dich-mein-schwacher-geist.mid",
+      "provenance": "Explicit printed named division Ermuntre dich, mein schwacher Geist in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BachJS/BWV454/bwv_454/bwv_454.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first3/4 RH bar; explicit collection entry only, A/B source comments excluded independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end69.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Ermuntre dich, mein schwacher Geist",
+          "startBeat": 0.0,
+          "endBeat": 69.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BachJS/BWV454/bwv_454/bwv_454.ly",
+        "scoreSha256": "ea39ffd48894df53a64559de9c3a6aa9cf1fa7ae472e05e3428813c240406ee5",
+        "printedHeadingHierarchy": {
+          "title": "Ermuntre dich, mein schwacher Geist",
+          "opus": "Schmellis Gesangbuch, No. 16"
+        },
+        "companionMidiSha256": "aa1eb3d5952403b37b5c5f2f441b040b73cbff0c3cd1069d1fb3ec88c4b81107",
+        "sourceClockReceiptSha256": "3cac7caa16cf9b62bd148ed35bc173def1c91bf657c3a5a118c5c272a64816f5",
+        "distinctOnsetReceiptSha256": "6356bfa230755e2f9cc04267da299fdeb1f70cb3ae97a2d5e693020620496ca4",
+        "landmarkDescription": "complete printed first3/4 RH bar; explicit collection entry only, A/B source comments excluded",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              69
+            ]
+          ],
+          [
+            1,
+            [
+              65
+            ]
+          ],
+          [
+            2,
+            [
+              67
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              69
+            ]
+          ],
+          [
+            1.0,
+            [
+              65
+            ]
+          ],
+          [
+            2.0,
+            [
+              67
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 122,
+        "distinctMatchedRawOnsets": 122,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 69.0,
+        "producerLastNoteEndBeat": 69,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-s-bach-gott-wie-gross-ist-deine-gute",
+      "sourceArtifactHash": "5c12f0a6f778a12dc06d7a37556eb8dea563f95a0d941a18163c4b41d088049b",
+      "advancedNotesSha256": "6915a30f8cf46932a142a368098b8e819ef914a77d9ed36a743fc9451f5e30ae",
+      "playbackTempoBpm": 70,
+      "sourceFile": "j-s-bach-gott-wie-gross-ist-deine-gute.mid",
+      "provenance": "Explicit printed named division Gott, wie gross ist deine Güte in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BachJS/BWV462/bwv_462/bwv_462.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first4/4 RH bar; overallForm/A/B source comments excluded independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end64.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Gott, wie gross ist deine Güte",
+          "startBeat": 0.0,
+          "endBeat": 64.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BachJS/BWV462/bwv_462/bwv_462.ly",
+        "scoreSha256": "fecf8113d5eb256e1773c16b265ac0544f55946b2bf87d108ccb02963258e87f",
+        "printedHeadingHierarchy": {
+          "title": "Gott, wie gross ist deine Güte",
+          "opus": "Schmellis Gesangbuch, No. 26"
+        },
+        "companionMidiSha256": "5c12f0a6f778a12dc06d7a37556eb8dea563f95a0d941a18163c4b41d088049b",
+        "sourceClockReceiptSha256": "3cac7caa16cf9b62bd148ed35bc173def1c91bf657c3a5a118c5c272a64816f5",
+        "distinctOnsetReceiptSha256": "6356bfa230755e2f9cc04267da299fdeb1f70cb3ae97a2d5e693020620496ca4",
+        "landmarkDescription": "complete printed first4/4 RH bar; overallForm/A/B source comments excluded",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              74
+            ]
+          ],
+          [
+            1,
+            [
+              74
+            ]
+          ],
+          [
+            1.5,
+            [
+              72
+            ]
+          ],
+          [
+            2,
+            [
+              72
+            ]
+          ],
+          [
+            3,
+            [
+              72
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              74
+            ]
+          ],
+          [
+            1.0,
+            [
+              74
+            ]
+          ],
+          [
+            1.5,
+            [
+              72
+            ]
+          ],
+          [
+            2.0,
+            [
+              72
+            ]
+          ],
+          [
+            3.0,
+            [
+              72
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 175,
+        "distinctMatchedRawOnsets": 175,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 64.0,
+        "producerLastNoteEndBeat": 64,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "f-f-chopin-trois-nouvelles-etudes-no-1-f-minor",
+      "sourceArtifactHash": "3a307179dc100e220066f775dc72958cdf9a3e86d201982e81d02062752d00c6",
+      "advancedNotesSha256": "86423c096977d993080ad60bbf56e87d81d3804fa345b659ba1ea65198ca053e",
+      "playbackTempoBpm": 100,
+      "sourceFile": "f-f-chopin-trois-nouvelles-etudes-no-1-f-minor.mid",
+      "provenance": "Explicit printed named division Trois Nouvelles Etudes, No. 1 F Minor in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/ChopinFF/B130/TroisNouvellesEtudes_Chopin_n1/TroisNouvellesEtudes_Chopin_n1.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first2/2 triplet RH bar, including its opening rest; LH explicitly rests throughout independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.6666666666666666 to the lesser of raw pitched-note release extent and actual producer note end268.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Trois Nouvelles Etudes, No. 1 F Minor",
+          "startBeat": 0.6666666666666666,
+          "endBeat": 268.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/ChopinFF/B130/TroisNouvellesEtudes_Chopin_n1/TroisNouvellesEtudes_Chopin_n1.ly",
+        "scoreSha256": "aa80beded6f3407afae7366a5f523c987e6cd58694054af7a524f820877835be",
+        "printedHeadingHierarchy": {
+          "title": "Trois Nouvelles Etudes, No. 1 F Minor",
+          "subtitle": "Etudes de Perfection de la Méthode des Méthodes de Moscheles et Fétis"
+        },
+        "companionMidiSha256": "3a307179dc100e220066f775dc72958cdf9a3e86d201982e81d02062752d00c6",
+        "sourceClockReceiptSha256": "3cac7caa16cf9b62bd148ed35bc173def1c91bf657c3a5a118c5c272a64816f5",
+        "distinctOnsetReceiptSha256": "6356bfa230755e2f9cc04267da299fdeb1f70cb3ae97a2d5e693020620496ca4",
+        "landmarkDescription": "complete printed first2/2 triplet RH bar, including its opening rest; LH explicitly rests throughout",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0.6666666666666666,
+            [
+              59
+            ]
+          ],
+          [
+            1.3333333333333333,
+            [
+              60
+            ]
+          ],
+          [
+            2,
+            [
+              61
+            ]
+          ],
+          [
+            2.6666666666666665,
+            [
+              58
+            ]
+          ],
+          [
+            3.3333333333333335,
+            [
+              65
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.6666666666666666,
+            [
+              59
+            ]
+          ],
+          [
+            1.3333333333333333,
+            [
+              60
+            ]
+          ],
+          [
+            2.0,
+            [
+              61
+            ]
+          ],
+          [
+            2.6666666666666665,
+            [
+              58
+            ]
+          ],
+          [
+            3.3333333333333335,
+            [
+              65
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 659,
+        "distinctMatchedRawOnsets": 659,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666671404,
+        "firstPitchedBeat": 0.6666666666666666,
+        "sourcePitchedNoteEndBeat": 268.0,
+        "producerLastNoteEndBeat": 268,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-a-benda-3-satz-aus-der-sonate-in-g-dur",
+      "sourceArtifactHash": "dc8205ec648e788568f743a3850f540edce264b365013c097b0854b46106fcac",
+      "advancedNotesSha256": "17adfadae27a461e6f03782465f4a9b27b965a535e45e417ffec41139a9cabc5",
+      "playbackTempoBpm": 60,
+      "sourceFile": "j-a-benda-3-satz-aus-der-sonate-in-g-dur.mid",
+      "provenance": "Explicit printed named division 3. Satz aus der Sonate in G-Dur in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BendaJA/Benda_SonateG3/Benda_SonateG3.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first2/4 RH bar; literal movement-of-work citation only, no inferred sonata/rondo structure independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end120.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "3. Satz aus der Sonate in G-Dur",
+          "startBeat": 0.0,
+          "endBeat": 120.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BendaJA/Benda_SonateG3/Benda_SonateG3.ly",
+        "scoreSha256": "498dcf2e92a90c95a658330c5a500cf42ba2242ad6bd8b37cd512395a677289f",
+        "printedHeadingHierarchy": {
+          "title": "3. VĔTA ZE SONÁTY G DUR",
+          "subtitle": "3. SATZ AUS DER SONATE IN G-DUR"
+        },
+        "companionMidiSha256": "dc8205ec648e788568f743a3850f540edce264b365013c097b0854b46106fcac",
+        "sourceClockReceiptSha256": "3cac7caa16cf9b62bd148ed35bc173def1c91bf657c3a5a118c5c272a64816f5",
+        "distinctOnsetReceiptSha256": "6356bfa230755e2f9cc04267da299fdeb1f70cb3ae97a2d5e693020620496ca4",
+        "landmarkDescription": "complete printed first2/4 RH bar; literal movement-of-work citation only, no inferred sonata/rondo structure",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              71
+            ]
+          ],
+          [
+            0.5,
+            [
+              74
+            ]
+          ],
+          [
+            0.75,
+            [
+              71
+            ]
+          ],
+          [
+            1,
+            [
+              67
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              71
+            ]
+          ],
+          [
+            0.5,
+            [
+              74
+            ]
+          ],
+          [
+            0.75,
+            [
+              71
+            ]
+          ],
+          [
+            1.0,
+            [
+              67
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 422,
+        "distinctMatchedRawOnsets": 422,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 120.0,
+        "producerLastNoteEndBeat": 120,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-1-1st-movement-allegro",
+      "sourceArtifactHash": "db70c788926524fb75fec6586903ae07e23166c11ac55e0106d97ba80675f75a",
+      "advancedNotesSha256": "c9c4c040c88e372c35004cd78dc27ac747c778c3bf84a43b8c55b44dc415968a",
+      "playbackTempoBpm": 190,
+      "sourceFile": "l-v-beethoven-sonata-no-1-1st-movement-allegro.mid",
+      "provenance": "Explicit printed named division Sonata Op. 2 No. 1, first movement in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_1/LVB_Sonate_02no1_1.ly. The score companion MIDI exactly matches retained source bytes. The complete printed quarter pickup plus first4/4 RH bar; literal movement-of-work citation, not Allegro alone or inferred sonata form independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end606.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Sonata Op. 2 No. 1, first movement",
+          "startBeat": 0.0,
+          "endBeat": 606.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_1/LVB_Sonate_02no1_1.ly",
+        "scoreSha256": "fad9232fd714001284a40aa69daf3323c898fb5f72b2fa4ec801e0ca5fd50893",
+        "printedHeadingHierarchy": {
+          "title": "Piano Sonate Opus 2 No 1 (1st Movement)"
+        },
+        "companionMidiSha256": "db70c788926524fb75fec6586903ae07e23166c11ac55e0106d97ba80675f75a",
+        "sourceClockReceiptSha256": "3cac7caa16cf9b62bd148ed35bc173def1c91bf657c3a5a118c5c272a64816f5",
+        "distinctOnsetReceiptSha256": "6356bfa230755e2f9cc04267da299fdeb1f70cb3ae97a2d5e693020620496ca4",
+        "landmarkDescription": "complete printed quarter pickup plus first4/4 RH bar; literal movement-of-work citation, not Allegro alone or inferred sonata form",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              60
+            ]
+          ],
+          [
+            1,
+            [
+              65
+            ]
+          ],
+          [
+            2,
+            [
+              68
+            ]
+          ],
+          [
+            3,
+            [
+              72
+            ]
+          ],
+          [
+            4,
+            [
+              77
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              60
+            ]
+          ],
+          [
+            1.0,
+            [
+              65
+            ]
+          ],
+          [
+            2.0,
+            [
+              68
+            ]
+          ],
+          [
+            3.0,
+            [
+              72
+            ]
+          ],
+          [
+            4.0,
+            [
+              77
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 1487,
+        "distinctMatchedRawOnsets": 1487,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666685614,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 606.0,
+        "producerLastNoteEndBeat": 606,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-1",
+      "sourceArtifactHash": "9ad9ce80541e03f9bfa5b51352137e0e20f154d81ed04d3db71ace797bf9d6fe",
+      "advancedNotesSha256": "db74ad970768631774f14f9826d37b2ae32f1b81f1655a330b79c49d71363a3f",
+      "playbackTempoBpm": 110,
+      "sourceFile": "a-diabelli-28-melodische-ubungsstucke-no-1.mid",
+      "provenance": "Explicit printed named division 28 melodische Übungsstücke, No. 1 in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DiabelliA/O149/diabeli.op149.1/diabeli.op149.1.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end192.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. It names only the retained four-hand piano collection entry and does not assign internal form to repeat passes. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "28 melodische Übungsstücke, No. 1",
+          "startBeat": 0.0,
+          "endBeat": 192.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DiabelliA/O149/diabeli.op149.1/diabeli.op149.1.ly",
+        "scoreSha256": "d6b3ac08a669b68008b854dab6a30ac356cfe8c45a53673d1df22bc2a9eedb5d",
+        "printedHeadingHierarchy": {
+          "title": "28 melodische Übungsstücke",
+          "subtitle": "1.",
+          "opus": "Op 149"
+        },
+        "companionMidiSha256": "9ad9ce80541e03f9bfa5b51352137e0e20f154d81ed04d3db71ace797bf9d6fe",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              36,
+              55,
+              64,
+              67,
+              72,
+              84
+            ]
+          ],
+          [
+            1,
+            [
+              40
+            ]
+          ],
+          [
+            2,
+            [
+              43,
+              55,
+              59,
+              67,
+              74,
+              86
+            ]
+          ],
+          [
+            3,
+            [
+              31
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              36,
+              55,
+              64,
+              67,
+              72,
+              84
+            ]
+          ],
+          [
+            1.0,
+            [
+              40
+            ]
+          ],
+          [
+            2.0,
+            [
+              43,
+              55,
+              59,
+              67,
+              74,
+              86
+            ]
+          ],
+          [
+            3.0,
+            [
+              31
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 410,
+        "distinctMatchedRawOnsets": 410,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 192.0,
+        "producerLastNoteEndBeat": 192,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-2",
+      "sourceArtifactHash": "81b1d3e31c6e147bffc7fe678ed271e10d7a46b2455b17477fee42bacabe6be2",
+      "advancedNotesSha256": "9dce08b7f1c7eb2302684ea9b237d424c09383889f874c6401b39000f3f362d1",
+      "playbackTempoBpm": 120,
+      "sourceFile": "a-diabelli-28-melodische-ubungsstucke-no-2.mid",
+      "provenance": "Explicit printed named division 28 melodische Übungsstücke, No. 2 in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DiabelliA/O149/diabeli.op149.2/diabeli.op149.2.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end192.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. It names only the retained four-hand piano collection entry and does not assign internal form to repeat passes. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "28 melodische Übungsstücke, No. 2",
+          "startBeat": 0.0,
+          "endBeat": 192.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DiabelliA/O149/diabeli.op149.2/diabeli.op149.2.ly",
+        "scoreSha256": "f7f60498cd69a079024faff55fd81f3ac1fe1b44b8a08e9c92fcceaef40c3cde",
+        "printedHeadingHierarchy": {
+          "title": "28 melodische Übungsstücke",
+          "subtitle": "2.",
+          "opus": "Op 149"
+        },
+        "companionMidiSha256": "81b1d3e31c6e147bffc7fe678ed271e10d7a46b2455b17477fee42bacabe6be2",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              36,
+              67,
+              76,
+              88
+            ]
+          ],
+          [
+            1,
+            [
+              55
+            ]
+          ],
+          [
+            2,
+            [
+              41,
+              67,
+              74,
+              86
+            ]
+          ],
+          [
+            3,
+            [
+              55
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              36,
+              67,
+              76,
+              88
+            ]
+          ],
+          [
+            1.0,
+            [
+              55
+            ]
+          ],
+          [
+            2.0,
+            [
+              41,
+              67,
+              74,
+              86
+            ]
+          ],
+          [
+            3.0,
+            [
+              55
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 407,
+        "distinctMatchedRawOnsets": 407,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 192.0,
+        "producerLastNoteEndBeat": 192,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-3",
+      "sourceArtifactHash": "b625d9a1559b614a99a30f83e9d8c39732a73f8c0c43e454060e0d14ae1fff84",
+      "advancedNotesSha256": "63973e260370210a6bda112895cc1e26e6a8e3c2d32f119baa02caa11ac0bda0",
+      "playbackTempoBpm": 120,
+      "sourceFile": "a-diabelli-28-melodische-ubungsstucke-no-3.mid",
+      "provenance": "Explicit printed named division 28 melodische Übungsstücke, No. 3 in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-3/op149-3.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end176.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. It names only the retained four-hand piano collection entry and does not assign internal form to repeat passes. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "28 melodische Übungsstücke, No. 3",
+          "startBeat": 0.0,
+          "endBeat": 176.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-3/op149-3.ly",
+        "scoreSha256": "88cd76dd5e62a885a43e7bba9c67688e64d951b9b701d0d8555f1faf3c551f3e",
+        "printedHeadingHierarchy": {
+          "title": "28 melodische Übungsstücke",
+          "subtitle": "3.",
+          "opus": "Op 149"
+        },
+        "companionMidiSha256": "b625d9a1559b614a99a30f83e9d8c39732a73f8c0c43e454060e0d14ae1fff84",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              36,
+              52,
+              72,
+              84
+            ]
+          ],
+          [
+            0.5,
+            [
+              55
+            ]
+          ],
+          [
+            1,
+            [
+              60,
+              76,
+              88
+            ]
+          ],
+          [
+            1.5,
+            [
+              55
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              36,
+              52,
+              72,
+              84
+            ]
+          ],
+          [
+            0.5,
+            [
+              55
+            ]
+          ],
+          [
+            1.0,
+            [
+              60,
+              76,
+              88
+            ]
+          ],
+          [
+            1.5,
+            [
+              55
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 517,
+        "distinctMatchedRawOnsets": 517,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.010416666666657193,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 176.0,
+        "producerLastNoteEndBeat": 176,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-4",
+      "sourceArtifactHash": "3e695c28acdcbd54890d694114a5efbecffd25fbbc937ee9a5741ec684659c1f",
+      "advancedNotesSha256": "4452e1ce9323858df4953d5f9c9e67a8284435c3e4dfec8550beec053a045b5d",
+      "playbackTempoBpm": 120,
+      "sourceFile": "a-diabelli-28-melodische-ubungsstucke-no-4.mid",
+      "provenance": "Explicit printed named division 28 melodische Übungsstücke, No. 4 in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-4/op149-4.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end159.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. It names only the retained four-hand piano collection entry and does not assign internal form to repeat passes. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "28 melodische Übungsstücke, No. 4",
+          "startBeat": 0.0,
+          "endBeat": 159.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-4/op149-4.ly",
+        "scoreSha256": "c518c42e02ed2689e4c87b5e62919309fd11ade79444b63787d443fa673ba852",
+        "printedHeadingHierarchy": {
+          "title": "28 melodische Übungsstücke",
+          "subtitle": "4.",
+          "opus": "Op 149"
+        },
+        "companionMidiSha256": "3e695c28acdcbd54890d694114a5efbecffd25fbbc937ee9a5741ec684659c1f",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              48,
+              60,
+              64,
+              72,
+              76,
+              84
+            ]
+          ],
+          [
+            0.5,
+            [
+              86
+            ]
+          ],
+          [
+            1,
+            [
+              55,
+              88
+            ]
+          ],
+          [
+            1.5,
+            [
+              86
+            ]
+          ],
+          [
+            2,
+            [
+              60,
+              64,
+              84
+            ]
+          ],
+          [
+            2.5,
+            [
+              86
+            ]
+          ],
+          [
+            3,
+            [
+              55,
+              88
+            ]
+          ],
+          [
+            3.5,
+            [
+              89
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              48,
+              60,
+              64,
+              72,
+              76,
+              84
+            ]
+          ],
+          [
+            0.5,
+            [
+              86
+            ]
+          ],
+          [
+            1.0,
+            [
+              55,
+              88
+            ]
+          ],
+          [
+            1.5,
+            [
+              86
+            ]
+          ],
+          [
+            2.0,
+            [
+              60,
+              64,
+              84
+            ]
+          ],
+          [
+            2.5,
+            [
+              86
+            ]
+          ],
+          [
+            3.0,
+            [
+              55,
+              88
+            ]
+          ],
+          [
+            3.5,
+            [
+              89
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 477,
+        "distinctMatchedRawOnsets": 477,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 159.0,
+        "producerLastNoteEndBeat": 159,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-5",
+      "sourceArtifactHash": "6d217596cc6ecb1d20e9779621e939b6a5a13641f9daa25dd7c5109d3c7665f1",
+      "advancedNotesSha256": "4c8b0cc28c2b58dffd8bcb64f4fe8b7ea9f7783d41c9d4d40f38200b8246d15f",
+      "playbackTempoBpm": 120,
+      "sourceFile": "a-diabelli-28-melodische-ubungsstucke-no-5.mid",
+      "provenance": "Explicit printed named division 28 melodische Übungsstücke, No. 5 in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-5/op149-5.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end132.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. It names only the retained four-hand piano collection entry and does not assign internal form to repeat passes. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "28 melodische Übungsstücke, No. 5",
+          "startBeat": 0.0,
+          "endBeat": 132.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-5/op149-5.ly",
+        "scoreSha256": "b8ecc48af17392952a7bdd7367e236f88cf7ec5a3d8123007a7a1fdb5c87760f",
+        "printedHeadingHierarchy": {
+          "title": "28 melodische Übungsstücke",
+          "subtitle": "5.",
+          "opus": "Op 149"
+        },
+        "companionMidiSha256": "6d217596cc6ecb1d20e9779621e939b6a5a13641f9daa25dd7c5109d3c7665f1",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              48,
+              60,
+              76,
+              88
+            ]
+          ],
+          [
+            0.5,
+            [
+              64
+            ]
+          ],
+          [
+            1,
+            [
+              67
+            ]
+          ],
+          [
+            1.5,
+            [
+              52,
+              60,
+              79,
+              91
+            ]
+          ],
+          [
+            2,
+            [
+              64,
+              77,
+              89
+            ]
+          ],
+          [
+            2.5,
+            [
+              67,
+              76,
+              88
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              48,
+              60,
+              76,
+              88
+            ]
+          ],
+          [
+            0.5,
+            [
+              64
+            ]
+          ],
+          [
+            1.0,
+            [
+              67
+            ]
+          ],
+          [
+            1.5,
+            [
+              52,
+              60,
+              79,
+              91
+            ]
+          ],
+          [
+            2.0,
+            [
+              64,
+              77,
+              89
+            ]
+          ],
+          [
+            2.5,
+            [
+              67,
+              76,
+              88
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 460,
+        "distinctMatchedRawOnsets": 460,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 132.0,
+        "producerLastNoteEndBeat": 132,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "a-diabelli-28-melodische-ubungsstucke-no-8",
+      "sourceArtifactHash": "d66e23a9863871a2539449738f32d554f3cc56d9f87eea64debda0575ef5099f",
+      "advancedNotesSha256": "7a607aad90392f866fe35cc2a2585cdbd16a8f41610b4ef0656bfdf1bd6869c8",
+      "playbackTempoBpm": 120,
+      "sourceFile": "a-diabelli-28-melodische-ubungsstucke-no-8.mid",
+      "provenance": "Explicit printed named division 28 melodische Übungsstücke, No. 8 in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-8/op149-8.ly. The score companion MIDI exactly matches retained source bytes. The complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end180.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. It names only the retained four-hand piano collection entry and does not assign internal form to repeat passes. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "28 melodische Übungsstücke, No. 8",
+          "startBeat": 0.0,
+          "endBeat": 180.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/DiabelliA/O149/op149-8/op149-8.ly",
+        "scoreSha256": "1000f62a1224c84b719b34ea7d3766c75cd5a69c2a942ddf9a972eb2c6c094c3",
+        "printedHeadingHierarchy": {
+          "title": "28 melodische Übungsstücke",
+          "subtitle": "8.",
+          "opus": "Op 149"
+        },
+        "companionMidiSha256": "d66e23a9863871a2539449738f32d554f3cc56d9f87eea64debda0575ef5099f",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete printed first bar across all four Primo/Secondo voices; sounding relative pitches retained, octave notation does not add a new transposition",
+        "openingScope": "all",
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              43,
+              55,
+              71,
+              83
+            ]
+          ],
+          [
+            0.5,
+            [
+              62
+            ]
+          ],
+          [
+            1,
+            [
+              57,
+              72,
+              84
+            ]
+          ],
+          [
+            1.5,
+            [
+              62
+            ]
+          ],
+          [
+            2,
+            [
+              59,
+              74,
+              86
+            ]
+          ],
+          [
+            2.5,
+            [
+              62
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              43,
+              55,
+              71,
+              83
+            ]
+          ],
+          [
+            0.5,
+            [
+              62
+            ]
+          ],
+          [
+            1.0,
+            [
+              57,
+              72,
+              84
+            ]
+          ],
+          [
+            1.5,
+            [
+              62
+            ]
+          ],
+          [
+            2.0,
+            [
+              59,
+              74,
+              86
+            ]
+          ],
+          [
+            2.5,
+            [
+              62
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 444,
+        "distinctMatchedRawOnsets": 444,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 180.0,
+        "producerLastNoteEndBeat": 180,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-1-4th-movement-prestissimo",
+      "sourceArtifactHash": "0657fbc873711d6a22761be2fc19df3fe338f61cbd37806a4314017badb5bf07",
+      "advancedNotesSha256": "300da0830c7303c536a6786ee81178dc7e4d1445ae3e4a3ef36252a4707d1426",
+      "playbackTempoBpm": 180,
+      "sourceFile": "l-v-beethoven-sonata-no-1-4th-movement-prestissimo.mid",
+      "provenance": "Explicit printed named division Sonata Op. 2 No. 1, fourth movement in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_4/LVB_Sonate_02no1_4.ly. The score companion MIDI exactly matches retained source bytes. The complete first4/4 RH bar, including opening half rest; explicit movement citation only independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end789.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Sonata Op. 2 No. 1, fourth movement",
+          "startBeat": 0.0,
+          "endBeat": 789.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_4/LVB_Sonate_02no1_4.ly",
+        "scoreSha256": "cba5fbfca8d2ecf6d3e456cc089f687828b5172dda170f5eedecabf75e44a893",
+        "printedHeadingHierarchy": {
+          "title": "Piano Sonate Opus 2 No 1 (4th Movement)"
+        },
+        "companionMidiSha256": "0657fbc873711d6a22761be2fc19df3fe338f61cbd37806a4314017badb5bf07",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete first4/4 RH bar, including opening half rest; explicit movement citation only",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            2,
+            [
+              65,
+              68,
+              72,
+              77
+            ]
+          ],
+          [
+            3,
+            [
+              64,
+              67,
+              70,
+              73,
+              76
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            2.0,
+            [
+              65,
+              68,
+              72,
+              77
+            ]
+          ],
+          [
+            3.0,
+            [
+              64,
+              67,
+              70,
+              73,
+              76
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 2888,
+        "distinctMatchedRawOnsets": 2888,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666685614,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 789.0,
+        "producerLastNoteEndBeat": 789,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b",
+      "sourceArtifactHash": "cabc8de6a267d8dc16bd9baed7d924c58c637b0147196a3d252a925fc6e5dcf9",
+      "advancedNotesSha256": "41fafa38d470cc9e81c0012f286fac67958361a2065115bee57472742295c657",
+      "playbackTempoBpm": 164,
+      "sourceFile": "l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b.mid",
+      "provenance": "Explicit printed named division Sonata Op. 10 No. 1, first movement in the larger work/collection hierarchy at https://www.mutopiaproject.org/ftp/BeethovenLv/O10/LVB_Sonate_10no1_1/LVB_Sonate_10no1_1.ly. The score companion MIDI exactly matches retained source bytes. The complete first3/4 RH bar, including dotted-quarter chord and sixteenth rest; explicit movement citation only independently matches source pitches/onsets, and every actual producer pitched onset matches a distinct raw source attack within1/16 beat. The interval follows retained encoded traversal only; no unencoded repeat or D.C./D.S. occurrence invented, from first pitched beat0.0 to the lesser of raw pitched-note release extent and actual producer note end847.0. The heading names the printed collection piece or division; it establishes no internal Verse/Chorus or other inferred form subdivisions. Leading silence and any padded tail remain estimated. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-named-division",
+          "label": "Sonata Op. 10 No. 1, first movement",
+          "startBeat": 0.0,
+          "endBeat": 847.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-division-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening landmark and independent distinct producer pitch/onset correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BeethovenLv/O10/LVB_Sonate_10no1_1/LVB_Sonate_10no1_1.ly",
+        "scoreSha256": "e39acf023308ce1ad500804a6858cb233e9c12babdffbb8aa45d6cf65fbee046",
+        "printedHeadingHierarchy": {
+          "title": "Sonate Opus 10 No.1 - 1st Movement"
+        },
+        "companionMidiSha256": "cabc8de6a267d8dc16bd9baed7d924c58c637b0147196a3d252a925fc6e5dcf9",
+        "sourceClockReceiptSha256": "b4b0f57d3bf2b84ff087f43d4c7c6abe60f1bfd9b6441e6218582260db491a38",
+        "distinctOnsetReceiptSha256": "88fa83d3c5b8a339c7fb904c50ae1400da6230fdbb9afdcb2b6557d451a21e13",
+        "landmarkDescription": "complete first3/4 RH bar, including dotted-quarter chord and sixteenth rest; explicit movement citation only",
+        "openingScope": 1,
+        "nominalPrintedOpening": [
+          [
+            0,
+            [
+              63,
+              67,
+              72
+            ]
+          ],
+          [
+            1.75,
+            [
+              67
+            ]
+          ],
+          [
+            2,
+            [
+              75
+            ]
+          ],
+          [
+            2.75,
+            [
+              72
+            ]
+          ]
+        ],
+        "sourceOpening": [
+          [
+            0.0,
+            [
+              63,
+              67,
+              72
+            ]
+          ],
+          [
+            1.75,
+            [
+              67
+            ]
+          ],
+          [
+            2.0,
+            [
+              75
+            ]
+          ],
+          [
+            2.75,
+            [
+              72
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 1909,
+        "distinctMatchedRawOnsets": 1909,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.05989583333333215,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedNoteEndBeat": 847.0,
+        "producerLastNoteEndBeat": 847,
+        "coverage": "whole explicitly named printed division on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "f-j-haydn-sonate-i-i-allegro-con-brio",
+      "sourceArtifactHash": "2f1eb6005ff4d15b39791df25612c574b02c9dd40865781c8919cd946f3e1e24",
+      "advancedNotesSha256": "41231916581f555dc25b7ed9eaec4bc2f4b3aebd07ca2cd4fe8e1b5995993b1e",
+      "playbackTempoBpm": 120,
+      "sourceFile": "f-j-haydn-sonate-i-i-allegro-con-brio.mid",
+      "provenance": "Literal printed hierarchy 6 Sonate1776 / Sonata I / I–Allegro con brio identifies the first movement within that collection. Its complete RH eighth pickup and first2/4 principal-note bar D4-G4-A4-B4-C5 match the complete retained track1 prefix with the fixed onsets and durations within1/64 beat. The two printed turn commands remain nondurational; no ornament attack is synthesized. Score: https://www.mutopiaproject.org/ftp/HaydnFJ/HOB-XVI-27/hob-xvi-27-i-allegro-con-brio/hob-xvi-27-i-allegro-con-brio.ly. Its companion MIDI exactly matches retained source bytes. Every actual producer pitched attack independently matches a distinct raw source pitch/onset within1/16 quarter beat, preserving multiplicity. Neither score uses unfoldRepeats; the map follows the single traversal encoded in the retained MIDI and invents no volta performance. The named extent ends at the shared raw pitched and actual producer note endpoint285.5; any preceding interval or padded producer tail remains estimated. Chart evidence, not FF06/FF07 form markers, recording timestamps, source authority or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-first-movement",
+          "label": "6 Sonate 1776 — Sonata I, first movement",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0,
+          "endBeat": 285.5
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-explicit-movement-citation-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source byte identity, complete independently reviewed printed landmark and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not musical probability or acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/HaydnFJ/HOB-XVI-27/hob-xvi-27-i-allegro-con-brio/hob-xvi-27-i-allegro-con-brio.ly",
+        "scoreSha256": "5d0a95f3667f72821f069b03189da9a6fdfd326fb1adb86b0bb12f838fdf7c94",
+        "companionMidiSha256": "2f1eb6005ff4d15b39791df25612c574b02c9dd40865781c8919cd946f3e1e24",
+        "fixedSpecsSha256": "b42b7f37ed3aa34d8a26129a6a5498085e756e9bf72eced63c62ca5e52751c20",
+        "sourceCorrespondenceReceiptSha256": "ad7829553df50814e7968f6a8951fcd549fe941f3b7775f4885bd7be93c06c40",
+        "completePrintedLandmark": [
+          [
+            0,
+            62,
+            0.5
+          ],
+          [
+            0.5,
+            67,
+            0.75
+          ],
+          [
+            1.25,
+            69,
+            0.25
+          ],
+          [
+            1.5,
+            71,
+            0.75
+          ],
+          [
+            2.25,
+            72,
+            0.25
+          ]
+        ],
+        "sourceTrack": 1,
+        "distinctProducerAttacks": 1352,
+        "distinctSourceAttacksUsed": 1352,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.04166666666666785,
+        "sourcePitchedEndBeat": 285.5,
+        "producerLastNoteEndBeat": 285.5,
+        "coverage": "explicit named movement on encoded traversal only; preceding spans and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-andre-sonatine",
+      "sourceArtifactHash": "24f853db9d13d5db864f59a5876ae7bdf02ef2c5a6e17907d0844bf5c8b8d006",
+      "advancedNotesSha256": "47ab46898c0ba0c867fc19b785e76b5aa8633f1b502325312ed66a1ee6a89b8d",
+      "playbackTempoBpm": 104,
+      "sourceFile": "j-andre-sonatine.mid",
+      "provenance": "The literal internal Rondo annotation sits on the2/4 pickup in VoiceI. A bounded duration-only reader independently counts the preceding two printed volta blocks once as32+64 quarter beats, preserving inherited durations, rests, chords, dots and ties while skipping only nondurational markup/accent notation. The printed measurePosition -1/4 supplies a one-quarter pickup, without shifting elapsed time. The computed beat96 independently equals the raw MIDI2/4 transition. The complete RH pickup plus first full2/4 bar C5-B4-C5-D5-D5-B4-C5-D5-B4 matches one complete retained track1 window at96..99 with all fixed pitches, onsets and durations within1/64 beat. Score: https://www.mutopiaproject.org/ftp/AndreJ/O34/andre-sonatine/andre-sonatine.ly. Its companion MIDI exactly matches retained source bytes. Every actual producer pitched attack independently matches a distinct raw source pitch/onset within1/16 quarter beat, preserving multiplicity. Neither score uses unfoldRepeats; the map follows the single traversal encoded in the retained MIDI and invents no volta performance. The named extent ends at the shared raw pitched and actual producer note endpoint166.0; any preceding interval or padded producer tail remains estimated. Chart evidence, not FF06/FF07 form markers, recording timestamps, source authority or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-internal-rondo-movement",
+          "label": "Rondo",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 96,
+          "endBeat": 166.0
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-internal-annotation-with-prior-duration-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source byte identity, complete independently reviewed printed landmark and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not musical probability or acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/AndreJ/O34/andre-sonatine/andre-sonatine.ly",
+        "scoreSha256": "4e1f220260567793d7a948b7ab7fed1b73271703aa5b63f6c81e1e9af9e33696",
+        "companionMidiSha256": "24f853db9d13d5db864f59a5876ae7bdf02ef2c5a6e17907d0844bf5c8b8d006",
+        "fixedSpecsSha256": "b42b7f37ed3aa34d8a26129a6a5498085e756e9bf72eced63c62ca5e52751c20",
+        "sourceCorrespondenceReceiptSha256": "ad7829553df50814e7968f6a8951fcd549fe941f3b7775f4885bd7be93c06c40",
+        "completePrintedLandmark": [
+          [
+            96,
+            72,
+            0.5
+          ],
+          [
+            96.5,
+            71,
+            0.25
+          ],
+          [
+            96.75,
+            72,
+            0.25
+          ],
+          [
+            97,
+            74,
+            0.5
+          ],
+          [
+            97.5,
+            74,
+            0.5
+          ],
+          [
+            98,
+            71,
+            0.25
+          ],
+          [
+            98.25,
+            72,
+            0.25
+          ],
+          [
+            98.5,
+            74,
+            0.25
+          ],
+          [
+            98.75,
+            71,
+            0.25
+          ]
+        ],
+        "sourceTrack": 1,
+        "distinctProducerAttacks": 528,
+        "distinctSourceAttacksUsed": 528,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "sourcePitchedEndBeat": 166.0,
+        "producerLastNoteEndBeat": 166,
+        "coverage": "explicit named movement on encoded traversal only; preceding spans and padded tail excluded",
+        "priorDurationReceiptSha256": "a260a040916439086a889920ed00c5840e869176cf676497e718b37ac2983543",
+        "precedingWrittenBlocksQuarterBeats": [
+          32,
+          64
+        ],
+        "rondoPickupBeat": 96,
+        "rawMeterTransition": [
+          96,
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "baseId": "s-adams-the-blue-alsatian-mountains",
+      "sourceArtifactHash": "485964453a4b0af07b872f341fea034d72d6fbbf974bc1673d0a65e242f55e45",
+      "advancedNotesSha256": "9738f5de9b249583a2b6d7cd6b95fe33621f2262b707faca22a8e8cd33898d36",
+      "playbackTempoBpm": 120,
+      "sourceFile": "s-adams-the-blue-alsatian-mountains.mid",
+      "provenance": "The exact printed score https://www.mutopiaproject.org/ftp/AdamsS/bluemtns/bluemtns.ly explicitly links complete textA/textB/textC underlays to numbered stanzas1,2,3 on the same mel voice. A separately prespecified strict UTF8 reader consumes all three complete13-line bodies (313/304/309 normalized characters), exactly94 raw FF05 cues on each fixed track4/5/6, all282 cues one-to-one without dropped duplicates or partial words. Printed syllable joins and extenders are nondurational lyric syntax; each single underscore consumes its actual raw single-space placeholder cue, including track5 at99 and track6 at52. Every raw text cue is decoded as strict UTF8 before normalization; no replacement, fallback encoding or word repair is used. All three94-position source-quarter-beat vectors exactly agree from4 to156 with zero tolerance. These are parallel printed alternatives, not sequential performed verse occurrences. The generic Stanzas1–3 lyric excerpt runs from first to last cue only; leading0..4, later intervals, releases and full stanza boundaries remain estimated. The companion MIDI exactly matches retained source bytes and all374 actual producer attacks independently match distinct raw source pitches/onsets with zero maximum error. Original default-decoding full-stanza and50-character prefix failures remain unchanged and were not rerun. Chart evidence, not FF06/FF07 form markers, recording timestamps, source authority or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-complete-parallel-stanza-lyric-excerpt",
+          "label": "Stanzas 1–3 lyric excerpt",
+          "type": "verse",
+          "evidence": "chart",
+          "startBeat": 4,
+          "endBeat": 156
+        }
+      ],
+      "alignment": {
+        "strategy": "complete-strict-utf8-parallel-numbered-underlays-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Complete independently reviewed printed underlays, strict UTF8 one-to-one consumption of every raw cue/placeholder, exact parallel beat vectors, exact companion/source byte identity and full distinct producer correspondence; uncalibrated correspondence, not performed verse order, full boundary confidence or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/AdamsS/bluemtns/bluemtns.ly",
+        "scoreSha256": "231036c7c0df3abd2219fbd5feb8b8c217597fc881880a6614355c7ebb8c24cd",
+        "companionMidiSha256": "485964453a4b0af07b872f341fea034d72d6fbbf974bc1673d0a65e242f55e45",
+        "printedUnderlaySha256": "24bb62622b60b409219182c5daf3e1755294e69e18dd0096f893ad27f5825c20",
+        "sourceTrialReceiptSha256": "01194d33c6d7d921cfd123913c4f3aace9feed80f31334cded9458b8a8cfba01",
+        "printedStanzas": [
+          1,
+          2,
+          3
+        ],
+        "sourceLyricTracks": [
+          4,
+          5,
+          6
+        ],
+        "completePrintedLinesPerStanza": [
+          13,
+          13,
+          13
+        ],
+        "completeCharactersPerStanza": [
+          313,
+          304,
+          309
+        ],
+        "rawCuesPerTrack": [
+          94,
+          94,
+          94
+        ],
+        "rawCuesConsumedOnce": 282,
+        "rawTextEncoding": "strict UTF8, no fallback",
+        "placeholderCueBeats": {
+          "track5": 99,
+          "track6": 52
+        },
+        "parallelTimingToleranceBeats": 0,
+        "distinctProducerAttacks": 374,
+        "distinctSourceAttacksUsed": 374,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0,
+        "coverage": "shared first-to-last lyric cue excerpt of three complete parallel printed underlays only; performed order, releases and full stanza boundaries unresolved"
+      }
     }
   ]
 }

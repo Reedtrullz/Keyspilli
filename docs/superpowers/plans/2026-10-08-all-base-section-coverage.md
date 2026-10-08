@@ -73,33 +73,35 @@
 
 ## Evidence status, 2026-10-08
 
-Every stored base has an acquisition/source disposition; this is not completed
-naming. PR226 through PR229 and PR232 are merged, deployed and live-verified.
-Latest complete section proof is b4f73280ef7406ce46d44f91639d7b4ea1f47372:
-1,764 variants /441 bases /45 named bases, zero numbered labels/errors,
-60 sample reads across15 source/note/tempo pins, stable healthy containers
-and unchanged selected store fields. That proof includes PR230's two maps,
-whose earlier deployment was superseded by the storage repair.
-PR234 completed its independent deployment and backup/retention audit.
+PR226 through PR229, PR232 and PR235 are merged, deployed and live-verified.
+Latest complete proof d3772ee82e0df057824ffcfede4056c32ae46f23 has1,764variants/
+441bases/60named served bases, zero numbered labels/errors,76samples across
+19 source/note/tempo pins, stable healthy containers and selected store fields
+preserved. PR232's proof includes the superseded PR230 deployment scope.
+The independent storage repair PR234 completed deployment/backup-retention audit.
 
-PR235's fifteen named divisions merged after refreshed local gates,
-independent review, exact-head Automatic checks/container-smoke SUCCESS and
-CLEAN state. Merge commit d3772ee82e0df057824ffcfede4056c32ae46f23 has its
-own main/live verification pending;62 stored /60 served maps is expected.
-See `docs/research/2026-10-08-section-named-division-followup.md`.
+PR236's ten maps merged at06d713b3fd8d6249af66209de735451fbdd879e4 after
+local/independent review, exact-head Automatic checks/container-smoke SUCCESS
+and CLEAN state plus PR235's complete proof. Its own main/live acceptance
+is pending:72stored/70served maps is expected.
 
-The following ten-map cohort is rebased onto this actual main, with reviewed
-maps unchanged. It has72 stored /70 served maps expected,383 stored /371 served
-bases unmapped. Its original local/whole-diff gates passed; fresh local audit/typecheck/
-2,558 tests/production build/diff checks also passed on current main.
-Fresh whole-diff review and exact-head CI/smoke are required. Merge waits for PR235's full live proof. See
-`docs/research/2026-10-08-section-collection-karaoke-followup.md`.
+PR237 follows on actual main with16 reviewed candidates: thirteen original
+collection/movement citations, two Haydn/André annotations and Adams' separately
+frozen complete strict-UTF8 parallel numbered-underlay excerpt.88stored/
+86served is expected;367stored/355served bases remain unmapped. All72 preceding
+maps remain unchanged. Original13/15local and whole-diff gates plus the new
+Adams candidate review pass. Fresh final16-map local audit/typecheck/
+2,558tests/build/diff checks pass; refreshed whole-diff, exact-head CI/smoke
+and predecessor proof remain required. See `docs/research/2026-10-08-section-indexed-collection-movement-followup.md`.
 
-Broader evidence includes234 captured UG-chart bases in the original cohorts,
-227 harmony trials,108 byte-matched scores and418 original-source byte matches:
-403 MIDI files (401 parsed and two retained parse errors), two MusicXML
-and13 audio/video originals. Two raw MIDI parse
-failures,37 unfound original sources and all rejected/ambiguous studies remain
-unresolved. Source acquisition or rejection completes no base's naming.
-Further substantiated cohorts and the remaining evidence requirements continue
-under Task4; catalog-wide naming remains incomplete.
+Broader evidence includes235 captured UG-chart bases,227harmony trials,
+108byte-matched scores and418original byte matches:403MIDI files
+(401parsed/two retained parse errors), two MusicXML and13audio/video.
+A read-only scan of581primary local music assets finds zero additional
+original matches for the37unfound bases. Source acquisition/rejection
+completes no naming. Gerudo's initial result is invalid due to an origin
+checker defect; control-only repair admits no map and its source trial
+is not retried. Kokiri/As Time Goes By/triad/Åse/public-score failures remain
+unaccepted. Adams' earlier failed studies remain unchanged; the new complete
+parallel UTF8 study accounts for all282cues without omissions or fallback.
+Naming across all bases remains incomplete; Task4 continues.

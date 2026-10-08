@@ -125,3 +125,14 @@ Its complete log and the single successful unchanged retry are retained.
 No assertion or timeout was weakened. Subsequent releases wait for PR235's
 stable commit/health,76 sample reads across19 pins, selected store preservation,
 and the full catalog sweep.
+
+## Verified release addendum
+
+PR235 completed its main deployment and full live proof at
+d3772ee82e0df057824ffcfede4056c32ae46f23:60named served bases,1,764variants/
+441bases,76samples/19pins, zero numbered labels/read errors, both containers
+stable healthy and selected store fields preserved. PR236 merged at
+06d713b3fd8d6249af66209de735451fbdd879e4 after exact-head CI/smoke SUCCESS/
+CLEAN and that proof. Its own main/live acceptance is pending;70named served
+bases remains expected. The prior pending-state paragraphs record their
+publication-time evidence and are superseded by this addendum.

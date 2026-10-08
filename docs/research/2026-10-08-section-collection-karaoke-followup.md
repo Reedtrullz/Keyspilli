@@ -114,3 +114,14 @@ Refreshed whole-diff review and exact-head CI/smoke remain required. Merge waits
 70 named served bases remains a candidate count until this batch deploys and
 passes its13-pin/52-sample verification, selected store-field preservation and
 full1,764-variant/441-base label sweep.
+
+## Verified release addendum
+
+PR235 completed its main deployment and full live proof at
+d3772ee82e0df057824ffcfede4056c32ae46f23:60named served bases,1,764variants/
+441bases,76samples/19pins, zero numbered labels/read errors, both containers
+stable healthy and selected store fields preserved. PR236 merged at
+06d713b3fd8d6249af66209de735451fbdd879e4 after exact-head CI/smoke SUCCESS/
+CLEAN and that proof. Its own main/live acceptance is pending;70named served
+bases remains expected. The prior pending-state paragraphs record their
+publication-time evidence and are superseded by this addendum.
