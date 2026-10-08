@@ -88,6 +88,10 @@ with open(manifest, "w", encoding="utf-8") as stream:
     stream.write("\n")
 PY
 
+# Use the restore tool's member/type boundary before publishing any payload.
+# A failed verification removes only this operation's temporary files.
+python3 "$POLICY" verify --lock-held --manifest "$manifest_tmp"
+
 # Flush payloads before publication; retirement must not outrun durable data.
 python3 - "$db_tmp" "$archive_tmp" "$manifest_tmp" <<'PY'
 import os, sys
@@ -115,9 +119,5 @@ sync_directory
 ln "$manifest_tmp" "$BACKUP_DIR/backup-manifest-$STAMP.json"
 rm "$manifest_tmp"
 sync_directory
-
-# Re-verify the published cohort before permitting retention. This data-only
-# path runs under the host runner's flock (or an isolated fixture directory).
-python3 "$POLICY" verify --lock-held --manifest "$BACKUP_DIR/backup-manifest-$STAMP.json"
 
 echo "backup complete: $BACKUP_DIR ($STAMP)"

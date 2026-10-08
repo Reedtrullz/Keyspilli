@@ -223,6 +223,29 @@ def test_runner_timeout_cleans_named_container_and_unpauses() -> None:
         print("  PASS: timeout cleans the named backup container and releases pauses")
 
 
+def test_unrestorable_source_links_fail_before_publication() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        result, backups, _log = run_runner(root)
+        assert result.returncode == 0, result.stdout + result.stderr
+        time.sleep(1.1)
+        result, backups, _log = run_runner(root)
+        assert result.returncode == 0, result.stdout + result.stderr
+        kept = {p.name: p.read_bytes() for p in backups.iterdir()}
+        outside = root / "outside-source"
+        outside.write_text("preserve")
+        (root / "data/artifacts/link").symlink_to(outside)
+        time.sleep(1.1)
+        result, backups, log = run_runner(root)
+        assert result.returncode != 0
+        assert "unsafe archive member" in result.stdout
+        assert {p.name: p.read_bytes() for p in backups.iterdir()} == kept
+        assert not list(backups.glob(".keyspilli-backup-*"))
+        assert outside.read_text() == "preserve"
+        assert sum(line.startswith("unpause ") for line in log.read_text().splitlines()) == 2
+        print("  PASS: unrestorable links fail before publication, preserve two good cohorts and resume writers")
+
+
 def test_runner_returns_failure_when_unpause_fails() -> None:
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
@@ -354,6 +377,7 @@ if __name__ == "__main__":
     test_runner_unpauses_only_containers_paused_by_this_run()
     test_runner_failure_has_no_manifest_and_unpauses()
     test_runner_timeout_cleans_named_container_and_unpauses()
+    test_unrestorable_source_links_fail_before_publication()
     test_runner_returns_failure_when_unpause_fails()
     test_runner_returns_failure_when_container_cleanup_fails()
     test_retention_rejects_traversal_manifest_paths()
