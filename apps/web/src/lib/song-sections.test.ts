@@ -82,4 +82,14 @@ describe("song sections",()=>{
    }
   }
  });
+ it("overlays only Help's chart Intro and keeps its remaining form estimated",()=>{
+  const help=sourceMaps.entries.find(map=>map.baseId==="the-beatles-help")!;
+  const pinned=help.advancedNotesSha256;
+  const helpData:SongData={...data,tempoBpm:173,sourceFingerprint:`variant:the-beatles-help:a:the-beatles-help-a:${help.sourceArtifactHash}:notes:${pinned}`};
+  const sections=resolveSongSections({baseId:"the-beatles-help"},helpData,help.sourceArtifactHash);
+  expect(sections[0]).toMatchObject({label:"Intro",startBeat:0,endBeat:32,evidence:"chart"});
+  expect(sections.slice(1).every(section=>section.evidence==="estimated")).toBe(true);
+  expect(sections.at(-1)?.endBeat).toBe(64);
+  expect(resolveSongSections({baseId:"the-beatles-help"},{...helpData,sourceFingerprint:`variant:notes:${"d".repeat(64)}`},help.sourceArtifactHash).every(section=>section.evidence==="estimated")).toBe(true);
+ });
 });

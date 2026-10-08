@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseMidi } from "@keyspilli/midi";
 
 type Evidence = "source" | "chart" | "estimated";
@@ -48,6 +48,17 @@ interface LedgerRow {
 
 const VALID_EVIDENCE = new Set<string>(["source", "chart", "estimated"]);
 const HEX64 = /^[0-9a-f]{64}$/;
+
+export function ugCandidateIds(songs: Array<{id:string;title?:string;artist?:string;source?:string}>, ug: Array<{artist?:string;song?:string}>): Set<string> {
+  const slug = (value:string) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  const key = (artist:string,title:string) => slug(artist)+":"+slug(title);
+  const identities = new Set(ug.filter(row=>row.artist&&row.song).map(row=>key(row.artist!,row.song!)));
+  const ids = new Set(ug.filter(row=>row.artist&&row.song).map(row=>slug(row.artist!+" "+row.song!)));
+  for (const song of songs) {
+    if (song.source === "ug-tabs" || (song.artist && song.title && identities.has(key(song.artist,song.title)))) ids.add(song.id);
+  }
+  return ids;
+}
 
 function repoRoot(): string {
   // scripts/ -> packages/catalog -> packages -> repository root
@@ -133,7 +144,7 @@ function main(): number {
   const entries = mapDoc?.entries || [];
   if (!mapDoc) warnings.push("catalog/song-sections.json missing or unreadable");
 
-  const manifest = readJson<{ songs?: Array<{ id: string; disabled?: boolean; source?: string }> }>(
+  const manifest = readJson<{ songs?: Array<{ id: string; disabled?: boolean; source?: string; title?:string; artist?:string }> }>(
     join(root, "catalog/manifest.json"),
   );
   const learner = readJson<{ verdicts?: Record<string, { blocked?: boolean }> }>(
@@ -173,7 +184,7 @@ function main(): number {
     }
   }
 
-  const ugList = ug ? new Set(ug.map((row) => (row.song || "").toLowerCase())) : new Set<string>();
+  const ugList = ugCandidateIds(manifest?.songs ?? [], ug ?? []);
   const rows: LedgerRow[] = [];
   for (const baseId of [...known].sort()) {
     const entry = mapped.get(baseId);
@@ -184,7 +195,7 @@ function main(): number {
         : "mapped-source"
       : markers && markers.length
         ? "marker-harvest"
-        : ugList.has(baseId.toLowerCase()) || ugList.has(baseId)
+        : ugList.has(baseId)
           ? "ug-candidate"
           : "estimate-only";
     rows.push({
@@ -193,7 +204,7 @@ function main(): number {
       served: blocked.has(baseId) ? "blocked" : manifestIds.has(baseId) ? "public" : "unknown",
       mapped: Boolean(entry),
       seedMarkers: markers,
-      ugCandidate: ugList.has(baseId.toLowerCase()),
+      ugCandidate: ugList.has(baseId),
     });
   }
 
@@ -221,4 +232,4 @@ function main(): number {
   return errors.length ? 1 : 0;
 }
 
-process.exitCode = main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) process.exitCode = main();

@@ -73,7 +73,8 @@
     "evaluate:beginner-offgrid-rh-frontier": "tsx scripts/evaluate-beginner-offgrid-rh-frontier.ts",
     "evaluate:real-shadow-pair": "tsx scripts/evaluate-real-shadow-pair.ts",
     "evaluate:region-shadow": "tsx scripts/evaluate-region-shadow-rehearsal.ts",
-    "reconcile-artifacts": "tsx scripts/reconcile-artifacts.ts"
+    "reconcile-artifacts": "tsx scripts/reconcile-artifacts.ts",
+    "align:chart-sections": "tsx scripts/align-chart-sections.ts"
   },
   "dependencies": {
     "@keyspilli/midi": "*",
