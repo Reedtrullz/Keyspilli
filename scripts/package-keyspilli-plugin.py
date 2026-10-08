@@ -3,9 +3,9 @@
 import argparse,hashlib,json,os,zipfile
 from pathlib import Path
 
-def package(source,output,manifest):
-    source,output,manifest=map(Path,(source,output,manifest))
-    if output.exists() or manifest.exists():raise FileExistsError('exclusive new outputs required')
+def collect_members(source,check_hashes=True):
+    source=Path(source)
+    if source.is_symlink() or not source.is_dir():raise ValueError('source must be a real directory')
     inventory=json.loads((source/'source-members.json').read_text());members=inventory['members']
     actual=sorted(p.relative_to(source).as_posix() for p in source.rglob('*') if p.is_file())
     if members!=sorted(set(members)) or actual!=members or any(p.is_symlink() for p in source.rglob('*')):raise ValueError('undeclared, missing or symlinked member')
@@ -16,8 +16,14 @@ def package(source,output,manifest):
         b=(source/name).read_bytes()
         if len(b)>1024*1024:raise ValueError('member exceeds bound')
         digest=hashlib.sha256(b).hexdigest()
-        if name!='source-members.json' and inventory['sha256'].get(name)!=digest:raise ValueError('altered source')
+        if check_hashes and name!='source-members.json' and inventory['sha256'].get(name)!=digest:raise ValueError('altered source')
         rows.append({'name':name,'sha256':digest,'bytes':len(b)});payload.append((name,b))
+    return rows,payload
+
+def package(source,output,manifest):
+    source,output,manifest=map(Path,(source,output,manifest))
+    if output.exists() or manifest.exists():raise FileExistsError('exclusive new outputs required')
+    rows,payload=collect_members(source)
     # Inputs are all validated before either output is created.
     with output.open('xb') as handle:
         with zipfile.ZipFile(handle,'w',compression=zipfile.ZIP_STORED) as archive:

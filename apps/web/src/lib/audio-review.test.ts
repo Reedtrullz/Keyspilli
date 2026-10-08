@@ -32,6 +32,15 @@ it("pins the exact schema appendix and private binding argument", () => {
   expect(() => parseAntiDryRunStdout(`{}\n\n${assembled}x`, assembled)).toThrow();
 });
 
+it.each(["string", [], [""], ["a".repeat(501)], new Array(21).fill("limit")])("rejects invalid evidence-v2 limitations %#", limitations => {
+  const review={schemaVersion:2,comparisonStatus:"abstained",attachments:{reference:{content:"uncertain",evidence:"Unknown"},candidate:{content:"uncertain",evidence:"Unknown"}},summary:"Abstained",uncertainty:"high",limitations,findings:[]};
+  expect(()=>validateListenEnvelope(envelope({output_text:JSON.stringify(review)}),{...listenExpected(),reviewProfile:"evidence-v2"})).toThrow(/limitations/);
+});
+
+it("rejects missing or mismatched pre-generation binding receipts",()=>{
+  expect(()=>validateListenEnvelope(envelope(),{...listenExpected(),accountBinding:{configSha256:pin("1"),gatewayInstance:"a".repeat(32)}})).toThrow(/binding/);
+});
+
 function pcmWav(samples: readonly number[], sampleRate = 32_000): Buffer {
   const data = Buffer.alloc(samples.length * 2);
   samples.forEach((sample, index) => data.writeInt16LE(sample, index * 2));

@@ -150,6 +150,15 @@ function cliArgs(fixture: Awaited<ReturnType<typeof makeLocalRun>>, outputDir: s
 }
 
 describe("review-song-audio CLI", () => {
+  it("requires evidence-v2 binding before gateway lookup and refuses binding changes on resume",async()=>{
+    const fixture=await makeLocalRun();try {
+      const unbound=cliArgs(fixture,join(fixture.root,"unbound"),"evidence-v2");unbound.splice(unbound.indexOf("--account-binding-json"),2);
+      await expect(runCli(unbound)).rejects.toThrow(/requires --account-binding-json/);expect(fixture.catalogGets()).toBe(0);
+      const output=join(fixture.root,"bound-dry");await runCli(cliArgs(fixture,output,"evidence-v2",false,true));
+      const binding=JSON.parse(await readFile(fixture.bindingPath,"utf8"));binding.gatewayInstance="d".repeat(32);await writeFile(fixture.bindingPath,JSON.stringify(binding));
+      await expect(runCli(cliArgs(fixture,output,"evidence-v2",true,true))).rejects.toThrow(/cannot resume/);
+    } finally {fixture.server.close();await rm(fixture.root,{recursive:true,force:true});}
+  });
   it("writes a local not-reviewed render-input report and dispatches no Anti command for a digital-silence clip", async () => {
     const fixture = await makeLocalRun({ digitalSilenceCandidate: true });
     const outputDir = join(fixture.root, "digital-silence-output");

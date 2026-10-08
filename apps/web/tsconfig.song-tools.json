@@ -6,6 +6,8 @@
     "scripts/song-bundle.mts",
     "scripts/render-prepared-chords.mts",
     "scripts/review-song-audio.mts",
+    "scripts/review-score.mts",
+    "scripts/create-score-review-evidence.mts",
     "scripts/create-audio-review-demo.mts",
     "scripts/report-local-audio-evidence.mts",
     "scripts/build-music-review-corpus.mts",

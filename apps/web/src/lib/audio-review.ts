@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { createReadStream, constants } from "node:fs";
 import { open, readFile, stat, lstat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
+import { parseCompactJson } from "./music-review-jobs.js";
 
 export const AUDIO_REVIEW_SCHEMA_VERSION = 2 as const;
 export const AUDIO_REVIEW_LIMITS = Object.freeze({
@@ -553,7 +554,9 @@ export async function readAccountBindingPin(path: string): Promise<AccountBindin
   invariant(isAbsolute(path) && !/[\0\r\n]/.test(path), "binding path must be absolute");
   const info = await lstat(path);
   invariant(info.isFile() && !info.isSymbolicLink() && info.size <= 2048, "binding must be a bounded nonsymlink file");
-  const value: unknown = JSON.parse(await readFile(path, "utf8"));
+  const handle=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW);
+  let value:unknown;
+  try { const actual=await handle.stat();invariant(actual.isFile() && actual.size<=2048,"binding changed or exceeds bound");const bytes=await handle.readFile();invariant(bytes.length===actual.size && bytes.length<=2048,"binding changed during read");value=parseCompactJson(bytes.toString("utf8")); } finally {await handle.close();}
   invariant(isRecord(value) && Object.keys(value).sort().join(",") === "accountRef,gatewayInstance,inventorySha256,schemaVersion", "binding fields must be exact");
   invariant(value.schemaVersion === 1 && typeof value.gatewayInstance === "string" && /^[a-f0-9]{32}$/.test(value.gatewayInstance), "invalid binding gateway instance");
   invariant(typeof value.accountRef === "string" && /^acct_[a-f0-9]{12}$/.test(value.accountRef), "invalid binding account reference");
@@ -562,7 +565,7 @@ export async function readAccountBindingPin(path: string): Promise<AccountBindin
 }
 
 export function assembleAntiPrompt(prompt: string, responseSchemaJson?: string): string {
-  return responseSchemaJson ? `${prompt.trim()}\n\nRequested output schema: ${stableJson(JSON.parse(responseSchemaJson))}` : prompt;
+  return responseSchemaJson ? `${prompt.trim()}\n\nRequested output schema: ${stableJson(JSON.parse(responseSchemaJson)).replace(/[^\x00-\x7f]/g,c=>`\\u${c.charCodeAt(0).toString(16).padStart(4,"0")}`)}` : prompt;
 }
 
 export function buildAntiListenArgs(input: AntiCommandInput): string[] {

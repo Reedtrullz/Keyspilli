@@ -112,7 +112,7 @@ def check_audio_review_capabilities(root, node_executable):
             and supports.get('maxClipBytes') == 2 * 1024 * 1024
             and supports.get('maxPairBytes') == 4 * 1024 * 1024
             and supports.get('maxClipSeconds') == 30
-            and supports.get('maxOutputTokens') == 2048
+            and supports.get('maxOutputTokens') == 4096
             and supports.get('maxProviderCallsPerJob') == 1
         )
         return {'status': 'compatible' if compatible else 'incompatible', 'capabilities': value}
@@ -218,6 +218,48 @@ def music_review_self_test():
             assert check_music_review_capabilities(root, '/explicit/node')['status'] == 'incompatible'
 
 
+def check_score_review_capabilities(root, node_executable):
+    script = root / 'apps/web/scripts/review-score.mts'
+    if not script.is_file():
+        return {'status': 'absent'}
+    try:
+        result = subprocess.run([node_executable, '--import', 'tsx', str(script), 'capabilities'],
+                                cwd=root, capture_output=True, text=True, timeout=15, check=True)
+        value = json.loads(result.stdout)
+        compatible = (isinstance(value, dict) and value.get('schemaVersion') == 1
+                      and value.get('inputSchemaVersion') == 1 and value.get('reportSchemaVersion') == 1
+                      and value.get('symbolicReceiptSchemaVersion') == 1 and value.get('offline') is True
+                      and value.get('offlineProviderCalls') == 0 and value.get('boundAudio') is True
+                      and value.get('evidenceProfile') == 'evidence-v2' and value.get('maxRequests') == 1
+                      and value.get('automaticStructuralPlayability') is True
+                      and value.get('requiresOwnerListening') is False and value.get('productionAdmission') is False)
+        return {'status': 'compatible' if compatible else 'incompatible', 'capabilities': value,
+                'scope': 'Offline software contract only; provider and musical acceptance unverified.'}
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError):
+        return {'status': 'incompatible', 'reason': 'Score review contract probe failed.'}
+
+
+def score_review_self_test():
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory(prefix='keyspilli-score-preflight-') as directory:
+        root = Path(directory)
+        assert check_score_review_capabilities(root, '/explicit/node')['status'] == 'absent'
+        script = root / 'apps/web/scripts/review-score.mts'
+        script.parent.mkdir(parents=True)
+        script.write_text('fixture')
+        caps = {'schemaVersion': 1, 'inputSchemaVersion': 1, 'reportSchemaVersion': 1,
+                'symbolicReceiptSchemaVersion': 1, 'offline': True, 'offlineProviderCalls': 0,
+                'boundAudio': True, 'evidenceProfile': 'evidence-v2', 'maxRequests': 1,
+                'automaticStructuralPlayability': True, 'requiresOwnerListening': False,
+                'productionAdmission': False}
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([],0,stdout=json.dumps(caps))) as run:
+            assert check_score_review_capabilities(root, '/explicit/node')['status'] == 'compatible'
+            assert run.call_args.args[0][0] == '/explicit/node'
+        caps['requiresOwnerListening'] = True
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([],0,stdout=json.dumps(caps))):
+            assert check_score_review_capabilities(root, '/explicit/node')['status'] == 'incompatible'
+
+
 def self_test():
     with tempfile.TemporaryDirectory(prefix='.check-', dir=Path(__file__).parent) as directory:
         root = Path(directory)
@@ -256,7 +298,7 @@ def self_test():
             'repairQueue': True, 'requiresGatewayBackendAttemptLimit': 1,
             'validatesOrderedSubmissionReceipt': True, 'validatesGatewayModelAllowlist': True, 'strictLiveStdout': True,
             'supports': {'maxClipBytes': 2 * 1024 * 1024, 'maxPairBytes': 4 * 1024 * 1024,
-                         'maxClipSeconds': 30, 'maxOutputTokens': 2048, 'maxProviderCallsPerJob': 1},
+                         'maxClipSeconds': 30, 'maxOutputTokens': 4096, 'maxProviderCallsPerJob': 1},
         }
         with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(audio_caps))) as run:
             assert check_audio_review_capabilities(root, '/absolute/node')['status'] == 'compatible'
@@ -297,6 +339,7 @@ def main():
     if args.self_test:
         self_test()
         music_review_self_test()
+        score_review_self_test()
         return 0
     if args.checkout is None or not args.checkout.is_dir():
         parser.error('Provide an existing Keyspilli checkout directory.')
@@ -343,6 +386,7 @@ def main():
     report['arrangement'] = check_arrangement_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked', 'selection_supported': False}
     report['audio_review'] = check_audio_review_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     report['music_review'] = check_music_review_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
+    report['score_review'] = check_score_review_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     report['host_workflow'] = check_workflow_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     report['free_gib'] = round(shutil.disk_usage(root).free / 2**30, 2)
     if shutil.disk_usage(root).free < 30 * 2**30:

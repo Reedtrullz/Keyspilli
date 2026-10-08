@@ -17,9 +17,17 @@ This package contains the `keyspilli-song` skill, three small unapproved authore
 
 The Keyspilli checkout's `docs/audio-review-demo.md` points to a frozen synthetic pack, a completed no-upload preview report and the command for a fresh offline dry run. Synthetic controls are software checks only and never count as real-song listening calibration.
 
-The separate Player listening pilot stopped at its first required no-audio gate: the provider made musical claims with zero audio attached. The route remains unqualified, the remaining tasks were not sent, and no paired comparison or prompt change is supported. See the Keyspilli checkout's `docs/ops/player-audio-qualification-study-stop.md` and the local offline Player package at `/Users/reidar/Projectos/anti-keyspilli-player-study-20261003/README.md`; that preview can reveal the construction key.
+The separate Player listening pilot stopped at its first required no-audio gate: the provider made musical claims with zero audio attached. The route remains unqualified, the remaining tasks were not sent, and no paired comparison or prompt change is supported. See the Keyspilli checkout's `docs/ops/player-audio-qualification-study-stop.md` and the retained local offline Player package; that preview can reveal the construction key.
 
-The adapter now has an explicit `--review-profile evidence-v2` opt-in with an audio-neutral prompt, per-attachment evidence, and distinct compared/abstained coverage. Reports separate reserved attempts from validated completed responses; an abstention remains an unreviewed gap. The default legacy prompt and fingerprint remain unchanged. Valid schema and provider self-report do not verify audio grounding or hearing; see `skills/keyspilli-song/references/audio-listening-review.md` and the Keyspilli checkout's `docs/ops/player-audio-evidence-v2.md`.
+The adapter has an explicit `--review-profile evidence-v2` opt-in with an audio-neutral prompt, per-attachment evidence, and distinct compared/abstained coverage. Reports separate reserved attempts from validated completed responses; an abstention remains an unreviewed gap. The default legacy prompt bytes remain unchanged; the current 4096 transport ceiling and optional schema/binding identities are fingerprinted, so old runs cannot silently resume. Valid schema and provider self-report do not verify audio grounding or hearing; see `skills/keyspilli-song/references/audio-listening-review.md` and the checkout's `docs/ops/player-audio-evidence-v2.md`.
+
+The offline-first `review-score.mts` workflow independently parses pinned MIDI/XML/MXL,
+compares pitches/attacks/releases/multiplicity, screens structural playability and
+returns located findings and supported repair previews. It requires no owner
+listening or pianist. Check `score_review.status: compatible` and follow
+[the score review workflow](skills/keyspilli-song/references/score-review-workflow.md).
+Source fidelity, Player realization and optional bound Gemini interpretation remain
+separate; musical acceptance and production admission are not established.
 
 Before preparation, run from this plugin directory:
 
