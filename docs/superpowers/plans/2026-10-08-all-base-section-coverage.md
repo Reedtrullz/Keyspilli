@@ -74,48 +74,32 @@
 ## Evidence status, 2026-10-08
 
 Every stored base has an acquisition/source disposition; this is not completed
-naming. PR226 through PR229 are merged, deployed and live-verified. Latest verified
-commit d52f6efde7ce1f417f4f8f2f449ac2e673defae8 has 1,764 variants / 441 bases /
-31 named bases, zero numbered labels/errors and preserved selected store fields.
-PR230 merged after exact-head checks and CLEAN state at
- ec75564a3976f16cd9526c9a0f18a244ae5d4c64; deployment acceptance is pending.
+naming. PR226 through PR229 and PR232 are merged, deployed and live-verified.
+Latest complete section proof is b4f73280ef7406ce46d44f91639d7b4ea1f47372:
+1,764 variants /441 bases /45 named bases, zero numbered labels/errors,
+60 sample reads across15 source/note/tempo pins, stable healthy containers
+and unchanged selected store fields. That proof includes PR230's two maps,
+whose earlier deployment was superseded by the storage repair.
+PR234 completed its independent deployment and backup/retention audit.
 
-The archived-score/opening-text batch adds twelve candidates: 47 stored / 45 served
-maps expected, with 408 stored / 396 served bases still lacking a substantiated
-map. Dukas provides literal rehearsal locations; six Czerny scores print named
-second parts; Glover's fixed opening text excerpt preserves the failed full-stanza
-study. Three explicitly named movements and a complete Verse lyric excerpt also
-qualify, with the Nomy/Clapton caption conflict unresolved. Archived bodies now include 61 source members in 11 matched ZIP archives.
-The three structured Songsterr studies admitted no maps. See
-`docs/research/2026-10-08-section-archived-score-followup.md`.
+PR235's fifteen named divisions merged after refreshed local gates,
+independent review, exact-head Automatic checks/container-smoke SUCCESS and
+CLEAN state. Merge commit d3772ee82e0df057824ffcfede4056c32ae46f23 has its
+own main/live verification pending;62 stored /60 served maps is expected.
+See `docs/research/2026-10-08-section-named-division-followup.md`.
 
-Current broader evidence covers 234 captured UG chart bases, 227 harmony trials,
-108 byte-matched scores and 418 original-source byte matches. Shallow and What Was
-I Made For have no eligible stable minimum-cost harmony span. Ten Sabaton recording
-clock studies, Status Quo's conflicting roles, 37 unfound original sources and two
-raw parse errors remain unresolved. Catalog-wide naming remains incomplete;
-Task4 continues with additional evidence and the release gates above.
+The following ten-map cohort is rebased onto this actual main, with reviewed
+maps unchanged. It has72 stored /70 served maps expected,383 stored /371 served
+bases unmapped. Its original local/whole-diff gates passed; fresh local audit/typecheck/
+2,558 tests/production build/diff checks also passed on current main.
+Fresh whole-diff review and exact-head CI/smoke are required. Merge waits for PR235's full live proof. See
+`docs/research/2026-10-08-section-collection-karaoke-followup.md`.
 
-
-## Named-division continuation
-
-The following fifteen reviewed candidates identify explicit named divisions of
-larger printed works/collections, with complete opening landmarks and distinct
-source attack correspondence. The draft ledger now has 62 stored / 60 served
-maps expected and 393 stored / 381 served bases unmapped. These counts include
-the pending PR232 twelve; live verification remains at PR229's 31 served bases.
-PR230 deployment was superseded by the concurrent storage-policy releases;
-its maps must be sampled in the next safe release. See
-`docs/research/2026-10-08-section-named-division-followup.md` for prospective
-scope, conservative endpoints, rejected TAB/public-score trials and the
-403-MIDI / two-MusicXML symbolic-source census. Local gates and whole-diff review
-remain required before publishing this batch. No acquisition or rejected study
-is treated as completed naming.
-
-
-The storage repair PR234 completed deployment and live backup/retention audit.
-PR232 merged after exact-head CI/smoke SUCCESS/CLEAN at
-b4f73280ef7406ce46d44f91639d7b4ea1f47372; main section acceptance is pending.
-The fifteen-map branch is rebased onto this main with its reviewed maps intact.
-Latest complete section sweep still remains PR229 until the new release proof
-finishes. Subsequent draft merges wait for that proof.
+Broader evidence includes234 captured UG-chart bases in the original cohorts,
+227 harmony trials,108 byte-matched scores and418 original-source byte matches:
+403 MIDI files (401 parsed and two retained parse errors), two MusicXML
+and13 audio/video originals. Two raw MIDI parse
+failures,37 unfound original sources and all rejected/ambiguous studies remain
+unresolved. Source acquisition or rejection completes no base's naming.
+Further substantiated cohorts and the remaining evidence requirements continue
+under Task4; catalog-wide naming remains incomplete.
