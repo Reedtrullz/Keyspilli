@@ -73,21 +73,18 @@
 
 ## Evidence status, 2026-10-08
 
-PR226 through PR229, PR232, PR235, PR236 and PR237 are merged, deployed and
-live-verified. Latest complete proof4ec738db5d24dbba78419aa808694762ec8ca5a3
-has1,764variants/441bases/86named served bases, zero numbered labels/errors,
-88samples across22source/note/tempo pins, stable healthy exact-commit containers,
-and unchanged selected2730row/455base store fields. Main37819181958SUCCESS.
+PR226 through PR229, PR232, PR235, PR236, PR237 and PR238 are merged, deployed
+and live-verified. Latest complete proof3d804bef06ecc2f7880095ff3debfeaa55724b7e
+has1,764variants/441bases/97named served bases, zero numbered labels/errors,
+68samples across17source/note/tempo pins, stable healthy exact-commit containers,
+and unchanged selected2730row/455base store fields. Main37835764710SUCCESS.
 The independent storage repair PR234 completed its deployment/retention audit.
 
-The next eleven-map printed-parent supplement batch brings the candidate ledger
-to99stored/97served maps.356stored/344served bases remain unmapped;75maps are
-partial and24reach numeric extent, neither implying completed internal form.
-All88preceding maps remain structurally unchanged. Nine candidate independent
-reviews, corrected Chopin wording and final Abt/CPE reviews pass; all
-exact-head release gates remain required. Whole-diff review passes with no
-material findings. Fresh audit0errors/two
-existing warnings, typecheck,2,558tests/282files, build and diff checks pass. See
+A reviewed two-map Bach371 follow-up brings the working ledger to101stored/99served
+maps.354stored/343served bases remain unmapped;75maps are partial and26reach
+numeric extent, neither implying completed internal form. The two Bach entries
+are not yet integrated into a release. Their source, opening, endpoint and
+correspondence receipt passes; No.39 remains rejected and immutable. See
 `docs/research/2026-10-08-section-printed-parent-supplements.md`.
 
 Four strict first opening trials fail (Alkan1, Brahms118, GriegAlbumblatt,

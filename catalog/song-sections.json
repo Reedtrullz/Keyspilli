@@ -9037,6 +9037,309 @@
         "producerLastNoteEndBeat": 495.5,
         "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
       }
+    },
+    {
+      "baseId": "j-s-bach-aus-meines-herzens-grunde-chorale-1",
+      "sourceArtifactHash": "783a5a944f28030876a84c753a47abeeff93c56adb6a3dd7c396d06e07184d10",
+      "advancedNotesSha256": "2d749244288f7e84d6e1d40db9ab23ea69eeff0af58ca86fb5f3b75ee58dc21c",
+      "playbackTempoBpm": 72,
+      "sourceFile": "j-s-bach-aus-meines-herzens-grunde-chorale-1.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the additional printed indexed music identifies the individual title as No1, and a separately retained cover explicitly prints Bach371VierstimmigeChorale. The retained exact companion prints the matching title, composer and BWV; parent/index association is disclosed cross-document and cross-edition inference, not an identical-edition claim. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/a/ac/IMSLP03820-4PC_1.PDF; https://s9.imslp.org/files/imglnks/usimg/9/9d/IMSLP318118-SIBLEY1802.26185.fd47-39087032500649color_cover.pdf; https://www.mutopiaproject.org/ftp/BachJS/BWV269/bwv_269/bwv_269.ly. complete allfour-voice opening, 16 attacks across soprano/alto/tenor/bass, quarter pickup plus firstfullbar; Italian/French pitchlanguage and absolute written registers retained; no grace/tie/tuplet in fixed opening; all nominal durations and inherited values retained. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all214 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint63.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "371 Vierstimmige Choräle — No.1",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 63.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/a/ac/IMSLP03820-4PC_1.PDF",
+            "sha256": "148ef79d250d77d17def6f2ddd453094acfac3ac061e581d8adc0aad239afee5"
+          },
+          {
+            "url": "https://s9.imslp.org/files/imglnks/usimg/9/9d/IMSLP318118-SIBLEY1802.26185.fd47-39087032500649color_cover.pdf",
+            "sha256": "bc8b0a15bb30e21bbd3498ab4d4a9a5f34df147f36c036e8028ac7f738148ff5"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/BachJS/BWV269/bwv_269/bwv_269.ly",
+            "sha256": "0ea1f87843ff2da5b4bc31e0ba711a015256268ef722996dc0f08e05ab215028"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "783a5a944f28030876a84c753a47abeeff93c56adb6a3dd7c396d06e07184d10",
+        "fixedSpecsSha256": "089db7ceabb7f4725103d85e609364e0586b16b0c90fd507a538a77db3190ead",
+        "sourceCorrespondenceReceiptSha256": "7af0376c57f24efdb57893f22dce59ab6af8c2485d2220fe85cad7b6db25b613",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 67,
+            "dur": 1
+          },
+          {
+            "start": 1,
+            "midi": 67,
+            "dur": 2
+          },
+          {
+            "start": 3,
+            "midi": 74,
+            "dur": 1
+          },
+          {
+            "start": 0,
+            "midi": 62,
+            "dur": 1
+          },
+          {
+            "start": 1,
+            "midi": 62,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 64,
+            "dur": 1
+          },
+          {
+            "start": 3,
+            "midi": 62,
+            "dur": 1
+          },
+          {
+            "start": 0,
+            "midi": 59,
+            "dur": 1
+          },
+          {
+            "start": 1,
+            "midi": 59,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 60,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 59,
+            "dur": 0.5
+          },
+          {
+            "start": 3,
+            "midi": 57,
+            "dur": 1
+          },
+          {
+            "start": 0,
+            "midi": 43,
+            "dur": 1
+          },
+          {
+            "start": 1,
+            "midi": 55,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 52,
+            "dur": 1
+          },
+          {
+            "start": 3,
+            "midi": 54,
+            "dur": 1
+          }
+        ],
+        "sourceTrackScope": "all",
+        "openingDescription": "complete allfour-voice opening, 16 attacks across soprano/alto/tenor/bass, quarter pickup plus firstfullbar; Italian/French pitchlanguage and absolute written registers retained; no grace/tie/tuplet in fixed opening; all nominal durations and inherited values retained",
+        "distinctProducerAttacks": 214,
+        "distinctSourceAttacksUsed": 214,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 63.0,
+        "producerLastNoteEndBeat": 63,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
+    },
+    {
+      "baseId": "j-s-bach-ich-dank-dir-lieber-herre",
+      "sourceArtifactHash": "0063beea94fbe0db31ce9dbee1a3a07c7e361322724b4190d80ff63ea817bb11",
+      "advancedNotesSha256": "dd1e8bfd353d7d0c839612b9e907674f4023b9ce6ce29d1f465feb9775cff8f3",
+      "playbackTempoBpm": 72,
+      "sourceFile": "j-s-bach-ich-dank-dir-lieber-herre.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the additional printed indexed music identifies the individual title as No2, and a separately retained cover explicitly prints Bach371VierstimmigeChorale. The retained exact companion prints the matching title, composer and BWV; parent/index association is disclosed cross-document and cross-edition inference, not an identical-edition claim. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://ks15.imslp.org/files/imglnks/usimg/a/ac/IMSLP03820-4PC_1.PDF; https://s9.imslp.org/files/imglnks/usimg/9/9d/IMSLP318118-SIBLEY1802.26185.fd47-39087032500649color_cover.pdf; https://www.mutopiaproject.org/ftp/BachJS/BWV347/bwv347/bwv347.ly. complete allfour-voice opening, 23 attacks across soprano/alto/tenor/bass, quarter pickup plus firstfullbar; Italian/French pitchlanguage and absolute written registers retained; no grace/tie/tuplet in fixed opening; all nominal durations and inherited values retained. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all212 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint52.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "371 Vierstimmige Choräle — No.2",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 52.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://ks15.imslp.org/files/imglnks/usimg/a/ac/IMSLP03820-4PC_1.PDF",
+            "sha256": "148ef79d250d77d17def6f2ddd453094acfac3ac061e581d8adc0aad239afee5"
+          },
+          {
+            "url": "https://s9.imslp.org/files/imglnks/usimg/9/9d/IMSLP318118-SIBLEY1802.26185.fd47-39087032500649color_cover.pdf",
+            "sha256": "bc8b0a15bb30e21bbd3498ab4d4a9a5f34df147f36c036e8028ac7f738148ff5"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/BachJS/BWV347/bwv347/bwv347.ly",
+            "sha256": "6d6f6fd1b18c1ca3425345168b2e244fe5403c6d14ed7e65ce3b0ee256c336a5"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "0063beea94fbe0db31ce9dbee1a3a07c7e361322724b4190d80ff63ea817bb11",
+        "fixedSpecsSha256": "089db7ceabb7f4725103d85e609364e0586b16b0c90fd507a538a77db3190ead",
+        "sourceCorrespondenceReceiptSha256": "7af0376c57f24efdb57893f22dce59ab6af8c2485d2220fe85cad7b6db25b613",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 69,
+            "dur": 1
+          },
+          {
+            "start": 1,
+            "midi": 69,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 69,
+            "dur": 1
+          },
+          {
+            "start": 3,
+            "midi": 69,
+            "dur": 1
+          },
+          {
+            "start": 4,
+            "midi": 71,
+            "dur": 1
+          },
+          {
+            "start": 0,
+            "midi": 64,
+            "dur": 1
+          },
+          {
+            "start": 1,
+            "midi": 66,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 64,
+            "dur": 1
+          },
+          {
+            "start": 3,
+            "midi": 66,
+            "dur": 1
+          },
+          {
+            "start": 4,
+            "midi": 66,
+            "dur": 1
+          },
+          {
+            "start": 0,
+            "midi": 61,
+            "dur": 1
+          },
+          {
+            "start": 1,
+            "midi": 61,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 61,
+            "dur": 0.5
+          },
+          {
+            "start": 2.5,
+            "midi": 59,
+            "dur": 0.5
+          },
+          {
+            "start": 3,
+            "midi": 57,
+            "dur": 0.5
+          },
+          {
+            "start": 3.5,
+            "midi": 56,
+            "dur": 0.5
+          },
+          {
+            "start": 4,
+            "midi": 54,
+            "dur": 1
+          },
+          {
+            "start": 0,
+            "midi": 57,
+            "dur": 0.5
+          },
+          {
+            "start": 0.5,
+            "midi": 56,
+            "dur": 0.5
+          },
+          {
+            "start": 1,
+            "midi": 54,
+            "dur": 1
+          },
+          {
+            "start": 2,
+            "midi": 49,
+            "dur": 1
+          },
+          {
+            "start": 3,
+            "midi": 50,
+            "dur": 1
+          },
+          {
+            "start": 4,
+            "midi": 51,
+            "dur": 1
+          }
+        ],
+        "sourceTrackScope": "all",
+        "openingDescription": "complete allfour-voice opening, 23 attacks across soprano/alto/tenor/bass, quarter pickup plus firstfullbar; Italian/French pitchlanguage and absolute written registers retained; no grace/tie/tuplet in fixed opening; all nominal durations and inherited values retained",
+        "distinctProducerAttacks": 212,
+        "distinctSourceAttacksUsed": 212,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 52.0,
+        "producerLastNoteEndBeat": 52,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
     }
   ]
 }
