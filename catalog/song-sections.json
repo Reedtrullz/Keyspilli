@@ -968,6 +968,67 @@
           "evidence": "chart"
         }
       ]
+    },
+    {
+      "baseId": "j-brahms-brahms-horn-trio",
+      "sourceArtifactHash": "966841ebd41c0cc0f69800462c0326c1ff3ad28fd6ffd4172d49ff95f6add034",
+      "advancedNotesSha256": "7f8c00898d0ef941ee2e4c7f9cf2ca86a3e3a730d354645ce3d274177eee2e68",
+      "playbackTempoBpm": 60,
+      "sourceFile": "j-brahms-brahms-horn-trio.mid",
+      "provenance": "Movement labels from https://www.mutopiaproject.org/ftp/BrahmsJ/O40/BrahmsHornTrio/BrahmsHornTrio-lys.zip; companion MIDI bytes exactly match the retained source. Piano.ly explicitly concatenates the four movement variables and defs.lyi gives Andante/Adagio mesto instructions plus Scherzo/Finale score headings. Outline durations750.5,1086 and259.5 quarter beats match raw meter/tempo boundaries; the encoded2.5-beat inter-movement padding at2096..2098.5 remains estimated. Follows the actual encoded traversal; omitted da-capo/repeats are not invented. Chart evidence, not timed FF06/FF07 form markers, recording timestamps or official artist annotations. Not auditioned; no musical acceptance established.",
+      "alignment": {
+        "strategy": "exact-score-movement-itinerary-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exactly matched companion MIDI and explicit source movement itinerary, independently checked producer pitch/onset clock at1/16 beat; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BrahmsJ/O40/BrahmsHornTrio/BrahmsHornTrio-lys.zip",
+        "scoreSha256": "678c6b83a368220cf3729dda90b5793e0f9f6db8fa8cb0f3bdc33a09c82f4573",
+        "componentSha256": {
+          "defs.lyi": "e684db8c7f2ba783a07561097058f15226cc6cfd6e36cf92192257a77f0645d4",
+          "Piano.ly": "6b8144b061f4655d8f630ac6159c01ec445d1571d36ddf7563c2206de6ff5e56"
+        },
+        "clockReceiptSha256": "a2cbad6bc7dc8049cd98aa72ba0da8977a771355c0bcbabf25f9d169426347c4",
+        "movementDurationsBeats": [
+          750.5,
+          1086,
+          259.5,
+          885
+        ],
+        "interMovementPaddingBeats": 2.5
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Andante",
+          "startBeat": 0,
+          "endBeat": 750.5,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-2",
+          "label": "Scherzo",
+          "startBeat": 750.5,
+          "endBeat": 1836.5,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-3",
+          "label": "Adagio mesto",
+          "startBeat": 1836.5,
+          "endBeat": 2096,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-section-4",
+          "label": "Finale",
+          "startBeat": 2098.5,
+          "endBeat": 2983.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ]
     }
   ]
 }
