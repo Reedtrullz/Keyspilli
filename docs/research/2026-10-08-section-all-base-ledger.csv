@@ -6,12 +6,12 @@ baseId,servedAtCapture,mapStatus,namedSpans,exactOriginalSourceByteMatch,savedCh
 5sos-heartbreak-girl,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 a-adam-giselle-pas-de-deux-1er-acte,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 a-adam-minuit-chretiens,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-a-diabelli-28-melodische-ubungsstucke-no-1,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-a-diabelli-28-melodische-ubungsstucke-no-2,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-a-diabelli-28-melodische-ubungsstucke-no-3,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-a-diabelli-28-melodische-ubungsstucke-no-4,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-a-diabelli-28-melodische-ubungsstucke-no-5,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-a-diabelli-28-melodische-ubungsstucke-no-8,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+a-diabelli-28-melodische-ubungsstucke-no-1,true,mapped-numeric-extent,1,true,0,true,false,,
+a-diabelli-28-melodische-ubungsstucke-no-2,true,mapped-numeric-extent,1,true,0,true,false,,
+a-diabelli-28-melodische-ubungsstucke-no-3,true,mapped-numeric-extent,1,true,0,true,false,,
+a-diabelli-28-melodische-ubungsstucke-no-4,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+a-diabelli-28-melodische-ubungsstucke-no-5,true,mapped-numeric-extent,1,true,0,true,false,,
+a-diabelli-28-melodische-ubungsstucke-no-8,true,mapped-numeric-extent,1,true,0,true,false,,
 a-dvorak-als-die-alte-mutter,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 a-glazunov-reverie,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 a-thousand-miles,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
@@ -32,7 +32,7 @@ anonymous-les-graces,true,mapped-numeric-extent,1,true,0,true,false,,
 another-love-tom-odell,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d,true,estimate-only-unresolved,0,false,1,false,true,,No substantiated map: base remains estimate-only.; No exact original-source byte match found in inspected retained source/audio paths.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 arian-kermanchi-just-tonight-the-pretty-reckless-piano-cover-video-msm04s3z,true,estimate-only-unresolved,0,false,2,false,true,,No substantiated map: base remains estimate-only.; No exact original-source byte match found in inspected retained source/audio paths.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-as-time-goes-by,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
+as-time-goes-by,true,estimate-only-unresolved,0,true,4,false,false,,No substantiated map: base remains estimate-only.; Four title-matched charts have no complete lyric-paragraph correspondence; performer identity unresolved.
 atlantic-lights-the-greatest-showman-never-enough-loren-allred-piano-cover-msm021rx,true,estimate-only-unresolved,0,false,2,false,true,,No substantiated map: base remains estimate-only.; No exact original-source byte match found in inspected retained source/audio paths.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 avenged-sevenfold-afterlife,true,mapped-partial,16,true,2,false,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 avenged-sevenfold-so-far-away,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
@@ -135,8 +135,8 @@ f-f-chopin-mazurka-op-6-no-1,true,estimate-only-unresolved,0,true,0,true,false,,
 f-f-chopin-nocturne,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 f-f-chopin-nocturne-no-1-in-b-flat-minor,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 f-f-chopin-nocturne-no-3,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-f-f-chopin-trois-nouvelles-etudes-no-1-f-minor,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-f-j-haydn-sonate-i-i-allegro-con-brio,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+f-f-chopin-trois-nouvelles-etudes-no-1-f-minor,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+f-j-haydn-sonate-i-i-allegro-con-brio,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 f-j-haydn-sonate-i-ii-menuetto,true,mapped-numeric-extent,2,true,0,true,false,,
 fall-for-you-second-hand-serenade,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 fallen-down-reprise-undertale,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
@@ -180,8 +180,8 @@ httyd-see-you-tomorrow,true,estimate-only-unresolved,0,true,0,false,false,,No su
 i-m-f-albeniz-rumores-de-la-caleta,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 imagine-dragons-radioactive,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 imogen-heap-hide-and-seek,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-j-a-benda-3-satz-aus-der-sonate-in-g-dur,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-andre-sonatine,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+j-a-benda-3-satz-aus-der-sonate-in-g-dur,true,mapped-numeric-extent,1,true,0,true,false,,
+j-andre-sonatine,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-ascher-alice-where-art-thou,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-blumenthal-les-deux-anges,true,mapped-partial,3,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 j-brahms-2-intermezzo,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
@@ -200,8 +200,8 @@ j-k-f-fischer-erato-allemande,true,mapped-partial,1,true,0,true,false,,Only part
 j-k-f-fischer-erato-praeludium,true,mapped-numeric-extent,1,true,0,true,false,,
 j-s-bach-ach-was-soll-ich-sunder-machen,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 j-s-bach-aus-meines-herzens-grunde-chorale-1,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-s-bach-ermuntre-dich-mein-schwacher-geist,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-j-s-bach-gott-wie-gross-ist-deine-gute,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+j-s-bach-ermuntre-dich-mein-schwacher-geist,true,mapped-numeric-extent,1,true,0,true,false,,
+j-s-bach-gott-wie-gross-ist-deine-gute,true,mapped-numeric-extent,1,true,0,true,false,,
 j-s-bach-ich-dank-dir-lieber-herre,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 j-s-bach-polonaise-in-f-major,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 james-blunt-1973,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
@@ -219,11 +219,11 @@ katherine-cordova-coldplay-fix-you-advanced-piano-cover-mslws0x0,true,estimate-o
 keiko-matsui-midnight-stone,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 l-m-gottschalk-the-dying-swan,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 l-streabbog-j-l-gobbaerts-les-etoiles-d-or-no-1-valse,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
-l-v-beethoven-sonata-no-1-1st-movement-allegro,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+l-v-beethoven-sonata-no-1-1st-movement-allegro,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 l-v-beethoven-sonata-no-1-2nd-movement-adagio,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 l-v-beethoven-sonata-no-1-3rd-movement-allegretto,true,mapped-numeric-extent,2,true,0,true,false,,
-l-v-beethoven-sonata-no-1-4th-movement-prestissimo,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+l-v-beethoven-sonata-no-1-4th-movement-prestissimo,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
+l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 l-v-beethoven-sonata-no-5-3rd-movement-prestissimo,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 labrinth-jealous,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 lady-gaga-applause,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
@@ -360,7 +360,7 @@ rousseau-j-s-bach-prelude-in-c-major-mslaeupl,true,estimate-only-unresolved,0,fa
 rousseau-john-legend-all-of-me-piano-cover-mslwrq3x,true,estimate-only-unresolved,0,false,2,false,true,,No substantiated map: base remains estimate-only.; No exact original-source byte match found in inspected retained source/audio paths.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 roxette-listen-to-your-heart,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ryan-leslie-maybachs-diamonds-57z,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
-s-adams-the-blue-alsatian-mountains,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+s-adams-the-blue-alsatian-mountains,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 s-c-doonan-enchanted-island,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 s-c-foster-slumber-my-darling,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 sabaton-82nd-all-the-way,true,estimate-only-unresolved,0,true,1,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
