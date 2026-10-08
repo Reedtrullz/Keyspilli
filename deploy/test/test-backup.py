@@ -232,6 +232,7 @@ def test_unrestorable_source_links_fail_before_publication() -> None:
         result, backups, _log = run_runner(root)
         assert result.returncode == 0, result.stdout + result.stderr
         kept = {p.name: p.read_bytes() for p in backups.iterdir()}
+        previous_log_lines = len((root / "docker.log").read_text().splitlines())
         outside = root / "outside-source"
         outside.write_text("preserve")
         (root / "data/artifacts/link").symlink_to(outside)
@@ -242,7 +243,7 @@ def test_unrestorable_source_links_fail_before_publication() -> None:
         assert {p.name: p.read_bytes() for p in backups.iterdir()} == kept
         assert not list(backups.glob(".keyspilli-backup-*"))
         assert outside.read_text() == "preserve"
-        assert sum(line.startswith("unpause ") for line in log.read_text().splitlines()) == 2
+        assert sum(line.startswith("unpause ") for line in log.read_text().splitlines()[previous_log_lines:]) == 2
         print("  PASS: unrestorable links fail before publication, preserve two good cohorts and resume writers")
 
 
