@@ -2579,6 +2579,1104 @@
         "sourceEndBeat": 491.5,
         "coverage": "whole explicitly named movement on encoded traversal; padded producer tail excluded"
       }
+    },
+    {
+      "baseId": "p-dukas-villanelle",
+      "sourceArtifactHash": "427eb1b9fc2e0abd7ba5dfa1ccc0bf1e1c90d680eb72ffa623f354e9cc5e72ba",
+      "advancedNotesSha256": "f3a1c4a5047b87c44705711496830d438dc4d528c7dcecac4c849123a217c035",
+      "playbackTempoBpm": 90,
+      "sourceFile": "p-dukas-villanelle.mid",
+      "provenance": "Printed rehearsal marks A through H from https://www.mutopiaproject.org/ftp/DukasP/DukasVillanelle/DukasVillanelle-lys.zip member DukasVillanelle-lys/defs.lyi. The archived score companion MIDI exactly matches the retained source bytes. A bounded reader follows the actual printed outline skip durations on quarter beats across6/8,4/4,3/2 and2/2, preserving inherited durations and separating textual tempo commands from actual default rehearsal marks. All six score meter-transition locations independently equal raw MIDI meter-event beats; all2274 actual producer pitched onsets match raw source pitches/quarter beats within1/16 beat. F uses the explicitly defined letter formatter with a Tempo text; no tempo command alone is treated as a form name. Rehearsal labels identify literal score locations without inferring Verse/Chorus roles. Opening0..54 and unpitched score/producer tail1161..1164 remain estimated. Chart evidence, not FF06/FF07 source markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "score-printed-rehearsal-locations-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source byte identity, bounded score skip-duration correspondence, independent six meter-transition matches and full producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreArchiveUrl": "https://www.mutopiaproject.org/ftp/DukasP/DukasVillanelle/DukasVillanelle-lys.zip",
+        "scoreArchiveSha256": "854792b5ea45df3eb28b108a7cf7e8a4f96b98ee0b0ed51e9b0a2310e1e6be4e",
+        "scoreMember": "DukasVillanelle-lys/defs.lyi",
+        "scoreMemberSha256": "8f087baf26d59b8c0fb0275f765407dd7841bda2669a00c6bff0ce5b765a5a69",
+        "companionMidiSha256": "427eb1b9fc2e0abd7ba5dfa1ccc0bf1e1c90d680eb72ffa623f354e9cc5e72ba",
+        "sourceClockReceiptSha256": "ed0eddac1f6a8449f0c39f4c4522145e74d76d1106d0d32475e24c66ac8a8234",
+        "annotationReceiptSha256": "e064724d423ace333ddeb75dcc81454abb7fa603b63e1016520643c1555ce73b",
+        "scoreVersion": "LilyPond2.11.40",
+        "printedMarkLabels": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H"
+        ],
+        "producerPitchedOnsets": 2274,
+        "sourceClockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.04166666666674246,
+        "sourceEndBeat": 1161,
+        "scoreOutlineEndBeat": 1164,
+        "scoreMarkers": [
+          {
+            "label": "A",
+            "beat": 54.0
+          },
+          {
+            "label": "B",
+            "beat": 253.0
+          },
+          {
+            "label": "C",
+            "beat": 365.0
+          },
+          {
+            "label": "D",
+            "beat": 469.0
+          },
+          {
+            "label": "E",
+            "beat": 693.0
+          },
+          {
+            "label": "F",
+            "beat": 797.0
+          },
+          {
+            "label": "G",
+            "beat": 885.0
+          },
+          {
+            "label": "H",
+            "beat": 1076.0
+          }
+        ],
+        "meterTransitions": [
+          [
+            0.0,
+            6,
+            8
+          ],
+          [
+            111.0,
+            4,
+            4
+          ],
+          [
+            151.0,
+            3,
+            2
+          ],
+          [
+            157.0,
+            2,
+            2
+          ],
+          [
+            997.0,
+            6,
+            8
+          ],
+          [
+            1024.0,
+            2,
+            2
+          ]
+        ],
+        "coverage": "literal score rehearsal locations only; opening and unpitched tail remain estimated; conventional form roles unresolved"
+      },
+      "sections": [
+        {
+          "id": "chart-rehearsal-a",
+          "label": "Rehearsal A",
+          "startBeat": 54.0,
+          "endBeat": 253.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-b",
+          "label": "Rehearsal B",
+          "startBeat": 253.0,
+          "endBeat": 365.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-c",
+          "label": "Rehearsal C",
+          "startBeat": 365.0,
+          "endBeat": 469.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-d",
+          "label": "Rehearsal D",
+          "startBeat": 469.0,
+          "endBeat": 693.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-e",
+          "label": "Rehearsal E",
+          "startBeat": 693.0,
+          "endBeat": 797.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-f",
+          "label": "Rehearsal F",
+          "startBeat": 797.0,
+          "endBeat": 885.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-g",
+          "label": "Rehearsal G",
+          "startBeat": 885.0,
+          "endBeat": 1076.0,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-rehearsal-h",
+          "label": "Rehearsal H",
+          "startBeat": 1076.0,
+          "endBeat": 1161,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ]
+    },
+    {
+      "baseId": "c-w-glover-do-they-think-of-me-at-home",
+      "sourceArtifactHash": "86b83346a64da071cad63543327f28f04c9e098e5e94fa3be2c16a04df4fff16",
+      "advancedNotesSha256": "fe6a0a33ae6ae626bf8725dd7faff0dc088e964fdcaa73bdda268a0bfef2152a",
+      "playbackTempoBpm": 76,
+      "sourceFile": "c-w-glover-do-they-think-of-me-at-home.mid",
+      "provenance": "Printed stanza1 caption explicitly refers to textA in https://www.mutopiaproject.org/ftp/GloverCW/thinkhome/thinkhome.ly; the score MIDI companion exactly matches the retained source bytes. A separately specified opening-excerpt study selects exactly the first two nonempty lyric-source lines before matching, without trying other prefix lengths. All86 normalized characters match one complete contiguous FF05 lyric-event window on raw MIDI track2 from0 through24 quarter beats, including both complete event edges. These are source-code lyric lines, not asserted score staff/system boundaries. Every actual producer pitched onset independently matches raw source pitches/quarter beats within1/16 beat. The mapped interval excludes the last lyric note release, subsequent text and complete stanza boundary. The earlier complete-stanza study remains unchanged and rejected because its full text does not match. No word correction, skipped cue, fuzzy alignment, inferred later stanza or owner metadata is used. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-stanza-one-opening-lyric-excerpt",
+          "label": "Stanza 1 opening lyric excerpt",
+          "startBeat": 0,
+          "endBeat": 24,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "fixed-two-line-stanza-opening-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Complete fixed-prefix lyric-event correspondence and independent full producer pitch/onset match ratio on exact companion/source bytes; uncalibrated correspondence, not full-stanza boundary certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/GloverCW/thinkhome/thinkhome.ly",
+        "scoreSha256": "5559ee8e725d4a7937756398c3141b58f9c9e69a2fa6648fc08956d4a7dbc2fe",
+        "companionMidiSha256": "86b83346a64da071cad63543327f28f04c9e098e5e94fa3be2c16a04df4fff16",
+        "printedStanzaLabel": "1.",
+        "printedLyricVariable": "textA",
+        "lyricSourceLinesSelected": 2,
+        "matchedCharacters": 86,
+        "normalizedTextSha256": "156042cae9e945ece9a575857cc8c793633d2a28a4f8ccdc3c2b7616283d413d",
+        "lyricTrack": 2,
+        "uniqueCompleteEventWindows": 1,
+        "sourceClockReceiptSha256": "054ea5a7d0ae257e674f927f9c20f57a4bda0fb776a5e0f9e8f58dd03b2f8c39",
+        "annotationReceiptSha256": "8032883c59ae63e1454b3dfd472606339c6e9ede57d8e0ee45032fc6977c3004",
+        "producerPitchedOnsets": 236,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.04166666666666785,
+        "fullStanzaStudyStatus": "no-unique-track-match; unchanged",
+        "coverage": "first-to-last cue of complete predetermined opening text only; releases, later text and complete stanza remain unresolved"
+      }
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-1",
+      "sourceArtifactHash": "6ee0bf432211a3e3372ea67266a255d99b0cf9db5ad35ba6dd2787e06b087f14",
+      "advancedNotesSha256": "09adfaf166fd4a4876e6187543d4ddf3ae4428eab357f471bf19e5e775c03f97",
+      "playbackTempoBpm": 140,
+      "sourceFile": "c-czerny-50-melodische-ubungsstucke-no-1.mid",
+      "provenance": "Literal printed second-part heading C Moll. from https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-1/op840-1-lys.zip member op840-1-lys/etude-01.ily. The score MIDI companion exactly matches retained source bytes. The actual mark markup heading is adjacent to its key command with no intervening music. Independently inspected matching key events in both raw pitched tracks and the complete printed opening RH note/rhythm landmark locate this passage. The excerpt starts at the later of the two track key-event times, retaining any preceding grace-time discrepancy as estimated, and ends at the lesser of raw MIDI extent and actual producer note end. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The label preserves the score heading; it does not infer Verse/Chorus role or independently measure tonal identity. Initial material, excluded grace time and silent padding remain estimated; no unencoded repeat is invented. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-printed-second-part-excerpt",
+          "label": "C Moll passage excerpt",
+          "startBeat": 64.11197916666667,
+          "endBeat": 127.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-printed-part-heading-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact source/companion identity, two-track key-event anchors, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not full-boundary certainty or measured harmonic key.",
+        "scoreArchiveUrl": "https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-1/op840-1-lys.zip",
+        "scoreArchiveSha256": "989f071d1d0273b5d5cb4f8d62926d5eba4ae6fd168e1d319b897614fcafeca6",
+        "scoreMember": "op840-1-lys/etude-01.ily",
+        "scoreMemberSha256": "35625b80e2e5d311182174d69cf1a344875423a6702ab41fc9bc9c5b51dc8aaa",
+        "literalPrintedHeading": "C Moll.",
+        "companionMidiSha256": "6ee0bf432211a3e3372ea67266a255d99b0cf9db5ad35ba6dd2787e06b087f14",
+        "sourceClockReceiptSha256": "734830ab5af4903857a3620d1b95904666d673f0ee7bb37b0e43084af8977d9b",
+        "trackKeyEventAnchors": [
+          {
+            "track": 1,
+            "beat": 64.11197916666667,
+            "type": "key_signature",
+            "value": "Cm"
+          },
+          {
+            "track": 2,
+            "beat": 64.0,
+            "type": "key_signature",
+            "value": "Cm"
+          }
+        ],
+        "openingRhythmLandmark": [
+          [
+            0,
+            [
+              67
+            ]
+          ],
+          [
+            1,
+            [
+              75
+            ]
+          ],
+          [
+            2,
+            [
+              75
+            ]
+          ],
+          [
+            3,
+            [
+              74
+            ]
+          ],
+          [
+            4,
+            [
+              72
+            ]
+          ],
+          [
+            5,
+            [
+              79
+            ]
+          ],
+          [
+            7,
+            [
+              74
+            ]
+          ],
+          [
+            9,
+            [
+              75
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 413,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.013020833333335702,
+        "sourceEndBeat": 127.5,
+        "producerLastNoteEndBeat": 127.5,
+        "coverage": "printed named second-part passage excerpt only; initial part and excluded grace/tail remain estimated"
+      }
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-2",
+      "sourceArtifactHash": "7d8ba07e3836e2a5fac7f7ce3eabc94238b63ed0435b3927f14807677ef64f5a",
+      "advancedNotesSha256": "f6c3ca1811a21cc58daf6cd8dcfc675e05f28f6a62547b27011b1248f57a4a61",
+      "playbackTempoBpm": 118,
+      "sourceFile": "c-czerny-50-melodische-ubungsstucke-no-2.mid",
+      "provenance": "Literal printed second-part heading B Dur. from https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-2/op840-2-lys.zip member op840-2-lys/etude-02.ily. The score MIDI companion exactly matches retained source bytes. The actual mark markup heading is adjacent to its key command with no intervening music. Independently inspected matching key events in both raw pitched tracks and the complete printed opening RH note/rhythm landmark locate this passage. The excerpt starts at the later of the two track key-event times, retaining any preceding grace-time discrepancy as estimated, and ends at the lesser of raw MIDI extent and actual producer note end. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The label preserves the score heading; it does not infer Verse/Chorus role or independently measure tonal identity. Initial material, excluded grace time and silent padding remain estimated; no unencoded repeat is invented. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-printed-second-part-excerpt",
+          "label": "B Dur passage excerpt",
+          "startBeat": 48.0,
+          "endBeat": 95.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-printed-part-heading-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact source/companion identity, two-track key-event anchors, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not full-boundary certainty or measured harmonic key.",
+        "scoreArchiveUrl": "https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-2/op840-2-lys.zip",
+        "scoreArchiveSha256": "c2d3aad4a7608df1760f5a45387d6129a9f3e3f44154f744248533a3d7d8b4d7",
+        "scoreMember": "op840-2-lys/etude-02.ily",
+        "scoreMemberSha256": "3e9d720e625133999d473a80f2dadc6f47076f4506bd720d0c856b6c7dec6214",
+        "literalPrintedHeading": "B Dur.",
+        "companionMidiSha256": "7d8ba07e3836e2a5fac7f7ce3eabc94238b63ed0435b3927f14807677ef64f5a",
+        "sourceClockReceiptSha256": "734830ab5af4903857a3620d1b95904666d673f0ee7bb37b0e43084af8977d9b",
+        "trackKeyEventAnchors": [
+          {
+            "track": 1,
+            "beat": 48.0,
+            "type": "key_signature",
+            "value": "Bb"
+          },
+          {
+            "track": 2,
+            "beat": 48.0,
+            "type": "key_signature",
+            "value": "Bb"
+          }
+        ],
+        "openingRhythmLandmark": [
+          [
+            0,
+            [
+              65
+            ]
+          ],
+          [
+            0.5,
+            [
+              74,
+              77
+            ]
+          ],
+          [
+            2,
+            [
+              70,
+              74
+            ]
+          ],
+          [
+            2.5,
+            [
+              70,
+              74
+            ]
+          ],
+          [
+            3,
+            [
+              70,
+              74
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 435,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.010416666666666963,
+        "sourceEndBeat": 95.5,
+        "producerLastNoteEndBeat": 95.5,
+        "coverage": "printed named second-part passage excerpt only; initial part and excluded grace/tail remain estimated"
+      }
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-3",
+      "sourceArtifactHash": "8bbe2f4e99c5cffc46904c927e326e1ec084f580fe142fb5397131a896fb7399",
+      "advancedNotesSha256": "ae58eb5e0b185ec4ce8bd4467e6146caed41768410a0136f75337afd758b6ef2",
+      "playbackTempoBpm": 78,
+      "sourceFile": "c-czerny-50-melodische-ubungsstucke-no-3.mid",
+      "provenance": "Literal printed second-part heading C Dur. from https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-3/op840-3-lys.zip member op840-3-lys/etude-03.ily. The score MIDI companion exactly matches retained source bytes. The actual mark markup heading is adjacent to its key command with no intervening music. Independently inspected matching key events in both raw pitched tracks and the complete printed opening RH note/rhythm landmark locate this passage. The excerpt starts at the later of the two track key-event times, retaining any preceding grace-time discrepancy as estimated, and ends at the lesser of raw MIDI extent and actual producer note end. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The label preserves the score heading; it does not infer Verse/Chorus role or independently measure tonal identity. Initial material, excluded grace time and silent padding remain estimated; no unencoded repeat is invented. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-printed-second-part-excerpt",
+          "label": "C Dur passage excerpt",
+          "startBeat": 48.0,
+          "endBeat": 72.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-printed-part-heading-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact source/companion identity, two-track key-event anchors, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not full-boundary certainty or measured harmonic key.",
+        "scoreArchiveUrl": "https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-3/op840-3-lys.zip",
+        "scoreArchiveSha256": "24ea27953a5e780ea13e89ff00b83c6cf3240fc28a0cc23672fdd9fda586493f",
+        "scoreMember": "op840-3-lys/etude-03.ily",
+        "scoreMemberSha256": "f7d7ebc85f7a8a0f965f4b2cfdc38bdf7cdc54570a170ea8103e1945d2e09bbc",
+        "literalPrintedHeading": "C Dur.",
+        "companionMidiSha256": "8bbe2f4e99c5cffc46904c927e326e1ec084f580fe142fb5397131a896fb7399",
+        "sourceClockReceiptSha256": "734830ab5af4903857a3620d1b95904666d673f0ee7bb37b0e43084af8977d9b",
+        "trackKeyEventAnchors": [
+          {
+            "track": 1,
+            "beat": 48.0,
+            "type": "key_signature",
+            "value": "C"
+          },
+          {
+            "track": 2,
+            "beat": 48.0,
+            "type": "key_signature",
+            "value": "C"
+          }
+        ],
+        "openingRhythmLandmark": [
+          [
+            0,
+            [
+              64
+            ]
+          ],
+          [
+            0.25,
+            [
+              67
+            ]
+          ],
+          [
+            0.5,
+            [
+              72
+            ]
+          ],
+          [
+            0.75,
+            [
+              76
+            ]
+          ],
+          [
+            1,
+            [
+              74
+            ]
+          ],
+          [
+            1.25,
+            [
+              72
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 361,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.010416666666671404,
+        "sourceEndBeat": 72.0,
+        "producerLastNoteEndBeat": 72,
+        "coverage": "printed named second-part passage excerpt only; initial part and excluded grace/tail remain estimated"
+      }
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-4",
+      "sourceArtifactHash": "08c4c946c5a93b5ab3da3aec17a02a20d723e3bf461787e9240813744d6f52e7",
+      "advancedNotesSha256": "da822f69829151638f9c1aa442c1c55494eb40cb6507017a784c65ef186f317f",
+      "playbackTempoBpm": 168,
+      "sourceFile": "c-czerny-50-melodische-ubungsstucke-no-4.mid",
+      "provenance": "Literal printed second-part heading G Dur. from https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-4/op840-4-lys.zip member op840-4-lys/etude-04.ily. The score MIDI companion exactly matches retained source bytes. The actual mark markup heading is adjacent to its key command with no intervening music. Independently inspected matching key events in both raw pitched tracks and the complete printed opening RH note/rhythm landmark locate this passage. The excerpt starts at the later of the two track key-event times, retaining any preceding grace-time discrepancy as estimated, and ends at the lesser of raw MIDI extent and actual producer note end. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The label preserves the score heading; it does not infer Verse/Chorus role or independently measure tonal identity. Initial material, excluded grace time and silent padding remain estimated; no unencoded repeat is invented. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-printed-second-part-excerpt",
+          "label": "G Dur passage excerpt",
+          "startBeat": 96.0,
+          "endBeat": 191.0,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-printed-part-heading-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact source/companion identity, two-track key-event anchors, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not full-boundary certainty or measured harmonic key.",
+        "scoreArchiveUrl": "https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-4/op840-4-lys.zip",
+        "scoreArchiveSha256": "89217283c1ddc2ade88b24be10da9cd85fd29d1b78ca5a337ec57e3bcfd2c273",
+        "scoreMember": "op840-4-lys/etude-04.ily",
+        "scoreMemberSha256": "80b3010a08d6ee805d826a5e5f1357cfba6a0b529fd11db716fb065d9b7b4fe1",
+        "literalPrintedHeading": "G Dur.",
+        "companionMidiSha256": "08c4c946c5a93b5ab3da3aec17a02a20d723e3bf461787e9240813744d6f52e7",
+        "sourceClockReceiptSha256": "734830ab5af4903857a3620d1b95904666d673f0ee7bb37b0e43084af8977d9b",
+        "trackKeyEventAnchors": [
+          {
+            "track": 1,
+            "beat": 96.0,
+            "type": "key_signature",
+            "value": "G"
+          },
+          {
+            "track": 2,
+            "beat": 96.0,
+            "type": "key_signature",
+            "value": "G"
+          }
+        ],
+        "openingRhythmLandmark": [
+          [
+            0,
+            [
+              74
+            ]
+          ],
+          [
+            1,
+            [
+              74
+            ]
+          ],
+          [
+            2,
+            [
+              79
+            ]
+          ],
+          [
+            3,
+            [
+              83
+            ]
+          ],
+          [
+            4,
+            [
+              74,
+              83
+            ]
+          ],
+          [
+            6,
+            [
+              81
+            ]
+          ],
+          [
+            6.5,
+            [
+              79
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 510,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.010416666666666075,
+        "sourceEndBeat": 191.0,
+        "producerLastNoteEndBeat": 191,
+        "coverage": "printed named second-part passage excerpt only; initial part and excluded grace/tail remain estimated"
+      }
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-5",
+      "sourceArtifactHash": "87bd494877ca42f4c3f046d62fad148ce85270cafe0069b62a2380b78c63b6a1",
+      "advancedNotesSha256": "ab8fd4017665ad78e488040760098d297bac77783e184c68d314655ad9ef1674",
+      "playbackTempoBpm": 85,
+      "sourceFile": "c-czerny-50-melodische-ubungsstucke-no-5.mid",
+      "provenance": "Literal printed second-part heading C moll. from https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-5/op840-5-lys.zip member op840-5-lys/etude-05.ily. The score MIDI companion exactly matches retained source bytes. The actual mark markup heading is adjacent to its key command with no intervening music. Independently inspected matching key events in both raw pitched tracks and the complete printed opening RH note/rhythm landmark locate this passage. The excerpt starts at the later of the two track key-event times, retaining any preceding grace-time discrepancy as estimated, and ends at the lesser of raw MIDI extent and actual producer note end. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The label preserves the score heading; it does not infer Verse/Chorus role or independently measure tonal identity. Initial material, excluded grace time and silent padding remain estimated; no unencoded repeat is invented. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-printed-second-part-excerpt",
+          "label": "C moll passage excerpt",
+          "startBeat": 48.0,
+          "endBeat": 79.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-printed-part-heading-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact source/companion identity, two-track key-event anchors, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not full-boundary certainty or measured harmonic key.",
+        "scoreArchiveUrl": "https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-5/op840-5-lys.zip",
+        "scoreArchiveSha256": "dd51a1a8cfed0948d3a11656c0048341ad13faf193cf38c4af6517beed0ef771",
+        "scoreMember": "op840-5-lys/etude-05.ily",
+        "scoreMemberSha256": "0a3c10431d4c044251e6b52186ae01332673f79b3cea016de274a589a3dae12e",
+        "literalPrintedHeading": "C moll.",
+        "companionMidiSha256": "87bd494877ca42f4c3f046d62fad148ce85270cafe0069b62a2380b78c63b6a1",
+        "sourceClockReceiptSha256": "734830ab5af4903857a3620d1b95904666d673f0ee7bb37b0e43084af8977d9b",
+        "trackKeyEventAnchors": [
+          {
+            "track": 1,
+            "beat": 48.0,
+            "type": "key_signature",
+            "value": "Eb"
+          },
+          {
+            "track": 2,
+            "beat": 48.0,
+            "type": "key_signature",
+            "value": "Eb"
+          }
+        ],
+        "openingRhythmLandmark": [
+          [
+            0,
+            [
+              75
+            ]
+          ],
+          [
+            1,
+            [
+              77
+            ]
+          ],
+          [
+            1.25,
+            [
+              75
+            ]
+          ],
+          [
+            1.5,
+            [
+              74
+            ]
+          ],
+          [
+            1.75,
+            [
+              72
+            ]
+          ],
+          [
+            2,
+            [
+              80
+            ]
+          ],
+          [
+            3,
+            [
+              82
+            ]
+          ],
+          [
+            3.25,
+            [
+              80
+            ]
+          ],
+          [
+            3.5,
+            [
+              79
+            ]
+          ],
+          [
+            3.75,
+            [
+              77
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 506,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "sourceEndBeat": 80.0,
+        "producerLastNoteEndBeat": 79.5,
+        "coverage": "printed named second-part passage excerpt only; initial part and excluded grace/tail remain estimated"
+      }
+    },
+    {
+      "baseId": "c-czerny-50-melodische-ubungsstucke-no-6",
+      "sourceArtifactHash": "bc112ad07760fc1e42fd33ac837ea34cd7a7bf47c3ac7521d8da132f7b102f65",
+      "advancedNotesSha256": "19bbc054cf13f30e8de6d84388f9d8aaf100f87ee5ac84f1e221b7aec9dcaa4b",
+      "playbackTempoBpm": 135,
+      "sourceFile": "c-czerny-50-melodische-ubungsstucke-no-6.mid",
+      "provenance": "Literal printed second-part heading A Dur. from https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-6/op840-6-lys.zip member op840-6-lys/etude-06.ily. The score MIDI companion exactly matches retained source bytes. The actual mark markup heading is adjacent to its key command with no intervening music. Independently inspected matching key events in both raw pitched tracks and the complete printed opening RH note/rhythm landmark locate this passage. The excerpt starts at the later of the two track key-event times, retaining any preceding grace-time discrepancy as estimated, and ends at the lesser of raw MIDI extent and actual producer note end. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The label preserves the score heading; it does not infer Verse/Chorus role or independently measure tonal identity. Initial material, excluded grace time and silent padding remain estimated; no unencoded repeat is invented. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-printed-second-part-excerpt",
+          "label": "A Dur passage excerpt",
+          "startBeat": 48.111979166666664,
+          "endBeat": 95.61197916666667,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-printed-part-heading-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact source/companion identity, two-track key-event anchors, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not full-boundary certainty or measured harmonic key.",
+        "scoreArchiveUrl": "https://www.mutopiaproject.org/ftp/CzernyC/O840/op840-6/op840-6-lys.zip",
+        "scoreArchiveSha256": "0501e07a482fef663f78860208bd5df45d8c0002a8e9d0ed4c48b70bc5b39eaa",
+        "scoreMember": "op840-6-lys/etude-06.ily",
+        "scoreMemberSha256": "367d07238cfdc03be5d153b728d8e512eea28b758ef21367163c4ed757fb8b5d",
+        "literalPrintedHeading": "A Dur.",
+        "companionMidiSha256": "bc112ad07760fc1e42fd33ac837ea34cd7a7bf47c3ac7521d8da132f7b102f65",
+        "sourceClockReceiptSha256": "734830ab5af4903857a3620d1b95904666d673f0ee7bb37b0e43084af8977d9b",
+        "trackKeyEventAnchors": [
+          {
+            "track": 1,
+            "beat": 48.111979166666664,
+            "type": "key_signature",
+            "value": "A"
+          },
+          {
+            "track": 2,
+            "beat": 48.111979166666664,
+            "type": "key_signature",
+            "value": "A"
+          }
+        ],
+        "openingRhythmLandmark": [
+          [
+            0,
+            [
+              76
+            ]
+          ],
+          [
+            0.5,
+            [
+              73,
+              76
+            ]
+          ],
+          [
+            2,
+            [
+              69,
+              73
+            ]
+          ],
+          [
+            2.5,
+            [
+              74,
+              78
+            ]
+          ],
+          [
+            3,
+            [
+              73,
+              76
+            ]
+          ],
+          [
+            3.5,
+            [
+              71,
+              74
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 420,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0546875,
+        "sourceEndBeat": 95.61197916666667,
+        "producerLastNoteEndBeat": 95.625,
+        "coverage": "printed named second-part passage excerpt only; initial part and excluded grace/tail remain estimated"
+      }
+    },
+    {
+      "baseId": "j-k-f-fischer-erato-allemande",
+      "sourceArtifactHash": "84de5ac70c1e8d0d3efd66eb3086468689257a5603d73b2e4136d62de7aa9475",
+      "advancedNotesSha256": "215af70a380c498dce8f89e403fb679349d6d75f2f3c9eb31666df3ebb9cea67",
+      "playbackTempoBpm": 54,
+      "sourceFile": "j-k-f-fischer-erato-allemande.mid",
+      "provenance": "Explicit printed named movement Erato Allemande in the score hierarchy at https://www.mutopiaproject.org/ftp/FischerJKF/Fischer_EratoAllemande/Fischer_EratoAllemande.ly. Its companion MIDI exactly matches retained source bytes. A complete printed opening RH pitch/rhythm landmark independently locates the opening; score explicitly unfolds its encoded volta repeats; no additional occurrence is invented. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The map starts at first pitched beat0 and ends at the shared raw-source and actual producer note extent87.75. Any leading silence or padded producer tail remains estimated. The label names the printed movement only; it supplies no internal Verse/Chorus divisions or generic genre/tempo inference. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-printed-movement",
+          "label": "Erato Allemande",
+          "startBeat": 0,
+          "endBeat": 87.75,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-movement-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/FischerJKF/Fischer_EratoAllemande/Fischer_EratoAllemande.ly",
+        "scoreSha256": "d3d3542aa0a4f98e818dafc052b85eae4eba00f3039a34f7ecd779beb6cd204e",
+        "printedHeadingHierarchy": {
+          "title": "Muse of poetry",
+          "subtitle": "Erato",
+          "subsubtitle": "Allemande",
+          "printedMovementNumber": 2
+        },
+        "companionMidiSha256": "84de5ac70c1e8d0d3efd66eb3086468689257a5603d73b2e4136d62de7aa9475",
+        "sourceClockReceiptSha256": "9b2dccfbc9641c585ac565e615960945b41ba902137dfdc9b5a862f46809d984",
+        "completeOpeningRhythmLandmark": [
+          [
+            0,
+            [
+              76
+            ]
+          ],
+          [
+            0.25,
+            [
+              67,
+              71,
+              76
+            ]
+          ],
+          [
+            1,
+            [
+              71
+            ]
+          ],
+          [
+            1.25,
+            [
+              67
+            ]
+          ],
+          [
+            1.5,
+            [
+              71
+            ]
+          ],
+          [
+            1.75,
+            [
+              64
+            ]
+          ],
+          [
+            2,
+            [
+              67
+            ]
+          ],
+          [
+            2.25,
+            [
+              69
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 489,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0,
+        "sourceEndBeat": 87.75,
+        "producerLastNoteEndBeat": 87.75,
+        "coverage": "whole explicitly named movement on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "j-k-f-fischer-erato-praeludium",
+      "sourceArtifactHash": "407d90786bcdbced5b4110fb6bec7ee34df35cc4f67745592e2c4f1d7fc0d799",
+      "advancedNotesSha256": "9c25e37a11c6d7408250a85395daf63394aa7ca96154b97ea8785f3cd5aeff05",
+      "playbackTempoBpm": 60,
+      "sourceFile": "j-k-f-fischer-erato-praeludium.mid",
+      "provenance": "Explicit printed named movement Erato Praeludium in the score hierarchy at https://www.mutopiaproject.org/ftp/FischerJKF/Fischer_EratoPraeludium/Fischer_EratoPraeludium.ly. Its companion MIDI exactly matches retained source bytes. A complete printed opening RH pitch/rhythm landmark independently locates the opening; the single printed movement follows its retained MIDI traversal. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The map starts at first pitched beat0 and ends at the shared raw-source and actual producer note extent60. Any leading silence or padded producer tail remains estimated. The label names the printed movement only; it supplies no internal Verse/Chorus divisions or generic genre/tempo inference. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-printed-movement",
+          "label": "Erato Praeludium",
+          "startBeat": 0,
+          "endBeat": 60,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-movement-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/FischerJKF/Fischer_EratoPraeludium/Fischer_EratoPraeludium.ly",
+        "scoreSha256": "a6e607974755bf14f4213709ab37906d2b2bfad2f8ba2357ba8f04453a7c7e6e",
+        "printedHeadingHierarchy": {
+          "title": "Muse of poetry",
+          "subtitle": "Erato",
+          "subsubtitle": "Praeludium",
+          "printedMovementNumber": 1
+        },
+        "companionMidiSha256": "407d90786bcdbced5b4110fb6bec7ee34df35cc4f67745592e2c4f1d7fc0d799",
+        "sourceClockReceiptSha256": "9b2dccfbc9641c585ac565e615960945b41ba902137dfdc9b5a862f46809d984",
+        "completeOpeningRhythmLandmark": [
+          [
+            0.25,
+            [
+              76
+            ]
+          ],
+          [
+            0.5,
+            [
+              71
+            ]
+          ],
+          [
+            0.75,
+            [
+              69
+            ]
+          ],
+          [
+            1,
+            [
+              67
+            ]
+          ],
+          [
+            1.25,
+            [
+              71
+            ]
+          ],
+          [
+            1.5,
+            [
+              67
+            ]
+          ],
+          [
+            1.75,
+            [
+              66
+            ]
+          ],
+          [
+            2,
+            [
+              64
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 309,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0,
+        "sourceEndBeat": 60,
+        "producerLastNoteEndBeat": 60,
+        "coverage": "whole explicitly named movement on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "l-streabbog-j-l-gobbaerts-les-etoiles-d-or-no-1-valse",
+      "sourceArtifactHash": "d2dee55c2b4942345aed733377d48cc91768fcd8fdd3dc6d84061eaeb754bee3",
+      "advancedNotesSha256": "8148285b46d867fc1b679880c6c43721aa0cde04362adc01d9fdc5c9b354a2f1",
+      "playbackTempoBpm": 150,
+      "sourceFile": "l-streabbog-j-l-gobbaerts-les-etoiles-d-or-no-1-valse.mid",
+      "provenance": "Explicit printed named movement No. 1 Valse in the score hierarchy at https://www.mutopiaproject.org/ftp/GobbaertsL/Les_Etoiles_dOr_No1/Les_Etoiles_dOr_No1.ly. Its companion MIDI exactly matches retained source bytes. A complete printed opening RH pitch/rhythm landmark independently locates the opening; the explicit upper/lower MIDI traversal is C-G-C; the commented-out unfoldRepeats command is not performed. All actual producer pitched onsets independently match raw source pitches/quarter beats within1/16 beat. The map starts at first pitched beat3 and ends at the shared raw-source and actual producer note extent241. Any leading silence or padded producer tail remains estimated. The label names the printed movement only; it supplies no internal Verse/Chorus divisions or generic genre/tempo inference. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-explicit-printed-movement",
+          "label": "No. 1 Valse",
+          "startBeat": 3,
+          "endBeat": 241,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-named-movement-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact companion/source identity, complete printed opening pitch/rhythm landmark and independent full producer correspondence; uncalibrated correspondence, not internal form certainty or musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/GobbaertsL/Les_Etoiles_dOr_No1/Les_Etoiles_dOr_No1.ly",
+        "scoreSha256": "8011d07dce6eacfb8876d08f010e28b0a39137cd727961830753b117090b1c02",
+        "printedHeadingHierarchy": {
+          "title": "Les étoiles d'or",
+          "subtitle": "No. 1 Valse"
+        },
+        "companionMidiSha256": "d2dee55c2b4942345aed733377d48cc91768fcd8fdd3dc6d84061eaeb754bee3",
+        "sourceClockReceiptSha256": "9b2dccfbc9641c585ac565e615960945b41ba902137dfdc9b5a862f46809d984",
+        "completeOpeningRhythmLandmark": [
+          [
+            3,
+            [
+              79
+            ]
+          ],
+          [
+            6,
+            [
+              79
+            ]
+          ],
+          [
+            9,
+            [
+              79
+            ]
+          ],
+          [
+            10,
+            [
+              78
+            ]
+          ],
+          [
+            11,
+            [
+              81
+            ]
+          ],
+          [
+            12,
+            [
+              79
+            ]
+          ],
+          [
+            15,
+            [
+              76
+            ]
+          ],
+          [
+            16,
+            [
+              75
+            ]
+          ],
+          [
+            17,
+            [
+              76
+            ]
+          ]
+        ],
+        "producerPitchedOnsets": 431,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.010416666666671404,
+        "firstPitchedBeat": 3,
+        "sourceEndBeat": 241,
+        "producerLastNoteEndBeat": 241,
+        "coverage": "whole explicitly named movement on encoded traversal only; leading silence and padded tail excluded"
+      }
+    },
+    {
+      "baseId": "nomy-cocaine",
+      "sourceArtifactHash": "db6fc1ac58d172b53bcad7fe09c045583e2663bdcf7b45fa0542213d0955b55b",
+      "advancedNotesSha256": "2a35958e4a5addf45317e70ff6539fc62707c02389ed2b045ad0f6ac17c80b15",
+      "playbackTempoBpm": 107,
+      "sourceFile": "nomy-cocaine.mid",
+      "provenance": "Verse classification from the captured Eric Clapton/Cocaine chart at https://tabs.ultimate-guitar.com/tab/eric-clapton/cocaine-chords-63555. The stored catalog caption names Nomy; this identity conflict remains unresolved. All 85 normalized characters of one complete six-line Verse paragraph match exactly one complete contiguous FF05 lyric-event window on retained MIDI track0 from31 to55.5 quarter beats. Every actual producer pitched onset independently matches raw source pitches/quarter beats within1/16 beat. This establishes only the matching text's classification in that chart. It does not establish a source performer, validate the Nomy caption or prove Nomy-specific form. The generic Verse lyric excerpt omits occurrence ordinals, releases and full Verse boundaries. Original Nomy studies and the alternative Clapton chart remain unqualified; the shorter Chorus text fails the unchanged minimum-length rule. Chart evidence, not FF06/FF07 form markers, recording timestamps, artist credit corrections or owner musical acceptance.",
+      "sections": [
+        {
+          "id": "chart-complete-verse-lyric-excerpt",
+          "label": "Verse lyric excerpt",
+          "startBeat": 31,
+          "endBeat": 55.5,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "complete-chart-lyric-event-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact complete paragraph/event-edge text correspondence and independent full producer pitch/onset match ratio; uncalibrated correspondence, not artist identity, full-boundary certainty or musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/eric-clapton/cocaine-chords-63555",
+        "chartHtmlSha256": "206e0024dffe6a29a1a811e7f900df7bd343926596aea62c85c2e80743d1e074",
+        "chartArtist": "Eric Clapton",
+        "catalogArtist": "Nomy",
+        "artistIdentityStatus": "unresolved caption/chart conflict; no credit correction",
+        "matchedCharacters": 85,
+        "completeChartParagraphLines": 6,
+        "normalizedTextSha256": "6b005bacca31ac64471cce81666b9eaca1fcbabd0a89bf27a9c5fc60fd0b8947",
+        "lyricTrack": 0,
+        "uniqueCompleteEventWindows": 1,
+        "correspondenceReceiptSha256": "9bb58d60e7b6000edefcb72fd6b650ad672916f034d7d27d9611b02c3e990075",
+        "sourceClockReceiptSha256": "901a2dc72ae3d24e243e80303a314acfc62634bfc62425dd399b1931a2f6d2d0",
+        "producerPitchedOnsets": 1577,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.041666666666685614,
+        "coverage": "first-to-last cue of one complete chart paragraph only; releases, full section boundaries and artist identity unresolved"
+      }
     }
   ]
 }

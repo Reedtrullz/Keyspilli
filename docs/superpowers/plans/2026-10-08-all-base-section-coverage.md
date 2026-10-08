@@ -73,8 +73,25 @@
 
 ## Evidence status, 2026-10-08
 
-Every stored base has an acquisition/source disposition. This completes the full-inventory attempt, not naming. PR226, PR227 and PR228 are merged, deployed and live-verified. The latest verified commit889d5a6ce0e8b740d9c5a209c1b721f1b5386887 has1764 served variants/441 bases/30 named bases,zero numbered labels/errors and preserved selected store fields. PR227’s disk failure, verified image archives, ext4 reservation repair and successful retry remain retained.
+Every stored base has an acquisition/source disposition; this is not completed
+naming. PR226 through PR229 are merged, deployed and live-verified. Latest verified
+commit d52f6efde7ce1f417f4f8f2f449ac2e673defae8 has 1,764 variants / 441 bases /
+31 named bases, zero numbered labels/errors and preserved selected store fields.
+PR230 merged after exact-head checks and CLEAN state at
+ ec75564a3976f16cd9526c9a0f18a244ae5d4c64; deployment acceptance is pending.
 
-PR229 is merged atd52f6efde7ce1f417f4f8f2f449ac2e673defae8 after exact-head required checks succeeded with CLEAN state. Its main deployment remains pending here. That batch adds Atlas’s Intro motif excerpt4..11.75.
+The archived-score/opening-text batch adds twelve candidates: 47 stored / 45 served
+maps expected, with 408 stored / 396 served bases still lacking a substantiated
+map. Dukas provides literal rehearsal locations; six Czerny scores print named
+second parts; Glover's fixed opening text excerpt preserves the failed full-stanza
+study. Three explicitly named movements and a complete Verse lyric excerpt also
+qualify, with the Nomy/Clapton caption conflict unresolved. Archived bodies now include 61 source members in 11 matched ZIP archives.
+The three structured Songsterr studies admitted no maps. See
+`docs/research/2026-10-08-section-archived-score-followup.md`.
 
-The next reviewed evidence candidates are an explicit Beethoven Finale movement and four generic Blinding Lights Riff motif excerpts:35 stored/33 served maps expected,420 stored/408 served bases without a substantiated map. Current evidence covers234 captured chart bases,227 harmony trials,108 byte-matched score sources and418 original-source byte matches. Shallow and What Was I Made For have no eligible stable span at minimum raw cost. Ten Sabaton recording-clock studies and Status Quo’s conflicting chart roles remain rejected. Catalog-wide naming remains incomplete and Task4 continues.
+Current broader evidence covers 234 captured UG chart bases, 227 harmony trials,
+108 byte-matched scores and 418 original-source byte matches. Shallow and What Was
+I Made For have no eligible stable minimum-cost harmony span. Ten Sabaton recording
+clock studies, Status Quo's conflicting roles, 37 unfound original sources and two
+raw parse errors remain unresolved. Catalog-wide naming remains incomplete;
+Task4 continues with additional evidence and the release gates above.
