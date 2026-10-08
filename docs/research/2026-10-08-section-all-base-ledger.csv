@@ -1,9 +1,9 @@
 baseId,servedAtCapture,mapStatus,namedSpans,exactOriginalSourceByteMatch,savedChartCount,byteMatchedScore,allBaseHarmonyEvaluated,rawMidiParseError,unresolved
 1-step-forward-3-steps-back-olivia-rodrigo,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
-30-seconds-2-mars-bright-lights,True,estimate-only-unresolved,0,True,0,False,False,,No substantiated map: base remains estimate-only.
-30-seconds-2-mars-city-of-angels,True,estimate-only-unresolved,0,True,0,False,False,,No substantiated map: base remains estimate-only.
-30-seconds-to-mars-this-is-war,True,estimate-only-unresolved,0,True,0,False,False,,No substantiated map: base remains estimate-only.
-5sos-heartbreak-girl,True,estimate-only-unresolved,0,True,0,False,False,,No substantiated map: base remains estimate-only.
+30-seconds-2-mars-bright-lights,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
+30-seconds-2-mars-city-of-angels,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
+30-seconds-to-mars-this-is-war,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
+5sos-heartbreak-girl,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 a-adam-giselle-pas-de-deux-1er-acte,True,estimate-only-unresolved,0,True,0,True,False,,"No substantiated map: base remains estimate-only. | Byte-matched score acquired, but no verified internal form map established."
 a-adam-minuit-chretiens,True,estimate-only-unresolved,0,True,0,True,False,,"No substantiated map: base remains estimate-only. | Byte-matched score acquired, but no verified internal form map established."
 a-diabelli-28-melodische-ubungsstucke-no-1,True,estimate-only-unresolved,0,True,0,True,False,,"No substantiated map: base remains estimate-only. | Byte-matched score acquired, but no verified internal form map established."
@@ -118,7 +118,7 @@ ed-sheeran-happier,True,estimate-only-unresolved,0,True,2,False,True,,No substan
 ed-sheeran-lego-house,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ed-sheeran-perfect-piano-arrangement,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ed-sheeran-the-a-team,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
-ed-sheeran-you-need-me-i-don-t-need-you,True,estimate-only-unresolved,0,True,0,False,False,,No substantiated map: base remains estimate-only.
+ed-sheeran-you-need-me-i-don-t-need-you,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 elton-john-circle-of-life,True,mapped-partial,1,True,2,False,True,,Only part of numeric extent is named; unresolved intervals remain estimated.
 eminem-rap-god,True,estimate-only-unresolved,0,True,1,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ennio-morricone-chi-mai,True,estimate-only-unresolved,0,True,1,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
@@ -337,16 +337,16 @@ pianostalgia-p-nk-u-ur-hand-piano-tutorial-msm00c9a,True,estimate-only-unresolve
 pink-just-give-me-a-reason,False,mapped-partial,5,True,0,False,False,,Only part of numeric extent is named; unresolved intervals remain estimated.
 plain-white-tea-s-hey-there-delilah,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 pompeii-bastille,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
-preview-job-a1441280-05de-46b2-88bc-7acbc5bc29fb,True,estimate-only-unresolved,0,False,2,False,True,,No substantiated map: base remains estimate-only. | No exact original-source byte match found in inspected retained source/audio paths. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
-preview-job-a30f9c99-bc15-4432-8f3c-030e7eb0584a,True,estimate-only-unresolved,0,False,2,False,True,,No substantiated map: base remains estimate-only. | No exact original-source byte match found in inspected retained source/audio paths. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
-preview-job-db7fc4ea-1bfe-40b9-b9cb-df5c33754539,True,estimate-only-unresolved,0,False,2,False,True,,No substantiated map: base remains estimate-only. | No exact original-source byte match found in inspected retained source/audio paths. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
+preview-job-a1441280-05de-46b2-88bc-7acbc5bc29fb,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
+preview-job-a30f9c99-bc15-4432-8f3c-030e7eb0584a,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
+preview-job-db7fc4ea-1bfe-40b9-b9cb-df5c33754539,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 queen-bohemian-rhapsody,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 queen-somebody-to-love,True,mapped-numeric-extent,11,True,2,False,False,,
 r-franz-es-hat-die-rose-sich-beklagt,True,estimate-only-unresolved,0,True,0,True,False,,"No substantiated map: base remains estimate-only. | Byte-matched score acquired, but no verified internal form map established."
 r-franz-gute-nacht,True,estimate-only-unresolved,0,True,0,True,False,,"No substantiated map: base remains estimate-only. | Byte-matched score acquired, but no verified internal form map established."
 rammstein-mein-herz-brennt,True,estimate-only-unresolved,0,True,1,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 red-sun-in-the-sky,False,estimate-only-unresolved,0,False,0,False,False,,No substantiated map: base remains estimate-only. | No exact original-source byte match found in inspected retained source/audio paths.
-rhcp-under-the-bridge,True,estimate-only-unresolved,0,True,0,False,False,,No substantiated map: base remains estimate-only.
+rhcp-under-the-bridge,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 rihanna-diamonds,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 rihanna-stay,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
 rihanna-umbrella,True,estimate-only-unresolved,0,True,2,False,True,,No substantiated map: base remains estimate-only. | Ordered harmony studied; candidate correspondence and independent landmarks not established.
