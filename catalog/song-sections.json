@@ -63,7 +63,7 @@
       "sourceArtifactHash": "c1a6bf28385b9ff3a1d3b8bbb62427ba94cd311bfeaefb02196c5ae076a301f3",
       "playbackTempoBpm": 150,
       "sourceFile": "avenged-sevenfold-afterlife.mid",
-      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
+      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation. Riff A224..244 and Riff B372..404 are literal retained FF06 cues; preceding Chorus spans now end at those cues. Independent Mido checks against pinned production notes match all producer pitched onsets within1/16 beat.",
       "sections": [
         {
           "id": "source-section-1",
@@ -102,7 +102,15 @@
           "label": "Chorus",
           "type": "chorus",
           "startBeat": 160,
+          "endBeat": 224,
+          "evidence": "source"
+        },
+        {
+          "id": "source-riff-a",
+          "label": "Riff A",
+          "startBeat": 224,
           "endBeat": 244,
+          "type": "custom",
           "evidence": "source"
         },
         {
@@ -126,7 +134,15 @@
           "label": "Chorus",
           "type": "chorus",
           "startBeat": 308,
+          "endBeat": 372,
+          "evidence": "source"
+        },
+        {
+          "id": "source-riff-b",
+          "label": "Riff B",
+          "startBeat": 372,
           "endBeat": 404,
+          "type": "custom",
           "evidence": "source"
         },
         {
@@ -181,43 +197,53 @@
       "clockEvidence": {
         "strategy": "source-beats",
         "sourceOnsetMatch": {
-          "sourceBeats": 0.937360594795539,
-          "integratedTempo": 0.937360594795539
-        }
+          "sourceBeats": 1,
+          "integratedTempo": 1.0
+        },
+        "toleranceBeats": 0.0625
       },
       "advancedNotesSha256": "315f8c378ce69a97f2a0cb5c0d9f96c23beba0f0ff665c888407b47100c071f1"
     },
     {
       "baseId": "journey-dont-stop-believin",
       "sourceArtifactHash": "08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717",
+      "advancedNotesSha256": "d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354",
       "playbackTempoBpm": 118,
       "sourceFile": "journey-dont-stop-believin.mid",
-      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
-      "sections": [
-        {
-          "id": "source-section-1",
-          "label": "guitar solo",
-          "type": "interlude",
-          "startBeat": 372,
-          "endBeat": 516,
-          "evidence": "source"
-        }
-      ],
+      "provenance": "Instrumental and guitar solo are literal timed FF06 labels retained from this exact source MIDI. Each stops at the next cue, including unknown or numeric cues. Piano, numeric, strangers and ad lib cues remain estimated; no verse or chorus role is inferred from their words. Independent raw MIDI source quarter beats match all actual production pitched onsets within1/16 beat. Not an official artist form annotation; no recording-time or owner musical acceptance claim.",
       "clockEvidence": {
         "strategy": "source-beats",
         "sourceOnsetMatch": {
-          "sourceBeats": 0.6471329552614997,
-          "integratedTempo": 0.6408317580340265
-        }
+          "sourceBeats": 1.0,
+          "integratedTempo": 0.9887640449438202
+        },
+        "toleranceBeats": 0.0625
       },
-      "advancedNotesSha256": "d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354"
+      "sections": [
+        {
+          "id": "source-section-1",
+          "label": "Instrumental",
+          "startBeat": 228,
+          "endBeat": 244,
+          "type": "custom",
+          "evidence": "source"
+        },
+        {
+          "id": "source-section-2",
+          "label": "Guitar solo",
+          "startBeat": 372,
+          "endBeat": 404,
+          "type": "custom",
+          "evidence": "source"
+        }
+      ]
     },
     {
       "baseId": "britney-spears-oops-i-did-it-again",
       "sourceArtifactHash": "64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4",
       "playbackTempoBpm": 95,
       "sourceFile": "britney-spears-oops-i-did-it-again.mid",
-      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation.",
+      "provenance": "Timed markers retained from this exact source MIDI; not an official artist form annotation. The literal retained FF06 Break192..208 ends the preceding Chorus at192; End332 terminates the final named span, leaving its release/tail estimated. Independent Mido source-beat checks match all pinned production pitched onsets within1/16 beat. Existing source marker sections are preserved rather than replaced by weaker chart lyric excerpts.",
       "sections": [
         {
           "id": "source-section-1",
@@ -272,7 +298,15 @@
           "label": "Chorus 2",
           "type": "chorus",
           "startBeat": 160,
+          "endBeat": 192,
+          "evidence": "source"
+        },
+        {
+          "id": "source-break-192",
+          "label": "Break",
+          "startBeat": 192,
           "endBeat": 208,
+          "type": "custom",
           "evidence": "source"
         },
         {
@@ -304,16 +338,17 @@
           "label": "Chorus 5",
           "type": "chorus",
           "startBeat": 300,
-          "endBeat": 332.5,
+          "endBeat": 332,
           "evidence": "source"
         }
       ],
       "clockEvidence": {
         "strategy": "source-beats",
         "sourceOnsetMatch": {
-          "sourceBeats": 0.6431349087645827,
-          "integratedTempo": 0.5276697577026623
-        }
+          "sourceBeats": 1,
+          "integratedTempo": 0.41988365943945005
+        },
+        "toleranceBeats": 0.0625
       },
       "advancedNotesSha256": "84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae"
     },
@@ -483,10 +518,52 @@
     {
       "baseId": "the-beatles-help",
       "sourceArtifactHash": "278f693cc9859cedee170d7709c49b5e7a1c98de632ea3ed34092c7bff05279a",
+      "advancedNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55",
       "playbackTempoBpm": 173,
       "sourceFile": "the-beatles-help.mid",
-      "provenance": "Labels from https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269; boundaries aligned to arrangement harmony. Not timed source markers, recording timestamps, or an official artist form annotation. Not auditioned; no musical acceptance established. Only the Intro has a separated boundary and independent symbolic landmarks; the rest remains estimated. Confidence is algorithmic separation, not calibrated probability.",
-      "alignment": {
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 0,
+          "endBeat": 32,
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Chorus excerpt",
+          "startBeat": 100.0,
+          "endBeat": 156.0,
+          "type": "chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-4",
+          "label": "Verse excerpt",
+          "startBeat": 165.0,
+          "endBeat": 223.5,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-2",
+          "label": "Chorus excerpt",
+          "startBeat": 228.0,
+          "endBeat": 284.0,
+          "type": "chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-3",
+          "label": "Chorus excerpt",
+          "startBeat": 356.0,
+          "endBeat": 410.5,
+          "type": "chorus",
+          "evidence": "chart"
+        }
+      ],
+      "priorAlignment": {
         "strategy": "ordered-eight-bar-harmony-v1",
         "confidenceScore": 0.5888888888888889,
         "totalCost": 4.672182539682539,
@@ -523,17 +600,64 @@
         "identityReceiptSha256": "eef2ec78501612294be5fba820144003f3929e189e099c433c374a7ab840c950",
         "notesOrigin": "production"
       },
-      "sections": [
-        {
-          "id": "chart-section-1",
-          "label": "Intro",
-          "type": "intro",
-          "startBeat": 0,
-          "endBeat": 32,
-          "evidence": "chart"
-        }
-      ],
-      "advancedNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55"
+      "priorProvenance": "Labels from https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269; boundaries aligned to arrangement harmony. Not timed source markers, recording timestamps, or an official artist form annotation. Not auditioned; no musical acceptance established. Only the Intro has a separated boundary and independent symbolic landmarks; the rest remains estimated. Confidence is algorithmic separation, not calibrated probability.",
+      "provenance": "Section roles from https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269; complete multi-line chart paragraphs match retained timed MIDI lyric cues at exact cue edges. Identical text may occur more than once: every matched occurrence receives only the generic role agreed by all acquired charts containing that complete text; no occurrence numbers or convenient repeated-harmony assignment is inferred. Excerpts run from first to last matched cue onset, excluding final syllable release; full musical section boundaries and downbeats remain unresolved. Source quarter beats independently match all actual producer pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps, official artist form annotations or musical acceptance. The separately validated existing Intro0..32 is retained unchanged; priorAlignment and priorProvenance preserve its evidence.",
+      "alignment": {
+        "strategy": "complete-paragraph-role-excerpts-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of complete normalized text coverage at cue edges, unanimous role correspondence across acquired charts for identical complete text and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "chartsChecked": [
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269",
+            "sha256": "b3b5dd9b5126a7e54b47e57814d2e220387a1c95fcc84026b21b2cc1568e0db0"
+          }
+        ],
+        "selectedChartUrl": "https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269",
+        "lyricTrack": 0,
+        "clockMatchRatio": 1,
+        "matchedParagraphs": [
+          {
+            "role": "Chorus",
+            "chartLabels": [
+              "Chorus",
+              "Chorus"
+            ],
+            "matchedCharacters": 111,
+            "matchedLines": 2,
+            "normalizedTextSha256": "90d5df69d3206efa3f345c78f26609679660b93b9ab40548c18e3df087738396",
+            "spans": [
+              [
+                100.0,
+                156.0
+              ],
+              [
+                228.0,
+                284.0
+              ],
+              [
+                356.0,
+                410.5
+              ]
+            ]
+          },
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse"
+            ],
+            "matchedCharacters": 149,
+            "matchedLines": 4,
+            "normalizedTextSha256": "c5980ca714cc499fc064d8936d7dec593cdfbfd2ec20650b01a10a4cbe8003a7",
+            "spans": [
+              [
+                165.0,
+                223.5
+              ]
+            ]
+          }
+        ],
+        "coverage": "lyric-cue excerpts only; repeated occurrence ordinals, releases and full form boundaries unresolved"
+      }
     },
     {
       "baseId": "bonnie-tyler-total-eclipse-of-the-heart",
@@ -1038,6 +1162,499 @@
           "evidence": "chart"
         }
       ]
+    },
+    {
+      "baseId": "claribel-c-a-barnard-18301869-i-cannot-sing-the-old-songs",
+      "sourceArtifactHash": "806b06d9e1add13cdf4f0343852f1bfa3df2f78f51676d13c9287b7b5fda7898",
+      "advancedNotesSha256": "46fc46f20aba0f24e975714d36a73d3174be26defcb6672e55dc8822c8a7c58b",
+      "playbackTempoBpm": 60,
+      "sourceFile": "claribel-c-a-barnard-18301869-i-cannot-sing-the-old-songs.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Stanza 1 excerpt",
+          "startBeat": 0.0,
+          "endBeat": 38.5,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza1 label from https://www.mutopiaproject.org/ftp/Claribel/oldsong/oldsong.ly; the score companion MIDI exactly matches retained source bytes. Its complete first-stanza lyric text uniquely matches one timed source lyric track. This bounded excerpt starts at the first matched cue onset and stops at the last, excluding the final syllable release. Printed stanzas occur in parallel over the same music; sequential performed verses and full musical section boundaries are not established. Source quarter beats independently match actual production pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "printed-stanza-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact complete normalized text coverage, unique lyric-track correspondence and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/Claribel/oldsong/oldsong.ly",
+        "scoreSha256": "ecd00ecf23dd9f5d047b3c95c23db635bda544d94fd0b70c0b6980f24ba66490",
+        "companionMidiSha256": "806b06d9e1add13cdf4f0343852f1bfa3df2f78f51676d13c9287b7b5fda7898",
+        "printedStanza": "1.",
+        "scoreLyricVariable": "textA",
+        "normalizedTextSha256": "00b70a6b26d4e6027ec73316b2c0ccbfed39f2685bfad0b4161ee9b9e7c76608",
+        "matchedCharacters": 230,
+        "matchedLines": 5,
+        "lyricTrack": 2,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "coverage": "first printed stanza lyric-cue excerpt only; parallel stanzas are not sequenced; release and full musical boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "f-abt-when-the-swallows-homeward-fly-agathe",
+      "sourceArtifactHash": "6d2b25530b4c8ebf87dd9533c3f8833d3f6caff808fd48aa5f5691d848f03efa",
+      "advancedNotesSha256": "e724f5b2fefa3acb1d42074b7d77267cf86e15bb40200afa2b7a68a40e21ad28",
+      "playbackTempoBpm": 60,
+      "sourceFile": "f-abt-when-the-swallows-homeward-fly-agathe.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Stanza 1 excerpt",
+          "startBeat": 0.0,
+          "endBeat": 70.0,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza1 label from https://www.mutopiaproject.org/ftp/AbtF/swallows/swallows.ly; the score companion MIDI exactly matches retained source bytes. Its complete first-stanza lyric text uniquely matches one timed source lyric track. This bounded excerpt starts at the first matched cue onset and stops at the last, excluding the final syllable release. Printed stanzas occur in parallel over the same music; sequential performed verses and full musical section boundaries are not established. Source quarter beats independently match actual production pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "printed-stanza-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact complete normalized text coverage, unique lyric-track correspondence and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/AbtF/swallows/swallows.ly",
+        "scoreSha256": "a6c2da4393c74c005bcbe15dff0bda944d75e9632c2f22c46248b629a9d37d67",
+        "companionMidiSha256": "6d2b25530b4c8ebf87dd9533c3f8833d3f6caff808fd48aa5f5691d848f03efa",
+        "printedStanza": "1.",
+        "scoreLyricVariable": "textA",
+        "normalizedTextSha256": "44233d073d228e7d340ec1971b18260cfd49ddab6b40f0e6039d9d817cec283f",
+        "matchedCharacters": 220,
+        "matchedLines": 9,
+        "lyricTrack": 2,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "coverage": "first printed stanza lyric-cue excerpt only; parallel stanzas are not sequenced; release and full musical boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "h-carey-sally-in-our-alley",
+      "sourceArtifactHash": "4468a81c78be880012815d44693f259a1b79c800ba075cb757ddc620808dbdd4",
+      "advancedNotesSha256": "189e034fca05275660a097538cfbd82ca387eafeec5e16098d91dd39cb94bc81",
+      "playbackTempoBpm": 60,
+      "sourceFile": "h-carey-sally-in-our-alley.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Stanza 1 excerpt",
+          "startBeat": 0.0,
+          "endBeat": 44.0,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza1 label from https://www.mutopiaproject.org/ftp/CareyH/sally/sally.ly; the score companion MIDI exactly matches retained source bytes. Its complete first-stanza lyric text uniquely matches one timed source lyric track. This bounded excerpt starts at the first matched cue onset and stops at the last, excluding the final syllable release. Printed stanzas occur in parallel over the same music; sequential performed verses and full musical section boundaries are not established. Source quarter beats independently match actual production pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "printed-stanza-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact complete normalized text coverage, unique lyric-track correspondence and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/CareyH/sally/sally.ly",
+        "scoreSha256": "b8e83ba5f9a29f3125a17b29a241c54e0807362beddc46507377b99383d9b9d2",
+        "companionMidiSha256": "4468a81c78be880012815d44693f259a1b79c800ba075cb757ddc620808dbdd4",
+        "printedStanza": "1.",
+        "scoreLyricVariable": "textA",
+        "normalizedTextSha256": "312d51886ffe25e9c6dba4491b595f7f852422bce5bef39f79df9f87e5fc82a7",
+        "matchedCharacters": 194,
+        "matchedLines": 4,
+        "lyricTrack": 2,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "coverage": "first printed stanza lyric-cue excerpt only; parallel stanzas are not sequenced; release and full musical boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "h-r-bishop-home-sweet-home",
+      "sourceArtifactHash": "f5f7e4a7f59bf3f6890ec25b3f25d0a2c938cc84a1dfb0f55ab6fc1ac5d995f7",
+      "advancedNotesSha256": "824d5ebc94e92f397fc1f49e21ba3eebda2dda94051d08aea1b6f21b43e7567f",
+      "playbackTempoBpm": 90,
+      "sourceFile": "h-r-bishop-home-sweet-home.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Stanza 1 excerpt",
+          "startBeat": 0.0,
+          "endBeat": 61.0,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza1 label from https://www.mutopiaproject.org/ftp/BishopHR/homeshome/homeshome.ly; the score companion MIDI exactly matches retained source bytes. Its complete first-stanza lyric text uniquely matches one timed source lyric track. This bounded excerpt starts at the first matched cue onset and stops at the last, excluding the final syllable release. Printed stanzas occur in parallel over the same music; sequential performed verses and full musical section boundaries are not established. Source quarter beats independently match actual production pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "printed-stanza-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact complete normalized text coverage, unique lyric-track correspondence and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BishopHR/homeshome/homeshome.ly",
+        "scoreSha256": "6a202db0514baba691576b96faa9bb484be3671dfbb3aa99e52d5d3cb4bc2be7",
+        "companionMidiSha256": "f5f7e4a7f59bf3f6890ec25b3f25d0a2c938cc84a1dfb0f55ab6fc1ac5d995f7",
+        "printedStanza": "1.",
+        "scoreLyricVariable": "textA",
+        "normalizedTextSha256": "a773a1d96af5d87ae6acd043d8f30e495024facd42625633f08f09dff48c49cc",
+        "matchedCharacters": 155,
+        "matchedLines": 4,
+        "lyricTrack": 2,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "coverage": "first printed stanza lyric-cue excerpt only; parallel stanzas are not sequenced; release and full musical boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "j-ascher-alice-where-art-thou",
+      "sourceArtifactHash": "5a351c004e7c9290991e44bd323c88ea8a802a07a81bf3b297948e5133edb702",
+      "advancedNotesSha256": "780681772fae78ab929525a9ce6a7d2a1903a8fd56de2388d1e17954cb4c0809",
+      "playbackTempoBpm": 90,
+      "sourceFile": "j-ascher-alice-where-art-thou.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Stanza 1 excerpt",
+          "startBeat": 24.0,
+          "endBeat": 132.5,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Printed stanza1 label from https://www.mutopiaproject.org/ftp/AscherJ/alice/alice.ly; the score companion MIDI exactly matches retained source bytes. Its complete first-stanza lyric text uniquely matches one timed source lyric track. This bounded excerpt starts at the first matched cue onset and stops at the last, excluding the final syllable release. Printed stanzas occur in parallel over the same music; sequential performed verses and full musical section boundaries are not established. Source quarter beats independently match actual production pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps or owner musical acceptance.",
+      "alignment": {
+        "strategy": "printed-stanza-lyric-excerpt-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of exact complete normalized text coverage, unique lyric-track correspondence and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/AscherJ/alice/alice.ly",
+        "scoreSha256": "6dafb20aaf16caa59062b1b8b6242f81dbaf7525076b620bae0a315e07550eef",
+        "companionMidiSha256": "5a351c004e7c9290991e44bd323c88ea8a802a07a81bf3b297948e5133edb702",
+        "printedStanza": "1.",
+        "scoreLyricVariable": "textA",
+        "normalizedTextSha256": "32b79b4ecdd2568fec149f4972ca251055dedd5b90be3457e2e9d2900dd12660",
+        "matchedCharacters": 334,
+        "matchedLines": 9,
+        "lyricTrack": 4,
+        "completeMatchOccurrences": 1,
+        "clockMatchRatio": 1,
+        "coverage": "first printed stanza lyric-cue excerpt only; parallel stanzas are not sequenced; release and full musical boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "john-lennon-imagine",
+      "sourceArtifactHash": "6f50f9a1a9570a8f47c2af9c33decfe8be1685faddfe56231127c71e668844e3",
+      "advancedNotesSha256": "157cd3dc92e6b3e819567d0cf51eab7a1c03a1b76c1cb3333e0b26d4e7fb8790",
+      "playbackTempoBpm": 73,
+      "sourceFile": "john-lennon-imagine.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Verse excerpt",
+          "startBeat": 16.5,
+          "endBeat": 43.5,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-2",
+          "label": "Verse excerpt",
+          "startBeat": 64.5,
+          "endBeat": 91.5,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-3",
+          "label": "Chorus excerpt",
+          "startBeat": 113.25,
+          "endBeat": 140.0,
+          "type": "chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-5",
+          "label": "Verse excerpt",
+          "startBeat": 144.5,
+          "endBeat": 171.5,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-4",
+          "label": "Chorus excerpt",
+          "startBeat": 193.25,
+          "endBeat": 220.0,
+          "type": "chorus",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Section roles from https://tabs.ultimate-guitar.com/tab/john-lennon/imagine-chords-9306; complete multi-line chart paragraphs match retained timed MIDI lyric cues at exact cue edges. Identical text may occur more than once: every matched occurrence receives only the generic role agreed by all acquired charts containing that complete text; no occurrence numbers or convenient repeated-harmony assignment is inferred. Excerpts run from first to last matched cue onset, excluding final syllable release; full musical section boundaries and downbeats remain unresolved. Source quarter beats independently match all actual producer pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps, official artist form annotations or musical acceptance.",
+      "alignment": {
+        "strategy": "complete-paragraph-role-excerpts-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of complete normalized text coverage at cue edges, unanimous role correspondence across acquired charts for identical complete text and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "chartsChecked": [
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/john-lennon/imagine-chords-9306",
+            "sha256": "6c495513225775d55ad713337797d0d57d40aaa1d5b6999fb2c27aef90323d2a"
+          }
+        ],
+        "selectedChartUrl": "https://tabs.ultimate-guitar.com/tab/john-lennon/imagine-chords-9306",
+        "lyricTrack": 0,
+        "clockMatchRatio": 1,
+        "matchedParagraphs": [
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse 1"
+            ],
+            "matchedCharacters": 63,
+            "matchedLines": 4,
+            "normalizedTextSha256": "adc920625fb7bcf7874b9c96c372c19c112ef2eccfd73fb433e05d7fe134fcc4",
+            "spans": [
+              [
+                16.5,
+                43.5
+              ]
+            ]
+          },
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse 2"
+            ],
+            "matchedCharacters": 75,
+            "matchedLines": 4,
+            "normalizedTextSha256": "c6ea6aabffc6f1969a1ef0822d0754e81db7e689ffb34b8ba71b5b35d03e5019",
+            "spans": [
+              [
+                64.5,
+                91.5
+              ]
+            ]
+          },
+          {
+            "role": "Chorus",
+            "chartLabels": [
+              "Chorus"
+            ],
+            "matchedCharacters": 82,
+            "matchedLines": 4,
+            "normalizedTextSha256": "b3b67e0b2cab4175123b8f9b61ed78e426c7db4fd4d7bea0bf6d08fddf5bafb0",
+            "spans": [
+              [
+                113.25,
+                140.0
+              ],
+              [
+                193.25,
+                220.0
+              ]
+            ]
+          },
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse 3"
+            ],
+            "matchedCharacters": 74,
+            "matchedLines": 4,
+            "normalizedTextSha256": "66981c0dacbb1412f4fe82e1392c2cd274f34c17feb0e3adfdf2e7d9ed71bb5f",
+            "spans": [
+              [
+                144.5,
+                171.5
+              ]
+            ]
+          }
+        ],
+        "coverage": "lyric-cue excerpts only; repeated occurrence ordinals, releases and full form boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "midi-elvis-presley-can-t-help-falling-in-love-ff9e90ae",
+      "sourceArtifactHash": "ff9e90aec4290d257d080aaa0757019d383bc1a1c71cc34ed7acf19105caac4d",
+      "advancedNotesSha256": "73129ba7bf4907e44cad8d21243836b071301d0f6435e225028d411194a41f50",
+      "playbackTempoBpm": 80,
+      "sourceFile": "midi-elvis-presley-can-t-help-falling-in-love-ff9e90ae.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Verse excerpt",
+          "startBeat": 24.0,
+          "endBeat": 84.0,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-3",
+          "label": "Chorus excerpt",
+          "startBeat": 88.0,
+          "endBeat": 99.5,
+          "type": "chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-5",
+          "label": "Verse excerpt",
+          "startBeat": 104.0,
+          "endBeat": 132.0,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-2",
+          "label": "Verse excerpt",
+          "startBeat": 136.0,
+          "endBeat": 196.0,
+          "type": "verse",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-4",
+          "label": "Chorus excerpt",
+          "startBeat": 200.0,
+          "endBeat": 211.5,
+          "type": "chorus",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-lyric-excerpt-6",
+          "label": "Verse excerpt",
+          "startBeat": 216.0,
+          "endBeat": 244.0,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Section roles from https://tabs.ultimate-guitar.com/tab/elvis-presley/cant-help-falling-in-love-chords-1086983; complete multi-line chart paragraphs match retained timed MIDI lyric cues at exact cue edges. Identical text may occur more than once: every matched occurrence receives only the generic role agreed by all acquired charts containing that complete text; no occurrence numbers or convenient repeated-harmony assignment is inferred. Excerpts run from first to last matched cue onset, excluding final syllable release; full musical section boundaries and downbeats remain unresolved. Source quarter beats independently match all actual producer pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps, official artist form annotations or musical acceptance.",
+      "alignment": {
+        "strategy": "complete-paragraph-role-excerpts-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of complete normalized text coverage at cue edges, unanimous role correspondence across acquired charts for identical complete text and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "chartsChecked": [
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/elvis-presley/cant-help-falling-in-love-chords-1086983",
+            "sha256": "1971a2ae9a5cf2093dab4f21f28a33300426c770874bfc21c18a830a56708c38"
+          },
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/elvis-presley/cant-help-falling-in-love-chords-43273",
+            "sha256": "a28aa52342675b944eaa9abf9050d740eff833351b3f1012f618bc21a862637b"
+          }
+        ],
+        "selectedChartUrl": "https://tabs.ultimate-guitar.com/tab/elvis-presley/cant-help-falling-in-love-chords-1086983",
+        "lyricTrack": 0,
+        "clockMatchRatio": 1,
+        "matchedParagraphs": [
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse 1"
+            ],
+            "matchedCharacters": 111,
+            "matchedLines": 4,
+            "normalizedTextSha256": "1f0ccb2651c317aacefe0657e6f3a3b67c857d44a62b9f386750cc4daebd7450",
+            "spans": [
+              [
+                24.0,
+                84.0
+              ],
+              [
+                136.0,
+                196.0
+              ]
+            ]
+          },
+          {
+            "role": "Chorus",
+            "chartLabels": [
+              "Chorus",
+              "Chorus"
+            ],
+            "matchedCharacters": 66,
+            "matchedLines": 3,
+            "normalizedTextSha256": "e918388d7cb343ec0071a860d1a1e836eec2aa948ff67bce8fcef9027095ebf3",
+            "spans": [
+              [
+                88.0,
+                99.5
+              ],
+              [
+                200.0,
+                211.5
+              ]
+            ]
+          },
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse 2"
+            ],
+            "matchedCharacters": 60,
+            "matchedLines": 2,
+            "normalizedTextSha256": "8445e35558410ae46bf1592a351e063423ef87f47dc78b8b830ff156c3e367d5",
+            "spans": [
+              [
+                104.0,
+                132.0
+              ],
+              [
+                216.0,
+                244.0
+              ]
+            ]
+          }
+        ],
+        "coverage": "lyric-cue excerpts only; repeated occurrence ordinals, releases and full form boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "the-beatles-let-it-be",
+      "sourceArtifactHash": "41af82c72141e3437e5a1e95ef39481673c1eca2fd09f699f258a3f209f95847",
+      "advancedNotesSha256": "b7fea761f20fe174c64e599041ba3e67f669b9efad4ddf2834dbf45aa34c3b36",
+      "playbackTempoBpm": 70,
+      "sourceFile": "the-beatles-let-it-be.mid",
+      "sections": [
+        {
+          "id": "chart-lyric-excerpt-1",
+          "label": "Verse excerpt",
+          "startBeat": 19.5,
+          "endBeat": 47.75,
+          "type": "verse",
+          "evidence": "chart"
+        }
+      ],
+      "provenance": "Section roles from https://tabs.ultimate-guitar.com/tab/the-beatles/let-it-be-chords-17427; complete multi-line chart paragraphs match retained timed MIDI lyric cues at exact cue edges. Identical text may occur more than once: every matched occurrence receives only the generic role agreed by all acquired charts containing that complete text; no occurrence numbers or convenient repeated-harmony assignment is inferred. Excerpts run from first to last matched cue onset, excluding final syllable release; full musical section boundaries and downbeats remain unresolved. Source quarter beats independently match all actual producer pitched onsets within1/16 beat. Chart evidence, not FF06/FF07 form markers, recording timestamps, official artist form annotations or musical acceptance.",
+      "alignment": {
+        "strategy": "complete-paragraph-role-excerpts-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum of complete normalized text coverage at cue edges, unanimous role correspondence across acquired charts for identical complete text and independent source-to-producer pitch/onset match ratio; uncalibrated correspondence, not musical probability.",
+        "chartsChecked": [
+          {
+            "url": "https://tabs.ultimate-guitar.com/tab/the-beatles/let-it-be-chords-17427",
+            "sha256": "1180e8b662e6bffb8a9f525f271ff083c8dfc85263deca5afb3c8d9ad5317a1e"
+          }
+        ],
+        "selectedChartUrl": "https://tabs.ultimate-guitar.com/tab/the-beatles/let-it-be-chords-17427",
+        "lyricTrack": 0,
+        "clockMatchRatio": 1,
+        "matchedParagraphs": [
+          {
+            "role": "Verse",
+            "chartLabels": [
+              "Verse 1"
+            ],
+            "matchedCharacters": 156,
+            "matchedLines": 4,
+            "normalizedTextSha256": "eff96baefbc13fa4f6b21e40b6647dfc73d3a807aa9b1964ac14142c13c83595",
+            "spans": [
+              [
+                19.5,
+                47.75
+              ]
+            ]
+          }
+        ],
+        "coverage": "lyric-cue excerpts only; repeated occurrence ordinals, releases and full form boundaries unresolved"
+      }
     }
   ]
 }
