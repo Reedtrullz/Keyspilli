@@ -49,6 +49,52 @@ interface LedgerRow {
 const VALID_EVIDENCE = new Set<string>(["source", "chart", "estimated"]);
 const HEX64 = /^[0-9a-f]{64}$/;
 
+export interface CapturedSectionBase {
+  baseId: string;
+  sourceArtifactHash: string;
+  advancedNotesSha256: string;
+  playbackTempoBpm: number;
+  servedAtCapture: boolean;
+}
+
+/** Frozen playback identities extend the ledger to uploads and transcriptions.
+ * They describe the capture, not current service availability or acceptance. */
+export function capturedSectionBases(input: unknown, errors: string[]): Map<string, CapturedSectionBase> {
+  const result = new Map<string, CapturedSectionBase>();
+  if (!input || typeof input !== "object") { errors.push("captured bases: invalid document"); return result; }
+  const doc = input as {schemaVersion?:unknown;capturedAt?:unknown;entries?:unknown};
+  if (doc.schemaVersion !== 1) errors.push("captured bases: schemaVersion must be 1");
+  if (typeof doc.capturedAt !== "string" || !Number.isFinite(Date.parse(doc.capturedAt))) errors.push("captured bases: invalid capturedAt");
+  if (!Array.isArray(doc.entries)) { errors.push("captured bases: entries must be an array"); return result; }
+  for (const raw of doc.entries) {
+    if (!raw || typeof raw !== "object") { errors.push("captured bases: malformed entry"); continue; }
+    const entry = raw as CapturedSectionBase;
+    const at = `captured[${entry.baseId}]`;
+    let valid = true;
+    const reject = (message:string) => { errors.push(`${at}: ${message}`); valid = false; };
+    if (typeof entry.baseId !== "string" || !/^[a-z0-9-]+$/.test(entry.baseId)) reject("invalid baseId");
+    if (typeof entry.sourceArtifactHash !== "string" || !HEX64.test(entry.sourceArtifactHash)) reject("invalid sourceArtifactHash");
+    if (typeof entry.advancedNotesSha256 !== "string" || !HEX64.test(entry.advancedNotesSha256)) reject("invalid advancedNotesSha256");
+    if (!Number.isFinite(entry.playbackTempoBpm) || entry.playbackTempoBpm <= 0) reject("invalid playbackTempoBpm");
+    if (typeof entry.servedAtCapture !== "boolean") reject("invalid servedAtCapture");
+    if (result.has(entry.baseId)) reject("duplicate baseId");
+    if (valid) result.set(entry.baseId, entry);
+  }
+  return result;
+}
+
+export function validateCapturedMap(entry: Pick<MapEntry,"baseId"|"sourceArtifactHash"|"advancedNotesSha256"|"playbackTempoBpm">,
+  captured: ReadonlyMap<string,CapturedSectionBase>, errors:string[]): void {
+  const identity = captured.get(entry.baseId);
+  if (!identity) return; // Seed and learner inventories retain their existing checks.
+  for (const field of ["sourceArtifactHash","playbackTempoBpm"] as const) {
+    if (entry[field] !== identity[field]) errors.push(`map[${entry.baseId}]: ${field} differs from captured playback identity`);
+  }
+  if (entry.advancedNotesSha256 !== undefined && entry.advancedNotesSha256 !== identity.advancedNotesSha256) {
+    errors.push(`map[${entry.baseId}]: advancedNotesSha256 differs from captured playback identity`);
+  }
+}
+
 export function ugCandidateIds(songs: Array<{id:string;title?:string;artist?:string;source?:string}>, ug: Array<{artist?:string;song?:string}>): Set<string> {
   const slug = (value:string) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
   const key = (artist:string,title:string) => slug(artist)+":"+slug(title);
@@ -151,6 +197,8 @@ function main(): number {
     join(root, "catalog/learner-review.json"),
   );
   const ug = readJson<Array<{ artist?: string; song?: string }>>(join(root, "catalog/ug-tabs.json"));
+  const capturedPath = join(root, "catalog/section-base-identities.json");
+  const captured = existsSync(capturedPath) ? capturedSectionBases(readJson<unknown>(capturedPath), errors) : new Map<string,CapturedSectionBase>();
   const markersDir = seedDir(root);
   const hasSeed = existsSync(markersDir);
   if (!hasSeed) warnings.push("data/seed-midi unavailable; marker harvest not assessed in this checkout");
@@ -168,14 +216,15 @@ function main(): number {
           .map((name) => basename(name, ".mid")),
       )
     : new Set<string>();
-  const known = new Set([...manifestIds, ...Object.keys(learner?.verdicts || {}), ...seedIds]);
+  const known = new Set([...manifestIds, ...Object.keys(learner?.verdicts || {}), ...seedIds, ...captured.keys()]);
 
   const mapped = new Map<string, MapEntry>();
   for (const entry of entries) {
     validateEntry(entry, errors);
+    validateCapturedMap(entry, captured, errors);
     if (!known.has(entry.baseId)) {
       errors.push(
-        "map[" + entry.baseId + "]: baseId is not present in catalog/manifest.json, learner review or data/seed-midi",
+        "map[" + entry.baseId + "]: baseId is not present in catalog/manifest.json, learner review, data/seed-midi or captured playback identities",
       );
     }
     mapped.set(entry.baseId, entry);
