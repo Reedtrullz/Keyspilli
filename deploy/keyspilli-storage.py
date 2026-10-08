@@ -89,7 +89,9 @@ def verify_cohort(path):
         names = set()
         for member in archive:
             parts = Path(member.name).parts
-            if member.name.startswith("/") or ".." in parts:
+            if (member.name.startswith("/") or ".." in parts or not parts
+                    or parts[0].removeprefix("._") not in {"artifacts", "seed-midi", "transcribed", "uploads", "manifest.json", "learner-review.json", "review-receipts", "harmony-candidates"}
+                    or not (member.isfile() or member.isdir())):
                 raise ValueError("unsafe archive member")
             if parts:
                 names.add(parts[0])

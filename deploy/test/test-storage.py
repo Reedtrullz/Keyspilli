@@ -151,6 +151,26 @@ class StorageTests(unittest.TestCase):
         storage.retention(self.policy.backups, True)
         self.assertTrue(all(p.exists() for p in good))
 
+    def test_hash_matching_archive_link_cannot_replace_recovery_cohorts(self):
+        good = [cohort(self.policy.backups, n, [image_id(1), image_id(2)]) for n in (1, 2)]
+        marker = cohort(self.policy.backups, 3, [image_id(1), image_id(2)])
+        d = json.loads(marker.read_text())
+        archive = self.policy.backups / d["archiveFile"]
+        with tarfile.open(archive, "w:gz") as tar:
+            for name in ("artifacts", "seed-midi"):
+                directory = tarfile.TarInfo(name)
+                directory.type = tarfile.DIRTYPE
+                tar.addfile(directory)
+            link = tarfile.TarInfo("artifacts/link")
+            link.type, link.linkname = tarfile.SYMTYPE, "../../outside"
+            tar.addfile(link)
+        d["archiveBytes"], d["archiveSha256"] = archive.stat().st_size, storage.sha256(archive)
+        marker.write_text(json.dumps(d))
+        with self.assertRaisesRegex(ValueError, "unsafe archive"):
+            storage.verify_cohort(marker)
+        storage.retention(self.policy.backups, True)
+        self.assertTrue(all(p.exists() for p in good))
+
     def test_hardlinks_and_open_payloads_protect_entire_cohort(self):
         for n in (1, 2, 3):
             cohort(self.policy.backups, n, [image_id(1), image_id(2)])
