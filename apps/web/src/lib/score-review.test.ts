@@ -51,6 +51,8 @@ it("escapes text, ignores legacy claimed passes and refuses overwrite", async ()
         expect(html).not.toContain('<script>alert');
         expect(html).toContain('&lt;script&gt;');
         expect(html).not.toContain('<textarea');
+        expect(html).toContain('<strong>Literal Conformance</strong>');
+        expect(html).toContain('<strong>Source Fidelity</strong>');
         expect(r.productionAdmission).toBe(false);
         await expect(writeScoreReviewReport(r, out)).rejects.toThrow();
     }
