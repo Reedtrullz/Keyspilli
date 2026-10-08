@@ -8,10 +8,21 @@
   --send-audio --review-profile evidence-v2 --max-requests TOTAL_JOB_CAP \
   --anti-python /absolute/path/to/python3 \
   --anti-script /absolute/path/to/anti.py \
-  --base-url http://127.0.0.1:PORT/v1 --model EXPLICIT_MODEL_ID
+  --base-url http://127.0.0.1:PORT/v1 --model EXPLICIT_MODEL_ID \
+  --account-binding-json /absolute/private/binding.json
 ```
 
 The profile uses an audio-neutral prompt. It asks the reviewer to inspect the content actually present before applying the selected Original or Chords musical focus. It does not presume piano or music, and directs abstention when the input is missing, silent, speech, uncertain, unavailable, or otherwise insufficient. The default legacy prompt remains unchanged.
+
+Each job may carry an optional `scoreContext` string of at most 4,000 characters. It is supplied to the evidence-v2 prompt as explicitly non-audio context for phrase/scope interpretation only. It never substitutes for the attached audio, source-byte pins, symbolic checks, human source authority or listening evidence.
+
+Live evidence-v2 requires a private four-field instance-scoped account binding.
+The canonical binding digest and gateway instance are checked against Anti's
+pre-generation verification receipt. Stale/busy bindings fail closed. The
+Keyspilli-owned response schema is passed as JSON text, retained and fingerprinted;
+dry-run validates the exact canonical schema appendix. Legacy prompt bytes remain
+unchanged, but the current shared transport ceiling is 4096 tokens. New fingerprints
+include that ceiling and cannot resume an old argument-budget configuration.
 
 ## Local captured-byte waveform preflight
 
@@ -27,7 +38,7 @@ The domain JSON inside the Anti envelope must use `schemaVersion: 2` and include
 
 - `comparisonStatus`: `compared` or `abstained`.
 - `attachments.reference` and `attachments.candidate`, each with `content` (`music`, `speech`, `silence`, `unavailable`, or `uncertain`) and concise, nonempty `evidence` describing the reported observation.
-- Nonempty `summary`, `uncertainty` (`low`, `medium`, or `high`), nonempty `limitations`, and `findings` using the existing bounded finding schema.
+- Nonempty `summary`, `uncertainty` (`low`, `medium`, or `high`), `limitations` as an array of nonempty strings, and `findings` using the existing bounded finding schema.
 
 `compared` is accepted only when both attachment content states are `music`. Both attachment evidence fields and at least one limitation are required. `abstained` requires `uncertainty: high`, nonempty limitations, and an empty findings array. Findings remain clip-local and must include the existing evidence and proposed check/repair fields.
 

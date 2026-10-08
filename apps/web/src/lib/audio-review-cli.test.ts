@@ -73,12 +73,14 @@ async function makeLocalRun(options: { digitalSilenceCandidate?: boolean; quietC
   };
   const manifestPath = join(root, "manifest.json");
   await writeFile(manifestPath, JSON.stringify(manifest));
+  const bindingPath = join(root, "binding.json");
+  await writeFile(bindingPath, JSON.stringify({ schemaVersion: 1, gatewayInstance: "a".repeat(32), accountRef: "acct_" + "b".repeat(12), inventorySha256: "c".repeat(64) }));
 
   const python = execFileSync("which", ["python3"], { encoding: "utf8" }).trim();
   const antiScript = join(root, "anti_stub.py");
   await writeFile(antiScript, String.raw`import json, os, sys
 args = sys.argv[1:]
-flags = "--base-url --model --audio --probe-unverified-audio --max-calls --retry --fallback-policy --max-output-tokens --run-timeout --no-pre-read --prompt-file --save-output --json --dry-run"
+flags = "--base-url --model --audio --probe-unverified-audio --max-calls --retry --fallback-policy --max-output-tokens --run-timeout --no-pre-read --prompt-file --save-output --json --dry-run --response-schema --account-binding-json"
 if "--help" in args:
     print(flags)
     sys.exit(0)
@@ -87,6 +89,8 @@ def values(name):
 audio = values("--audio")
 prompt_path = values("--prompt-file")[0]
 prompt = open(prompt_path, encoding="utf8").read()
+if values("--response-schema"):
+    prompt = prompt.strip() + "\n\nRequested output schema: " + json.dumps(json.loads(values("--response-schema")[0]), sort_keys=True, separators=(',', ':'))
 root = os.path.dirname(os.path.dirname(prompt_path))
 counter_path = os.path.join(root, "stub-invocations.txt")
 try:
@@ -97,7 +101,7 @@ open(counter_path, "w").write(str(count + 1))
 def media(attempts):
     return {"schemaVersion":1,"kind":"audio","status":"not_sent" if attempts == 0 else "attempted","captured_count":2,"gateway_attempts":attempts,"audio":[{"index":i+1,"sha256":__import__("hashlib").sha256(open(path,"rb").read()).hexdigest(),"bytes":os.path.getsize(path)} for i,path in enumerate(audio)],"provider_audio_acceptance":"unverified","listening_verification":"not_run"}
 if "--dry-run" in args:
-    receipt = {"mode":"listen","estimates":[{"model":"local-stub-model"}],"media_coverage":media(0),"stages":[{"name":"listen","max_attempts":1,"possible_retries":0,"max_output_tokens":2048}]}
+    receipt = {"mode":"listen","estimates":[{"model":"local-stub-model"}],"media_coverage":media(0),"stages":[{"name":"listen","max_attempts":1,"possible_retries":0,"max_output_tokens":4096}]}
     print(json.dumps(receipt))
     print()
     sys.stdout.write(prompt)
@@ -111,6 +115,9 @@ else:
     else:
         review = {"schemaVersion":2,"comparisonStatus":"abstained","attachments":{"reference":{"content":"music","evidence":"A sustained pitched tone is present."},"candidate":{"content":"silence","evidence":"No signal is claimed by this controlled stub."}},"summary":"Abstained because the local stub marks the candidate as silence.","uncertainty":"high","limitations":["Local stub output; provider hearing and audio grounding remain unverified."],"findings":[]}
     envelope = {"schemaVersion":1,"runStatus":"success","mode":"listen","model":"local-stub-model","metadata":{"result_quality":"complete","requested_model":"local-stub-model","actual_model":"local-stub-model","fallback_used":False,"fallback_chain":["local-stub-model"],"media_coverage":media(1)},"output_text":json.dumps(review)}
+    if values("--account-binding-json"):
+        binding = json.load(open(values("--account-binding-json")[0]))
+        envelope['metadata'].update(account_binding_config_sha256=__import__('hashlib').sha256(json.dumps(binding,sort_keys=True,separators=(',',':')).encode()).hexdigest(), account_binding_gateway_instance=binding['gatewayInstance'], account_binding_verified_before_attempt=True)
     print(json.dumps(envelope))
 `);
   const catalog = { models: [{ id: "local-stub-model", canonical_id: "local-stub-model", capabilities: {
@@ -127,7 +134,7 @@ else:
   await new Promise<void>(resolveListen => server.listen(0, "127.0.0.1", resolveListen));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("local test server did not bind");
-  return { root, manifestPath, python, antiScript, baseUrl: `http://127.0.0.1:${address.port}/v1`, server, catalogGets: () => catalogGets };
+  return { root, manifestPath, bindingPath, python, antiScript, baseUrl: `http://127.0.0.1:${address.port}/v1`, server, catalogGets: () => catalogGets };
 }
 
 async function runCli(args: string[]): Promise<string> {
@@ -138,6 +145,7 @@ async function runCli(args: string[]): Promise<string> {
 function cliArgs(fixture: Awaited<ReturnType<typeof makeLocalRun>>, outputDir: string, profile?: string, resume = false, dryRun = false): string[] {
   return [fixture.manifestPath, outputDir, dryRun ? "--dry-run" : "--send-audio", "--max-requests", dryRun ? "0" : "2",
     "--anti-python", fixture.python, "--anti-script", fixture.antiScript, "--base-url", fixture.baseUrl, "--model", "local-stub-model",
+    ...(profile === "evidence-v2" ? ["--account-binding-json", fixture.bindingPath] : []),
     ...(profile ? ["--review-profile", profile] : []), ...(resume ? ["--resume"] : [])];
 }
 

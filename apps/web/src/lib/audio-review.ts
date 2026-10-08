@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { open, readFile, stat } from "node:fs/promises";
+import { open, readFile, stat, lstat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 
 export const AUDIO_REVIEW_SCHEMA_VERSION = 2 as const;
@@ -8,7 +8,7 @@ export const AUDIO_REVIEW_LIMITS = Object.freeze({
   maxClipBytes: 2 * 1024 * 1024,
   maxPairBytes: 4 * 1024 * 1024,
   maxClipSeconds: 30,
-  maxOutputTokens: 2048,
+  maxOutputTokens: 4096,
   maxProviderCallsPerJob: 1,
   maxJobs: 300,
 });
@@ -44,6 +44,8 @@ export interface ReviewJob {
   id: string;
   mode: ReviewMode;
   phraseId: string;
+  /** Optional compact source/score summary supplied as context, never as audio evidence. */
+  scoreContext?: string;
   referenceClip: AudioFilePin;
   candidateClip: AudioFilePin;
   alignment: {
@@ -249,6 +251,9 @@ export function validateReviewManifest(value: unknown): ReviewManifest {
   const phraseModes = new Set<string>();
   for (const [index, candidate] of value.jobs.entries()) {
     invariant(isRecord(candidate) && nonempty(candidate.id) && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(candidate.id) && (candidate.mode === "original" || candidate.mode === "chords"), `jobs[${index}] must have a safe id and name one mode`);
+    if (candidate.scoreContext !== undefined) {
+      invariant(typeof candidate.scoreContext === "string" && nonempty(candidate.scoreContext) && candidate.scoreContext.length <= 4_000, `jobs[${index}] score context must be a nonempty string of at most 4,000 characters`);
+    }
     invariant(!ids.has(candidate.id), `duplicate job id ${candidate.id}`);
     ids.add(candidate.id);
     invariant(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(String(candidate.phraseId)) && phrases.has(String(candidate.phraseId)), `job ${candidate.id} references an unknown or unsafe phrase`);
@@ -515,10 +520,17 @@ export function buildEvidenceV2ReviewPrompt(job: ReviewJob): string {
   const focus = job.mode === "original"
     ? "After establishing that both attachments contain music, assess whether the candidate's main contour, phrase entrances, rests, bass support, rhythm, articulation, and ending remain coherent and recognizable against the reference."
     : "After establishing that both attachments contain music, assess whether candidate harmonic changes and bass support arrive usefully, attacks and releases leave room for singing, and any copied lead material crowds the backing. Do not label every non-chord tone a defect; passing notes and suspensions can be intentional.";
+  const scoreContext = job.scoreContext
+    ? [
+        `Supplied score context (not audio evidence): ${job.scoreContext}`,
+        "Use the supplied context only to interpret the expected phrase and scope. Do not claim that the attachments contain a note, role or timing solely because it appears in this context; audible findings must come from the attached audio.",
+      ]
+    : [];
   return [
     "Inspect the audio actually present in the two ordered attachments labeled REFERENCE and CANDIDATE. Do not assume either attachment is available, audible, music, or piano. First characterize each attachment separately from directly observed content. Abstain when either input is missing, unavailable, uncertain, silence, speech, or otherwise insufficient for a musical comparison. Apply the mode-specific musical focus only after both attachments are observed to contain music.",
     focus,
-    "Return exactly one JSON object with keys schemaVersion=2, comparisonStatus, attachments, summary, uncertainty, limitations, findings. Set comparisonStatus to compared|abstained. attachments has reference and candidate objects, each with content=music|speech|silence|unavailable|uncertain and concise evidence of directly observed content. Compared requires both attachments to contain music, nonempty evidence for each, and nonempty limitations. Abstained requires uncertainty=high, nonempty limitations, and findings=[]. Findings use {attachment: reference|candidate, startSeconds, endSeconds, area: melody|harmony|timing|balance|phrasing|articulation|render|other, classification: defect|uncertain|observation, severity: low|moderate|high, uncertainty: low|medium|high, evidence, proposedRepair}. Timestamps are local to the named attachment. Keep evidence concise and specific; do not guess exact notes or source timestamps. A provider self-report does not establish audio grounding or prove that it heard the audio. Empty findings do not imply comparison or approval.",
+    ...scoreContext,
+    "Return exactly one JSON object with keys schemaVersion=2, comparisonStatus, attachments, summary, uncertainty, limitations, findings. limitations must be an array of nonempty strings. Set comparisonStatus to compared|abstained. attachments has reference and candidate objects, each with content=music|speech|silence|unavailable|uncertain and concise evidence of directly observed content. Compared requires both attachments to contain music, nonempty evidence for each, and nonempty limitations. Abstained requires uncertainty=high, nonempty limitations, and findings=[]. Findings use {attachment: reference|candidate, startSeconds, endSeconds, area: melody|harmony|timing|balance|phrasing|articulation|render|other, classification: defect|uncertain|observation, severity: low|moderate|high, uncertainty: low|medium|high, evidence, proposedRepair}. Timestamps are local to the named attachment. Keep evidence concise and specific; do not guess exact notes or source timestamps. A provider self-report does not establish audio grounding or prove that it heard the audio. Empty findings do not imply comparison or approval.",
   ].join("\n\n");
 }
 
@@ -531,6 +543,26 @@ export interface AntiCommandInput {
   candidateAudio: string;
   promptFile: string;
   dryRun: boolean;
+  responseSchemaJson?: string;
+  accountBindingJson?: string;
+}
+
+export interface AccountBindingPin { configSha256: string; gatewayInstance: string }
+
+export async function readAccountBindingPin(path: string): Promise<AccountBindingPin> {
+  invariant(isAbsolute(path) && !/[\0\r\n]/.test(path), "binding path must be absolute");
+  const info = await lstat(path);
+  invariant(info.isFile() && !info.isSymbolicLink() && info.size <= 2048, "binding must be a bounded nonsymlink file");
+  const value: unknown = JSON.parse(await readFile(path, "utf8"));
+  invariant(isRecord(value) && Object.keys(value).sort().join(",") === "accountRef,gatewayInstance,inventorySha256,schemaVersion", "binding fields must be exact");
+  invariant(value.schemaVersion === 1 && typeof value.gatewayInstance === "string" && /^[a-f0-9]{32}$/.test(value.gatewayInstance), "invalid binding gateway instance");
+  invariant(typeof value.accountRef === "string" && /^acct_[a-f0-9]{12}$/.test(value.accountRef), "invalid binding account reference");
+  invariant(typeof value.inventorySha256 === "string" && SHA.test(value.inventorySha256), "invalid binding inventory digest");
+  return { configSha256: sha256Text(stableJson(value)), gatewayInstance: value.gatewayInstance };
+}
+
+export function assembleAntiPrompt(prompt: string, responseSchemaJson?: string): string {
+  return responseSchemaJson ? `${prompt.trim()}\n\nRequested output schema: ${stableJson(JSON.parse(responseSchemaJson))}` : prompt;
 }
 
 export function buildAntiListenArgs(input: AntiCommandInput): string[] {
@@ -560,6 +592,11 @@ export function buildAntiListenArgs(input: AntiCommandInput): string[] {
     "--no-progress",
     "--json",
   ];
+  if (input.responseSchemaJson) args.push("--response-schema", input.responseSchemaJson);
+  if (input.accountBindingJson) {
+    invariant(isAbsolute(input.accountBindingJson), "binding path must be absolute");
+    args.push("--account-binding-json", input.accountBindingJson);
+  }
   if (input.dryRun) args.push("--dry-run");
   return args;
 }
@@ -757,13 +794,16 @@ function parseDomainReviewOutput(text: string): unknown {
 
 export function validateListenEnvelope(
   raw: unknown,
-  expected: { model: string; resolvedModel: string; allowedModelIds: readonly string[]; mode: ReviewMode; durations: Record<AttachmentName, number>; expectedAudioHashes: readonly [string, string]; expectedAudioBytes?: readonly [number, number]; reviewProfile?: ReviewProfile },
+  expected: { model: string; resolvedModel: string; allowedModelIds: readonly string[]; mode: ReviewMode; durations: Record<AttachmentName, number>; expectedAudioHashes: readonly [string, string]; expectedAudioBytes?: readonly [number, number]; reviewProfile?: ReviewProfile; accountBinding?: AccountBindingPin },
 ): ValidatedListenResult {
   invariant(isRecord(raw) && raw.schemaVersion === 1, "Anti returned an unsupported or malformed JSON envelope");
   invariant(raw.mode === "listen", "Anti response mode is not listen");
   invariant(raw.runStatus === "success", "Anti listen response is incomplete or unsuccessful");
   invariant(nonempty(raw.model), "Anti response does not identify the effective model");
   invariant(isRecord(raw.metadata), "Anti response metadata is missing");
+  if (expected.accountBinding) {
+    invariant(raw.metadata.account_binding_config_sha256 === expected.accountBinding.configSha256 && raw.metadata.account_binding_gateway_instance === expected.accountBinding.gatewayInstance && raw.metadata.account_binding_verified_before_attempt === true, "Anti account binding receipt differs or was not verified before generation");
+  }
   invariant(raw.metadata.result_quality === "complete", "Anti did not affirmatively mark the listen result complete");
   const incompleteStatuses = new Set(["partial", "incomplete", "failed", "error", "truncated", "interrupted"]);
   for (const [label, value] of [

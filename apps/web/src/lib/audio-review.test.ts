@@ -3,6 +3,7 @@ import type { AudioFilePin, ReviewJob, ReviewManifest } from "./audio-review.js"
 import {
   AUDIO_REVIEW_LIMITS,
   buildAntiListenArgs,
+  assembleAntiPrompt,
   buildAudioReviewCoverage,
   buildEvidenceV2ReviewPrompt,
   buildReviewPrompt,
@@ -19,6 +20,17 @@ import {
 } from "./audio-review.js";
 
 const pin = (char: string) => char.repeat(64);
+
+it("pins the exact schema appendix and private binding argument", () => {
+  const schema = '{"type":"object","properties":{"ok":{"type":"boolean"}}}';
+  const args = buildAntiListenArgs({ python: "/usr/bin/python3", antiScript: "/local/anti.py", baseUrl: "http://localhost:1/v1", model: "gemini-3.1-pro", referenceAudio: "/local/ref.wav", candidateAudio: "/local/candidate.wav", promptFile: "/local/prompt.txt", dryRun: true, responseSchemaJson: schema, accountBindingJson: "/private/binding.json" });
+  expect(args).toContain("--response-schema");
+  expect(args).toContain("--account-binding-json");
+  const assembled = assembleAntiPrompt("PROMPT", schema);
+  expect(assembled).toBe('PROMPT\n\nRequested output schema: {"properties":{"ok":{"type":"boolean"}},"type":"object"}');
+  expect(parseAntiDryRunStdout(`{}\n\n${assembled}\n`, assembled)).toEqual({});
+  expect(() => parseAntiDryRunStdout(`{}\n\n${assembled}x`, assembled)).toThrow();
+});
 
 function pcmWav(samples: readonly number[], sampleRate = 32_000): Buffer {
   const data = Buffer.alloc(samples.length * 2);
@@ -327,6 +339,23 @@ describe("Keyspilli pairwise audio review contracts", () => {
     expect(prompt).toMatch(/apply.*musical focus.*only after.*music/i);
     expect(prompt).toMatch(/abstain.*insufficient/i);
     expect(prompt).toMatch(/self-report.*does not establish.*grounding/i);
+    expect(prompt).toMatch(/limitations.*array of nonempty strings/i);
+  });
+
+  it("adds supplied score context to evidence-v2 as non-audio context while preserving the legacy prompt", () => {
+    const withContext = { ...job("original"), scoreContext: "Phrase beats 18-30 at 108 BPM; source roles are unverified." } as ReviewJob;
+    const evidencePrompt = buildEvidenceV2ReviewPrompt(withContext);
+    expect(evidencePrompt).toContain("Supplied score context");
+    expect(evidencePrompt).toMatch(/not audio evidence/i);
+    expect(evidencePrompt).toContain("Phrase beats 18-30 at 108 BPM");
+    expect(buildReviewPrompt(withContext)).toBe(buildReviewPrompt(job("original")));
+  });
+
+  it("refuses empty or oversized supplied score context", () => {
+    const empty = { ...manifest(), jobs: [{ ...job("original"), scoreContext: "" }] } as any;
+    expect(() => validateReviewManifest(empty)).toThrow(/score context/i);
+    const oversized = { ...manifest(), jobs: [{ ...job("original"), scoreContext: "x".repeat(4_001) }] } as any;
+    expect(() => validateReviewManifest(oversized)).toThrow(/score context/i);
   });
 
   it("accepts one complete json fence around the domain review and rejects surrounding text", () => {
@@ -411,10 +440,10 @@ describe("Keyspilli pairwise audio review contracts", () => {
     expect(args[args.indexOf("--max-calls") + 1]).toBe("1");
     expect(args[args.indexOf("--retry") + 1]).toBe("0");
     expect(args[args.indexOf("--fallback-policy") + 1]).toBe("never");
-    expect(args[args.indexOf("--max-output-tokens") + 1]).toBe("2048");
+    expect(args[args.indexOf("--max-output-tokens") + 1]).toBe("4096");
     expect(args.filter(value => value === "--audio")).toHaveLength(2);
     expect(args).not.toContain("--dry-run");
-    expect(AUDIO_REVIEW_LIMITS).toMatchObject({ maxClipBytes: 2 * 1024 * 1024, maxPairBytes: 4 * 1024 * 1024, maxClipSeconds: 30, maxOutputTokens: 2048, maxProviderCallsPerJob: 1 });
+    expect(AUDIO_REVIEW_LIMITS).toMatchObject({ maxClipBytes: 2 * 1024 * 1024, maxPairBytes: 4 * 1024 * 1024, maxClipSeconds: 30, maxOutputTokens: 4096, maxProviderCallsPerJob: 1 });
   });
 
   it("keeps only complete jobs on resume and leaves a submitted job ambiguous instead of replaying it", () => {

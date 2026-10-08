@@ -11,6 +11,9 @@ import {
   AUDIO_REVIEW_LIMITS,
   PCM_WAVEFORM_ANALYSIS_CONFIG,
   buildAntiListenArgs,
+  assembleAntiPrompt,
+  readAccountBindingPin,
+  type AccountBindingPin,
   buildAudioReviewCoverage,
   buildRepairQueue,
   buildEvidenceV2ReviewPrompt,
@@ -59,6 +62,8 @@ const CAPABILITIES = {
   validatesOrderedSubmissionReceipt: true,
   validatesGatewayModelAllowlist: true,
   strictLiveStdout: true,
+  responseSchemaPinned: true,
+  evidenceV2RequiresAccountBinding: true,
   supports: {
     maxClipBytes: AUDIO_REVIEW_LIMITS.maxClipBytes,
     maxPairBytes: AUDIO_REVIEW_LIMITS.maxPairBytes,
@@ -80,6 +85,10 @@ interface Options {
   sendAudio: boolean;
   resume: boolean;
   reviewProfile: ReviewProfile;
+  responseSchemaJson?: string;
+  responseSchemaSha256?: string;
+  accountBindingJson?: string;
+  accountBinding?: AccountBindingPin;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -122,6 +131,7 @@ function parseOptions(argv: string[]): Options {
     python: required("--anti-python"), antiScript: required("--anti-script"),
     baseUrl: required("--base-url"), model: required("--model"), maxRequests,
     dryRun, sendAudio, resume: flags.has("--resume"), reviewProfile,
+    accountBindingJson: values.get("--account-binding-json"),
   };
 }
 
@@ -373,7 +383,7 @@ async function fetchGatewayModelCatalog(baseUrl: string): Promise<{ value: unkno
 
 function makeFingerprint(manifestSha256: string, antiScriptSha256: string, options: Options, prompts: Record<string, string>, gatewayRouteContractSha256: string | null) {
   const profileContract = options.reviewProfile === "evidence-v2" ? { reviewProfile: "evidence-v2", reviewSchemaVersion: 2 } : {};
-  return sha256Text(stableJson({ manifestSha256, antiScriptSha256, model: options.model, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, dryRun: options.dryRun, gatewayRouteContractSha256, prompts, ...profileContract }));
+  return sha256Text(stableJson({ manifestSha256, antiScriptSha256, model: options.model, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, dryRun: options.dryRun, gatewayRouteContractSha256, prompts, limits: AUDIO_REVIEW_LIMITS, ...profileContract, ...(options.responseSchemaSha256 ? { responseSchemaSha256: options.responseSchemaSha256 } : {}), ...(options.accountBinding ? { accountBinding: options.accountBinding } : {}) }));
 }
 
 function newState(manifest: ReviewManifest, manifestSha256: string, fingerprint: string, maxRequests: number, gatewayCatalog: { rawSha256: string; routeContractSha256: string } | null, reviewProfile: ReviewProfile, waveformEvidenceSha256: string): RunState {
@@ -392,6 +402,8 @@ function newState(manifest: ReviewManifest, manifestSha256: string, fingerprint:
 }
 
 async function invokeAnti(options: Options, job: ReviewJob, clipPaths: Map<string, string>, prompt: string, outputDir: string, dryRun = options.dryRun) {
+  if (options.accountBindingJson && stableJson(await readAccountBindingPin(options.accountBindingJson)) !== stableJson(options.accountBinding)) throw new Error("binding file changed before dispatch");
+  if (options.responseSchemaJson && stableJson(JSON.parse(await readFile(new URL("../schemas/audio-review-evidence-v2.json", import.meta.url), "utf8"))) !== options.responseSchemaJson) throw new Error("response schema changed before dispatch");
   const safe = safeId(job.id);
   const promptPath = join(outputDir, "prompts", `${safe}.txt`);
   await atomicWrite(promptPath, `${prompt}\n`);
@@ -404,6 +416,8 @@ async function invokeAnti(options: Options, job: ReviewJob, clipPaths: Map<strin
     candidateAudio: clipPaths.get(job.candidateClip.sha256)!,
     promptFile: promptPath,
     dryRun,
+    responseSchemaJson: options.responseSchemaJson,
+    accountBindingJson: options.accountBindingJson,
   });
   try {
     const result = await execFile(options.python, args, { cwd: dirname(options.antiScript), timeout: 93_000, maxBuffer: 1_500_000, windowsHide: true });
@@ -531,7 +545,7 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
       const bytes = await readFile(responsePath);
       if (entry.envelopeSha256 && hashBytes(bytes) !== entry.envelopeSha256) throw new Error(`retained Anti response changed for ${job.id}`);
       if (options.dryRun) {
-        const raw = parseAntiDryRunStdout(bytes.toString("utf8"), buildPrompt(job, options.reviewProfile));
+        const raw = parseAntiDryRunStdout(bytes.toString("utf8"), assembleAntiPrompt(buildPrompt(job, options.reviewProfile), options.responseSchemaJson));
         base.dryRun = validateDryRun(raw, { hashes: [job.referenceClip.sha256, job.candidateClip.sha256], bytes: [job.referenceClip.bytes, job.candidateClip.bytes] });
       } else {
         const raw = parseAntiLiveStdout(bytes.toString("utf8"));
@@ -542,6 +556,7 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
           expectedAudioHashes: [job.referenceClip.sha256, job.candidateClip.sha256],
           expectedAudioBytes: [job.referenceClip.bytes, job.candidateClip.bytes],
           reviewProfile: options.reviewProfile,
+          accountBinding: options.accountBinding,
         });
         const mapped = validated.findings.map(finding => {
           const { sourceBeatStart, sourceBeatEnd, alignmentStatus } = mapClipFindingToSource(job, finding);
@@ -578,6 +593,8 @@ async function materializeReport(manifest: ReviewManifest, state: RunState, opti
     status: options.dryRun ? "dry-run" : rows.every(row => row.status === "complete") ? "triage-complete" : rows.some(row => row.status === "ambiguous") ? "ambiguous" : "partial",
     manifestSha256,
     runFingerprint: fingerprint,
+    responseSchemaSha256: options.responseSchemaSha256 ?? null,
+    accountBinding: options.accountBinding ?? null,
     provider: { name: "anti.listen", requestedModel: options.model, python: options.python, antiScript: options.antiScript, antiScriptSha256, baseUrl: safeBaseUrl(options.baseUrl), maxRequests: options.maxRequests, outputTokenCeiling: AUDIO_REVIEW_LIMITS.maxOutputTokens, gatewayBackendAttemptLimitRequired: 1, gatewayCatalogSha256: state.gatewayCatalogSha256 ?? null, gatewayRouteContractSha256: state.gatewayRouteContractSha256 ?? null },
     captureEvidence: {
       status: "pinned-local-clips",
@@ -641,6 +658,12 @@ async function run(options: Options): Promise<void> {
     if (savedStateForResume.waveformEvidenceSha256 !== waveformEvidenceSha256) throw new Error("cannot resume: measured waveform bytes or analysis configuration changed; waveform receipt does not match");
   }
   const runtime = await checkRuntime(options);
+  if (options.reviewProfile === "evidence-v2") {
+    options.responseSchemaJson = stableJson(JSON.parse(await readFile(new URL("../schemas/audio-review-evidence-v2.json", import.meta.url), "utf8")));
+    options.responseSchemaSha256 = sha256Text(options.responseSchemaJson);
+    if (options.sendAudio && !options.accountBindingJson) throw new Error("evidence-v2 live requires --account-binding-json");
+  }
+  if (options.accountBindingJson) options.accountBinding = await readAccountBindingPin(options.accountBindingJson);
   options.python = runtime.python;
   options.antiScript = runtime.antiScript;
   await initializeOutput(options.outputDir, options.resume);
@@ -664,6 +687,7 @@ async function run(options: Options): Promise<void> {
     throw error;
   }
   const prompts = Object.fromEntries(manifest.jobs.map(job => [job.id, buildPrompt(job, options.reviewProfile)]));
+  const assembledPrompts = Object.fromEntries(manifest.jobs.map(job => [job.id, assembleAntiPrompt(prompts[job.id]!, options.responseSchemaJson)]));
   const maxRequests = options.sendAudio ? options.maxRequests : 0;
   const gatewayCatalog = options.sendAudio ? await fetchGatewayModelCatalog(options.baseUrl) : null;
   const fingerprint = makeFingerprint(manifestSha256, runtime.antiScriptSha256, options, prompts, gatewayCatalog?.routeContractSha256 ?? null);
@@ -688,6 +712,7 @@ async function run(options: Options): Promise<void> {
     if (!savedManifest || sha256Text(stableJson(JSON.parse(savedManifest))) !== manifestSha256) throw new Error("cannot resume: retained manifest is missing or changed");
   } else {
     await atomicWrite(join(options.outputDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+    if (options.responseSchemaJson) await atomicWrite(join(options.outputDir, "response-schema.json"), options.responseSchemaJson);
     await atomicWrite(join(options.outputDir, ".codex-review-output-sentinel"), `Keyspilli audio-review ${fingerprint}\n`);
   }
   if (resumePlan?.ambiguous.length) {
@@ -714,7 +739,7 @@ async function run(options: Options): Promise<void> {
       await verifyRetainedJobClips(job, pathByHash, preflightClips);
       if (options.sendAudio) {
         const preflightResult = await invokeAnti(options, job, pathByHash, prompts[job.id]!, options.outputDir, true);
-        const preflightEnvelope = parseAntiDryRunStdout(preflightResult.stdout, prompts[job.id]!);
+        const preflightEnvelope = parseAntiDryRunStdout(preflightResult.stdout, assembledPrompts[job.id]!);
         const preflight = validateDryRun(preflightEnvelope, { hashes: [job.referenceClip.sha256, job.candidateClip.sha256], bytes: [job.referenceClip.bytes, job.candidateClip.bytes] });
         resolvedModel = preflight.resolvedModel;
         if (!gatewayCatalog) throw new Error("live audio is blocked without the pinned gateway model catalog");
@@ -733,6 +758,7 @@ async function run(options: Options): Promise<void> {
         await atomicWrite(statePath, `${JSON.stringify(state, null, 2)}\n`);
         if (await sha256File(runtime.antiScript) !== runtime.antiScriptSha256) throw new Error("pinned Anti helper changed after dry-run preflight; refusing live submission");
         await verifyRetainedJobClips(job, pathByHash, preflightClips);
+        if (options.accountBindingJson && stableJson(await readAccountBindingPin(options.accountBindingJson)) !== stableJson(options.accountBinding)) throw new Error("binding file changed before reservation");
         state.jobs[job.id] = { ...state.jobs[job.id]!, status: "submitted", attempts: 1 };
         state.attemptsUsed += 1;
         await atomicWrite(statePath, `${JSON.stringify(state, null, 2)}\n`);
@@ -743,7 +769,7 @@ async function run(options: Options): Promise<void> {
       await atomicWrite(responsePath, responseBytes);
       responseSha256 = hashBytes(responseBytes);
       const parsed = options.dryRun
-        ? parseAntiDryRunStdout(result.stdout, prompts[job.id]!)
+        ? parseAntiDryRunStdout(result.stdout, assembledPrompts[job.id]!)
         : parseAntiLiveStdout(result.stdout);
       if (options.dryRun) {
         const dryRun = validateDryRun(parsed, { hashes: [job.referenceClip.sha256, job.candidateClip.sha256], bytes: [job.referenceClip.bytes, job.candidateClip.bytes] });
@@ -758,6 +784,7 @@ async function run(options: Options): Promise<void> {
           expectedAudioHashes: [job.referenceClip.sha256, job.candidateClip.sha256],
           expectedAudioBytes: [job.referenceClip.bytes, job.candidateClip.bytes],
           reviewProfile: options.reviewProfile,
+          accountBinding: options.accountBinding,
         });
         state.jobs[job.id] = { status: "complete", attempts: 1, envelopeSha256: responseSha256, resolvedModel, ...(validated.comparisonStatus ? { comparisonStatus: validated.comparisonStatus } : {}), ...(preflightSha256 ? { preflightSha256 } : {}), ...(allowedModelIds ? { allowedModelIds } : {}) };
         // The complete envelope remains byte-for-byte in evidence/responses; usage is not reinterpreted.
