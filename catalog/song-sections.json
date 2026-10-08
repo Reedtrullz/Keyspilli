@@ -2310,6 +2310,154 @@
           }
         ]
       }
+    },
+    {
+      "baseId": "coldplay-atlas",
+      "sourceArtifactHash": "da71292d6eb901538890f37c7460d37ef4b03c25e0a5c816678c4cf72a3bb554",
+      "advancedNotesSha256": "d440e0f1539657d5541d00df10f4e548ca52413287db072a62be8116765db1f2",
+      "playbackTempoBpm": 68,
+      "sourceFile": "coldplay-atlas.mid",
+      "provenance": "Intro role from https://tabs.ultimate-guitar.com/tab/coldplay/atlas-chords-1417243. The complete literal standard-tuning, no-capo 16-note TAB pattern exactly matches the complete 32-onset opening MIDI prefix as two repetitions, from the first pitched source onset at4 through the last onset at11.75. The printed following five Verse chords match the first accompaniment entrance at12 in order; this corroborates the opening role without establishing the complete Intro or Verse boundary. Every actual producer pitched onset exactly matches retained source quarter beats. The excerpt excludes the last-note release; later repetition, the full Intro boundary and following passages remain estimated. Chart evidence, not FF06/FF07 form markers, recording timestamps, official artist form annotations or musical acceptance. The coarse harmony endpoint16 is excluded from timing authority.",
+      "sections": [
+        {
+          "id": "chart-intro-motif-excerpt",
+          "label": "Intro motif excerpt",
+          "startBeat": 4,
+          "endBeat": 11.75,
+          "type": "intro",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "literal-tab-opening-prefix-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum exact printed-pitch opening-prefix coverage and independently checked source-to-producer pitch/onset coverage; an uncalibrated correspondence score, not full-boundary certainty or musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/coldplay/atlas-chords-1417243",
+        "chartHtmlSha256": "54adbeac627fb99ecec2ef5fc9fc240cf9a3166dda0dff9fca0710ca28b257d0",
+        "sourceClockReceiptSha256": "1195575e2c8d7e46fe6b2fa5fa215043f2e94b6d7817ebf1932b2b4df5ca9245",
+        "tabReceiptSha256": "61781e66343e2ef43863f356748d08a3c375e39eb6d9b8a618b176e021ba1be6",
+        "tuning": "E A D G B E",
+        "capo": 0,
+        "literalPitchSequence": [
+          61,
+          66,
+          73,
+          66,
+          61,
+          66,
+          73,
+          66,
+          61,
+          66,
+          73,
+          66,
+          61,
+          66,
+          73,
+          66
+        ],
+        "sourceTrack": 1,
+        "openingPrefixOnsets": 32,
+        "completePrintedPatternRepetitions": 2,
+        "clockMatchRatio": 1,
+        "producerPitchedOnsets": 419,
+        "followingPrintedVerseChordLandmarks": [
+          {
+            "sourceStartBeat": 12,
+            "sourceEndBeat": 16,
+            "printedChord": "F#m",
+            "chordPitchClasses": [
+              1,
+              6,
+              9
+            ],
+            "observedPitchClasses": [
+              1,
+              6,
+              9
+            ],
+            "toneCoverage": 1.0,
+            "jaccard": 1.0
+          },
+          {
+            "sourceStartBeat": 16,
+            "sourceEndBeat": 20,
+            "printedChord": "B5/G#",
+            "chordPitchClasses": [
+              6,
+              8,
+              11
+            ],
+            "observedPitchClasses": [
+              1,
+              6,
+              8,
+              11
+            ],
+            "toneCoverage": 1.0,
+            "jaccard": 0.75
+          },
+          {
+            "sourceStartBeat": 20,
+            "sourceEndBeat": 24,
+            "printedChord": "Bm",
+            "chordPitchClasses": [
+              2,
+              6,
+              11
+            ],
+            "observedPitchClasses": [
+              1,
+              2,
+              6,
+              11
+            ],
+            "toneCoverage": 1.0,
+            "jaccard": 0.75
+          },
+          {
+            "sourceStartBeat": 24,
+            "sourceEndBeat": 28,
+            "printedChord": "F#",
+            "chordPitchClasses": [
+              1,
+              6,
+              10
+            ],
+            "observedPitchClasses": [
+              1,
+              6,
+              8,
+              10
+            ],
+            "toneCoverage": 1.0,
+            "jaccard": 0.75
+          },
+          {
+            "sourceStartBeat": 28,
+            "sourceEndBeat": 32,
+            "printedChord": "C#m",
+            "chordPitchClasses": [
+              1,
+              4,
+              8
+            ],
+            "observedPitchClasses": [
+              1,
+              4,
+              6,
+              8
+            ],
+            "toneCoverage": 1.0,
+            "jaccard": 0.75
+          }
+        ],
+        "coverage": "first-to-last onset of literal opening motif only; complete Intro boundary unresolved",
+        "excludedCoarseBoundary": {
+          "beat": 16,
+          "reason": "coarse simplified-chart DP endpoint is not used to define the literal opening motif excerpt"
+        }
+      }
     }
   ]
 }

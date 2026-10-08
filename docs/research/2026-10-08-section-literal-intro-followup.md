@@ -1,0 +1,25 @@
+# Literal Intro motif evidence
+
+This batch adds one stored and served base, Coldplay’s Atlas. Expected coverage is 33 stored maps and31 of441 served bases;422 stored and410 served bases still have no substantiated map. All455 bases remain in the evidence ledger. Partial maps can also retain estimated gaps, so neither map count nor a rejected candidate establishes naming completion.
+
+## Supported excerpt
+
+The saved [detailed chord chart](https://tabs.ultimate-guitar.com/tab/coldplay/atlas-chords-1417243) prints a literal16-note TAB under `[Intro]`, with standard tuning and no capo. Its complete pitch sequence exactly matches the complete32-onset opening source prefix as two repetitions, starting at the first pitched onset at beat4 and ending at the last onset at11.75. The map labels only **Intro motif excerpt4..11.75**. The last-note release, complete Intro boundary and subsequent passages remain estimated.
+
+At the first accompaniment entrance, beat12, the following five printed Verse chords occur in order: F#m, B5/G#, Bm, F# and C#m. Independently decoded chart fingerings provide full chord-tone coverage, with pitch-class Jaccard1,.75,.75,.75,.75. Review found this progression only at beat12 among the integer-beat starts inspected. These landmarks corroborate the opening role without assigning a Verse boundary. A second saved chart’s capo4 Dm Intro is consistent with F#m.
+
+Every actual producer pitched onset (419/419) exactly matches raw source quarter beats. The retained source has420 pitched attacks; its omitted beat70 attack is outside the excerpt. The source and actual production Advanced-note bytes and playback tempo are pinned. Integrated-tempo correspondence failed and supplies no recording-time authority. The earlier coarse harmony endpoint16 is explicitly excluded. Overlapping pattern search hits are one periodic passage rather than separate occurrences; the failed initial hit-count assumption is preserved.
+
+Confidence1 describes exact literal-prefix and source-to-producer correspondence, not complete-boundary certainty, musical probability or owner acceptance. Evidence is `chart`, not retained FF06/FF07 source markers. The private receipts preserve exact chart/source hashes, literal pattern, onset prefix, clock and following chord landmarks. Four bounded Atlas parser tests pass; an independent read-only review accepted this exact excerpt scope.
+
+## Other literal TAB trials
+
+A separate six-test parser examined literal Intro blocks for Bruno Mars’s When I Was Your Man, George Michael’s Careless Whisper, uploaded Take On Me, uploaded Rasputin and A Thousand Miles. No map was admitted: polyphonic TAB requires independently specified voicing correspondence, complete monophonic patterns did not match retained tracks, short blocks were insufficient, and ambiguous contiguous digits, unsupported techniques or missing explicit tuning remained unresolved. The first parser test failure exposed ambiguous repeated zero digits; the retained failure and corrected rejection are preserved. No octave, transpose, omitted-note or notation fallback was used to force admission. A broader pass inspected141 literal TAB blocks from69 saved charts covering65 bases; the same strict monophonic, complete-pattern basis found only the independently qualified Atlas passage. Its list-shaped empty metadata error was retained and corrected without substituting a tuning claim. The unchanged ten-test complete-paragraph matcher also found no new lyric-role candidates among acquisition pass six.
+
+## Release evidence and remaining scope
+
+PR226 is merged and live-verified at6cc10a619f758db122ffeed2b714cf37fb84b829:48 sample reads,12 map pins,1764 variants/441 served bases/17 named bases,zero numbered labels/errors. PR227 is merged and live-verified at87057b417bcc7ab21ed0f9beeb5b12e07eeec653:52 sample reads,13 pins,1764 variants/441 bases/25 named bases,zero numbered labels/errors. Selected store identity fields remain2730 rows/455 bases with SHA-256730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. PR227’s first deployment failed before container recreation due disk exhaustion; its repaired retry succeeded and both containers are healthy. The failed sample-verifier initialization and corrected successful receipts are retained.
+
+PR228 is merged at889d5a6ce0e8b740d9c5a209c1b721f1b5386887 after Automatic checks and container-smoke succeeded at exact heade35c61369aa59e917827d3e8dc053bcadf34daa4 with CLEAN merge state. Main deployment/live acceptance remain pending at this writing. Its runtime COPY repair and bounded worker cache do not yet prove cross-release layer reuse.
+
+The current acquisition inventory covers232 captured chart bases,225 harmony trials,108 byte-matched score bases and418 exact original-source byte matches. Two raw MIDI parse errors remain preserved;37 original-source identities lack an exact match in inspected retained paths. Ten Sabaton recording-clock studies and the conflicting Status Quo chart roles remain rejected. Owner metadata, learner blocks and the estimator are unchanged. Complete catalog naming remains unresolved; no musical acceptance is claimed.
