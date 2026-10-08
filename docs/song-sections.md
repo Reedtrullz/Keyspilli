@@ -50,9 +50,56 @@ independently by the chart's C-C7-F-Fm-A7-D harmony.
 already covered by a source or chart map, bases whose retained seed MIDI still
 holds unmapped timed form markers, Ultimate Guitar candidates, and bases that
 have nothing but estimates. It also fails when a map could never resolve or is
-structurally invalid, and CI runs it after the catalog pipeline. Pass
+structurally invalid, and CI runs it immediately after `npm ci`, before
+`fetch-seed` and the catalog pipeline regenerate the manifest. Pass
 `--seed-dir <path>` to scan seed MIDI that lives outside this checkout, since
 that directory is gitignored runtime state.
+
+## Offline chart alignment
+
+`npm run align:chart-sections -w @keyspilli/catalog -- <chart.json> <seed.mid>
+<notes.json> <baseId> <chart-url> <identity.json> [landmarks.json] [transpose]`
+prints an alignment report and candidate map; it never writes the catalog or
+fetches a chart. Obtain `chart.json` with the saved-page extractor. Work from
+the exact retained seed and the arrangement's actual measure clock. The bounded
+helper supports up to 512 measures and 32 chart occurrences; longer inputs are
+rejected rather than starting an unbounded offline run.
+
+An identity receipt is mandatory. Populate it from the retained artifact
+manifest and captured notes bytes, after verifying they belong to the requested
+base. It contains `baseId`, `sourceArtifactHash`, `sourceRef` (the manifest's
+`seed:<filename>`), `playbackTempoBpm`, `notesSha256`, `chartSha256`, `chartUrl`
+and `notesOrigin` (`local` or `production`). The CLI checks every hash, base,
+producer reference, playback clock, provider and URL tab ID before alignment.
+A receipt binds the declared inputs; it does not prove an artist score or
+musical correctness. `advancedNotesSha256` is emitted only for a receipt naming
+captured production notes. Local notes get only a diagnostic alignment hash.
+
+The helper retains `inferSongForm`'s onset pitch-class vectors and density for
+diagnostics. Harmony scoring follows the demonstrated Queen method: each
+measure's sustained pitch-class set, Jaccard chord overlap and a lowest-pitch
+root/slash-bass mismatch penalty. The ordered DP sums eight-bar phrase costs
+and assigns at least one complete phrase to each chart occurrence. No whole-song
+chord-by-chord DP is used. Transposition is explicit; different chart versions,
+keys and arrangement clocks still need independent checks.
+
+For each interior boundary it solves again with that chosen position forbidden,
+so a near-equal alternative anywhere in the song cannot masquerade as a stable
+boundary. Gaps below 0.15 assignment-cost units are ambiguous. A grid-forced
+boundary with no feasible alternative also has zero confidence. The confidence
+score describes fit and separation, not calibrated probability or acceptance.
+
+`landmarks.json` contains independently inspected `{label,startBar,endBar,basis}`
+spans; bar indexes are zero based and `endBar` is exclusive. Landmarks validate
+the result without constraining the DP. Repeated labels are checked by exact
+occurrence. Only spans with separated boundaries, sufficient harmony fit and a
+matching independent landmark appear in `candidate.sections`. Other spans keep
+the existing estimates, even when an isolated span is usable. Rejected output
+has an empty candidate and must not be inserted into `song-sections.json`.
+
+The first autonomous cohort retained Help's Intro only. See
+[`2026-10-08-section-alignment-cohort.md`](research/2026-10-08-section-alignment-cohort.md)
+for all 42 dispositions, hashes, confidence and rejected spans.
 
 Difficulty levels on the same declared clock share Advanced's form, so a sparse
 reduction does not get different role names merely because its density changes.

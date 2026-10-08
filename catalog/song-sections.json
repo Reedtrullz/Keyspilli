@@ -478,6 +478,61 @@
           "evidence": "chart"
         }
       ]
+    },
+    {
+      "baseId": "the-beatles-help",
+      "sourceArtifactHash": "278f693cc9859cedee170d7709c49b5e7a1c98de632ea3ed34092c7bff05279a",
+      "playbackTempoBpm": 173,
+      "sourceFile": "the-beatles-help.mid",
+      "provenance": "Labels from https://tabs.ultimate-guitar.com/tab/the-beatles/help-chords-17269; boundaries aligned to arrangement harmony. Not timed source markers, recording timestamps, or an official artist form annotation. Not auditioned; no musical acceptance established. Only the Intro has a separated boundary and independent symbolic landmarks; the rest remains estimated. Confidence is algorithmic separation, not calibrated probability.",
+      "alignment": {
+        "strategy": "ordered-eight-bar-harmony-v1",
+        "confidenceScore": 0.5888888888888889,
+        "totalCost": 4.672182539682539,
+        "ambiguityGap": 0.11785714285714288,
+        "boundaryGaps": [
+          null,
+          0.2696428571428564,
+          0.11785714285714288,
+          0.25982142857142865,
+          0.11785714285714377,
+          0.25982142857142865,
+          0.11785714285714288,
+          null
+        ],
+        "chartSha256": "fa4b4e9fe34d912ef451efed3c00e2532b732ab0c4571f5be93528f4f6d9aac6",
+        "alignmentNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55",
+        "sectionScores": [
+          {
+            "sectionId": "chart-section-1",
+            "confidenceScore": 0.5888888888888889,
+            "startGap": null,
+            "endGap": 0.2696428571428564
+          }
+        ],
+        "transpose": 0,
+        "landmarks": [
+          {
+            "label": "Intro",
+            "basis": "Independent retained seed MIDI inspection: opening rest [0,4), B-minor material [4,10), G-major material [10,20) including descending F# bass, E-major [20,28), and the closing A-major bar [28,32). These retained Bm-G-E-A landmarks support the chart Intro on this clock; the chart Bm/A slash bass is not independently retained as the lowest source pitch; no lyric, recording-time or listening claim.",
+            "matched": true,
+            "sectionId": "chart-section-1"
+          }
+        ],
+        "identityReceiptSha256": "eef2ec78501612294be5fba820144003f3929e189e099c433c374a7ab840c950",
+        "notesOrigin": "production"
+      },
+      "sections": [
+        {
+          "id": "chart-section-1",
+          "label": "Intro",
+          "type": "intro",
+          "startBeat": 0,
+          "endBeat": 32,
+          "evidence": "chart"
+        }
+      ],
+      "advancedNotesSha256": "5c8415696a87858a486835db81e4904e7d8ce71d4f4bdc9f29dbe73cad4b5e55"
     }
   ]
 }
