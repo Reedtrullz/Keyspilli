@@ -11,7 +11,10 @@ The archive includes artifacts, hidden reconciliation journals, seed MIDI,
 uploads/transcriptions and the existing review/harmony stores. Live data is
 never a retention target. A second backup within the same timestamp refuses to
 overwrite a cohort. Canceled backups clean their own staging via traps; an
-abandoned staging directory, uncommitted payload or unverified manifest blocks further backups until inspected. Retirement
+abandoned staging directory, uncommitted payload or unverified manifest blocks further backups until inspected.
+If cleanup cannot retire an older verified cohort because it remains linked,
+open or changed, admission also refuses another backup, preventing repeated
+operations from accumulating held recovery copies. Retirement
 persists verified identities in the manifest before unlinking payloads. A
 subsequent locked cleanup resumes partial retirement only while two newer
 verified cohorts exist. Remaining manifests continue to pin their images.
@@ -57,7 +60,11 @@ CI measures uncompressed image sizes from the published immutable registry
 digests. Releases are limited to 2 GiB web / 4 GiB worker. Before each new pull
 the VPS cleans eligible data and requires 3x that role's ceiling plus 6 GiB;
 the multiplier covers transfer/extraction/store coexistence. Pulls use the
-admitted registry digest and check the result against its measured size.
+admitted registry digest and independently enforce the same role ceiling
+on the VPS, logging both CI and host bytes. Docker's native overlay diff walks
+extracted files while its naive path counts tar payload bytes: the reported
+`Size` can differ for the same digest. CI therefore refuses unsupported image
+stores rather than treating compressed containerd Size as uncompressed admission.
 Already installed immutable releases can be reused without new extraction.
 Manual new releases need the same `--sizes` and `--digests` admission.
 Shared-host writes can still consume the reserve; admission is a conservative

@@ -184,6 +184,19 @@ class StorageTests(unittest.TestCase):
             storage.retention(self.policy.backups, True)
         self.assertTrue(old.exists())
 
+    def test_held_old_cohort_blocks_further_backup_growth(self):
+        self.policy.catalog = [make_image(1), make_image(2, "keyspilli-worker")]
+        self.policy.set_pair([image_id(1), image_id(2)])
+        for n in (1, 2, 3):
+            cohort(self.policy.backups, n, [image_id(1), image_id(2)])
+        old = self.policy.backups / "artifacts-2026-10-08-000001.tar.gz"
+        os.link(old, self.root / "interrupted-replication")
+        with patch.object(self.policy, "backup_headroom"), self.assertRaisesRegex(RuntimeError, "older verified cohort still held"):
+            self.policy.backup_preflight(True)
+        good, invalid = storage.inventory_cohorts(self.policy.backups)
+        self.assertEqual(len(good), 3)
+        self.assertFalse(invalid)
+
     def test_partial_unlink_pins_images_and_reports_failure(self):
         markers = [cohort(self.policy.backups, n, [image_id(1), image_id(2)]) for n in (1, 2, 3)]
         unlink = Path.unlink
@@ -261,6 +274,48 @@ class StorageTests(unittest.TestCase):
         self.policy.catalog[2]["RepoDigests"] = ["ghcr.io/reedtrullz/keyspilli@" + image_id(50)]
         self.policy.cleanup(True, record["token"])
         self.assertIn(image_id(3), {i["Id"] for i in self.policy.catalog})
+
+    def fresh_pull(self, web_size, worker_size):
+        self.policy.catalog = [make_image(1), make_image(2, "keyspilli-worker")]
+        self.policy.set_pair([image_id(1), image_id(2)])
+        refs = ["ghcr.io/reedtrullz/keyspilli:aaaaaaa", "ghcr.io/reedtrullz/keyspilli-worker:aaaaaaa"]
+        record = self.policy.begin(refs)
+        record["sizeAdmission"], record["digests"] = [100, 200], [image_id(50), image_id(51)]
+        storage.atomic_json(self.policy.record, record)
+        original_run = self.policy.run
+        def run(*args, **kwargs):
+            if args[0] == "pull":
+                role = int("keyspilli-worker@" in args[1])
+                candidate = make_image(30 + role, "keyspilli-worker" if role else "keyspilli")
+                candidate["RepoTags"], candidate["RepoDigests"] = [], [args[1]]
+                candidate["Size"] = [web_size, worker_size][role]
+                self.policy.catalog.append(candidate)
+                return "pulled"
+            if args[0] == "tag":
+                next(i for i in self.policy.catalog if i["Id"] == args[1])["RepoTags"].append(args[2])
+                return "tagged"
+            return original_run(*args, **kwargs)
+        return record, run
+
+    def test_native_diff_size_variation_keeps_digest_and_hard_ceiling_admission(self):
+        record, run = self.fresh_pull(104, 204)
+        with patch.object(self.policy, "run", side_effect=run):
+            try:
+                self.policy.pull(record["token"])
+            except RuntimeError as error:
+                self.fail(f"same admitted digest below hard ceilings refused for host accounting variation: {error}")
+        pending = json.loads(self.policy.record.read_text())
+        self.assertEqual(pending["sizeAdmission"], [100, 200])
+        self.assertTrue({image_id(30), image_id(31)}.issubset(pending["protectedIds"]))
+        self.assertIn('"ciBytes": 100', self.output.getvalue())
+        self.assertIn('"hostBytes": 104', self.output.getvalue())
+
+    def test_fresh_pull_still_refuses_host_size_above_hard_ceiling(self):
+        record, run = self.fresh_pull(2 * storage.GIB + 1, 204)
+        with patch.object(self.policy, "run", side_effect=run), self.assertRaisesRegex(RuntimeError, "exceeds"):
+            self.policy.pull(record["token"])
+        self.assertTrue(self.policy.record.exists())
+        self.assertEqual([c["Image"] for c in self.policy.running], [image_id(1), image_id(2)])
 
     def test_real_flock_competing_process_refuses_before_mutation(self):
         path = self.root / "lock"
