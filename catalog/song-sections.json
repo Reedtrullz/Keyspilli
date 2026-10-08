@@ -2458,6 +2458,127 @@
           "reason": "coarse simplified-chart DP endpoint is not used to define the literal opening motif excerpt"
         }
       }
+    },
+    {
+      "baseId": "the-weeknd-blinding-lights",
+      "sourceArtifactHash": "5a18fdae05c35021ca88f213c444712708136c4bb021112cd8fb8d0fe0180ad9",
+      "advancedNotesSha256": "4e2163b95ba9a445772509e066a26f216a56000ebfdc793d17421aca5c3cebe1",
+      "playbackTempoBpm": 168,
+      "sourceFile": "the-weeknd-blinding-lights.mid",
+      "provenance": "Literal Riff label and complete23-attack monophonic TAB from https://tabs.ultimate-guitar.com/tab/the-weeknd/blinding-lights-chords-2908700. The chart explicitly uses standard tuning and capo3; the entire pattern matches four contiguous retained MIDI track0 windows with one constant +24-semitone displacement. Every complete occurrence receives the same generic Riff motif excerpt label, without occurrence ordinals or Intro/Verse/Interlude identity. The first match is the complete opening track prefix, and all matches have identical relative onsets. Excerpts run from first to last matched attack, excluding releases and full section boundaries. All590 producer pitched attacks independently match raw source pitches/quarter beats, including multiplicities. Chart evidence, not FF06/FF07 form markers, recording timestamps, official artist form annotations or musical acceptance. Earlier exact-register trials remain rejected; this separate octave-equivalence study uses no arbitrary transpose, omitted note, individual octave change or fuzzy alignment.",
+      "sections": [
+        {
+          "id": "chart-riff-motif-excerpt-1",
+          "label": "Riff motif excerpt",
+          "startBeat": 0.0,
+          "endBeat": 23.5,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-riff-motif-excerpt-2",
+          "label": "Riff motif excerpt",
+          "startBeat": 192.0,
+          "endBeat": 215.5,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-riff-motif-excerpt-3",
+          "label": "Riff motif excerpt",
+          "startBeat": 416.0,
+          "endBeat": 439.5,
+          "type": "custom",
+          "evidence": "chart"
+        },
+        {
+          "id": "chart-riff-motif-excerpt-4",
+          "label": "Riff motif excerpt",
+          "startBeat": 448.0,
+          "endBeat": 471.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "complete-octave-equivalent-tab-motif-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Minimum complete printed-pattern coverage under one constant octave displacement and independent producer pitch/onset correspondence; an uncalibrated correspondence score, not occurrence-role certainty, full-boundary confidence or musical probability.",
+        "chartUrl": "https://tabs.ultimate-guitar.com/tab/the-weeknd/blinding-lights-chords-2908700",
+        "chartHtmlSha256": "480bde72505adee6efb41eea761c802358a32f7b8b7abefee1aa01a8fbebda18",
+        "tuning": "E A D G B E",
+        "capo": 3,
+        "printedMotifAttacks": 23,
+        "constantOctaveDisplacementSemitones": 24,
+        "sourceTrack": 0,
+        "completeOccurrences": 4,
+        "firstOccurrenceIsCompleteTrackPrefix": true,
+        "matchedReceiptSha256": "74c677ee2e5cf4a2bbbeac5862e65bdba566a5372ab8d5bec747f7eee340321a",
+        "sourceClockReceiptSha256": "0ba7633106ee8dd515c1233b66b437fd8c1db9783fc71c1e13663973a4f8de19",
+        "producerPitchedOnsets": 590,
+        "clockMatchRatio": 1,
+        "coverage": "generic complete motif excerpts only; form role, release and full boundaries unresolved"
+      }
+    },
+    {
+      "baseId": "l-v-beethoven-sonata-no-5-3rd-movement-prestissimo",
+      "sourceArtifactHash": "aeb55b48e5f61de1faeabd07981a67c54c15b9f257de5b20ef202578860edd91",
+      "advancedNotesSha256": "f9beac3bb355a47d39ffa61b82e4cceade84bfb01eef7475da4f64472cd5b44d",
+      "playbackTempoBpm": 166,
+      "sourceFile": "l-v-beethoven-sonata-no-5-3rd-movement-prestissimo.mid",
+      "provenance": "Literal FINALE. annotation on the opening c' eighth note of https://www.mutopiaproject.org/ftp/BeethovenLv/O10/LVB_Sonate_10no1_3/LVB_Sonate_10no1_3.ly. The score identifies the third movement of Sonata Op10No1; its companion MIDI exactly matches retained source bytes. The printed opening C4-B3-C4-F4-F4-E-flat4 sequence occurs at source beats0,.5,1,1.5,2,2.5, and independent Mido inspection matches every actual producer pitched onset within1/16 beat on source quarter beats. The named Finale movement follows the traversal encoded in the retained MIDI from0 to its end491.5; the padded producer tail491.5..492 remains estimated. No unencoded repeat or da-capo occurrence is invented. Chart evidence, not FF06/FF07 source form markers, recording timestamps or owner musical acceptance. The Finale division is explicit; the adjacent Prestissimo tempo alone supplies no form name.",
+      "sections": [
+        {
+          "id": "chart-printed-finale-movement",
+          "label": "Finale",
+          "startBeat": 0,
+          "endBeat": 491.5,
+          "type": "custom",
+          "evidence": "chart"
+        }
+      ],
+      "alignment": {
+        "strategy": "exact-score-annotation-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Independent producer pitch/onset match ratio at1/16 beat for an exactly matching companion MIDI with a literal named movement annotation; uncalibrated correspondence, not musical acceptance.",
+        "scoreUrl": "https://www.mutopiaproject.org/ftp/BeethovenLv/O10/LVB_Sonate_10no1_3/LVB_Sonate_10no1_3.ly",
+        "scoreSha256": "affc6457c9361b346c83814429aca1275113761bce83790d47a0bdb3c7e5aa11",
+        "companionMidiSha256": "aeb55b48e5f61de1faeabd07981a67c54c15b9f257de5b20ef202578860edd91",
+        "sourceClockReceiptSha256": "9b13b8c8b4dbcf66bbdc630485573f2ff6858abcca97e4d9ccabb22e831c84a4",
+        "annotationReceiptSha256": "94f3a817ccff950bc7ef93cb60e55381617ce344bff25930c327d64234e90fd1",
+        "literalAnnotation": "FINALE.",
+        "firstSourceNotes": [
+          [
+            0.0,
+            60
+          ],
+          [
+            0.5,
+            59
+          ],
+          [
+            1.0,
+            60
+          ],
+          [
+            1.5,
+            65
+          ],
+          [
+            2.0,
+            65
+          ],
+          [
+            2.5,
+            63
+          ]
+        ],
+        "producerPitchedOnsets": 1661,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.059895833333314386,
+        "sourceEndBeat": 491.5,
+        "coverage": "whole explicitly named movement on encoded traversal; padded producer tail excluded"
+      }
     }
   ]
 }

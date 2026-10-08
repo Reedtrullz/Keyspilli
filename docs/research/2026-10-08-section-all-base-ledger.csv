@@ -224,7 +224,7 @@ l-v-beethoven-sonata-no-1-2nd-movement-adagio,true,estimate-only-unresolved,0,tr
 l-v-beethoven-sonata-no-1-3rd-movement-allegretto,true,mapped-numeric-extent,2,true,0,true,false,,
 l-v-beethoven-sonata-no-1-4th-movement-prestissimo,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
 l-v-beethoven-sonata-no-5-1st-movement-allegro-molto-e-con-b,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
-l-v-beethoven-sonata-no-5-3rd-movement-prestissimo,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+l-v-beethoven-sonata-no-5-3rd-movement-prestissimo,true,mapped-partial,1,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 labrinth-jealous,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 lady-gaga-applause,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 lauren-daigle-you-say,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
@@ -379,7 +379,7 @@ sam-smith-stay-with-me,true,estimate-only-unresolved,0,true,2,false,true,,No sub
 selena-gomez-come-and-get-it,true,estimate-only-unresolved,0,true,1,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 sergei-rachmaninoff-rhapsody-on-a-theme-of-paganini-variatio,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 ses-death,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
-shallow-lady-gaga,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
+shallow-lady-gaga,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 sheet-music-boss-sabaton-the-last-stand-piano-tutorial-mslzz1c3,false,estimate-only-unresolved,0,false,1,false,true,,No substantiated map: base remains estimate-only.; No exact original-source byte match found in inspected retained source/audio paths.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 sheet-music-mary-on-a-cross-ghost-piano-cover-w-lyrics-mslwt86i,true,estimate-only-unresolved,0,false,2,false,true,,No substantiated map: base remains estimate-only.; No exact original-source byte match found in inspected retained source/audio paths.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 sia-chandelier,true,mapped-partial,3,true,2,false,true,,Only part of numeric extent is named; unresolved intervals remain estimated.
@@ -413,7 +413,7 @@ the-office-opening-theme,true,estimate-only-unresolved,0,true,0,false,false,,No 
 the-pink-pather-theme,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 the-police-every-breath-you-take,true,mapped-partial,1,true,2,false,true,,Only part of numeric extent is named; unresolved intervals remain estimated.
 the-theorist-elton-john-your-song-piano-cover-jz6ugvghbt8,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-the-weeknd-blinding-lights,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
+the-weeknd-blinding-lights,true,mapped-partial,4,true,2,false,true,,Only part of numeric extent is named; unresolved intervals remain estimated.
 ti-amo,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 time-zimmer,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 titanic,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
@@ -434,7 +434,7 @@ vkgoeswild-piano-cover-foo-fighters-my-hero-mslwsk3x,true,estimate-only-unresolv
 voletarium-countdown,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 w-h-doane-near-the-cross,true,mapped-partial,2,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 what-falling-in-love-feels-like-jake25-17-fanmade-extended-v,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
-what-was-i-made-for-billie-eilish,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
+what-was-i-made-for-billie-eilish,true,estimate-only-unresolved,0,true,1,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 yann-tiersen-comptine-dun-autre-ete,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 zedd-ft-foxes-clarity,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 zelda-ocarina-of-time-gerudo-valley,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
