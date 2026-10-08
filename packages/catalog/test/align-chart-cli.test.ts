@@ -9,21 +9,35 @@ import { writeMidi } from "@keyspilli/midi";
 const scratch: string[] = [];
 afterEach(()=>{for(const dir of scratch.splice(0))rmSync(dir,{recursive:true,force:true});});
 const sha=(bytes:Buffer|string)=>createHash("sha256").update(bytes).digest("hex");
-function fixture() {
+function fixture(firstBars=8) {
   const dir=mkdtempSync(join(tmpdir(),"keyspilli-chart-cli-"));scratch.push(dir);
-  const notes=Array.from({length:24},(_,bar)=>({midi:bar<8?48:bar<16?54:55,start:bar*4,dur:4,vel:80}));
+  const notes=Array.from({length:24},(_,bar)=>[0,4,7].map(interval=>({midi:(bar<firstBars?48:bar<16?54:55)+interval,start:bar*4,dur:4,vel:80}))).flat();
   const chart=JSON.stringify({source:"ultimate-guitar",tabId:123,sections:[{label:"Verse",chords:["C"]},{label:"Bridge",chords:["F#"]},{label:"Outro",chords:["G"]}]});
-  const data=JSON.stringify({notes,measures:notes.map((_,index)=>({index,startBeat:index*4,endBeat:(index+1)*4})),tempoBpm:120,provenance:{sourceRef:"seed:fixture.mid"}});
+  const data=JSON.stringify({notes,measures:Array.from({length:24},(_,index)=>({index,startBeat:index*4,endBeat:(index+1)*4})),tempoBpm:120,provenance:{sourceRef:"seed:fixture.mid"}});
   const midi=Buffer.from(writeMidi(notes,{tempoBpm:120,timeSig:[4,4]}));
   for(const [file,bytes] of [["chart.json",chart],["notes.json",data],["fixture.mid",midi]] as const)writeFileSync(join(dir,file),bytes);
   const receipt={baseId:"fixture",sourceArtifactHash:sha(midi),notesSha256:sha(data),chartSha256:sha(chart),chartUrl:"https://tabs.ultimate-guitar.com/tab/fixture/song-chords-123",playbackTempoBpm:120,sourceRef:"seed:fixture.mid",notesOrigin:"local"};
   writeFileSync(join(dir,"identity.json"),JSON.stringify(receipt));
   return {dir,receipt};
 }
-function run(dir:string) {
+function run(dir:string,extra:string[]=[]) {
   return spawnSync(process.execPath,["--import","tsx",new URL("../scripts/align-chart-sections.ts",import.meta.url).pathname,
-    join(dir,"chart.json"),join(dir,"fixture.mid"),join(dir,"notes.json"),"fixture","https://tabs.ultimate-guitar.com/tab/fixture/song-chords-123",join(dir,"identity.json")],{encoding:"utf8"});
+    join(dir,"chart.json"),join(dir,"fixture.mid"),join(dir,"notes.json"),"fixture","https://tabs.ultimate-guitar.com/tab/fixture/song-chords-123",join(dir,"identity.json"),...extra],{encoding:"utf8"});
 }
+it("emits the selected finer grid in the bound CLI candidate",()=>{
+  const {dir}=fixture(4);
+  const landmark=join(dir,"landmarks.json");
+  writeFileSync(landmark,JSON.stringify([{label:"Verse",startBar:0,endBar:4,basis:"Independent four-bar C passage"}]));
+  const result=run(dir,[landmark,"0","4"]);expect(result.status).toBe(0);
+  const value=JSON.parse(result.stdout);
+  expect(value.candidate.sections).toEqual([{id:"chart-section-1",label:"Verse",type:"verse",startBeat:0,endBeat:16,evidence:"chart"}]);
+  expect(value.candidate.alignment.phraseBars).toBe(4);
+});
+it("refuses an unsupported CLI grid instead of silently using the default",()=>{
+  const {dir}=fixture();const landmark=join(dir,"landmarks.json");writeFileSync(landmark,"[]");
+  const result=run(dir,[landmark,"0","3"]);
+  expect(result.status).toBe(1);expect(result.stdout).toBe("");expect(result.stderr).toMatch(/phrase grid/i);
+});
 it("refuses a changed notes file before emitting a source-attributed candidate",()=>{
   const {dir}=fixture();
   const data=JSON.parse(readFileSync(join(dir,"notes.json"),"utf8"));data.notes[0].midi=72;

@@ -3,6 +3,7 @@ import { alignChartSections, analyzeArrangement } from "../scripts/align-chart-s
 import type { Note } from "@keyspilli/midi";
 import queen from "./fixtures/queen-section-harmony.json";
 import help from "./fixtures/help-section-harmony.json";
+import bonnie from "./fixtures/bonnie-section-harmony.json";
 
 function passage(roots: number[]) {
   const notes: Note[] = roots.flatMap((root, bar) => [0, 4, 7].map(interval => ({
@@ -13,6 +14,65 @@ function passage(roots: number[]) {
 }
 
 describe("chart phrase alignment", () => {
+  it("retains Bonnie's independently checked short Intro while dropping its ambiguous interior", () => {
+    const result=alignChartSections({...bonnie.chart,source:"ultimate-guitar"},bonnie.measures,{phraseBars:4,transpose:1,landmarks:[
+      {label:"Intro",startBar:0,endBar:4,basis:"Separately inspected raw piano-only opening and independent cue-track entry at beat 16"},
+    ]});
+    expect(result.publishableSections).toEqual([{id:"chart-section-1",label:"Intro",type:"intro",startBeat:0,endBeat:16,evidence:"chart"}]);
+    expect(result.boundaryGaps[1]).toBeCloseTo(.16458333333333375);
+    expect(result.ambiguityGap).toBeLessThan(.01);
+    expect(result.confidenceScore).toBeCloseTo(.6);
+  });
+  it.each([
+    {chord:"D7sus4",pitches:[50,55,57,60]},
+    {chord:"D#(b5)",pitches:[51,55,57]},
+    {chord:"D#dim7",pitches:[51,54,57,60]},
+    {chord:"Bm7b5",pitches:[47,50,53,57]},
+    {chord:"D7sus4/C",pitches:[48,50,55,57]},
+  ])("scores the explicit $chord pitch classes without dropping its alteration",({chord,pitches})=>{
+    const notes:Note[]=Array.from({length:8},(_,bar)=>pitches.map(midi=>({midi,start:bar*4,dur:4,vel:80}))).flat();
+    const bars=analyzeArrangement(notes,Array.from({length:8},(_,index)=>({index,startBeat:index*4,endBeat:(index+1)*4})));
+    const result=alignChartSections({source:"ultimate-guitar",tabId:1,sections:[{label:"Verse",chords:[chord]}]},bars);
+    expect(result.totalCost).toBeCloseTo(0);
+  });
+  it("transposes altered chart tones and slash bass together", () => {
+    const notes:Note[]=Array.from({length:8},(_,bar)=>[49,51,56,58].map(midi=>({midi,start:bar*4,dur:4,vel:80}))).flat();
+    const bars=analyzeArrangement(notes,Array.from({length:8},(_,index)=>({index,startBeat:index*4,endBeat:(index+1)*4})));
+    expect(alignChartSections({source:"ultimate-guitar",tabId:1,sections:[{label:"Verse",chords:["D7sus4/C"]}]},bars,{transpose:1}).totalCost).toBeCloseTo(0);
+  });
+  it("locates a checked four-bar Intro instead of forcing it onto the eight-bar grid", () => {
+    const result = alignChartSections({ source: "ultimate-guitar", tabId: 1, sections: [
+      {label:"Intro",chords:["C"]},{label:"Bridge",chords:["F#"]},{label:"Outro",chords:["G"]},
+    ] }, passage([...Array(4).fill(48), ...Array(8).fill(54), ...Array(12).fill(55)]), {
+      phraseBars: 4,
+      landmarks:[{label:"Intro",startBar:0,endBar:4,basis:"Independent four-bar C passage before F#"}],
+    });
+    expect(result.publishableSections).toEqual([
+      {id:"chart-section-1",label:"Intro",type:"intro",startBeat:0,endBeat:16,evidence:"chart"},
+    ]);
+    expect(result.boundaryGaps[1]).toBeGreaterThanOrEqual(.15);
+  });
+
+  it("keeps finer-grid cost gaps in eight-bar-equivalent units", () => {
+    const chart = {source:"ultimate-guitar" as const,tabId:1,sections:[
+      {label:"Verse",chords:["C"]},{label:"Outro",chords:["G"]},
+    ]};
+    const bars = passage([...Array(8).fill(48), ...Array(8).fill(54), ...Array(8).fill(55)]);
+    // Eight F# bars match neither chord set: 8 * capped cost 1 / 8 = 1.
+    for (const phraseBars of [4,8] as const) {
+      const result = alignChartSections(chart,bars,{phraseBars});
+      expect(result.totalCost).toBeCloseTo(1);
+      expect(result.ambiguityGap).toBe(0);
+      expect(result.publishable).toBe(false);
+    }
+  });
+
+  it("bounds the finer grid instead of multiplying the offline search without limit", () => {
+    expect(() => alignChartSections({source:"ultimate-guitar",tabId:1,sections:[
+      {label:"Verse",chords:["C"]},{label:"Outro",chords:["G"]},
+    ]},passage(Array(272).fill(48)),{phraseBars:4})).toThrow(/64 phrases/);
+  });
+
   it("keeps Help's checked Intro and rejects its near-equal interior assignments", () => {
     const result=alignChartSections({...help.chart,source:"ultimate-guitar"},help.measures,{landmarks:[
       {label:"Intro",startBar:0,endBar:8,basis:"Separately inspected retained seed Bm-G-E-A passage and closing A bar [28,32)"},

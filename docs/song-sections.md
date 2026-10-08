@@ -58,12 +58,14 @@ that directory is gitignored runtime state.
 ## Offline chart alignment
 
 `npm run align:chart-sections -w @keyspilli/catalog -- <chart.json> <seed.mid>
-<notes.json> <baseId> <chart-url> <identity.json> [landmarks.json] [transpose]`
+<notes.json> <baseId> <chart-url> <identity.json> [landmarks.json] [transpose] [phraseBars]`
 prints an alignment report and candidate map; it never writes the catalog or
 fetches a chart. Obtain `chart.json` with the saved-page extractor. Work from
 the exact retained seed and the arrangement's actual measure clock. The bounded
-helper supports up to 512 measures and 32 chart occurrences; longer inputs are
-rejected rather than starting an unbounded offline run.
+helper defaults to eight-bar phrases. Set `phraseBars` to `4` for shorter form
+spans; other values are rejected. Both grids are bounded to 64 phrases and 32
+chart occurrences: at most 512 measures on the default grid or 256 on the finer
+grid. Longer inputs are rejected rather than starting an unbounded offline run.
 
 An identity receipt is mandatory. Populate it from the retained artifact
 manifest and captured notes bytes, after verifying they belong to the requested
@@ -78,14 +80,18 @@ captured production notes. Local notes get only a diagnostic alignment hash.
 The helper retains `inferSongForm`'s onset pitch-class vectors and density for
 diagnostics. Harmony scoring follows the demonstrated Queen method: each
 measure's sustained pitch-class set, Jaccard chord overlap and a lowest-pitch
-root/slash-bass mismatch penalty. The ordered DP sums eight-bar phrase costs
+root/slash-bass mismatch penalty. The ordered DP sums phrase costs
 and assigns at least one complete phrase to each chart occurrence. No whole-song
 chord-by-chord DP is used. Transposition is explicit; different chart versions,
-keys and arrangement clocks still need independent checks.
+keys and arrangement clocks still need independent checks. Four-bar means weigh
+half an eight-bar mean, preserving the existing cost units and 0.15 ambiguity
+threshold. A partial final phrase keeps its selected grid weight. The offline
+comparison also supports the exact chart spellings `m7b5`, `dim7`, `7sus4` and
+`(b5)`, including slash bass and transposition, without changing playback voicing.
 
 For each interior boundary it solves again with that chosen position forbidden,
 so a near-equal alternative anywhere in the song cannot masquerade as a stable
-boundary. Gaps below 0.15 assignment-cost units are ambiguous. A grid-forced
+boundary. Gaps below 0.15 eight-bar-equivalent assignment-cost units are ambiguous. A grid-forced
 boundary with no feasible alternative also has zero confidence. The confidence
 score describes fit and separation, not calibrated probability or acceptance.
 
@@ -97,9 +103,12 @@ matching independent landmark appear in `candidate.sections`. Other spans keep
 the existing estimates, even when an isolated span is usable. Rejected output
 has an empty candidate and must not be inserted into `song-sections.json`.
 
-The first autonomous cohort retained Help's Intro only. See
+The first autonomous batch retained Help's Intro; the finer-grid continuation
+retained Bonnie Tyler's four-bar Intro. See
 [`2026-10-08-section-alignment-cohort.md`](research/2026-10-08-section-alignment-cohort.md)
-for all 42 dispositions, hashes, confidence and rejected spans.
+for the original 42 dispositions, and
+[`2026-10-08-section-alignment-continuation.md`](research/2026-10-08-section-alignment-continuation.md)
+for updated dispositions, remaining registry candidates, hashes and confidence.
 
 Difficulty levels on the same declared clock share Advanced's form, so a sparse
 reduction does not get different role names merely because its density changes.
