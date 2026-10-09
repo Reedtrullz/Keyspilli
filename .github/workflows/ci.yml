@@ -167,6 +167,15 @@ jobs:
           RESTORE_REVISION: ${{ github.sha }}
         run: |
           test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
+          pull_ok=0
+          for attempt in 1 2 3 4 5; do
+            if docker pull public.ecr.aws/docker/library/node:22.22.3-bookworm-slim; then
+              pull_ok=1
+              break
+            fi
+            sleep $((attempt * 15))
+          done
+          test "$pull_ok" = 1
           docker build -f apps/web/Dockerfile --build-arg VERSION="$RESTORE_REVISION" -t keyspilli-restore:ci .
           export KEYSPILLI_BACKUP_WEB_IMAGE_ID="$(docker image inspect keyspilli-restore:ci --format '{{.Id}}')"
           export KEYSPILLI_BACKUP_WEB_REVISION="$RESTORE_REVISION"
