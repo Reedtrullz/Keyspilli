@@ -78,13 +78,18 @@ deployed and live-verified. Latest complete proof1b61ceb0a9494a7b87d0571ffdde39d
 has1,764variants/441bases/99named served bases, zero numbered labels/errors,
 76samples across19source/note/tempo pins, stable healthy exact-commit containers,
 and unchanged selected2730row/455base store fields. Main37848574214SUCCESS.
+The working catalog now has102stored/100served maps after the reviewed Cornelius
+Op.3 addition;353stored/341served bases remain unmapped. That addition is
+integrated but awaits its own main deployment and exact-commit live proof.
 The independent storage repair PR234 completed its deployment/retention audit.
 
-A reviewed two-map Bach371 follow-up brings the working ledger to101stored/99served
-maps.354stored/343served bases remain unmapped;75maps are partial and26reach
+A reviewed two-map Bach371 follow-up plus the Cornelius Op.3 addition brings the
+working ledger to102stored/100served maps.353stored/341served bases remain
+unmapped;75maps are partial and27reach
 numeric extent, neither implying completed internal form. The two Bach entries
-are deployed. Their source, opening, endpoint and correspondence receipt passes;
-No.39 remains rejected and immutable. See
+and the Cornelius entry are integrated; the Bach entries are deployed and
+Cornelius awaits release. Their source, opening, endpoint and correspondence
+receipts pass; No.39 remains rejected and immutable. See
 `docs/research/2026-10-08-section-printed-parent-supplements.md`.
 
 Four strict first opening trials fail (Alkan1, Brahms118, GriegAlbumblatt,

@@ -1,6 +1,6 @@
 # Additional printed parent divisions
 
-The eleven additions from PR238 and the two Bach371 additions from PR239 are deployed and live-verified at main1b61ceb0a9494a7b87d0571ffdde39dffb19aa78. The catalog therefore has101stored/99served maps, with354stored/343served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
+The eleven additions from PR238 and the two Bach371 additions from PR239 are deployed and live-verified at main1b61ceb0a9494a7b87d0571ffdde39dffb19aa78. A reviewed Cornelius Op.3 addition brings the working catalog to102stored/100served maps, with353stored/341served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
 
 ## Evidence and correspondence
 
@@ -43,6 +43,12 @@ Nine candidates passed independent raw/source/producer/opening/endpoint review; 
 Fresh local audit passes with zero errors and two existing learner-blocked warnings. Typecheck,2,558tests across282files, production build and diff check pass. Independent whole-diff review passes with no material findings, including all88 prior maps, exactly11 changed ledger rows, source/producer/receipt bindings and17pin/68sample release verifier. Exact-head Automatic checks and container-smoke SUCCESS and CLEAN merge state remain required before merge. Main deployment SUCCESS precedes fresh live acceptance:68samples across17pins, both exact-commit healthy stable containers, full1,764variant/441base label sweep, zero numbered labels/read errors, and unchanged selected2730row/455base store fields.
 
 PR239’s proof is complete: main37848574214SUCCESS,76samples/19pins,99named served bases, exact1b61ceb0a9494a7b87d0571ffdde39dffb19aa78, zero numbered labels/read errors, both stable healthy containers, store identity730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. The101stored/99served figures are now integrated into the deployed catalog. Owner listening, recognizability, playability and musical acceptance are outside these claims.
+
+## Cornelius Op.3 follow-up
+
+`p-cornelius-ein-ton` now has one chart/custom named span, `Trauer und Trost, Op.3 — No.3. Ein Ton`, from beat0 to the lesser source/producer endpoint126. The fixed source-only study selected the complete first two3/4 bars, all11 attacks across the five pitched voices, before reading MIDI. The first and only trial passed the unchanged22-control suite, matched the fixed opening, and matched all549 producer attacks to distinct source attacks with maximum onset error0. The printed PDF identifies `Ein Ton`, Op.3 No.3 on page4 and `Trauer und Trost`, Op.3 in the page5 running header; the retained exact companion omits the opus, so the parent relationship remains disclosed cross-document and cross-edition inference.
+
+The candidate and independent review are pinned in `output/section-all-bases/cornelius-op3-printed-parent-candidates.json` and `cornelius-op3-printed-parent-candidate-independent-review.json`. No failed trial was retried or retuned. The map is integrated but not yet released or live-verified; the prior PR239 proof above remains the latest deployed acceptance until a new main run and exact-commit sweep complete.
 
 ## Bach371 follow-up
 
