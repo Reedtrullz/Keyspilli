@@ -39,6 +39,9 @@
     "evaluate:beginner-offgrid-rh-frontier": "npm run evaluate:beginner-offgrid-rh-frontier -w @keyspilli/catalog --",
     "preflight": "node --import tsx apps/web/scripts/runtime-preflight.ts"
   },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  },
   "engines": {
     "node": ">=22.22.3 <23"
   },
