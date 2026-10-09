@@ -1,4 +1,4 @@
-FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS build
+FROM public.ecr.aws/docker/library/node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
@@ -27,7 +27,7 @@ ENV VERSION=$VERSION
 RUN npm run build -w @keyspilli/web
 
 # Browser dependencies do not inherit changing application files or VERSION.
-FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS browser-assets
+FROM public.ecr.aws/docker/library/node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS browser-assets
 WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY apps/web/scripts/verify-playwright-runtime.mjs apps/web/scripts/verify-playwright-runtime.mjs
@@ -49,7 +49,7 @@ RUN if [ "$BUILDPLATFORM" = "$TARGETPLATFORM" ]; then \
       echo "Skipping Chromium launch under cross-architecture emulation"; \
     fi
 
-FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS runtime
+FROM public.ecr.aws/docker/library/node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
