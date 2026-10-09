@@ -22,7 +22,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-hash="$(printf '%s\n' "$password" | docker run --rm -i caddy:2.6.2 caddy hash-password --algorithm bcrypt)"
+hash="$(printf '%s\n' "$password" | docker run --rm -i public.ecr.aws/docker/library/caddy:2.6.2 caddy hash-password --algorithm bcrypt)"
 cat >"$scratch_dir/backend.py" <<'PY'
 import json
 import sys
@@ -63,14 +63,14 @@ EOF
 docker run --rm \
   -v "$scratch_dir/Caddyfile:/etc/caddy/Caddyfile:ro" \
   -v "$scratch_dir/test-users:/etc/caddy/test-users:ro" \
-  caddy:2.6.2 \
+  public.ecr.aws/docker/library/caddy:2.6.2 \
   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1
 
 docker run -d --name "$container_name" -p "${port}:80" \
   --add-host host.docker.internal:host-gateway \
   -v "$scratch_dir/Caddyfile:/etc/caddy/Caddyfile:ro" \
   -v "$scratch_dir/test-users:/etc/caddy/test-users:ro" \
-  caddy:2.6.2 \
+  public.ecr.aws/docker/library/caddy:2.6.2 \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1
 
 python3 "$scratch_dir/backend.py" "$backend_port" >/dev/null 2>&1 &
