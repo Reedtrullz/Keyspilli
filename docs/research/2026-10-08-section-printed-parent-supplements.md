@@ -1,6 +1,6 @@
 # Additional printed parent divisions
 
-The eleven additions from PR238 and the two Bach371 additions from PR239 are deployed and live-verified at main1b61ceb0a9494a7b87d0571ffdde39dffb19aa78. A reviewed Cornelius Op.3 addition brings the working catalog to102stored/100served maps, with353stored/341served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
+The eleven additions from PR238, the two Bach371 additions from PR239 and the Cornelius Op.3 addition from PR240 are deployed and live-verified at mainaaa6adadfd6da01d4e5749d8cc0f3ab7413cd495. A reviewed Gounod/Bach Prelude addition brings the working catalog to103stored/101served maps, with352stored/340served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
 
 ## Evidence and correspondence
 
@@ -48,7 +48,15 @@ PR239’s proof is complete: main37848574214SUCCESS,76samples/19pins,99named ser
 
 `p-cornelius-ein-ton` now has one chart/custom named span, `Trauer und Trost, Op.3 — No.3. Ein Ton`, from beat0 to the lesser source/producer endpoint126. The fixed source-only study selected the complete first two3/4 bars, all11 attacks across the five pitched voices, before reading MIDI. The first and only trial passed the unchanged22-control suite, matched the fixed opening, and matched all549 producer attacks to distinct source attacks with maximum onset error0. The printed PDF identifies `Ein Ton`, Op.3 No.3 on page4 and `Trauer und Trost`, Op.3 in the page5 running header; the retained exact companion omits the opus, so the parent relationship remains disclosed cross-document and cross-edition inference.
 
-The candidate and independent review are pinned in `output/section-all-bases/cornelius-op3-printed-parent-candidates.json` and `cornelius-op3-printed-parent-candidate-independent-review.json`. No failed trial was retried or retuned. The map is integrated but not yet released or live-verified; the prior PR239 proof above remains the latest deployed acceptance until a new main run and exact-commit sweep complete.
+The candidate and independent review are pinned in `output/section-all-bases/cornelius-op3-printed-parent-candidates.json` and `cornelius-op3-printed-parent-candidate-independent-review.json`. No failed trial was retried or retuned.
+
+PR240’s proof is complete: main37866047422SUCCESS,80samples/20pins,100named served bases, exactaaa6adadfd6da01d4e5749d8cc0f3ab7413cd495, zero numbered labels/read errors, both stable healthy containers, and unchanged store identity730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. A first live-verifier launch failed before acceptance because two setup assignments were removed while the pin list was rewritten; the empty attempt files are preserved under `attempt1-*`, the assignments were restored without weakening assertions, and the clean rerun produced `release-cornelius-op3/final-proof.json`.
+
+## Gounod/Bach Prelude parent
+
+`c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j` now has one chart/custom named span, `Méditation sur le premier Prélude de J. S. Bach — Ave Maria`, from beat0 to the lesser source/producer endpoint292.5. The retained companion prints the subtitle naming Bach’s First Prelude; an additional pinned Bach source prints `Das Wohltemperierte Clavier I`, `Prelude 1`, and `BWV 846`. The relationship is disclosed cross-document inference across two pinned public-domain typeset sources; the historical Heugel/Gallica edition was not acquired and is not claimed.
+
+The fixed first bar contains16 attacks across the two piano voices, with voice rests and no grace or tuplet. The single first trial passed22 controls, matched the fixed opening, and matched all1,037 producer attacks to distinct source attacks with maximum onset error0. The source-note inventory had been inspected before the fixed spec was written; the receipt records that ordering caveat and states that the events were derived from the printed score and parent source rather than selected from source outcomes. No failed trial was retried or retuned. The map is integrated but not yet released or live-verified.
 
 ## Bach371 follow-up
 

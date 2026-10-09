@@ -9445,6 +9445,136 @@
         "producerLastNoteEndBeat": 126,
         "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
       }
+    },
+    {
+      "baseId": "c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j",
+      "sourceArtifactHash": "374fa21eccbaad7b994da5b8db779c65cc527a382bf819b82126dfcd678a4297",
+      "advancedNotesSha256": "dd4d0a637e8010aeac2fd7355fc8b1b20574e20bda8e955d064686375db4cc78",
+      "playbackTempoBpm": 66,
+      "sourceFile": "c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j.mid",
+      "provenance": "The retained exact-companion score prints the subtitle Méditation sur le premier Prélude de J. S. Bach; the additional pinned parent source prints Das Wohltemperierte Clavier I, Prelude 1, and BWV 846. Matching Gounod’s meditation to that Bach parent is disclosed cross-document inference across the two pinned public-domain typeset sources, not a claim that the historical Heugel/Gallica edition was acquired, and not a claim that the editions contain identical notation. Both citations are byte-pinned: https://www.mutopiaproject.org/ftp/GounodC/AveMaria-PianoViolin/AveMaria-PianoViolin.ly; https://www.mutopiaproject.org/ftp/BachJS/BWV846/wtk1-prelude1/wtk1-prelude1.ly. complete first4/4 bar of the Bach First Prelude accompaniment, all16 attacks across the upper and lower piano voices; voice rests, no grace or tuplet, and tied left-hand notes retain one printed onset with their combined sounding duration. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all1037 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint292.5; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Méditation sur le premier Prélude de J. S. Bach — Ave Maria",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 292.5
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://www.mutopiaproject.org/ftp/GounodC/AveMaria-PianoViolin/AveMaria-PianoViolin.ly",
+            "sha256": "aaa7a4cc27e196649569da538c0f1f7383011cd523553ae06b80dc65e7dbf08e"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/BachJS/BWV846/wtk1-prelude1/wtk1-prelude1.ly",
+            "sha256": "afa237b10637ca7839b4c9e98b64ba89c781e2cfc1b980679b2632a31951aacd"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "374fa21eccbaad7b994da5b8db779c65cc527a382bf819b82126dfcd678a4297",
+        "fixedSpecsSha256": "459b29294a5ff671084c022f573f94489be38966e8a99c7a9fc95814e92e5515",
+        "sourceCorrespondenceReceiptSha256": "73a7f00419c5975832383a640fc1f2ee2e03bf603081351316b4abab6c6f6051",
+        "completePrintedOpening": [
+          {
+            "start": 0.5,
+            "midi": 67,
+            "dur": 0.25
+          },
+          {
+            "start": 0.75,
+            "midi": 72,
+            "dur": 0.25
+          },
+          {
+            "start": 1.0,
+            "midi": 76,
+            "dur": 0.25
+          },
+          {
+            "start": 1.25,
+            "midi": 67,
+            "dur": 0.25
+          },
+          {
+            "start": 1.5,
+            "midi": 72,
+            "dur": 0.25
+          },
+          {
+            "start": 1.75,
+            "midi": 76,
+            "dur": 0.25
+          },
+          {
+            "start": 2.5,
+            "midi": 67,
+            "dur": 0.25
+          },
+          {
+            "start": 2.75,
+            "midi": 72,
+            "dur": 0.25
+          },
+          {
+            "start": 3.0,
+            "midi": 76,
+            "dur": 0.25
+          },
+          {
+            "start": 3.25,
+            "midi": 67,
+            "dur": 0.25
+          },
+          {
+            "start": 3.5,
+            "midi": 72,
+            "dur": 0.25
+          },
+          {
+            "start": 3.75,
+            "midi": 76,
+            "dur": 0.25
+          },
+          {
+            "start": 0.0,
+            "midi": 60,
+            "dur": 2.0
+          },
+          {
+            "start": 0.25,
+            "midi": 64,
+            "dur": 1.75
+          },
+          {
+            "start": 2.0,
+            "midi": 60,
+            "dur": 2.0
+          },
+          {
+            "start": 2.25,
+            "midi": 64,
+            "dur": 1.75
+          }
+        ],
+        "sourceTrackScope": "all",
+        "openingDescription": "complete first4/4 bar of the Bach First Prelude accompaniment, all16 attacks across the upper and lower piano voices; voice rests, no grace or tuplet, and tied left-hand notes retain one printed onset with their combined sounding duration",
+        "distinctProducerAttacks": 1037,
+        "distinctSourceAttacksUsed": 1037,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 293.0,
+        "producerLastNoteEndBeat": 292.5,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
     }
   ]
 }
