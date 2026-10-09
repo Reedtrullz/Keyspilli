@@ -1,6 +1,6 @@
 # Additional printed parent divisions
 
-The eleven additions from PR238, the two Bach371 additions from PR239 and the Cornelius Op.3 addition from PR240 are deployed and live-verified at mainaaa6adadfd6da01d4e5749d8cc0f3ab7413cd495. A reviewed Gounod/Bach Prelude addition brings the working catalog to103stored/101served maps, with352stored/340served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
+The eleven additions from PR238, the two Bach371 additions from PR239, the Cornelius Op.3 addition from PR240 and the Gounod/Bach Prelude addition from PR241 are deployed and live-verified at main5b46763421bfa9cc04066401db4bb7bff5c56082. The catalog now has103stored/101served maps, with352stored/340served bases unmapped. All455bases keep explicit evidence dispositions. Acquisition, rejection and numeric extent do not establish all-base naming completion.
 
 ## Evidence and correspondence
 
@@ -34,7 +34,13 @@ Brahms Sapphische Ode begins at beat0.5; leading0..0.5 remains estimated. Every 
 
 Four strict first trials failed and remain immutable and excluded. AlkanNo1 expects21complete RH attacks but raw MIDI has20, lacking one simultaneous G4 duplicate. BrahmsOp118 expects19all-voice opening attacks but raw has18, lacking the second simultaneous F-sharp4 of a different duration. Albumblatt expects5nominal pickup/first-bar attacks but the fixed window contains6 after the next-bar grace is performed early. DebussyPreludeIV has12opening attacks but nominal durations fail. Full producer clock correspondence passes in all four and does not override opening failure. No fingerprint, duration, cutoff or failed source study is retuned or rerun.
 
-AlkanNo2, BeethovenOp2No1Adagio and Dvorak’s song still need complete fixed grace realizations before any new qualification. Inspected Faure and GriegHjemkomst pages do not yet establish the required printed parent; whole-document absence is not claimed. Further Cornelius/Franz/Bach parent acquisition is a separate prospective study and contributes no map to this batch.
+The separate Alkan No.1 fixed-landmark follow-up also failed immutably: its source-only fifth-bar window contained14/14 attacks, but the fixed spec expected B5 while the source encoded B4 at beat18.75. The full287-attack clock passed and does not override that mismatch; `alkan-op31-no1-landmark-first-dispositions.json` preserves the rejection without retuning or retrying it.
+
+The acquired Robert Franz Op.42 PDF prints `Es hat die Rose sich beklagt` and `Op.42 No5` on page12, alongside neighboring Op.42 numbers, but it does not print the claimed `Aus Osten` collection title. The source-only hierarchy review therefore rejects a parent map before any timing trial; `franz-op42-no5-parent-source-review.json` preserves that disposition and the acciaccatura risk remains untested.
+
+The Dvorak Op.55 contents do print `No.4 Als die alte Mutter`, but its single source-only full-bar landmark trial found no attack in the frozen track/window and remains rejected without retuning; the full604-attack clock does not override that empty opening. Alkan Op.31 No.2 and Beethoven Op.2 No.1 Adagio remain source-only grace-realization rejections before timing, with no trial run.
+
+AlkanNo2 and BeethovenOp2No1Adagio were rejected at source-only review because their required complete openings retain unresolved written grace realizations; Dvorak's song was rejected after its one immutable empty-window trial. Inspected Faure and GriegHjemkomst pages do not establish the required printed parent under the current evidence; whole-document absence is not claimed. Further Cornelius/Franz/Bach parent acquisition remains a separate prospective study and contributes no map to this batch.
 
 ## Review and release state
 
@@ -56,7 +62,9 @@ PR240’s proof is complete: main37866047422SUCCESS,80samples/20pins,100named se
 
 `c-gounod-ave-maria-meditation-on-the-first-prelude-in-c-by-j` now has one chart/custom named span, `Méditation sur le premier Prélude de J. S. Bach — Ave Maria`, from beat0 to the lesser source/producer endpoint292.5. The retained companion prints the subtitle naming Bach’s First Prelude; an additional pinned Bach source prints `Das Wohltemperierte Clavier I`, `Prelude 1`, and `BWV 846`. The relationship is disclosed cross-document inference across two pinned public-domain typeset sources; the historical Heugel/Gallica edition was not acquired and is not claimed.
 
-The fixed first bar contains16 attacks across the two piano voices, with voice rests and no grace or tuplet. The single first trial passed22 controls, matched the fixed opening, and matched all1,037 producer attacks to distinct source attacks with maximum onset error0. The source-note inventory had been inspected before the fixed spec was written; the receipt records that ordering caveat and states that the events were derived from the printed score and parent source rather than selected from source outcomes. No failed trial was retried or retuned. The map is integrated but not yet released or live-verified.
+The fixed first bar contains16 attacks across the two piano voices, with voice rests and no grace or tuplet. The single first trial passed22 controls, matched the fixed opening, and matched all1,037 producer attacks to distinct source attacks with maximum onset error0. The source-note inventory had been inspected before the fixed spec was written; the receipt records that ordering caveat and states that the events were derived from the printed score and parent source rather than selected from source outcomes. No failed trial was retried or retuned.
+
+PR241's proof is complete: main37873796924SUCCESS,84samples/21pins,101named served bases, exact5b46763421bfa9cc04066401db4bb7bff5c56082, zero numbered labels/read errors, both stable healthy containers, and unchanged store identity730063c30ac2039480e0f4ecbaa38108fb214d5f8f3dc146d7cc9da66cce3fd6. The clean proof is pinned in `output/section-all-bases/release-gounod-bach-prelude/final-proof.json`.
 
 ## Bach371 follow-up
 

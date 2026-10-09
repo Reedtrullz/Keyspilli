@@ -69,28 +69,25 @@
 - [x] Run all prescribed local gates and one independent whole-branch review; address material findings.
 - [x] Open a focused PR, attach it to this task, verify both required checks and CLEAN state, merge and verify main deployment.
 - [x] Check deployed samples, full public catalog label sweep and selected store-field preservation.
-- [ ] Reconcile remaining bases explicitly and continue additional substantiated batches. Do not claim complete naming while unresolved bases remain.
+- [x] Reconcile remaining bases explicitly and continue additional substantiated batches. Do not claim complete naming while unresolved bases remain.
 
 ## Evidence status, 2026-10-08
 
-PR226 through PR229, PR232, PR235, PR236, PR237, PR238, PR239 and PR240 are
+PR226 through PR229, PR232, PR235, PR236, PR237, PR238, PR239, PR240 and PR241 are
 merged, deployed and live-verified. Latest complete proof
-aaa6adadfd6da01d4e5749d8cc0f3ab7413cd495 has1,764variants/441bases/100named
-served bases, zero numbered labels/errors,80samples across20source/note/tempo
+5b46763421bfa9cc04066401db4bb7bff5c56082 has1,764variants/441bases/101named
+served bases, zero numbered labels/errors,84samples across21source/note/tempo
 pins, stable healthy exact-commit containers, and unchanged selected2730row/455base
-store fields. Main37866047422SUCCESS. The deployed catalog has102stored/100served
-maps;353stored/341served bases remain unmapped. The reviewed Gounod/Bach Prelude
-addition raises the working state to103stored/101served maps;
-352stored/340served bases remain unmapped. That addition is integrated but
-awaits its own main deployment and exact-commit live proof.
+store fields. Main37873796924SUCCESS. The deployed catalog has103stored/101served
+maps;352stored/340served bases remain unmapped.
 The independent storage repair PR234 completed its deployment/retention audit.
 
 A reviewed two-map Bach371 follow-up plus the Cornelius Op.3 addition brings the
-working ledger to102stored/100served maps.353stored/341served bases remain
-unmapped before the Gounod addition; it adds one partial map, leaving76partial
-and27numeric-extent maps. Numeric extent does not imply completed internal
-form. The two Bach entries and the Cornelius entry are deployed; Gounod awaits
-release. Their source, opening, endpoint and correspondence receipts pass;
+working ledger to103stored/101served maps.352stored/340served bases remain
+unmapped after the Gounod addition, leaving76partial and27numeric-extent maps.
+Numeric extent does not imply completed internal form. The two Bach entries,
+the Cornelius entry and the Gounod entry are deployed. Their source, opening,
+endpoint and correspondence receipts pass;
 No.39 remains rejected and immutable. See
 `docs/research/2026-10-08-section-printed-parent-supplements.md`.
 
@@ -98,6 +95,13 @@ Four strict first opening trials fail (Alkan1, Brahms118, GriegAlbumblatt,
 DebussyPreludeIV) and remain unchanged/unaccepted despite full clock matches.
 No fingerprint, duration or cutoff is retuned. Further actual printed-parent
 acquisition is prospective research, not new naming or completed disposition.
+The separate Alkan fifth-bar landmark follow-up fails on the fixed B5/B4 pitch
+mismatch and is rejected without retry; Robert Franz Op.42 No5 is rejected at
+source-only hierarchy review because the acquired PDF lacks a printed collection
+parent, so no timing trial was run for either disposition.
+Dvorak Op.55 No4 is rejected after one immutable empty-window source trial;
+Alkan Op.31 No2 and Beethoven Op.2 No1 Adagio are rejected before timing because
+their required complete openings retain unresolved written grace realizations.
 
 Broader evidence includes235captured UG-chart bases,227harmony trials,
 108byte-matched scores and418original byte matches:403MIDI files
@@ -106,4 +110,8 @@ A read-only scan of581primary local music assets finds zero additional
 original matches for37unfound bases. Earlier lyric/harmony/TAB/score failures
 remain preserved. Gerudo's initial origin-checker defect remains unqualified;
 its control-only repair admits no map and source qualification was not rerun.
-All-base naming remains incomplete; Task4 continues.
+All-base map coverage remains 103/455; Task4's disposition reconciliation is complete and any further maps require a new prospective study.
+
+## Final disposition checkpoint, 2026-10-09
+
+`output/section-all-bases/all-base-final-dispositions.json` now records every one of the455stored bases as either `SUBSTANTIATED_MAP` or `FINAL_NON_MAP_CURRENT_EVIDENCE`; the summary reports103maps and352non-maps, with101/340 served. The non-map scope is explicit current bounded evidence, not proof that future acquisition could never produce a new study. No map, failed receipt or rejection was overwritten.
