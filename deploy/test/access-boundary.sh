@@ -11,6 +11,7 @@ port="${KEYSPILLI_EDGE_TEST_PORT:-38199}"
 backend_port="${KEYSPILLI_EDGE_TEST_BACKEND_PORT:-38200}"
 password='temporary-edge-test-password-2026'
 backend_pid=''
+caddy_image='public.ecr.aws/docker/library/caddy:2.6.2'
 
 cleanup() {
   docker rm -f "$container_name" >/dev/null 2>&1 || true
@@ -22,7 +23,22 @@ cleanup() {
 }
 trap cleanup EXIT
 
-hash="$(printf '%s\n' "$password" | docker run --rm -i caddy:2.6.2 caddy hash-password --algorithm bcrypt)"
+# Shared GitHub runner IPs can trip the ECR Public anonymous surface rate
+# ("Rate exceeded"); throttle windows are short, so pull with bounded backoff.
+pull_ok=0
+for attempt in 1 2 3 4 5; do
+  if docker pull "$caddy_image"; then
+    pull_ok=1
+    break
+  fi
+  sleep "$((attempt * 15))"
+done
+if [ "$pull_ok" != 1 ]; then
+  echo "caddy test image pull failed after retries" >&2
+  exit 1
+fi
+
+hash="$(printf '%s\n' "$password" | docker run --rm -i "$caddy_image" caddy hash-password --algorithm bcrypt)"
 cat >"$scratch_dir/backend.py" <<'PY'
 import json
 import sys
@@ -63,14 +79,14 @@ EOF
 docker run --rm \
   -v "$scratch_dir/Caddyfile:/etc/caddy/Caddyfile:ro" \
   -v "$scratch_dir/test-users:/etc/caddy/test-users:ro" \
-  caddy:2.6.2 \
+  "$caddy_image" \
   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1
 
 docker run -d --name "$container_name" -p "${port}:80" \
   --add-host host.docker.internal:host-gateway \
   -v "$scratch_dir/Caddyfile:/etc/caddy/Caddyfile:ro" \
   -v "$scratch_dir/test-users:/etc/caddy/test-users:ro" \
-  caddy:2.6.2 \
+  "$caddy_image" \
   caddy run --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1
 
 python3 "$scratch_dir/backend.py" "$backend_port" >/dev/null 2>&1 &
