@@ -310,7 +310,7 @@ owl-city-feat-carly-rae-jepsen-good-time,true,estimate-only-unresolved,0,true,2,
 ozzy-osbourne-crazy-train,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ozzy-osbourne-dreamer,true,estimate-only-unresolved,0,true,1,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
 ozzy-osbourne-mr-crowley,true,estimate-only-unresolved,0,true,2,false,true,,No substantiated map: base remains estimate-only.; Ordered harmony studied; candidate correspondence and independent landmarks not established.
-p-cornelius-ein-ton,true,estimate-only-unresolved,0,true,0,true,false,,"No substantiated map: base remains estimate-only.; Byte-matched score acquired, but no verified internal form map established."
+p-cornelius-ein-ton,true,mapped-numeric-extent,1,true,0,true,false,,
 p-dukas-villanelle,true,mapped-partial,8,true,0,true,false,,Only part of numeric extent is named; unresolved intervals remain estimated.
 panic-at-the-disco-girlsgirlsboys,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.
 paparazzi,true,estimate-only-unresolved,0,true,0,false,false,,No substantiated map: base remains estimate-only.

@@ -9340,6 +9340,111 @@
         "producerLastNoteEndBeat": 52,
         "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
       }
+    },
+    {
+      "baseId": "p-cornelius-ein-ton",
+      "sourceArtifactHash": "631bcd481e09c1493191959ec3264c3513c4a93177ffc6d833dea4f4952b659b",
+      "advancedNotesSha256": "1795c3b2bc26f5b48a404d1c685160c92db4057ad568fc186aaebb8744cf0946",
+      "playbackTempoBpm": 90,
+      "sourceFile": "p-cornelius-ein-ton.mid",
+      "provenance": "An additional historical printed edition explicitly supplies the named parent collection; the additional printed PDF identifies Ein Ton, Op3 No3 on page4 and explicitly Trauer und Trost, Op3 in page5 running header. The retained exact companion prints Peter Cornelius and Ein Ton/The Monotone without opus. Matching that individual piece to the named parent is disclosed cross-document and cross-edition inference; the metadata Schott attribution is not a claim that the observed typeset PDF is an original engraving. The parent-to-retained-score relationship is disclosed cross-document and cross-edition inference, not a claim that the editions contain identical notation. Both citations are byte-pinned: https://s9.imslp.org/files/imglnks/usimg/4/40/IMSLP24061-PMLP54627-Cornelius_op.03_Trauer_und_Trost.pdf; https://www.mutopiaproject.org/ftp/CorneliusP/cornelius-ein-ton/cornelius-ein-ton.ly. complete firsttwo3/4 bars, all11 attacks across sopNotes, rhOne, rhTwo, lhOne and lhTwo, with first-bar vocal/LH rests and RHhalf-note/rest retained; absolute sounding registers and every nominal duration fixed, fermatas nondurational; no grace/tie/tuplet in selectedtwo-bar opening; no convenient later vocal-only window. The complete fixed opening matches pitch, register, multiplicity, nominal duration and onset within1/64 beat. The retained score companion MIDI exactly matches original source bytes; all549 actual producer attacks match distinct same-pitch raw source onsets within1/16 beat, without reusing source attacks. The named interval follows only the encoded traversal from first pitched beat0.0 to the lesser pitched source/producer endpoint126.0; leading silence and padded tails remain estimated. No internal Verse/Chorus or other inferred form division, FF06/FF07 source authority, identical printed-note preservation, artist-credit correction or owner musical acceptance is claimed. Earlier insufficient bibliographic-pair dispositions remain preserved; no failed timing qualification was resumed or retuned.",
+      "sections": [
+        {
+          "id": "chart-printed-parent-indexed-piece",
+          "label": "Trauer und Trost, Op.3 — No.3. Ein Ton",
+          "type": "custom",
+          "evidence": "chart",
+          "startBeat": 0.0,
+          "endBeat": 126.0
+        }
+      ],
+      "alignment": {
+        "strategy": "printed-parent-supplement-with-exact-companion-source-v1",
+        "confidenceScore": 1,
+        "confidenceDefinition": "Exact byte identity, independent complete fixed opening and full distinct producer pitch/onset correspondence; uncalibrated correspondence, not a musical probability, internal form acceptance or source authority.",
+        "printedSources": [
+          {
+            "url": "https://s9.imslp.org/files/imglnks/usimg/4/40/IMSLP24061-PMLP54627-Cornelius_op.03_Trauer_und_Trost.pdf",
+            "sha256": "2e10dc71bb4735d12b8598e34a315daf057a9be3c5935eefc1871094211b58b4"
+          },
+          {
+            "url": "https://www.mutopiaproject.org/ftp/CorneliusP/cornelius-ein-ton/cornelius-ein-ton.ly",
+            "sha256": "91a09b045b86d7b2fa0176bd37c14e775544ad8d6aaaeece707772414794e836"
+          }
+        ],
+        "crossDocumentHierarchyInference": true,
+        "crossEditionInference": true,
+        "companionMidiSha256": "631bcd481e09c1493191959ec3264c3513c4a93177ffc6d833dea4f4952b659b",
+        "fixedSpecsSha256": "c13c6e422e41ef90be646deaf27ee71e28a5b07cad703966405db7da2e2347a7",
+        "sourceCorrespondenceReceiptSha256": "ccece65fc8e4466ade7523c84087c24a62c6e75e4d2c817532c965b099f8f73b",
+        "completePrintedOpening": [
+          {
+            "start": 0,
+            "midi": 71,
+            "dur": 2
+          },
+          {
+            "start": 3,
+            "midi": 71,
+            "dur": 1.5
+          },
+          {
+            "start": 4.5,
+            "midi": 67,
+            "dur": 0.5
+          },
+          {
+            "start": 5,
+            "midi": 67,
+            "dur": 0.5
+          },
+          {
+            "start": 5.5,
+            "midi": 67,
+            "dur": 0.5
+          },
+          {
+            "start": 5,
+            "midi": 59,
+            "dur": 1
+          },
+          {
+            "start": 5,
+            "midi": 47,
+            "dur": 1
+          },
+          {
+            "start": 5,
+            "midi": 57,
+            "dur": 1
+          },
+          {
+            "start": 4.5,
+            "midi": 71,
+            "dur": 0.5
+          },
+          {
+            "start": 5,
+            "midi": 71,
+            "dur": 0.5
+          },
+          {
+            "start": 5.5,
+            "midi": 71,
+            "dur": 0.5
+          }
+        ],
+        "sourceTrackScope": "all",
+        "openingDescription": "complete firsttwo3/4 bars, all11 attacks across sopNotes, rhOne, rhTwo, lhOne and lhTwo, with first-bar vocal/LH rests and RHhalf-note/rest retained; absolute sounding registers and every nominal duration fixed, fermatas nondurational; no grace/tie/tuplet in selectedtwo-bar opening; no convenient later vocal-only window",
+        "distinctProducerAttacks": 549,
+        "distinctSourceAttacksUsed": 549,
+        "clockMatchRatio": 1,
+        "maximumOnsetErrorBeats": 0.0,
+        "firstPitchedBeat": 0.0,
+        "sourcePitchedEndBeat": 126.0,
+        "producerLastNoteEndBeat": 126,
+        "coverage": "named parent-collection division on encoded traversal; internal form, leading silence and padded tail remain unresolved"
+      }
     }
   ]
 }
