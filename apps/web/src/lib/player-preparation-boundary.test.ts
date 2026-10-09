@@ -1,0 +1,12 @@
+import { vi,it,expect } from 'vitest';
+import { mkdtempSync,writeFileSync,rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+vi.mock('node:child_process',()=>({execFile:vi.fn((_python,_args,_options,callback)=>callback(Object.assign(new Error('timed out'),{killed:true,code:'ETIMEDOUT'}),'',''))}));
+import { execFile } from 'node:child_process';
+import { preparePlayerMusicReview } from './player-music-review.js';
+import { paired } from './player-review-fixtures.js';
+function localCapture(dir:string){const c=paired();for(const [name,pin] of Object.entries({input:c.input,output:c.output,forward:c.forwardOutput})){const w=pin.encoding==='pcm-f32le'?4:2,b=Buffer.alloc(44+pin.frames*pin.channels*w);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(w===4?3:1,20);b.writeUInt16LE(pin.channels,22);b.writeUInt32LE(44100,24);b.writeUInt32LE(44100*pin.channels*w,28);b.writeUInt16LE(pin.channels*w,32);b.writeUInt16LE(w*8,34);b.write('data',36);b.writeUInt32LE(b.length-44,40);pin.path=join(dir,name+'.wav');pin.sha256=createHash('sha256').update(b).digest('hex');writeFileSync(pin.path,b);}return c;}
+it('analyzer_timeout_preserves_partial_report with 120s and bounded output',async()=>{const dir=mkdtempSync(join(tmpdir(),'keyspilli-timeout-test-'));try{const c=localCapture(dir),python=join(dir,'python'),bank=join(dir,'bank.json');writeFileSync(python,'fixture');writeFileSync(bank,'{}');const r=await preparePlayerMusicReview(c,{execute:true,python,referenceManifestPath:bank,dictionaryDir:dir},join(dir,'review'));expect(r.status).toBe('failed');expect(r.limitations[0]).toMatch(/timed out/);expect(r.historyPitchCandidates).toBeNull();expect(vi.mocked(execFile).mock.calls.at(-1)![2]).toMatchObject({timeout:120000,maxBuffer:1048576,killSignal:'SIGKILL'});}finally{rmSync(dir,{recursive:true,force:true});}});
+it('missing_backend_yields_unavailable_channel and changed_input_refuses',async()=>{const dir=mkdtempSync(join(tmpdir(),'keyspilli-missing-test-'));try{const c=localCapture(dir),options={execute:true,python:join(dir,'absent'),referenceManifestPath:join(dir,'bank'),dictionaryDir:dir};expect((await preparePlayerMusicReview(c,options,join(dir,'review'))).status).toBe('unavailable');writeFileSync(c.input.path,'changed');await expect(preparePlayerMusicReview(c,options,join(dir,'changed'))).rejects.toThrow(/hash|bounded/);}finally{rmSync(dir,{recursive:true,force:true});}});

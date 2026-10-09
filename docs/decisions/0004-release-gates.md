@@ -84,8 +84,15 @@ Rebuild is idempotent, DB/API/player behavior is correct, and deployment evidenc
 - Deployment was performed with immutable image tags
 - Rollback procedure has been tested
 
+Pre-promotion runtime evidence is explicitly scoped as
+`isolated-candidate-rehearsal`: it may prove an owned isolated restore/canary,
+but it cannot be reported as production deployment. Live production observations
+are recorded only after cutover in a separate `production` receipt. The release
+guard requires the pre-promotion scope in the detached manifest.
+
 ## Consequences
 
 - Release checklists must explicitly reference which gate(s) were passed
 - CI handles structural gate automatically; source, musical, and runtime gates require human verification
 - A release candidate must not be promoted to production without all four gates passing
+- CI validation and production promotion are separate; only an explicit reviewed main dispatch may publish or deploy

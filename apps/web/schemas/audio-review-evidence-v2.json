@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "required": ["schemaVersion", "comparisonStatus", "attachments", "summary", "uncertainty", "limitations", "findings"],
+  "properties": {
+    "schemaVersion": {"type": "integer", "enum": [2]},
+    "comparisonStatus": {"type": "string", "enum": ["compared", "abstained"]},
+    "attachments": {
+      "type": "object", "required": ["reference", "candidate"],
+      "properties": {
+        "reference": {"type": "object", "required": ["content", "evidence"], "properties": {"content": {"type": "string", "enum": ["music", "speech", "silence", "unavailable", "uncertain"]}, "evidence": {"type": "string"}}},
+        "candidate": {"type": "object", "required": ["content", "evidence"], "properties": {"content": {"type": "string", "enum": ["music", "speech", "silence", "unavailable", "uncertain"]}, "evidence": {"type": "string"}}}
+      }
+    },
+    "summary": {"type": "string"},
+    "uncertainty": {"type": "string", "enum": ["low", "medium", "high"]},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "findings": {
+      "type": "array", "items": {
+        "type": "object", "required": ["attachment", "startSeconds", "endSeconds", "area", "classification", "severity", "uncertainty", "evidence", "proposedRepair"],
+        "properties": {
+          "attachment": {"type": "string", "enum": ["reference", "candidate"]},
+          "startSeconds": {"type": "number"}, "endSeconds": {"type": "number"},
+          "area": {"type": "string", "enum": ["melody", "harmony", "timing", "balance", "phrasing", "articulation", "render", "other"]},
+          "classification": {"type": "string", "enum": ["defect", "uncertain", "observation"]},
+          "severity": {"type": "string", "enum": ["low", "moderate", "high"]},
+          "uncertainty": {"type": "string", "enum": ["low", "medium", "high"]},
+          "evidence": {"type": "string"}, "proposedRepair": {"type": "string"}
+        }
+      }
+    }
+  }
+}

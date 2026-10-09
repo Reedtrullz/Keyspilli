@@ -5,7 +5,18 @@
     "scripts/prepare-catalog-chords.mts",
     "scripts/song-bundle.mts",
     "scripts/render-prepared-chords.mts",
-    "scripts/review-song-audio.mts"
+    "scripts/review-song-audio.mts",
+    "scripts/review-score.mts",
+    "scripts/create-score-review-evidence.mts",
+    "scripts/create-audio-review-demo.mts",
+    "scripts/report-local-audio-evidence.mts",
+    "scripts/build-music-review-corpus.mts",
+    "scripts/benchmark-music-review.mts",
+    "scripts/report-music-review.mts",
+    "scripts/preview-music-repair.mts",
+    "scripts/prepare-music-model-experiments.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

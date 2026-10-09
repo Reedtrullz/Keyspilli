@@ -87,3 +87,19 @@ The draft PR's shared Chords phrasing candidate skips some bass-arpeggio full-ch
 After listening to this local candidate, the owner said **“Clocks seems great now!”** and that **“Have you ever seen the rain too sounds better and more controlled.”** Clocks' `acceptedBackingSha256` pins the heard phrasing at `1e6d1337`, with its chart and source notes unchanged. The owner subsequently said **“Let it Be really sounds great now!”**, so its accepted digest now pins the same local phrasing candidate. Skyfall, My Way, and Imagine still pin their earlier accepted backings. Rain has positive directional feedback, but was not explicitly added to the golden corpus. These comments do not establish matched full-song or independent keyboard acceptance.
 
 The Kings & Queens bass-arpeggio filter removed full-chord hits at beats 50.25, 97.875, and 161.375 (about 0:23, 0:45, and 1:15). Later chart edits removed the weak C♯m re-strike near 0:20 and moved two A attacks onto the preceding E–A–E source figure near 0:47 and 1:17. The current replay has 183 strikes. The owner hears some improvement but does not consider this candidate ready for the golden corpus.
+
+## Optional local evidence report
+
+The [local audio evidence command](ops/local-audio-evidence.md) joins pinned authored render events, recomputed PCM waveform estimates and an optional saved single-clip Anti observation. It makes zero provider calls and preserves unknown acoustic pitch, input disagreements and unestablished musical acceptance. Existing pairwise review profiles and defaults remain unchanged. Use it to inspect evidence before considering source-supported repairs.
+
+## 2026-10-06 — Next-phase acceptance packet
+
+The successor qualification screen is frozen and scored under schema3. It failed the quiet/refusal admission gates despite complete resource coverage, so no production or musical admission follows from it. Source validation now requires explicit timing and a byte/occurrence/role-bound receipt; unknown authorities remain unknown.
+
+The new acceptance pack contains ten publisher-pinned pieces, twenty Original/Chords controls, two retained silent-playback diagnostics and blank owner/source/keyboard fields. It has no autoplay, no provider calls and no pre-filled human judgment. Existing r09/r29/r33 and golden-corpus comments remain separate historical evidence; they do not approve this new packet.
+
+## 2026-10-07 — Candidate acceptance rehearsal
+
+The fresh controlled qualification remains failed: core 32/32, quiet 7/16, repeat 12/12, refusal 8/12, with `productionAdmission=false`. The ten-piece/20-observation acceptance pack remains blank and has made zero provider calls.
+
+An isolated `linux/amd64` candidate rehearsal restored the fresh VPS backup byte-for-byte with `directAudioAmt=false`. Health, 2,730-song readiness, Player HTML, MIDI/MusicXML export and unauthenticated mutation refusal passed. PDF export and worker shutdown failed under amd64 emulation, so the runtime gate is failed and no production promotion is authorized. Evidence is in `output/music-review/r2-next-20261007/`.

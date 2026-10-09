@@ -1,0 +1,7 @@
+import {it,expect} from 'vitest';
+import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join,resolve} from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {receipt} from './player-review-fixtures.js';
+it('refuses an unbound qualification before opening evaluator answers',()=>{const root=mkdtempSync(join(tmpdir(),'keyspilli-freeze-'));try{writeFileSync(join(root,'results.json'),JSON.stringify([{id:'case',receipt:receipt()}]));writeFileSync(join(root,'resources.json'),JSON.stringify({schemaVersion:1,kind:'keyspilli-player-batch-resources',cases:[]}));writeFileSync(join(root,'freeze.json'),JSON.stringify({schemaVersion:3,kind:'controlled-player-input-qualification',fingerprints:{'services/transcribe/src/player_history_search.py':'a'.repeat(64)},analyzerSha256:'d'.repeat(64),referenceBankSha256:'e'.repeat(64)}));const result=spawnSync(process.execPath,['--import','tsx','apps/web/scripts/evaluate-player-input-qualification.mts','--freeze',join(root,'freeze.json'),'--receipts',join(root,'results.json'),'--resources',join(root,'resources.json'),'--captures',root,'--answers',join(root,'DO_NOT_OPEN.json'),'--output',join(root,'out')],{cwd:resolve('../..'),encoding:'utf8'});expect(result.status).not.toBe(0);expect(result.stderr).toContain('qualification source inventory changed');expect(result.stderr).not.toContain('DO_NOT_OPEN');}finally{rmSync(root,{recursive:true,force:true});}});

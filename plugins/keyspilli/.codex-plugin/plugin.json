@@ -1,0 +1,22 @@
+{
+  "name": "keyspilli",
+  "version": "0.1.0+codex.20261006musicevidence",
+  "description": "Prepare playable Original and Chords previews, then publish approved songs to Keyspilli.",
+  "author": {
+    "name": "Reidar"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Keyspilli",
+    "shortDescription": "Turn a song or link into Original and Chords.",
+    "longDescription": "Prepare songs with source evidence, playable previews and agent-owned verification. Approve a prepared song in chat to start publication and live readback. Requires a compatible Keyspilli checkout and authorized target access.",
+    "developerName": "Reidar",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Prepare this song as Original and backing-only Chords.",
+      "Prepare missing Chords for my Keyspilli catalog.",
+      "Publish the song I approved to my Keyspilli catalog."
+    ]
+  }
+}
