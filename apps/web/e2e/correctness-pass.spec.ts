@@ -26,16 +26,16 @@ test("minor-key filters survive reload and reach the exact catalog query", async
     expect(metadata.ok(), await metadata.text()).toBe(true);
     await page.goto("/songs?key=Cm");
     await expect(page.getByRole("combobox", { name: "Key", exact: true })).toHaveValue("Cm");
-    await expect(page.getByRole("status")).toHaveText("1 of 1 songs");
+    await expect(page.locator(".library-toolbar").getByRole("status")).toHaveText("1 of 1 songs");
     await expect(page.getByRole("link", { name: "Minor key fixture", exact: true })).toBeVisible();
     await page.reload();
     await expect(page).toHaveURL(/key=Cm/);
-    await expect(page.getByRole("status")).toHaveText("1 of 1 songs");
+    await expect(page.locator(".library-toolbar").getByRole("status")).toHaveText("1 of 1 songs");
     await page.getByRole("combobox", { name: "Key", exact: true }).selectOption("C");
     await expect(page.getByRole("link", { name: "Minor key fixture", exact: true })).toHaveCount(0);
     await page.goBack();
     await expect(page.getByRole("combobox", { name: "Key", exact: true })).toHaveValue("Cm");
-    await expect(page.getByRole("status")).toHaveText("1 of 1 songs");
+    await expect(page.locator(".library-toolbar").getByRole("status")).toHaveText("1 of 1 songs");
   } finally {
     expect((await request.delete(`/api/songs/${receipt.baseId}`, { headers: token })).ok()).toBe(true);
   }
@@ -50,7 +50,7 @@ test("returning from a reloaded player restores the library filters, page and sc
   const id: string = receipt.songIds.find((value: string) => value.endsWith("-a"));
   try {
     await page.goto("/songs?q=roadmap&key=C&sort=title&page=2");
-    await expect(page.getByRole("status")).toHaveText("60 of 251 songs");
+    await expect(page.locator(".library-toolbar").getByRole("status")).toHaveText("60 of 251 songs");
     const lesson = page.locator(`.library-results [role="group"] a[href="/player/${id}"]`);
     await lesson.scrollIntoViewIfNeeded();
     const scroll = await page.evaluate(() => window.scrollY);
@@ -63,7 +63,7 @@ test("returning from a reloaded player restores the library filters, page and sc
     await page.reload();
     await page.getByRole("link", { name: "Return to library", exact: true }).click();
     await expect(page).toHaveURL(/\/songs\?/);
-    await expect(page.getByRole("status")).toHaveText("60 of 251 songs");
+    await expect(page.locator(".library-toolbar").getByRole("status")).toHaveText("60 of 251 songs");
     await expect(page.getByLabel("Search songs")).toHaveValue("roadmap");
     await expect(page.getByLabel("Key", { exact: true })).toHaveValue("C");
     await expect(page.getByLabel("Sort", { exact: true })).toHaveValue("title");
@@ -183,7 +183,7 @@ test.describe("linked version correctness", () => {
 
   test("version and sheet switches retain library return context and name the selected saved export", async ({ page }, testInfo) => {
     await page.goto("/songs?q=Correctness&sort=title");
-    await expect(page.getByRole("status")).toHaveText("3 of 3 songs");
+    await expect(page.locator(".library-toolbar").getByRole("status")).toHaveText("3 of 3 songs");
     await page.locator('.library-results [role="group"] a[href="/player/correctness-original-a"]').click();
     await expect(page.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
     await page.getByRole("combobox", { name: "Version", exact: true }).selectOption({ label: "B" });
@@ -201,7 +201,8 @@ test.describe("linked version correctness", () => {
     await download.getByRole("button", { name: "Done", exact: true }).click();
     await expect(page.getByRole("link", { name: "Return to library", exact: true })).toHaveAttribute("href", "/songs?q=Correctness&sort=title");
     await page.getByRole("link", { name: "Return to library", exact: true }).click();
-    await expect(page.getByRole("status")).toHaveText("3 of 3 songs");
+    await expect(page).toHaveURL(/\/songs\?q=Correctness&sort=title$/);
+    await expect(page.locator(".library-toolbar").getByRole("status")).toHaveText("3 of 3 songs");
     await expect(page.getByLabel("Search songs")).toHaveValue("Correctness");
     await page.goto("/player/correctness-c-a/sheet");
     await expect(page.getByRole("link", { name: "Return to library", exact: true })).toHaveAttribute("href", "/songs");
