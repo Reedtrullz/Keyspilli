@@ -1,0 +1,82 @@
+name: Bounded selector maintenance
+on:
+  push:
+    branches: [codex/selector-maintenance]
+permissions:
+  contents: read
+concurrency:
+  group: keyspilli-selector-maintenance
+  cancel-in-progress: false
+jobs:
+  checked-web-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate exact bounded maintenance scope
+        run: |
+          python3 deploy/test-selector-maintenance.py
+          python3 deploy/check-selector-maintenance.py > maintenance-scope.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.22.3
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Existing browser regression suites
+        working-directory: apps/web
+        run: |
+          npx --no-install playwright install --with-deps chromium webkit
+          node ../../scripts/verify-e2e-routing.mjs
+          npx playwright test
+          npx playwright test --config=playwright.scratch.config.ts
+          npx playwright test --config=playwright.player-ui.config.ts
+          npx playwright test --config=playwright.roadmap.config.ts
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish checked web image only
+        id: web
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: VERSION=${{ github.sha }}
+          tags: ghcr.io/reedtrullz/keyspilli:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=min,timeout=120s,ignore-error=true
+      - name: Attest immutable image and size
+        env:
+          IMAGE_DIGEST: ${{ steps.web.outputs.digest }}
+        run: |
+          docker pull "ghcr.io/reedtrullz/keyspilli@$IMAGE_DIGEST"
+          python3 - <<'PY'
+          import json, os, subprocess
+          ref = 'ghcr.io/reedtrullz/keyspilli@' + os.environ['IMAGE_DIGEST']
+          size = int(subprocess.check_output(['docker','image','inspect','--format','{{.Size}}',ref]))
+          assert 0 < size <= 2*1024**3, 'Web image exceeds admission ceiling'
+          receipt = {'commit':os.environ['GITHUB_SHA'],'image':ref,'bytes':size,'operation':'web_only_preserve_catalog'}
+          with open('maintenance-image.json','w') as out: json.dump(receipt,out,indent=2)
+          print(json.dumps(receipt))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: selector-maintenance-${{ github.sha }}
+          path: |
+            maintenance-scope.json
+            maintenance-image.json
+            deploy/selector-maintenance.json

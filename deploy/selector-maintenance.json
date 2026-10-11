@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "keyspilli-player-ui-maintenance",
+  "baselineCommit": "678a6068b14490598b9f3e50dd7b3849591c5b49",
+  "operation": "web_only_preserve_catalog",
+  "musicalQualification": "unchanged; no new acceptance claimed",
+  "ownerAuthorization": "Resolve the release-manifest blocker and deploy the selector. Keep Original, B, C and the failed-call evidence untouched, then verify switching in the live player.",
+  "mergedFeature": "df0402213787ab9dc2c48fab0c5e0b0528485c7a",
+  "applicationFiles": {
+    "apps/web/src/components/player/Player.tsx": "1fafb043e9b31618351a868c83fe7b823ff8cff0b9fe9080beac4b7ced8e0fd8",
+    "apps/web/src/components/player/VersionSelector.tsx": "6f1aa14e36b998fd9175a40e946b2a2fb4918fb7daabb8ccce58415e1eca91b6",
+    "apps/web/src/lib/catalog-api.ts": "e7d1c39d5b3cd9e2d774599799293e600f72f372d142808d7073db0e7d5a7780",
+    "apps/web/src/lib/player-versions.test.ts": "90d24625e018fb5df0ffa32f94491c72b549ba5ecf4af0cddf8019a268ec7e8d",
+    "apps/web/src/lib/player-versions.ts": "19a8e78c9fd1aaa9086a5c82a4f53edf8fbaf1c8850cc00008f0ff72046a7fd5"
+  }
+}
