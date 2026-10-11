@@ -50,6 +50,7 @@ import {
   resolveSourcePedalNotes,
   sourceNoteIds,
   validateSparseBackingTiming,
+  validatePlaybackData,
   saveJson,
   saveAccompanimentStyleIntent,
   saveSettings,
@@ -78,6 +79,8 @@ import {
   type Section as SongSection,
 } from "@keyspilli/player-core";
 import { SourceArrangementNotice } from "./SourceArrangementNotice";
+import { VersionSelector } from "./VersionSelector";
+import type { PlayerVersion } from "../../lib/player-versions";
 import type { SourceArrangement } from "@keyspilli/catalog/src/source-arrangement.js";
 import type { SongRow } from "@keyspilli/catalog";
 import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
@@ -122,6 +125,7 @@ import {
 } from "./chord-sources";
 
 export interface PlayerDetail {
+  playerVersions?: PlayerVersion[];
   publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
@@ -134,6 +138,7 @@ export interface PlayerDetail {
 
 /** Metadata-only payload used while a direct sheet route loads its player data. */
 export interface PlayerShell {
+  playerVersions?: PlayerVersion[];
   publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
@@ -141,6 +146,13 @@ export interface PlayerShell {
 }
 
 export type PlayerInitial = PlayerDetail | PlayerShell;
+
+interface VersionPosition { beat: number; settings: PlayerSettings }
+interface VersionControls {
+  pending: boolean;
+  resume?: VersionPosition;
+  switchVersion: (id: string, position: VersionPosition) => void;
+}
 
 const MODES: { id: ViewMode; label: string; hint: string }[] = [
   { id: "falling", label: "Fall Down", hint: "Notes fall onto the keyboard" },
@@ -308,7 +320,7 @@ function melodyArrangementRequestKey(
   });
 }
 
-function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice"; sheetPosition?: SheetReaderPosition }) {
+function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice"; sheetPosition?: SheetReaderPosition; versionControls?: VersionControls }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => ({
     ...DEFAULT_SETTINGS,
     ...(mode ? { mode } : {}),
@@ -325,6 +337,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   const [playing, setPlaying] = useState(false);
   const timeRef = useRef(time);
   const playingRef = useRef(playing);
+  const versionPendingRef = useRef(false);
+  versionPendingRef.current = versionControls?.pending ?? false;
   // Client-only preferences: initialize false for SSR, then sync from
   // localStorage after mount. Avoids hydration mismatch on class names.
   const [sectionsCollapsed, setSectionsCollapsed] = useState(false);
@@ -336,11 +350,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     setFullWidth(loadJson("keyspilli.fullWidth", false));
   }, []);
   useEffect(() => {
-    const s = loadSettings();
+    const s = versionControls?.resume ? { ...versionControls.resume.settings } : loadSettings();
     if (s.backgroundMode === "chord" && initial.chordUnavailableReason) s.backgroundMode = "piano";
     if (s.backgroundMode === "chord" && sourceBackingNotes) s.accompanimentStyle = "bass-chords";
     // Per-song practice settings override global defaults for this song.
-    const songPrefs = loadSongPrefs(initial.song.id);
+    const songPrefs = versionControls?.resume ? {} : loadSongPrefs(initial.song.id);
     if (songPrefs.speed !== undefined) s.speed = songPrefs.speed;
     if (songPrefs.transpose !== undefined) s.transpose = songPrefs.transpose;
     if (songPrefs.mode !== undefined) s.mode = songPrefs.mode;
@@ -348,7 +362,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
     if (mode) s.mode = mode;
     setSettings(s);
     setSettingsRestored(true);
-  }, [initial.chordData, initial.song.id, mode, sourceBackingNotes]);
+  }, [initial.chordData, initial.song.id, mode, sourceBackingNotes, versionControls?.resume]);
   useEffect(() => {
     const syncTheme = () => setSettings(current => ({ ...current, stageTheme: document.documentElement.dataset.theme === "charcoal" ? "charcoal" : "light" }));
     window.addEventListener(APP_THEME_EVENT, syncTheme);
@@ -1071,6 +1085,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
       if (previous.playing) engine.start();
       setTime(engine.time);
       setPlaying(engine.playing);
+    } else if (versionControls?.resume) {
+      engine.seek(versionControls.resume.beat * secPerBeat(activeData.tempoBpm, settings.speed));
+      setTime(engine.time);
     }
     return () => {
       audioSwapStateRef.current = { time: engine.time, playing: engine.playing };
@@ -1149,7 +1166,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }, [playing]);
 
   const startPlayback = useCallback(() => {
-    if (!engineRef.current || navigationPendingRef.current || auxiliaryRef.current || chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
+    if (!engineRef.current || versionPendingRef.current || navigationPendingRef.current || auxiliaryRef.current || chordPracticeActive || showPracticeSetupRef.current || countInRef.current !== null || (gradingRef.current && practiceSetupRef.current.wait)) return;
     cancelSoundPreview();
     heldInputRef.current?.releaseAll();
     engineRef.current?.start();
@@ -1315,7 +1332,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   }, [openTool, showPracticeSetup, settings.soundSource, settings.organStyle, settings.organRegistration, grading]);
 
   function handleNote(midi: number, on: boolean, source: "keyboard" | "midi" = "keyboard", identity = `${source}:${midi}`, event?: InputEventMetadata) {
-    if (on && navigationPendingRef.current) return;
+    if (on && (versionPendingRef.current || navigationPendingRef.current)) return;
     if(auxiliaryRef.current==="rhythm"||takeInputRef.current?.note(midi,on,source,identity,event))return;
     const heldChord=chordPracticeRef.current instanceof HeldChordGrader?chordPracticeRef.current:null;
     if (!on) {
@@ -2187,7 +2204,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
   );
 
   return (
-    <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
+    <div inert={versionControls?.pending} aria-busy={versionControls?.pending} className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
       <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
@@ -2196,6 +2213,12 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition }: { initial: Pl
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
           <p className="player-context" aria-label="Practice key and tempo">{contextLabel}</p>
           <SourceArrangementNotice source={initial.sourceArrangement} />
+          <VersionSelector versions={initial.playerVersions} selected={initial.song.id} disabled={!engineReady || versionControls?.pending || grading || countIn !== null || showPracticeSetup || chordPracticeActive || auxiliary !== null} onChange={id => {
+            if (!versionControls || id === initial.song.id) return;
+            stopPlayback();
+            keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
+            versionControls.switchVersion(id, { beat: (engineRef.current?.time ?? time) / secPerBeat(activeData.tempoBpm, settings.speed), settings: { ...settings } });
+          }} />
         </div>
         <div className={`player-song-metadata ml-auto flex min-w-0 max-w-full flex-wrap items-start justify-end gap-2 text-xs ${settings.backgroundMode === "chord" ? "player-song-metadata--mobile" : ""}`}>
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{settings.backgroundMode === "chord" ? "Song-wide backing" : levelLabel(initial.song.difficulty)}</span>
@@ -2745,7 +2768,7 @@ function isPlayerDetail(initial: PlayerInitial): initial is PlayerDetail {
  * The sheet renderer only needs the song id, while practice controls and the
  * other views explicitly request the complete detail JSON from the API.
  */
-function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMode | null }) {
+function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerShell; mode: ViewMode | null; versionControls?: VersionControls }) {
   const [detail, setDetail] = useState<PlayerDetail | null>(null);
   const [requestedMode, setRequestedMode] = useState<ViewMode>(mode ?? "sheet");
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -2925,7 +2948,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
   const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
 
   const shell = (
-    <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
+    <div inert={versionControls?.pending} aria-busy={versionControls?.pending} className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
         <div className="player-song-identity">
@@ -2933,6 +2956,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
           <p className="player-context">{practiceContext(initial.song.key, initial.song.tempo, { transpose: savedTranspose, speed: savedSpeed }, initial.sourceArrangement?.sourceKind === "tutorial-preview")}</p>
           <SourceArrangementNotice source={initial.sourceArrangement} />
+          <VersionSelector versions={initial.playerVersions} selected={initial.song.id} disabled={loading || versionControls?.pending} onChange={id => versionControls?.switchVersion(id, { beat: 0, settings: { ...loadSettings(), mode: requestedMode, speed: savedSpeed, transpose: savedTranspose } })} />
         </div>
         <div className="player-song-metadata ml-auto flex gap-2 text-xs">
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{levelLabel(initial.song.difficulty)}</span>
@@ -3099,7 +3123,7 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
           </div>
         )}
         <div className="player-shell-swap-enter">
-          <FullPlayer initial={detail} mode={requestedMode} sheetPosition={sheetPositionRef.current} focusTarget={detailSwitch.previous === false ? "practice" : undefined} />
+          <FullPlayer initial={detail} mode={requestedMode} sheetPosition={sheetPositionRef.current} focusTarget={detailSwitch.previous === false ? "practice" : undefined} versionControls={versionControls} />
         </div>
       </div>
     );
@@ -3108,7 +3132,46 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
 }
 
 export function Player({ initial, mode }: { initial: PlayerInitial; mode: ViewMode | null }) {
-  return isPlayerDetail(initial)
-    ? <FullPlayer initial={initial} mode={mode} />
-    : <PlayerShellView key={`${initial.song.id}:${mode ?? "sheet"}`} initial={initial} mode={mode} />;
+  const [active, setActive] = useState(initial);
+  const [resume, setResume] = useState<VersionPosition>();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const requestRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    setActive(initial); setResume(undefined); setPending(false); setError("");
+    return () => requestRef.current?.abort();
+  }, [initial]);
+
+  async function switchVersion(id: string, position: VersionPosition) {
+    if (requestRef.current || id === active.song.id || !active.playerVersions?.some(version => version.id === id)) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
+    setPending(true); setError("");
+    try {
+      const response = await fetch(`/api/songs/${encodeURIComponent(id)}`, { signal: controller.signal, cache: "no-store", headers: { Accept: "application/json" } });
+      const value = await response.json() as PlayerDetail;
+      if (controller.signal.aborted) return;
+      if (!response.ok || value?.song?.id !== id || !value.data || !Number.isFinite(value.data.tempoBpm) || value.data.tempoBpm <= 0 || validatePlaybackData(value.data).length || !Array.isArray(value.data.chords) || !Array.isArray(value.data.timeSig) || !Array.isArray(value.variants) || !value.playerVersions?.some(version => version.id === active.song.id)) throw new Error("This version could not be loaded.");
+      setResume(position); setActive(value);
+      window.history.replaceState(null, "", `/player/${encodeURIComponent(id)}/${position.settings.mode}`);
+    } catch {
+      if (!controller.signal.aborted) setError("Could not load this version. Your current version is still available; try again.");
+    } finally {
+      if (requestRef.current === controller) {
+        requestRef.current = null; setPending(false);
+        window.requestAnimationFrame(() => document.querySelector<HTMLSelectElement>('select[aria-label="Version"]')?.focus());
+      }
+    }
+  }
+
+  const versionControls = { pending, resume, switchVersion };
+  return <>
+    {pending && <p role="status" className="px-4 py-2">Loading version...</p>}
+    {error && <p role="alert" className="px-4 py-2 text-red-700">{error}</p>}
+    {isPlayerDetail(active)
+        ? <FullPlayer key={active.song.id} initial={active} mode={resume?.settings.mode ?? mode} versionControls={versionControls} />
+        : <PlayerShellView key={`${active.song.id}:${mode ?? "sheet"}`} initial={active} mode={mode} versionControls={versionControls} />}
+  </>;
 }
