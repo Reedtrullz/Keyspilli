@@ -10,8 +10,14 @@ it("reconciles displayed and unreachable graded targets across ranges, transpose
  }
  expect(keyboardReachability(notes,{startSec:0,endSec:7},.125,view,KEYBOARD_RANGES[61])).toMatchObject({total:7,visible:5,overflow:2,physicalUnavailable:4,overflowPitches:[12,120]});
  const shifted=notes.filter(n=>n.hand==="R").map(n=>({...n,midi:n.midi+12}));
- expect(keyboardReachability(shifted,{startSec:3,endSec:7},.125,view,null)).toMatchObject({total:2,visible:1,overflow:1,physicalUnavailable:0,overflowPitches:[132]});
+ expect(keyboardReachability(shifted,{startSec:3,endSec:7},.125,view,null)).toMatchObject({total:2,visible:1,overflow:1,physicalUnavailable:null,overflowPitches:[132]});
  expect(keyboardReachability([{...notes[0]!,durSec:.01}],{startSec:0,endSec:1},.125,view,null).total).toBe(0);
+});
+
+it("keeps unknown physical reach separate from a confirmed zero",()=>{
+ const notes=[{midi:60,startSec:0,durSec:1,vel:80,hand:"R" as const}],range={startSec:0,endSec:1},view=KEYBOARD_RANGES[88];
+ expect(keyboardReachability(notes,range,.125,view,null).physicalUnavailable).toBeNull();
+ expect(keyboardReachability(notes,range,.125,view,KEYBOARD_RANGES[61]).physicalUnavailable).toBe(0);
 });
 
 it("validates only bounded owner-confirmed physical ranges",()=>{

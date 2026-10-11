@@ -5,6 +5,7 @@ import { validActiveExportSelection, type ActiveExportSelection } from "./active
 import { dialogMotionClasses, useDialogMotion } from "./player-motion";
 export function DownloadDialog({
   songId,
+  savedVersionLabel,
   publicationRevision,
   hasSheetXml,
   backgroundMode = "piano",
@@ -13,6 +14,7 @@ export function DownloadDialog({
   onClose,
 }: {
   songId: string;
+  savedVersionLabel?: string;
   publicationRevision?: string | null;
   hasSheetXml: boolean;
   backgroundMode?: "piano" | "chord";
@@ -23,7 +25,7 @@ export function DownloadDialog({
   const items = [
     { label: "Simplify PDF", desc: "Color-coded notes + letters, ready to print", href: `/api/song/${songId}/export?type=pdf&layout=simplify`, enabled: true },
     { label: "Sheet Music PDF", desc: "Engraved two-staff score", href: `/api/song/${songId}/export?type=pdf&layout=classic`, enabled: hasSheetXml },
-    { label: "MIDI", desc: "Current difficulty for a DAW or keyboard", href: `/api/song/${songId}/export?type=midi`, enabled: true },
+    { label: "MIDI", desc: "Saved difficulty for a DAW or keyboard", href: `/api/song/${songId}/export?type=midi`, enabled: true },
     { label: "MusicXML", desc: "Edit in MuseScore or any notation app", href: `/api/song/${songId}/export?type=musicxml`, enabled: true },
   ];
 
@@ -77,10 +79,10 @@ export function DownloadDialog({
           <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
         </div>
         <p className="text-xs text-zinc-500 mb-4">Download this arrangement for practice. Source rights still apply.</p>
-        <label className="block mb-4 text-sm">Arrangement<select className="block border rounded min-h-11 px-2" disabled={busy} value={arrangement} onChange={event=>{setArrangement(event.target.value);setError("");}}><option value="stored">Stored Original</option><option value="active" disabled={!activeExport||!publicationRevision||!activeExport.sourceFingerprint}>Active arrangement</option></select></label>
+        <label className="block mb-4 text-sm">Arrangement<select className="block border rounded min-h-11 px-2" disabled={busy} value={arrangement} onChange={event=>{setArrangement(event.target.value);setError("");}}><option value="stored">{savedVersionLabel ? `Saved version ${savedVersionLabel}` : "Saved arrangement"}</option><option value="active" disabled={!activeExport||!publicationRevision||!activeExport.sourceFingerprint}>Current playback arrangement</option></select></label>
         {arrangement === "stored" && backgroundMode === "chord" && (
           <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
-            Downloads use the stored Original arrangement. Chord mode changes playback and guidance only.
+            Downloads use {savedVersionLabel ? `saved version ${savedVersionLabel}` : "the saved arrangement"}. Chord mode changes playback and guidance only.
           </p>
         )}
         {arrangement === "stored" && transpose !== 0 && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">

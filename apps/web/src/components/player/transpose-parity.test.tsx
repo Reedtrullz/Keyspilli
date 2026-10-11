@@ -77,6 +77,17 @@ describe("transpose visual/audio parity", () => {
     expect(render(2)).toContain("original key");
     expect(render(0)).not.toContain("original key");
   });
+
+  it("distinguishes the saved lesson from current playback without calling it Stored Original", () => {
+    const html = renderToStaticMarkup(createElement(DownloadDialog, {
+      songId: "song-b", hasSheetXml: true, backgroundMode: "chord", onClose: () => {},
+    }));
+    expect(html).toContain("Saved arrangement");
+    expect(html).toContain("Current playback arrangement");
+    expect(html).not.toContain("Stored Original");
+    expect(html).toContain("Downloads use the saved arrangement");
+    expect(html).toContain("/api/song/song-b/export?");
+  });
 });
 
 

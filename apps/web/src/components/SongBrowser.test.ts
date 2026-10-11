@@ -12,6 +12,12 @@ it("round-trips bounded library state while preserving unrelated URL parameters"
   expect(readLibraryQuery(new URLSearchParams("page=Infinity&sort=sql&difficulty=legacy&key=wrong&bass=wrong&importMethod=wrong"))).toMatchObject({ page: 1, sort: "popular", difficulty: "", key: "", bass: "", importMethod: "" });
 });
 
+it.each(["Am", "Cm", "F#m", "G#m", "Bbm", "Ebm", "Gb", "Cb"])("preserves the exact catalog key %s through URL state", key => {
+  const query = readLibraryQuery(new URLSearchParams({ key, page: "2" }));
+  expect(query.key).toBe(key);
+  expect(readLibraryQuery(writeLibraryQuery(new URLSearchParams(), query))).toEqual(query);
+});
+
 describe("song experiment labels", () => {
   it("labels duplicate artist/title runs while leaving unique songs unlabeled", () => {
     const labels = experimentLabelsForSongs([

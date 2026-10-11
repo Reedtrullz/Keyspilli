@@ -8,6 +8,8 @@ import {activeExportDigest,activeExportVariant,type ActiveExportSelection} from 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { NavigationFeedback } from "../NavigationFeedback";
+import { LibraryReturnLink } from "./LibraryReturnLink";
+import { transferLibraryReturn } from "../../lib/library-navigation";
 import { microphonePitchEdge } from "./microphone-pitch";
 import {
   AudioEngine,
@@ -1809,7 +1811,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     const recallRange=recall && loadPracticeState().passages.some(p=>p.id===recall.passage.id&&p.target.fingerprint===recall.passage.target.fingerprint&&p.startBeat===recall.passage.startBeat&&p.endBeat===recall.passage.endBeat) && recall.passage.target.fingerprint===practiceTarget?.fingerprint && settings.mode==="beginner" && settings.backgroundMode==="piano" && Math.abs(range.startSec/secPerBeat(activeData.tempoBpm,settings.speed)-recall.passage.startBeat)<1e-6 && Math.abs(range.endSec/secPerBeat(activeData.tempoBpm,settings.speed)-recall.passage.endBeat)<1e-6;
     if(recall && (!recallRange || !recall.demonstrated)){setPracticeError("Demonstrate the exact saved recall passage, then choose Selected loop (once).");return;}
     const reach = practiceKeyboardTarget(setup, range);
-    if ((reach.overflow || reach.physicalUnavailable) && !setup.allowUnsupportedRange) { setPracticeError("Review the targets outside your keyboard range before starting."); return; }
+    if ((reach.overflow || (reach.physicalUnavailable ?? 0)) && !setup.allowUnsupportedRange) { setPracticeError("Review the targets outside your keyboard range before starting."); return; }
     if (setup.input === "microphone") {
       const eligibility = microphoneEligibility(guidanceNotes, range);
       if (!eligibility.eligible) { setPracticeError(eligibility.reason); return; }
@@ -2207,7 +2209,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     <div inert={versionControls?.pending} aria-busy={versionControls?.pending} className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
       <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
+        <LibraryReturnLink songId={initial.song.id} variants={initial.variants} />
         <div className="player-song-identity min-w-0">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
@@ -2736,7 +2738,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         microphoneTarget={setup => { const range = resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, engineRef.current?.time ?? time, duration, activeData.tempoBpm, settings.speed, loop); return range ? microphoneEligibility(guidanceNotes, range) : { eligible: false, reason: "Choose a measured passage." }; }}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
-      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose}
+      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} savedVersionLabel={initial.playerVersions?.find(version => version.id === initial.song.id)?.label} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose}
         activeExport={melodyArrangementRequested&&(melodyArrangementPending||melodyArrangementFailed)?undefined:{selection:activeExportSelection,sourceFingerprint:melodySourceFingerprint,
           digest:()=>activeExportDigest(activeExportVariant(activeData,{...accompaniment,displayChords},activeExportSelection))}} onClose={() => {
         setShowDownload(false);
@@ -2950,7 +2952,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
   const shell = (
     <div inert={versionControls?.pending} aria-busy={versionControls?.pending} className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
-        <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
+        <LibraryReturnLink songId={initial.song.id} variants={initial.variants} />
         <div className="player-song-identity">
           <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
           <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
@@ -3101,7 +3103,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
         </section>
       )}
 
-      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} hasSheetXml={initial.song.hasSheetXml === 1} transpose={savedTranspose} onClose={() => {
+      {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} savedVersionLabel={initial.playerVersions?.find(version => version.id === initial.song.id)?.label} hasSheetXml={initial.song.hasSheetXml === 1} transpose={savedTranspose} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
       }} />}
@@ -3141,7 +3143,7 @@ export function Player({ initial, mode }: { initial: PlayerInitial; mode: ViewMo
     requestRef.current?.abort();
     requestRef.current = null;
     setActive(initial); setResume(undefined); setPending(false); setError("");
-    return () => requestRef.current?.abort();
+    return () => { requestRef.current?.abort(); requestRef.current = null; };
   }, [initial]);
 
   async function switchVersion(id: string, position: VersionPosition) {
@@ -3149,20 +3151,31 @@ export function Player({ initial, mode }: { initial: PlayerInitial; mode: ViewMo
     const controller = new AbortController();
     requestRef.current = controller;
     setPending(true); setError("");
+    const finish = () => {
+      if (requestRef.current !== controller) return;
+      requestRef.current = null; setPending(false);
+      window.requestAnimationFrame(() => document.querySelector<HTMLSelectElement>('select[aria-label="Version"]')?.focus());
+    };
+    const timer = window.setTimeout(() => {
+      if (requestRef.current !== controller) return;
+      controller.abort();
+      setError("Loading this version timed out. Your current version is still available; try again.");
+      finish();
+    }, 15_000);
+    controller.signal.addEventListener("abort", () => window.clearTimeout(timer), { once: true });
     try {
       const response = await fetch(`/api/songs/${encodeURIComponent(id)}`, { signal: controller.signal, cache: "no-store", headers: { Accept: "application/json" } });
       const value = await response.json() as PlayerDetail;
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || requestRef.current !== controller) return;
       if (!response.ok || value?.song?.id !== id || !value.data || !Number.isFinite(value.data.tempoBpm) || value.data.tempoBpm <= 0 || validatePlaybackData(value.data).length || !Array.isArray(value.data.chords) || !Array.isArray(value.data.timeSig) || !Array.isArray(value.variants) || !value.playerVersions?.some(version => version.id === active.song.id)) throw new Error("This version could not be loaded.");
+      transferLibraryReturn(active.song.id, id);
       setResume(position); setActive(value);
       window.history.replaceState(null, "", `/player/${encodeURIComponent(id)}/${position.settings.mode}`);
     } catch {
       if (!controller.signal.aborted) setError("Could not load this version. Your current version is still available; try again.");
     } finally {
-      if (requestRef.current === controller) {
-        requestRef.current = null; setPending(false);
-        window.requestAnimationFrame(() => document.querySelector<HTMLSelectElement>('select[aria-label="Version"]')?.focus());
-      }
+      window.clearTimeout(timer);
+      finish();
     }
   }
 

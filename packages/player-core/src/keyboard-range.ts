@@ -13,5 +13,5 @@ export function gradeableNotes(notes:readonly TimedNote[],range:LoopRegion|null|
 }
 export function keyboardReachability(notes:readonly TimedNote[],range:LoopRegion,minDurSec:number,view:KeyboardRange,physical:KeyboardRange|null) {
  const targets=gradeableNotes(notes,range,minDurSec),outside=targets.filter(note=>note.midi<view.lowMidi||note.midi>view.highMidi);
- return {total:targets.length,visible:targets.length-outside.length,overflow:outside.length,overflowPitches:[...new Set(outside.map(note=>note.midi))].sort((a,b)=>a-b),physicalUnavailable:physical?targets.filter(note=>note.midi<physical.lowMidi||note.midi>physical.highMidi).length:0};
+ return {total:targets.length,visible:targets.length-outside.length,overflow:outside.length,overflowPitches:[...new Set(outside.map(note=>note.midi))].sort((a,b)=>a-b),physicalUnavailable:physical?targets.filter(note=>note.midi<physical.lowMidi||note.midi>physical.highMidi).length:null};
 }

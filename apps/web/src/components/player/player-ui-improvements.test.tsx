@@ -1,7 +1,7 @@
 import React, { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
-import { DEFAULT_SETTINGS, type SongData } from "@keyspilli/player-core";
+import { DEFAULT_SETTINGS, keyboardReachability, KEYBOARD_RANGES, type SongData } from "@keyspilli/player-core";
 import { BeginnerView } from "./BeginnerView";
 import { LeadSheetView } from "./LeadSheetView";
 import { PracticeSetupDialog } from "./PracticeSetupDialog";
@@ -57,6 +57,22 @@ it("shows the resolved setup context and input readiness before Start", () => {
   }));
   expect(html).toContain("Bars 2–5");
   expect(html).toContain("Connect a MIDI keyboard");
+});
+
+it.each(["keyboard", "midi"] as const)("does not claim a confirmed physical range for %s with unknown hardware", input => {
+  vi.stubGlobal("React", React);
+  const html = renderToStaticMarkup(createElement(PracticeSetupDialog, {
+    keyboardTarget: () => keyboardReachability([], { startSec: 0, endSec: 1 }, .125, KEYBOARD_RANGES[88], null),
+    microphoneTarget: () => ({ eligible: false, reason: "No microphone target" }), micSignal: "Unknown",
+    initialSetup: { input, wait: false, scope: "bars", countInBeats: 0 },
+    hasLoop: false, midiConnected: true, micReady: false, micPending: false, micError: "", error: "",
+    onEnableMic: () => {}, onInputChange: () => {}, onStart: () => {}, onCancel: () => {},
+  }));
+  const summary = html.match(/<p aria-label="Practice target reachability"[^>]*>(.*?)<\/p>/)?.[1];
+  expect(summary).not.toContain("outside your confirmed physical range");
+  if (input === "midi") expect(summary).toContain("Physical keyboard range not confirmed");
+  else expect(summary).not.toContain("physical");
+  expect(html).not.toMatch(/<button[^>]*\sdisabled=""[^>]*>Start practice/);
 });
 
 it("divides arrangement from instrument and mix without changing settings", () => {

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { loadStringList } from "@keyspilli/player-core";
 import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { LEVEL_LABEL, LEVEL_SHORT } from "./level-labels";
+import { BASS_PATTERNS as BASS, DEFAULT_QUERY, KEY_ROOTS, readLibraryQuery, writeLibraryQuery, readLibraryReturn, saveLibraryReturn, type LibraryQuery } from "../lib/library-navigation";
+export { readLibraryQuery, writeLibraryQuery } from "../lib/library-navigation";
 
 interface GroupedSong {
   representative: { id: string; baseId: string; title: string; artist: string; key: string; tempo: number };
@@ -13,35 +15,7 @@ interface GroupedSong {
   lastCreatedAt: string;
 }
 
-const KEYS = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab", "Db", "F#", "C#"];
-const BASS = ["block", "octave", "oompah", "walking", "pedal", "arpeggio"];
-
 const PAGE_SIZE = 60;
-const DEFAULT_QUERY = { q: "", importMethod: "", key: "", bass: "", artist: "", difficulty: "", style: "", mood: "", category: "", sort: "popular", favorites: false, page: 1 };
-type LibraryQuery = typeof DEFAULT_QUERY;
-
-export function readLibraryQuery(params: URLSearchParams): LibraryQuery {
-  const pick = (key: string, choices: readonly string[], fallback = "") => choices.includes(params.get(key) ?? "") ? params.get(key)! : fallback;
-  const page = Number(params.get("page"));
-  return {
-    q: (params.get("q") ?? "").slice(0, 256), artist: (params.get("artist") ?? "").slice(0, 256),
-    style: (params.get("style") ?? "").slice(0, 256), mood: (params.get("mood") ?? "").slice(0, 256), category: (params.get("category") ?? "").slice(0, 256),
-    importMethod: pick("importMethod", ["midi", "sheet-music", "youtube", "other"]),
-    key: pick("key", KEYS), bass: pick("bass", BASS), difficulty: pick("difficulty", PUBLIC_DIFFICULTY_ORDER),
-    sort: pick("sort", ["popular", "title", "artist", "difficulty", "newest"], "popular"),
-    favorites: params.get("favorites") === "1", page: Number.isSafeInteger(page) && page > 0 ? page : 1,
-  };
-}
-
-export function writeLibraryQuery(params: URLSearchParams, query: LibraryQuery): URLSearchParams {
-  const next = new URLSearchParams(params);
-  next.delete("legacy"); // This library only displays public levels.
-  for (const [key, value] of Object.entries(query)) {
-    next.delete(key);
-    if (value !== DEFAULT_QUERY[key as keyof LibraryQuery]) next.set(key, key === "favorites" ? "1" : String(value));
-  }
-  return next;
-}
 
 function publicLevelRows(levels: GroupedSong["levels"]): GroupedSong["levels"] {
   const byDifficulty = new Map(
@@ -133,6 +107,24 @@ export function SongBrowser() {
     return () => clearTimeout(timer);
   }, [input, ready, query]);
 
+  useEffect(() => {
+    if (!ready || loading || error) return;
+    const context = readLibraryReturn();
+    const params = writeLibraryQuery(new URLSearchParams(), query);
+    const href = `/songs${params.size ? `?${params}` : ""}${window.location.hash.slice(0, 256)}`;
+    if (!context?.restoreScroll || context.href !== href) return;
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: context.scrollY, behavior: "instant" });
+      saveLibraryReturn({ ...context, restoreScroll: false });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ready, loading, error, query]);
+
+  function rememberLibrary(playerId: string, event: React.MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    saveLibraryReturn({ playerId, href: `${window.location.pathname}${window.location.search}${window.location.hash}`, scrollY: window.scrollY });
+  }
+
   const visible = songs;
   const experimentLabels = useMemo(() => experimentLabelsForSongs(visible), [visible]);
   const { importMethod, key, bass, difficulty, sort, favorites: favoritesOnly } = query;
@@ -169,9 +161,8 @@ export function SongBrowser() {
           </select>
           <select value={key} onChange={(e) => filter({ key: e.target.value })} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Key">
             <option value="">All keys</option>
-            {KEYS.map((k) => (
-              <option key={k} value={k}>{k}</option>
-            ))}
+            <optgroup label="Major">{KEY_ROOTS.map(k => <option key={k} value={k}>{k}</option>)}</optgroup>
+            <optgroup label="Minor">{KEY_ROOTS.map(k => <option key={k} value={`${k}m`}>{k}m</option>)}</optgroup>
           </select>
           <select value={bass} onChange={(e) => filter({ bass: e.target.value })} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Bass pattern">
             <option value="">All bass patterns</option>
@@ -218,7 +209,7 @@ export function SongBrowser() {
                   <span>{s.representative.tempo} BPM</span>
                   <span className="ml-auto">{s.totalPlays > 0 ? `${s.totalPlays} plays` : ""}</span>
                 </div>
-                <Link href={`/player/${s.representative.id}`} className="font-semibold leading-tight hover:underline">
+                <Link href={`/player/${s.representative.id}`} onClick={event => rememberLibrary(s.representative.id, event)} className="font-semibold leading-tight hover:underline">
                   {s.representative.title}
                 </Link>
                 <div className="text-sm text-zinc-500 flex gap-2">
@@ -238,6 +229,7 @@ export function SongBrowser() {
                     <Link
                       key={l.id}
                       href={`/player/${l.id}`}
+                      onClick={event => rememberLibrary(l.id, event)}
                       title={`${LEVEL_LABEL[l.difficulty] ?? l.difficulty} arrangement`}
                       aria-label={`Open ${LEVEL_LABEL[l.difficulty] ?? l.difficulty} level`}
                       className="pressable px-2 py-0.5 rounded-full border border-zinc-300 text-[11px] text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900"
