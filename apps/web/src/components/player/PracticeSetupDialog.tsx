@@ -17,7 +17,7 @@ export function PracticeSetupDialog({ articulationEligible=false, describeSetup,
   articulationEligible?: boolean;
   microphoneTarget: (setup: PracticeSetup) => { eligible: boolean; reason: string }; micSignal: string;
   describeSetup?: (setup: PracticeSetup) => string;
-  keyboardTarget: (setup: PracticeSetup) => { total:number; visible:number; overflow:number; physicalUnavailable:number; overflowPitches:number[] };
+  keyboardTarget: (setup: PracticeSetup) => { total:number; visible:number; overflow:number; physicalUnavailable:number|null; overflowPitches:number[] };
   onChordPractice?: () => void;
   initialSetup: PracticeSetup;
   hasLoop: boolean;
@@ -41,7 +41,7 @@ export function PracticeSetupDialog({ articulationEligible=false, describeSetup,
     return () => el?.close();
   }, []);
   const micTarget = microphoneTarget(setup);
-  const reach = keyboardTarget(setup), needsRangeReview = reach.overflow > 0 || reach.physicalUnavailable > 0;
+  const reach = keyboardTarget(setup), needsRangeReview = reach.overflow > 0 || (reach.physicalUnavailable ?? 0) > 0;
   const unavailable = setup.input === "midi" ? !midiConnected : setup.input === "microphone" && (!micReady || !micTarget.eligible);
   return (
     <dialog ref={dialog} aria-label="Set up practice" onCancel={(event) => { event.preventDefault(); requestClose(); }}
@@ -80,7 +80,7 @@ export function PracticeSetupDialog({ articulationEligible=false, describeSetup,
             <option value={0}>Off</option><option value={4}>4 beats</option>
           </select>
         </label>
-        <p aria-label="Practice target reachability" className="text-xs text-zinc-600">{reach.total} onset targets · {reach.visible} inside the piano view · {reach.overflow} outside the view · {reach.physicalUnavailable} outside your confirmed physical range.</p>
+        <p aria-label="Practice target reachability" className="text-xs text-zinc-600">{reach.total} onset targets · {reach.visible} inside the piano view · {reach.overflow} outside the view{setup.input === "keyboard" ? "." : reach.physicalUnavailable === null ? ". Physical keyboard range not confirmed." : ` · ${reach.physicalUnavailable} outside your confirmed physical range.`}</p>
         {needsRangeReview && <label className="flex gap-2 text-sm text-amber-800"><input type="checkbox" checked={setup.allowUnsupportedRange??false} onChange={event=>setSetup({...setup,allowUnsupportedRange:event.target.checked})}/>I reviewed these unreachable targets and want to attempt this range. All targets will still be graded.</label>}
         {onChordPractice && <button type="button" className="min-h-11 px-3 rounded-lg border border-indigo-300 text-indigo-800" onClick={onChordPractice}>Chord practice</button>}
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}

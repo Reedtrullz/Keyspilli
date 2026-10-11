@@ -26,18 +26,18 @@ test.beforeEach(async ({ page }) => {
       const timing = { click: 0, feedback: 0 };
       (window as unknown as { navigationTiming: typeof timing }).navigationTiming = timing;
       document.addEventListener("click", event => {
-        if ((event.target as Element)?.closest('a[href="/"]')) timing.click = performance.now();
+        if ((event.target as Element)?.closest('a[href="/"], a[href="/songs"]')) timing.click = performance.now();
       }, true);
       new MutationObserver(() => {
-        if (timing.click && !timing.feedback && [...document.querySelectorAll('[role="status"]')].some(el => el.textContent?.includes("Opening Home"))) timing.feedback = performance.now();
+        if (timing.click && !timing.feedback && [...document.querySelectorAll('[role="status"]')].some(el => /Opening (Home|Songs)/.test(el.textContent ?? ""))) timing.feedback = performance.now();
       }).observe(document, { childList: true, subtree: true, characterData: true });
     });
 });
 
-async function holdHome(page: Page) {
+async function holdHome(page: Page, pathname = "/") {
   let release!: () => void, requests = 0;
   const pending = new Promise<void>(resolve => { release = resolve; });
-  await page.route(url => url.pathname === "/" && url.searchParams.has("_rsc"), async route => {
+  await page.route(url => url.pathname === pathname && url.searchParams.has("_rsc"), async route => {
     requests++; await pending; await route.continue();
   });
   return { release, requests: () => requests };
@@ -45,8 +45,10 @@ async function holdHome(page: Page) {
 const sources = (page: Page) => page.evaluate(() => (window as unknown as { activeAudioSources: number }).activeAudioSources);
 
 for (const [name, keyboard] of [["Home", false], ["Keyspilli", true], ["Return to library", false]] as const) {
-  test(`${name} acknowledges a delayed Home route and releases playback from one activation`, async ({ page }) => {
-    const hold = await holdHome(page);
+  const destination = name === "Return to library" ? "Songs" : "Home";
+  const pathname = destination === "Songs" ? "/songs" : "/";
+  test(`${name} acknowledges a delayed ${destination} route and releases playback from one activation`, async ({ page }) => {
+    const hold = await holdHome(page, pathname);
     await page.goto("/player/ui-fixture-m");
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect(page.getByLabel("Playback status", { exact: true })).toContainText("Playing");
@@ -54,7 +56,7 @@ for (const [name, keyboard] of [["Home", false], ["Keyspilli", true], ["Return t
     try {
       const link = page.getByRole("link", { name, exact: true }).first();
       if (keyboard) await link.press("Enter"); else await link.click();
-      await expect(page.getByRole("status").filter({ hasText: "Opening Home" })).toBeVisible();
+      await expect(page.getByRole("status").filter({ hasText: `Opening ${destination}` })).toBeVisible();
       const delay = await page.evaluate(() => {
         const timing = (window as unknown as { navigationTiming: { click: number; feedback: number } }).navigationTiming;
         return timing.feedback - timing.click;
@@ -75,8 +77,8 @@ for (const [name, keyboard] of [["Home", false], ["Keyspilli", true], ["Return t
         await expect.poll(hold.requests).toBe(1);
       }
       hold.release();
-      await expect(page).toHaveURL("/");
-      await expect(page.getByRole("heading", { name: "Explore your library", exact: true })).toBeVisible();
+      await expect(page).toHaveURL(pathname);
+      await expect(page.getByRole("heading", { name: destination === "Songs" ? "Song library" : "Explore your library", exact: true })).toBeVisible();
     } finally { hold.release(); }
   });
 }
