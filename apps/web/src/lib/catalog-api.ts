@@ -4,6 +4,7 @@ import { existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { cache } from "react";
+import {getPlayerVersions,type PlayerVersion} from './player-versions';
 import {
   artifactPublicationRevision,
   arrangementManifestPath,
@@ -334,6 +335,7 @@ export function projectChordSources(data: SongData, loadedTimeline: ChordTimelin
 }
 
 export interface SongDetail {
+  playerVersions?: PlayerVersion[];
   /** Existing publication identity; null means this is an explicitly unpinned legacy artifact. */
   publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
@@ -355,6 +357,7 @@ export interface SongDetail {
  * `SongData` object back into the sheet route's RSC payload.
  */
 export interface SongDetailShell {
+  playerVersions?: PlayerVersion[];
   publicationRevision: string | null;
   sourceArrangement?: SourceArrangement;
   song: SongRow;
@@ -670,7 +673,8 @@ async function loadSongDetailUncached(id: string, requiredRevision?: string | nu
   // Alternate-performance Chords projections have their own form clock.
   if(chordData && !chordData.sections?.length) chordData={...chordData,sections:resolveSongSections(song,chordData)};
   const sourceArrangement = loaded.artifact.manifest?.sourceArrangement;
-  return { song: currentSong, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(sourceArrangement ? { sourceArrangement } : {}) };
+  const playerVersions=await getPlayerVersions(currentSong);
+  return { song: currentSong, data, chordData, chordUnavailableReason, variants, artifact: loaded.artifact, ...(playerVersions.length?{playerVersions}:{}), ...(sourceArrangement ? { sourceArrangement } : {}) };
   });
   return stable.value ? { ...stable.value, publicationRevision: stable.publicationRevision } : null;
 }
@@ -697,7 +701,8 @@ async function loadSongDetailShellUncached(id: string, requiredRevision?: string
     if (!currentSong || currentSong.baseId !== song.baseId) return null;
     const saved = await readArrangementManifest(song.baseId);
     const sourceArrangement = saved.status === "valid" ? saved.manifest.sourceArrangement : undefined;
-    return { song: currentSong, variants: getSongsByBase(song.baseId), ...(sourceArrangement ? { sourceArrangement } : {}) };
+    const playerVersions=await getPlayerVersions(currentSong);
+    return { song: currentSong, variants: getSongsByBase(song.baseId), ...(playerVersions.length?{playerVersions}:{}), ...(sourceArrangement ? { sourceArrangement } : {}) };
   });
   return stable.value ? { ...stable.value, publicationRevision: stable.publicationRevision } : null;
 }
