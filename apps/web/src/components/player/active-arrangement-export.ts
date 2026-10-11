@@ -27,7 +27,7 @@ export function validActiveExportSelection(value:unknown):value is ActiveExportS
 }
 /** Uses the same producers as Player; request data selects canonical source events, never supplies notes. */
 export function resolveActiveExport(data:SongData,selection:ActiveExportSelection):AccompanimentResolution {
- if(data.notes.length>20000||data.chords.length>10000)throw new ActiveExportUnsupportedError("Active export exceeds the bounded symbolic size; use Stored Original.");
+ if(data.notes.length>20000||data.chords.length>10000)throw new ActiveExportUnsupportedError("Active export exceeds the bounded symbolic size; use the saved arrangement.");
  const end=playerArrangementEnd(data),selected=selectChordSource(playerChordSources(data,end),selection.chordSource),chords=selected.source?.chords??[];
  if(selection.backgroundMode==="piano")return {style:selection.accompanimentStyle,notes:data.notes,guidanceNotes:data.notes,chords:[],displayChords:chords,fallbackSpans:[]};
  const backing=reviewedSourceBacking(data);
