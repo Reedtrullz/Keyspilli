@@ -58,7 +58,7 @@ test("capture fresh phrases through visible sampled Player and return", async ({
     await page
       .getByRole("link", { name: "Return to library", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL("/songs");
   }
 });
 

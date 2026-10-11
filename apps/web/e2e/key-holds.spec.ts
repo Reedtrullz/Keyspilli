@@ -44,7 +44,7 @@ test("MIDI hold mode requires an explicit device/channel and stores a tap separa
   await expect(page.getByLabel("Selected MIDI-device offset (ms)")).toBeDisabled();
   await page.getByRole("button",{name:"Close tools"}).click();
   await page.getByRole("link",{name:"Return to library"}).click();
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/songs");
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0].outcome)).toBe("interrupted");
   const interrupted=await page.evaluate(()=>JSON.parse(localStorage.getItem("keyspilli.practice.v1")!).attempts[0]);
   expect(interrupted.outcome).toBe("interrupted");expect(interrupted.result.articulation).toMatchObject({observed:0,unobserved:8});
