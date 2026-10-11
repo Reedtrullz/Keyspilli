@@ -2204,7 +2204,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
   );
 
   return (
-    <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
+    <div inert={versionControls?.pending} aria-busy={versionControls?.pending} className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page ${focusMode ? "player-focus" : ""}`}>
       <div className="player-workspace" data-falling={settings.mode === "falling" && !chordPracticeActive}>
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
@@ -2948,7 +2948,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
   const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
 
   const shell = (
-    <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
+    <div inert={versionControls?.pending} aria-busy={versionControls?.pending} className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <Link href="/" className="player-library-link" aria-label="Return to library" title="Return to library">←<NavigationFeedback destination="Home" /></Link>
         <div className="player-song-identity">
@@ -3170,10 +3170,8 @@ export function Player({ initial, mode }: { initial: PlayerInitial; mode: ViewMo
   return <>
     {pending && <p role="status" className="px-4 py-2">Loading version...</p>}
     {error && <p role="alert" className="px-4 py-2 text-red-700">{error}</p>}
-    <div inert={pending} aria-busy={pending}>
-      {isPlayerDetail(active)
+    {isPlayerDetail(active)
         ? <FullPlayer key={active.song.id} initial={active} mode={resume?.settings.mode ?? mode} versionControls={versionControls} />
         : <PlayerShellView key={`${active.song.id}:${mode ?? "sheet"}`} initial={active} mode={mode} versionControls={versionControls} />}
-    </div>
   </>;
 }
