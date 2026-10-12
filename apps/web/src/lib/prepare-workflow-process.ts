@@ -27,10 +27,6 @@ export interface StageInput {
 }
 export type StageRunner = (input: StageInput) => Promise<StageReceipt>;
 
-const alive = (group: number) => {
-  try { process.kill(-group, 0); return true; }
-  catch (error) { return (error as NodeJS.ErrnoException).code !== "ESRCH"; }
-};
 function signalGroup(group: number, signal: NodeJS.Signals): void {
   try { process.kill(-group, signal); }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error; }
@@ -51,6 +47,14 @@ export async function runOwnedProcess(input: {
   const child = spawn(input.executable, input.args, { cwd: input.cwd, env: input.env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
   let termination: CommandReceipt["termination"] = "exit", exitCode: number | null = null, exitSignal: string | null = null;
   let closed = false, unsafe = false;
+  const alive = (group: number) => {
+    try { process.kill(-group, 0); return true; }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
+      // Uncertain presence cannot become a success after a later clean probe.
+      unsafe = true; return true;
+    }
+  };
   let killTimer: ReturnType<typeof setTimeout> | undefined, deadlineTimer: ReturnType<typeof setTimeout> | undefined;
   let finish!: () => void;
   const completion = new Promise<void>(resolve => { finish = resolve; });
@@ -74,9 +78,25 @@ export async function runOwnedProcess(input: {
   child.on("error", () => { termination = "spawn-error"; });
   child.on("close", (code, signal) => { closed = true; exitCode = code; exitSignal = signal; finish(); });
   input.signal?.addEventListener("abort", onAbort, { once: true });
-  const timeout = setTimeout(() => stop("timeout"), Math.max(1, input.timeoutMs));
+  const timeoutMs = Math.max(1, input.timeoutMs), commandDeadline = performance.now() + timeoutMs;
+  const timeout = setTimeout(() => stop("timeout"), timeoutMs);
   try {
     await completion;
+    if (child.pid !== undefined && closed && exitCode === 0 && exitSignal === null && termination === "exit" && !unsafe) {
+      // Runtime helpers may finish just after their successful leader closes.
+      // Keep the original timeout/abort authority and require full group absence.
+      const drainDeadline = performance.now() + 250;
+      while (termination === "exit" && !unsafe) {
+        if (performance.now() >= commandDeadline) { stop("timeout"); break; }
+        if (!alive(child.pid) || unsafe || termination !== "exit") break;
+        const remaining = Math.min(drainDeadline, commandDeadline) - performance.now();
+        if (remaining <= 0) break;
+        await delay(Math.min(25, remaining));
+      }
+      // A queued timeout callback may trail the awaited poll after an event-loop
+      // delay. Its original monotonic deadline still wins over success/refusal.
+      if (termination === "exit" && performance.now() >= commandDeadline) stop("timeout");
+    }
     if (child.pid !== undefined && alive(child.pid)) {
       if (termination === "exit") termination = "descendants";
       try {
