@@ -35,7 +35,7 @@ Before preparation, run from this plugin directory:
 python3 skills/keyspilli-song/scripts/check_checkout.py /absolute/path/to/Keyspilli --node /absolute/compatible/node --discover
 ```
 
-The preflight selects the supplied capable checkout or one verified candidate from its existing worktrees. The preferred MIDI path is the resumable host driver: baseline or bounded plan/selection decisions, six tiers, checked second import and both sampled-piano previews. Code/schema fingerprints must match. Ordinary preparation remains available after a separate successful preflight. The selected checkout needs its pinned Node runtime and installed dependencies. A successful preflight checks prerequisites only; actual isolated import, Player replay and musical assessment remain required. Keep its absolute `node_executable` for subsequent script calls with `--import tsx`, and read its optional audio/retrieval capability report. Follow the skill when a source or audio reviewer is unavailable.
+The default is ordinary preparation through the returned `preparation.command`. Preflight keeps a supported supplied checkout; only an unsupported checkout triggers discovery of other ordinary Git worktrees. Missing experimental drivers and optional audio/model capabilities do not block this route. Runtime, SQLite ABI, required-file and Git fingerprint-source failures do block it. Use the root of a real Git checkout/worktree; a downloaded source archive or nested directory cannot borrow another repository's identity. Preflight reports free space; `--minimum-free-gib` enforces an explicit budget for a planned job instead of applying a blanket 30 GiB requirement to read-only checks. Keep the returned absolute Node executable and use `--import tsx`. Actual isolated import, resolved Player events, export fidelity and musical assessment remain separate checks.
 
 Optional constrained phrase edits require `apps/web/scripts/arrange-song.mts`; preflight executes capabilities and reports `arrangement.status: compatible`; legal choices also require `selection_supported`. See the skill's `references/constrained-arrangement.md`. Older preparation checkouts remain supported. The feature remains opt-in: the controlled phrase pilot found import timing/clock limits and has no listening or verified monetary comparison. Its final-MIDI audit must pass before claiming protected source timing survives.
 
@@ -43,7 +43,7 @@ No MCP server, daemon or deployment hook is included. Import commands prepare is
 
 ## Maintain
 
-Edit this plugin's `skills/keyspilli-song/` as the canonical source. On the original machine, `~/.codex/skills/keyspilli-song` is a compatibility symlink to it. Installed plugin caches are release snapshots, not editable sources. After validation, bump `.codex-plugin/plugin.json`'s version and run the available Codex CLI's `plugin add keyspilli@personal`, then verify installed version/bytes and test in a new chat. Do not maintain a second independent skill copy.
+Edit this plugin's `skills/keyspilli-song/` as the canonical source and commit reviewed changes to Git. Installed plugin caches are release snapshots. Packaging and compatibility checks do not install or release a version. Version bumps, installed adoption and distribution require the relevant separate authorization; do not maintain a second independent skill copy.
 
 Run these bounded checks from the plugin directory:
 
@@ -53,9 +53,8 @@ python3 skills/keyspilli-song/scripts/prepare_syntheory.py --self-test
 python3 skills/keyspilli-song/scripts/check_tutorial_delivery.py --self-test
 python3 skills/keyspilli-song/scripts/normalize_ug_score.py --self-test
 python3 skills/keyspilli-song/scripts/recover_vocal.py --self-test
-python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/keyspilli-song
 ```
 
-The skill validator requires an already available PyYAML runtime; if absent, inspect its two frontmatter fields and all local reference links without installing dependencies. The older `plugin-creator/scripts/validate_plugin.py` command is not shipped in this environment. Validate `.codex-plugin/plugin.json` as JSON with the required name/version/skills paths and verify those paths exist, then verify installed snapshot bytes against the canonical source. Synthetic demo/control assets are software integration evidence only; keep `controls/evaluator-only/answer-key.json` outside reviewer context. Listening stays unqualified triage and does not grant song approval.
+From the repository root, run `python3 -B scripts/check-keyspilli-plugin.py --source plugins/keyspilli --checkout . --node /absolute/compatible/node --report /absolute/new-check.json`. This builds and extracts a candidate archive, validates the plugin/skill metadata and every packaged reference, runs every packaged helper's offline help/self-test, probes implemented host capabilities and completes a synthetic ordinary preparation in fresh temporary catalogs. The report pins archive/source-tree hashes, the selected runtime, capabilities and test results. It does not render a sampled piano or contact a provider. Synthetic controls remain software evidence and never grant listening, source or publication approval.
 
 The tracked `plugins/keyspilli` tree in Keyspilli is the release source for this candidate. Canonical and installed copies retain their previous versions until explicit adoption. Build with `scripts/package-keyspilli-plugin.py`; the sorted source inventory pins every source member.

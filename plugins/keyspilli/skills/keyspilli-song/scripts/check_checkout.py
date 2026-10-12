@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -29,6 +30,9 @@ OPTIONAL = {
 # Must match the finite driver's source scopes; schema checks alone do not pin the implementation.
 WORKFLOW_SCOPES = ('packages/midi/src', 'packages/catalog/src', 'packages/catalog/scripts', 'packages/player-core/src',
                    'apps/web/scripts', 'apps/web/src/lib', 'apps/web/src/components/player', 'package-lock.json')
+# Actual generator fingerprint inputs in prepare-catalog-chords.mts.
+PREPARATION_SCOPES = ('packages/midi/src', 'packages/player-core/src', 'packages/catalog/src',
+                      'apps/web/src/lib', 'apps/web/src/components/player', 'package-lock.json')
 
 
 def implementation_fingerprint(root):
@@ -41,7 +45,7 @@ def implementation_fingerprint(root):
 def check_workflow_capabilities(root, node_executable):
     script = root / OPTIONAL['host_workflow_script']
     if not script.is_file():
-        return {'status': 'absent'}
+        return {'status': 'absent', 'reason': 'Optional experimental driver absent; ordinary preparation remains available.'}
     try:
         value = json.loads(subprocess.run([node_executable, '--import', 'tsx', str(script), 'capabilities'],
                            cwd=root, capture_output=True, text=True, timeout=15, check=True).stdout)
@@ -91,33 +95,49 @@ def check_audio_review_capabilities(root, node_executable):
         result = subprocess.run([node_executable, '--import', 'tsx', str(script), 'capabilities'],
                                 cwd=root, capture_output=True, text=True, timeout=15, check=True)
         value = json.loads(result.stdout)
-        supports = value.get('supports', {}) if isinstance(value, dict) else {}
-        compatible = (
-            isinstance(value, dict)
-            and value.get('schemaVersion') == 2
-            and value.get('manifestSchemaVersion') == 2
-            and value.get('reportSchemaVersion') == 2
-            and value.get('provider') == 'anti.listen'
-            and value.get('pairwiseAudio') is True
-            and value.get('dryRun') is True
-            and value.get('safeResume') is True
-            and value.get('validatesCompleteOutput') is True
-            and value.get('mapsSourceOutputAnchors') is True
-            and value.get('symbolicEvidenceSeparate') is True
-            and value.get('repairQueue') is True
-            and value.get('requiresGatewayBackendAttemptLimit') == 1
-            and value.get('validatesOrderedSubmissionReceipt') is True
-            and value.get('validatesGatewayModelAllowlist') is True
-            and value.get('strictLiveStdout') is True
-            and supports.get('maxClipBytes') == 2 * 1024 * 1024
-            and supports.get('maxPairBytes') == 4 * 1024 * 1024
-            and supports.get('maxClipSeconds') == 30
-            and supports.get('maxOutputTokens') == 4096
-            and supports.get('maxProviderCallsPerJob') == 1
-        )
-        return {'status': 'compatible' if compatible else 'incompatible', 'capabilities': value}
+        if not isinstance(value, dict):
+            return {'status': 'incompatible', 'reason': 'Audio review capabilities must be a JSON object.'}
+        expected = {
+            'schemaVersion': 2, 'manifestSchemaVersion': 2, 'reportSchemaVersion': 2,
+            'provider': 'anti.listen', 'pairwiseAudio': True, 'dryRun': True,
+            'safeResume': True, 'validatesCompleteOutput': True,
+            'mapsSourceOutputAnchors': True, 'symbolicEvidenceSeparate': True,
+            'repairQueue': True, 'requiresGatewayBackendAttemptLimit': 1,
+            'validatesOrderedSubmissionReceipt': True,
+            'validatesGatewayModelAllowlist': True, 'strictLiveStdout': True,
+        }
+        support_limits = {'maxClipBytes': 2 * 1024 * 1024, 'maxPairBytes': 4 * 1024 * 1024,
+                          'maxClipSeconds': 30, 'maxOutputTokens': 4096, 'maxProviderCallsPerJob': 1}
+        mismatches = [{'field': key, 'expected': required, 'actual': value.get(key)}
+                      for key, required in expected.items() if type(value.get(key)) is not type(required) or value.get(key) != required]
+        supports = value.get('supports') if isinstance(value.get('supports'), dict) else {}
+        mismatches += [{'field': 'supports.' + key, 'expected': required, 'actual': supports.get(key)}
+                       for key, required in support_limits.items() if type(supports.get(key)) is not int or supports.get(key) != required]
+        return {'status': 'incompatible' if mismatches else 'compatible', 'capabilities': value,
+                'incompatibilities': mismatches,
+                'scope': 'Optional contract only; ordinary preparation remains separate. Do not substitute a route or infer hearing.'}
+
     except (OSError, subprocess.SubprocessError, ValueError, TypeError, AttributeError):
         return {'status': 'incompatible', 'reason': 'Pairwise Anti listen capabilities unavailable; do not infer route or provider access.'}
+
+
+def check_git_checkout(root):
+    """Ordinary preparation reads Git-owned source paths before producing backing."""
+    try:
+        top = subprocess.run(['git', 'rev-parse', '--show-toplevel'], cwd=root,
+                             capture_output=True, text=True, timeout=10, check=True).stdout.strip()
+        if Path(top).resolve() != root.resolve():
+            raise ValueError('the selected directory is not its own Git checkout root')
+        paths = subprocess.run(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', *PREPARATION_SCOPES],
+                               cwd=root, capture_output=True, text=True, timeout=10, check=True).stdout.split('\0')
+        names = sorted(set(filter(None, paths)))
+        if not names:
+            raise ValueError('ordinary generator fingerprint source inventory is empty')
+        for name in names:
+            (root / name).read_bytes()
+        return {'status': 'compatible', 'root': str(root), 'fingerprint_source_files': len(names)}
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return {'status': 'blocked', 'reason': 'Ordinary preparation requires Git and a readable Keyspilli Git checkout/worktree rooted at this directory. Clone/select a supported checkout or repair its fingerprint source files. ' + str(error)}
 
 
 def check_checkout(root, node_version):
@@ -140,7 +160,7 @@ def check_checkout(root, node_version):
         bounds = None
     actual = version(node_version)
     if not actual or (bounds and (actual < version(bounds[1]) or (bounds[2] and actual >= version(bounds[2])))):
-        errors.append(f'Node {engine if bounds else "matching package.json"} is required on PATH; found {node_version or "none"}.')
+        errors.append(f'Selected Node must satisfy {engine if bounds else "package.json"}; found {node_version or "none"}.')
     for pin in ('.nvmrc', '.node-version'):
         if (root / pin).exists():
             pinned = version((root / pin).read_text())
@@ -154,9 +174,12 @@ def check_checkout(root, node_version):
     tsx = root / 'node_modules/.bin/tsx'
     if not tsx.is_file() or not os.access(tsx, os.X_OK):
         errors.append('Install dependencies using this checkout\'s lockfile/runtime instructions; tsx is unavailable.')
+    git_checkout = check_git_checkout(root)
+    if git_checkout['status'] != 'compatible':
+        errors.append(git_checkout['reason'])
     return {
         'checkout': str(root), 'node_version': node_version,
-        'missing': missing, 'errors': errors,
+        'missing': missing, 'errors': errors, 'git_checkout': git_checkout,
         'optional_files': {key: (root / path).is_file() for key, path in OPTIONAL.items()},
     }
 
@@ -178,6 +201,8 @@ def check_music_review_capabilities(root, node_executable):
         result = subprocess.run([node_executable, '--import', 'tsx', str(script), 'capabilities'],
                                 cwd=root, capture_output=True, text=True, timeout=15, check=True)
         value = json.loads(result.stdout)
+        if not isinstance(value, dict):
+            return {'status': 'incompatible', 'reason': 'Music review capabilities must be a JSON object.'}
         compatible = (isinstance(value, dict) and 1 in value.get('musicReviewContractVersions', [])
                       and 1 in value.get('acousticReceiptVersions', []) and value.get('providerCalls') == 0
                       and value.get('implicitInference') is False and value.get('humanAttestation') is False)
@@ -263,6 +288,7 @@ def score_review_self_test():
 def self_test():
     with tempfile.TemporaryDirectory(prefix='.check-', dir=Path(__file__).parent) as directory:
         root = Path(directory)
+        subprocess.run(['git', 'init', '-q', str(root)], capture_output=True, check=True)
         (root / 'package.json').write_text(json.dumps({'name': 'keyspilli', 'engines': {'node': '>=20'}}))
         for name in (*REQUIRED, 'node_modules/.bin/tsx'):
             path = root / name
@@ -334,7 +360,8 @@ def main():
     parser.add_argument('checkout', nargs='?', type=Path)
     parser.add_argument('--self-test', action='store_true')
     parser.add_argument('--node', help='Select a compatible Node executable; default is PATH.')
-    parser.add_argument('--discover', action='store_true', help='Prefer this capable checkout; otherwise select a unique verified host workflow from its Git worktrees.')
+    parser.add_argument('--discover', action='store_true', help='Keep this supported ordinary checkout; otherwise select one verified ordinary checkout from its Git worktrees.')
+    parser.add_argument('--minimum-free-gib', type=float, default=0, help='Explicit disk budget for the planned job. Default 0 checks read-only prerequisites, not capacity for a render/build batch.')
     args = parser.parse_args()
     if args.self_test:
         self_test()
@@ -343,9 +370,13 @@ def main():
         return 0
     if args.checkout is None or not args.checkout.is_dir():
         parser.error('Provide an existing Keyspilli checkout directory.')
+    if not math.isfinite(args.minimum_free_gib) or args.minimum_free_gib < 0:
+        parser.error('--minimum-free-gib must be a finite nonnegative number.')
     root = args.checkout.expanduser().resolve()
     node_version = ''
     node_executable = shutil.which(args.node or 'node')
+    if node_executable:
+        node_executable = os.path.abspath(node_executable)
     try:
         if node_executable:
             result = subprocess.run([node_executable, '--version'], capture_output=True, text=True, timeout=10, check=True)
@@ -354,25 +385,35 @@ def main():
         pass
     inventory = []
     if args.discover:
+        requested = check_checkout(root, node_version)
+        if not requested['errors']:
+            sqlite_error = check_sqlite(root, node_executable)
+            if sqlite_error:
+                requested['errors'].append(sqlite_error)
+            else:
+                inventory.append(root)
         try:
-            listing = subprocess.run(['git', 'worktree', 'list', '--porcelain'], cwd=root, capture_output=True, text=True, timeout=10, check=True).stdout
+            # A supported explicit checkout needs neither Git worktree discovery
+            # nor an experimental driver to use its ordinary preparation route.
+            listing = '' if inventory else subprocess.run(['git', 'worktree', 'list', '--porcelain'], cwd=root, capture_output=True, text=True, timeout=10, check=True).stdout
             for line in listing.splitlines():
                 if not line.startswith('worktree '):
                     continue
                 candidate = Path(line[9:]).resolve()
-                if not (candidate / OPTIONAL['host_workflow_script']).is_file():
+                if candidate == root:
                     continue
                 result = check_checkout(candidate, node_version)
-                if not result['errors'] and check_sqlite(candidate, node_executable) is None and check_workflow_capabilities(candidate, node_executable)['status'] == 'compatible':
+                if not result['errors'] and check_sqlite(candidate, node_executable) is None:
                     inventory.append(candidate)
             selected = choose_checkout(root, inventory)
             if selected is None:
                 print(json.dumps({'status':'blocked', 'checkout':str(root), 'verified_candidates':[str(p) for p in inventory],
-                                  'reason':'No unique capable host workflow. Select an explicit verified checkout; ordinary preparation requires a separate successful preflight.'}, indent=2))
+                                  'errors':requested['errors'],
+                                  'reason':'No unique supported ordinary checkout. Correct the reported runtime/files or select one of the verified candidates explicitly.'}, indent=2))
                 return 1
             root = selected
         except (OSError, subprocess.SubprocessError):
-            print(json.dumps({'status':'blocked', 'reason':'Cannot inspect Git worktrees; supply an explicit checkout.'}))
+            print(json.dumps({'status':'blocked', 'checkout':str(root), 'errors':requested['errors'], 'reason':'This checkout is unsupported and Git worktrees cannot be inspected. Correct its runtime/files or supply an explicit supported checkout.'}))
             return 1
     report = check_checkout(root, node_version)
     if args.discover:
@@ -388,11 +429,19 @@ def main():
     report['music_review'] = check_music_review_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     report['score_review'] = check_score_review_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     report['host_workflow'] = check_workflow_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
-    report['free_gib'] = round(shutil.disk_usage(root).free / 2**30, 2)
-    if shutil.disk_usage(root).free < 30 * 2**30:
-        report['errors'].append('Less than 30 GiB free; stop before build/test/render loops.')
+    free_gib = shutil.disk_usage(root).free / 2**30
+    report['free_gib'] = round(free_gib, 2)
+    report['disk_budget'] = {'minimum_free_gib': args.minimum_free_gib, 'status': 'not-requested' if args.minimum_free_gib == 0 else 'sufficient' if free_gib >= args.minimum_free_gib else 'insufficient'}
+    if free_gib < args.minimum_free_gib:
+        report['errors'].append(f'Planned job requires {args.minimum_free_gib:g} GiB free; found {free_gib:.2f}. Reduce its bounded workload or choose suitable storage.')
     report['optional_tools'] = {name: shutil.which(name) is not None for name in ('ffmpeg', 'fluidsynth', 'yt-dlp')}
     report['status'] = 'blocked' if report['errors'] else 'prerequisites-present'
+    report['preparation'] = {
+        'route': 'ordinary', 'status': 'blocked' if report['errors'] else 'compatible',
+        'command': None if report['errors'] else [node_executable, '--import', 'tsx', str(root / 'apps/web/scripts/prepare-song.mts')],
+        'argument_names': ['INPUT.mid|INPUT.musicxml|INPUT.mxl', 'NEW_RUN_DIR', 'TITLE', 'ARTIST'],
+        'next_action': 'Resolve errors before preparation.' if report['errors'] else 'Use this command prefix with the four arguments from the selected checkout. Use a new run directory inside it; output stays provisional until delivery checks pass.',
+    }
     report['scope'] = 'File/runtime availability and local adapter capability only. This does not contact a gateway or verify a route, audio processing, source alignment, or musical quality.'
     print(json.dumps(report, indent=2))
     return 1 if report['errors'] else 0
