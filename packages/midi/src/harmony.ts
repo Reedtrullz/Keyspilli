@@ -165,7 +165,11 @@ export function inferHarmonyTimeline(
       for (const n of attack.notes) pcs.set(n.midi % 12, Math.max(pcs.get(n.midi % 12) ?? 0, n.start + n.dur));
       const releases = [...pcs.values()].sort((a, b) => b - a);
       if (releases.length < 2) continue;
-      for (const beat of [attack.start, releases[1]!]) if (beat > start && beat < end) boundaries.add(beat);
+      // A member release can end a colour tone or change the sounding bass,
+      // even while two other pitch classes still provide accompaniment.
+      for (const beat of [attack.start, ...attack.notes.map(n => n.start + n.dur)]) {
+        if (beat > start && beat < end) boundaries.add(beat);
+      }
     }
     const ordered = [...boundaries].sort((a, b) => a - b);
     segments = ordered.slice(0, -1).map((startBeat, i) => ({ startBeat, endBeat: ordered[i + 1]! }));
@@ -183,6 +187,7 @@ export function inferHarmonyTimeline(
   const reasons: Array<string | undefined> = [];
   const bassPcs: Array<number | undefined> = [];
   const windows = harmonySegments(measures, "half-bar");
+  let heldStack: { notes: readonly Note[]; candidate: number; pcs: ReadonlySet<number> } | undefined;
   for (const segment of segments) {
     // Notes that could overlap this segment; `sorted` is by start.
     const local = sorted.filter((note) => note.start < segment.endBeat && note.start + note.dur > segment.startBeat);
@@ -209,20 +214,38 @@ export function inferHarmonyTimeline(
       const hasArpeggio = hasPolyphony && left.length >= 2 && new Set(left.map(n => n.midi % 12)).size >= 2;
       const roleSupported = hasStack || hasArpeggio;
       const attack = sourceAttacks.find(a => Math.abs(a.start - segment.startBeat) < 1e-7);
-      const played = evidence(attack?.notes ?? [], segment.startBeat, segment.endBeat);
+      let supportNotes = attack?.notes ?? [];
+      let played = evidence(supportNotes, segment.startBeat, segment.endBeat);
       const pcs = new Set(played.weights.flatMap((weight, pc) => weight > played.total * 0.05 ? [pc] : []));
       const complete = candidates.flatMap((candidate, k) => [...candidate.pcs].every(pc => pcs.has(pc))
         && candidate.pcs.size === pcs.size ? [{ k, score: score(candidate, played, tuning) }] : [])
         .sort((a, b) => b.score - a.score || a.k - b.k);
-      const direct = complete.length > 0 && (complete.length === 1 || complete[0]!.score - complete[1]!.score >= 0.08);
+      let directCandidate = complete.length > 0 && (complete.length === 1 || complete[0]!.score - complete[1]!.score >= 0.08)
+        ? complete[0]!.k : undefined;
+      if (directCandidate !== undefined) {
+        heldStack = { notes: supportNotes, candidate: directCandidate, pcs };
+      } else if (heldStack && ([...heldStack.pcs].every(pc => heldStack!.notes.some(n =>
+        n.midi % 12 === pc && n.start < segment.endBeat && n.start + n.dur >= segment.endBeat - 1e-7))
+        || (articulationGap && heldStack.pcs.size === beforeGap.size && [...heldStack.pcs].every(pc => beforeGap.has(pc))))) {
+        // The stack was already struck. Internal beat/bar boundaries do not
+        // require a fresh attack to keep its supported quality and inversion.
+        // An identical stack after a short release gap keeps the label too;
+        // the source-rhythm resolver still leaves that gap unstruck.
+        supportNotes = heldStack.notes.filter(n => n.start + n.dur > segment.startBeat + 1e-7);
+        played = evidence(supportNotes, segment.startBeat, segment.endBeat);
+        directCandidate = heldStack.candidate;
+      } else {
+        heldStack = undefined;
+      }
+      const direct = directCandidate !== undefined;
       // Keep the contextual triad path for arpeggios and decorated melody. Only
       // a complete played stack can introduce a seventh/suspension or inversion.
-      allowed = new Set((!raw.length && !articulationGap) || !roleSupported ? [] : direct ? [complete[0]!.k]
+      allowed = new Set((!raw.length && !articulationGap) || !roleSupported ? [] : directCandidate !== undefined ? [directCandidate]
         : candidates.flatMap((c, k) => c.name.match(/^[A-G][#b]?m?$/) ? [k] : []));
       if (direct) observed = played;
       const anySource = notes.some(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
       reasons.push(!allowed.size && anySource ? "Harmony or accompaniment role is uncertain; this span is left silent." : undefined);
-      const lowest = (attack?.notes ?? []).reduce((min, n) => Math.min(min, n.midi), Infinity);
+      const lowest = supportNotes.reduce((min, n) => Math.min(min, n.midi), Infinity);
       bassPcs.push(direct && Number.isFinite(lowest) ? lowest % 12 : undefined);
     }
     let best = 0;
@@ -231,8 +254,10 @@ export function inferHarmonyTimeline(
     const from = new Array<number>(rest + 1);
     for (let k = 0; k <= rest; k++) {
       const silent = observed.total === 0 || (!strict && segment.endBeat <= pickupEnd);
+      // An allowed articulation gap can have no pedal evidence. Its neutral
+      // gain must not divide by zero and poison the remaining path with NaN.
       const gain = strict
-        ? k === rest ? (allowed!.size ? -Infinity : 0) : allowed!.has(k) ? score(candidates[k]!, observed, tuning) : -Infinity
+        ? k === rest ? (allowed!.size ? -Infinity : 0) : allowed!.has(k) ? (silent ? 0 : score(candidates[k]!, observed, tuning)) : -Infinity
         : silent ? (k === rest ? 0.5 : -1) : k === rest ? -1 : score(candidates[k]!, observed, tuning);
       const stay = previous[k]!;
       const change = previous[best]! - tuning.changePenalty;
