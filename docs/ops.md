@@ -1123,6 +1123,24 @@ intervals; sound/timbre, mix and pedal resonance are not rendered audio or
 musical acceptance. Unsupported or out-of-range material is refused explicitly.
 Stored Original downloads retain their existing artifacts.
 
+Active hand selection preserves each resolved chord tone's `suggestedHands`
+entry through transposition, ordering and exact-pitch deduplication. MIDI writes
+separate Right Hand and Left Hand tracks; MusicXML uses upper and lower staves.
+With audible support disabled, only the selected hand is exported. Enabling
+audible support includes the other hand with its original assignment. Speed
+changes the exported tempo once; note beat positions and durations retain the
+active symbolic plan. Exact duplicate chord pitches collapse to their first
+declared hand, matching the single pitch event used for chord audio.
+
+Source-note velocities follow the selected source/meter-accent expression mode
+in the active note stream. Generated chord notes retain the existing export
+velocity of 100, separate from guidance velocity and playback mixer gains.
+MIDI carries those velocities. MusicXML currently does not emit dynamic marks
+or per-note velocity metadata; its roundtrip contract covers pitch, rhythm and
+staff assignment, not an acoustic rendition. PDF inherits the same MusicXML
+contract. This hand correction does not implement sampled-audio or pedal-tail
+equivalence, and does not change stored Original files or accepted playback pins.
+
 Deletion journals now record owned job IDs before removal, so explicit recovery can replay upload/transcription cleanup after a database-commit interruption. Source cleanup failures retain the journal. Legacy deletion journals without that snapshot require operator investigation; do not fabricate job ownership or report complete cleanup.
 
 ## Owner harmony candidates and reversible quarantine
