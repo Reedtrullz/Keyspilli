@@ -1,4 +1,5 @@
 import {sourcePedalErrors} from "./source-pedal.js";
+import { compilePhrasePlan, applyPhrasePlan, type PhrasePlanV1 } from "./phrase-plan.js";
 import { writeNotationMeasures } from "./notation-measures.js";
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
@@ -26,6 +27,10 @@ const MAX_SOURCE_BEATS = 4096;
 const MAX_SOURCE_MEASURES = 2048;
 
 export interface VariantOptions {
+  /** Explicit source-bound pilot; never selected by default or from inferred roles. */
+  phrasePlan?: PhrasePlanV1;
+  /** SHA-256 of actual supplied bytes, computed by the caller before parsing. */
+  sourceSha256?: string;
   /** 16th-note grid (beats) used for note slicing */
   grid?: number;
   /** octave-shift notes outside the piano range (21-108) into it */
@@ -2881,6 +2886,10 @@ export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
 
 export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOptions = {}): Variant[] {
   assertSourceWorkload(src, opts.grid);
+  if (opts.phrasePlan !== undefined && (opts.arrangementProfile !== "source" || opts.audioDerived || opts.safeLeftHandOnly)) {
+    throw new Error("phrase plan: pilot requires the ordinary source profile without audio-derived or backing-only selection");
+  }
+  const phrasePlan = opts.phrasePlan !== undefined ? compilePhrasePlan(src, opts.phrasePlan, opts.sourceSha256) : undefined;
   if (opts.chords) {
     if (opts.chords.length > 20_000 || opts.chords.some(chord => chord.beat + (chord.durationBeats ?? 0) > 4096)) {
       throw new Error("source workload exceeds supplied chord limits");
@@ -3411,7 +3420,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     advanced: 4.6,
   };
   const lhPattern = detectBassPattern(lh);
-  return LEVEL_ORDER.map((level) => {
+  const variants: Variant[] = LEVEL_ORDER.map((level) => {
     const internalNotes = sets[level]!.map((n) => ({ ...n }));
     emitDifficultyTrace(opts.trace, level, internalNotes, learnerTraceSource);
     const notes = learnerLineageEnabled ? internalNotes.map(stripLearnerTrace) : internalNotes;
@@ -3439,6 +3448,17 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       timeSig: src.timeSig,
       ...(sourceTimeSigEvents.length ? { timeSigEvents: sourceTimeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
       measures: sourceMeasures(src, notes, sourceTimeSigEvents),
+    };
+  });
+  if (!phrasePlan) return variants;
+  return applyPhrasePlan(variants, phrasePlan, { sourceTempoBpm: sourceTempo, maxDurBeats: opts.maxDurBeats }).map(variant => {
+    if (variant.phraseProtection?.status !== "preserved") return variant;
+    return { ...variant,
+      // Derived accompaniment metadata must describe the final restored notes.
+      // Explicit source-supplied charts retain their separate existing authority.
+      chords: opts.chords ? variant.chords : chordsAt(variant.notes, grid, src.durationBeats, true),
+      bassPattern: variant.level === "advanced" || variant.level === "medium"
+        ? detectBassPattern(variant.notes.filter(n => n.hand === "L")) : variant.bassPattern,
     };
   });
 }

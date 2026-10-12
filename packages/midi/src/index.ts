@@ -1,4 +1,6 @@
 export * from "./types.js";
+export { sourcePhraseClock, canonicalPhrasePlan, compilePhrasePlan, applyPhrasePlan, suggestPhrasePlan } from "./phrase-plan.js";
+export type { PhrasePlanV1, SourcePhrase, PhraseEvent, PhraseRole, PhraseAuthority, PhraseTransformation, PhraseProtectionReport } from "./phrase-plan.js";
 export { inferHarmonyTimeline, harmonySegments, type HarmonySegment } from "./harmony.js";
 export { CHORDS_TUNING, type ChordsTuning, type HarmonyTuning, type StrikeTuning } from "./chords-tuning.js";
 export { parseMidi, midiBeatToNativeSeconds, midiTickToNativeSeconds } from "./parse.js";

@@ -25,6 +25,8 @@ import {
   DEFAULT_IMPORTED_MAX_SOUNDING,
   type ChordLabel,
   validateChordLabels,
+  canonicalPhrasePlan,
+  type PhrasePlanV1,
 } from "@keyspilli/midi";
 import { getSongsByBase, SongRow } from "./db.js";
 import { dataDir, uploadsDir } from "./paths.js";
@@ -89,6 +91,8 @@ export const TRANSCRIPTION_POST_PROCESSING_DEFAULTS = {
 } as const;
 
 export interface IngestInput {
+  /** Explicit local source-profile pilot; source bytes and plan are bound at intake. */
+  phrasePlan?: PhrasePlanV1;
   buf: Uint8Array;
   /** Optional hash of the logical source bytes. Audio workers use the source
    * audio hash here; ordinary imports default to hashing the supplied MIDI or
@@ -393,6 +397,29 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   if (inp.buf.byteLength > 16 * 1024 * 1024) return { baseId: "", songIds: [], error: "source exceeds 16 MiB limit" };
   const baseId = inp.baseId ?? generatedBaseId(inp.artist, inp.title);
   const sourceArtifactHash = inp.sourceArtifactHash ?? createHash("sha256").update(inp.buf).digest("hex");
+  let phrasePlanPin: ArrangementManifest["phrasePlan"];
+  if (inp.phrasePlan !== undefined) {
+    if (options.uploadReplay || inp.symbolicIntent || inp.contentType === "youtube") {
+      return { baseId: "", songIds: [], error: "phrase plan: pilot requires ordinary symbolic intake without replay or part/study selection" };
+    }
+    if (inp.preserveSourceBeats) {
+      return { baseId: "", songIds: [], error: "phrase plan: preserveSourceBeats cannot erase the native source clock under exact protection" };
+    }
+    const actualHash = createHash("sha256").update(inp.buf).digest("hex");
+    if (inp.phrasePlan?.source?.sha256 !== actualHash || sourceArtifactHash !== actualHash) {
+      return { baseId: "", songIds: [], error: "phrase plan: hash must match the actual supplied symbolic bytes" };
+    }
+    try {
+      const canonical = canonicalPhrasePlan(inp.phrasePlan);
+      if (Buffer.byteLength(canonical) > 2 * 1024 * 1024) throw new Error("plan exceeds 2 MiB");
+      phrasePlanPin = { schemaVersion: 1, sourceSha256: actualHash, sha256: createHash("sha256").update(canonical).digest("hex") };
+      // Retain one exact input snapshot across later awaits. A caller may reuse
+      // its byte buffer or edit its working plan while publication is pending.
+      inp = { ...inp, buf: Uint8Array.from(inp.buf), phrasePlan: JSON.parse(canonical) as PhrasePlanV1 };
+    } catch (error) {
+      return { baseId: "", songIds: [], error: `phrase plan: ${(error as Error).message}` };
+    }
+  }
   if (inp.sourceArtifactHash !== undefined && !/^[0-9a-f]{64}$/.test(inp.sourceArtifactHash)) {
     return { baseId: "", songIds: [], error: "invalid sourceArtifactHash: expected 64 lowercase hexadecimal characters" };
   }
@@ -460,7 +487,9 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     return { baseId: "", songIds: [], error: `parse failed: ${(e as Error).message}` };
   }
   // AI transcriptions carry ghost notes; human MIDI files do not.
-  parsed.tempoBpm = normalizeTempoBpm(inp.tempo ?? parsed.tempoBpm);
+  // A phrase plan binds the unmodified native parse. The separate SongMeta
+  // tempo below remains a playback override; it cannot rewrite source evidence.
+  if (!phrasePlanPin) parsed.tempoBpm = normalizeTempoBpm(inp.tempo ?? parsed.tempoBpm);
   if (inp.preserveSourceBeats) parsed.tempoEvents = undefined;
   if (inp.contentType === "youtube" && inp.cleanTranscription !== false) {
     // cleanTranscription uses a temporary pitch split while capping sustained
@@ -514,6 +543,12 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   const persistedProfile = inp.baseId
     ? await readArrangementManifest(baseId)
     : undefined;
+  if (persistedProfile?.status === "valid" && persistedProfile.manifest.phrasePlan && !phrasePlanPin) {
+    return { baseId: "", songIds: [], error: "phrase plan required to rebuild an existing protected arrangement; supply its explicit source policy" };
+  }
+  if (persistedProfile?.status === "invalid" && persistedProfile.errors.some(error => error.includes("phrasePlan"))) {
+    return { baseId: "", songIds: [], error: "phrase plan: existing manifest has an invalid policy pin; reconcile before rebuilding" };
+  }
   const arrangementProfile = inp.symbolicIntent ? "source" : inp.arrangementProfile
     ?? (persistedProfile?.status === "valid" && ["source", "learner", "metal"].includes(persistedProfile.manifest.arrangementProfile ?? "")
       ? persistedProfile.manifest.arrangementProfile as "source" | "learner" | "metal"
@@ -542,6 +577,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         {
           ...(maxDurBeats === undefined ? {} : { maxDurBeats }),
           arrangementProfile,
+          ...(phrasePlanPin ? { phrasePlan: inp.phrasePlan, sourceSha256: phrasePlanPin.sourceSha256 } : {}),
           ...(inp.symbolicIntent?.arrangementIntent === "backing-only-chords" ? { safeLeftHandOnly: true } : {}),
           audioDerived: inp.contentType === "youtube",
           ...(inp.chords ? { chords: inp.chords } : {}),
@@ -577,13 +613,14 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
   // as diagnostic provenance, so a variant remains self-describing without
   // creating a second source of truth.
   const resolvedAt = new Date().toISOString();
-  const calibrationSource: TempoSource = inp.tempo !== undefined
+  const calibrationSource: TempoSource = inp.tempo !== undefined && !phrasePlanPin
     ? "override"
     : transcription?.tempoSource
       ?? (inp.sourceArrangement?.sourceKind === "tutorial-preview" ? "default" : inp.contentType === "youtube" ? "detected" : "midi-meta");
   const tempoProvenance = {
     calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" as const },
-    playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" as const },
+    playback: { bpm: phrasePlanPin ? variants[0]!.tempoBpm : parsed.tempoBpm,
+      source: phrasePlanPin && inp.tempo !== undefined ? "override" as const : calibrationSource, resolvedAt, role: "playback" as const },
   };
   const prepared: Array<{ code: string; row: SongRow; midi: Uint8Array; xml: string; notesJson: string }> = [];
   const artifactErrors: string[] = [];
@@ -640,6 +677,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
         ...(v.sourcePreparation ? { sourcePreparation: v.sourcePreparation } : {}),
+        ...(v.phraseProtection ? { phraseProtection: v.phraseProtection } : {}),
         artifactFidelity: artifacts.fidelity,
         ...(v.sections?.length ? {sections:v.sections} : {}),
         ...(v.sourcePedal?{sourcePedal:v.sourcePedal}:{}),
@@ -699,6 +737,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       cleanTranscription: inp.contentType === "youtube" && inp.cleanTranscription !== false,
       maxDurBeats,
       arrangementProfile,
+      ...(phrasePlanPin ? { phrasePlanSha256: phrasePlanPin.sha256 } : {}),
       symbolicIntent: inp.symbolicIntent ?? null,
       chords: inp.chords ?? null,
       key: inp.key ?? null,
@@ -734,15 +773,13 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
     sourceArtifactHash,
     configFingerprint,
     arrangementProfile,
+    ...(phrasePlanPin ? { phrasePlan: phrasePlanPin } : {}),
     source: sourceProvenance,
     ...(candidate ? { candidate } : {}),
     ...(inp.sourceCandidateHandoff ? { sourceCandidateHandoff: inp.sourceCandidateHandoff } : {}),
     ...(inp.sourceArrangement ? { sourceArrangement: inp.sourceArrangement } : {}),
     ...(inp.symbolicIntent ? { symbolicIntent: inp.symbolicIntent } : {}),
-    tempo: {
-      calibration: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "source-calibration" },
-      playback: { bpm: parsed.tempoBpm, source: calibrationSource, resolvedAt, role: "playback" },
-    },
+    tempo: tempoProvenance,
     ...(transcription ? { transcription } : {}),
     artifactWrittenAt: resolvedAt,
   };

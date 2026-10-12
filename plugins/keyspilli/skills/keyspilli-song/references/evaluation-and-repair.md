@@ -15,6 +15,12 @@ Once the source has been arranged into suitable symbolic piano input:
 
 Accepts MIDI/MusicXML/MXL via `ingestSource`. Creates six variants under the exact upload-byte hash base ID, prepared backing, MIDI/XML, diagnoses, a portable bundle, and a second isolated installation. Re-import proves musical idempotence. The existing source/learner arrangement logic still needs musical assessment; this command deliberately writes `provisional`.
 
+For explicitly selected source events that must survive ordinary reduction,
+use the optional [phrase protection pilot](phrase-protection.md) when its
+inspector is present. Inspect exact source bytes first, review the uncertain
+roles, and supply the selected plan with `--phrase-plan FILE`. Its preservation
+report is separate from source-role accuracy and full musical acceptance.
+
 Original exports are `bundle/artifacts/a/variant.mid` and `variant.xml`; Chords exports are `bundle/chords.mid` and `chords.musicxml`. Export aliases may be supplied for convenience. `bundle.json` pins every file, complete six-level publication and exact Player snapshot. Keep the directory intact.
 
 For the existing catalog, use the implementation map's frozen inventory/snapshot and append `--repair` to `prepare-catalog-chords.mts`. Existing mapped backings and explicit `harmonizations.json` overrides are preserved. Repair only tries bass/stack-anchored harmony windows; it retains a candidate only with a material improvement in sounding LH support and no measured dead-air, clash, duplicate-attack or wide-hand regression. It does not invent chart evidence. One rejected proposal is a stopping condition for that automatic method; the agent may pursue a different source-backed correction.

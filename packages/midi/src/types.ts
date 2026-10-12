@@ -246,6 +246,8 @@ export interface SongMeta {
 }
 
 export interface Variant {
+  /** Opt-in source-bound phrase policy and selected-event preservation report. */
+  phraseProtection?: import("./phrase-plan.js").PhraseProtectionReport;
   sections?: Section[];
   sourcePedal?: SourcePedalTimeline;
   level: DifficultyLevel;
