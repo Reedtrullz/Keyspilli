@@ -1,0 +1,4249 @@
+{
+  "schemaVersion": 1,
+  "kind": "keyspilli-ks11-authored-plan-set",
+  "caseId": "pedal-envelope",
+  "reviewStatus": "PROPOSED — independent reference review pending",
+  "plans": {
+    "very-beginner": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "very-beginner"
+      ],
+      "source": {
+        "sha256": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+        "compositionId": "ks11-v1:pedal:original-composition",
+        "performanceId": "ks11-v1:pedal-envelope:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "pedal-envelope:local-probe",
+          "occurrenceId": "pedal-envelope:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:released60:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:released60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:unpedalled-left48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 2,
+                "durationBeats": 0.75,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:new72:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:new72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 2,
+                "durationBeats": 0.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:after-pedal-up67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 4,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:continuation",
+          "occurrenceId": "pedal-envelope:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:line-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 40,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-06:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-07:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 62,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-08:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 64,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-09:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 45,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-10:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-11:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-12:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-13:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-14:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-15:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-16:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 62,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-17:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 40,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-18:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-19:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 66,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-20:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:declared-rests",
+          "occurrenceId": "pedal-envelope:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "pedal-envelope:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "pedal-envelope:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "pedal-envelope:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "beginner": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "beginner"
+      ],
+      "source": {
+        "sha256": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+        "compositionId": "ks11-v1:pedal:original-composition",
+        "performanceId": "ks11-v1:pedal-envelope:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "pedal-envelope:local-probe",
+          "occurrenceId": "pedal-envelope:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:released60:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:released60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:unpedalled-left48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 2,
+                "durationBeats": 0.75,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:new72:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:new72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 2,
+                "durationBeats": 0.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:after-pedal-up67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 4,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:continuation",
+          "occurrenceId": "pedal-envelope:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:line-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 40,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-06:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-07:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 62,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-08:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 64,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-09:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 45,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-10:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-11:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-12:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-13:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-14:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-15:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-16:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 62,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-17:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 40,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-18:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-19:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 66,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-20:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:declared-rests",
+          "occurrenceId": "pedal-envelope:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "pedal-envelope:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "pedal-envelope:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "pedal-envelope:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "very-easy": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "very-easy"
+      ],
+      "source": {
+        "sha256": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+        "compositionId": "ks11-v1:pedal:original-composition",
+        "performanceId": "ks11-v1:pedal-envelope:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "pedal-envelope:local-probe",
+          "occurrenceId": "pedal-envelope:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:released60:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:released60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:unpedalled-left48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 2,
+                "durationBeats": 0.75,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:new72:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:new72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 2,
+                "durationBeats": 0.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:after-pedal-up67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 4,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:continuation",
+          "occurrenceId": "pedal-envelope:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:line-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-06:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-07:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 62,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-08:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 64,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-09:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 45,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-10:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-11:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-12:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-13:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-14:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-15:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-16:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 62,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-17:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-18:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-19:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 66,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-20:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:declared-rests",
+          "occurrenceId": "pedal-envelope:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "pedal-envelope:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "pedal-envelope:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "pedal-envelope:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "easy": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "easy"
+      ],
+      "source": {
+        "sha256": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+        "compositionId": "ks11-v1:pedal:original-composition",
+        "performanceId": "ks11-v1:pedal-envelope:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "pedal-envelope:local-probe",
+          "occurrenceId": "pedal-envelope:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:released60:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:released60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:unpedalled-left48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 2,
+                "durationBeats": 0.75,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:new72:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:new72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 2,
+                "durationBeats": 0.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:after-pedal-up67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 4,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:continuation",
+          "occurrenceId": "pedal-envelope:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:line-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-06:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-07:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 62,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-08:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 64,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-09:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 45,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-10:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-11:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-12:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-13:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-14:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-15:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-16:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 62,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-17:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-18:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-19:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 66,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-20:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:declared-rests",
+          "occurrenceId": "pedal-envelope:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "pedal-envelope:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "pedal-envelope:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "pedal-envelope:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "medium": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "medium"
+      ],
+      "source": {
+        "sha256": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+        "compositionId": "ks11-v1:pedal:original-composition",
+        "performanceId": "ks11-v1:pedal-envelope:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "pedal-envelope:local-probe",
+          "occurrenceId": "pedal-envelope:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:released60:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:released60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:unpedalled-left48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 2,
+                "durationBeats": 0.75,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:new72:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:new72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 2,
+                "durationBeats": 0.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:after-pedal-up67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 4,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:continuation",
+          "occurrenceId": "pedal-envelope:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:line-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 43,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-06:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-07:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 62,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-08:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 64,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-09:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 45,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-10:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-11:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-12:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-13:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-14:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-15:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-16:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 62,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-17:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-18:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-19:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 66,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-20:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:declared-rests",
+          "occurrenceId": "pedal-envelope:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "pedal-envelope:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "pedal-envelope:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "pedal-envelope:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "advanced": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "advanced"
+      ],
+      "source": {
+        "sha256": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+        "compositionId": "ks11-v1:pedal:original-composition",
+        "performanceId": "ks11-v1:pedal-envelope:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "pedal-envelope:local-probe",
+          "occurrenceId": "pedal-envelope:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:released60:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:released60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:unpedalled-left48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 2,
+                "durationBeats": 0.75,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:new72:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:new72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 2,
+                "durationBeats": 0.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:after-pedal-up67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 4,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:continuation",
+          "occurrenceId": "pedal-envelope:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:pedal-envelope:line-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 43,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-06:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-07:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 62,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-08:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 64,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-09:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 45,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-10:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-11:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-12:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-13:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-14:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-15:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-16:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 62,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-17:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 40,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-18:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-19:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 66,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:pedal-envelope:line-20:attack",
+              "sourceOriginId": "ks11-v1:pedal-envelope:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "pedal-envelope:declared-rests",
+          "occurrenceId": "pedal-envelope:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "pedal-envelope:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "pedal-envelope:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "pedal-envelope:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

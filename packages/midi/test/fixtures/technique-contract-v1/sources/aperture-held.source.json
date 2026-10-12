@@ -1,0 +1,721 @@
+{
+  "format": 1,
+  "division": 960,
+  "tempoBpm": 120,
+  "tempoMetaPresent": true,
+  "tempoEvents": [
+    {
+      "tick": 0,
+      "beat": 0,
+      "microsecondsPerQuarter": 500000,
+      "bpm": 120
+    }
+  ],
+  "keySig": 0,
+  "keyMode": 0,
+  "timeSig": [
+    4,
+    4
+  ],
+  "timeSigEvents": [
+    {
+      "tick": 0,
+      "beat": 0,
+      "timeSig": [
+        4,
+        4
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "sourceMidiChannel": 0,
+      "midi": 60,
+      "start": 0,
+      "dur": 4.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:low-window:origin",
+          "originalId": "ks11-v1:aperture-held:low-window:written",
+          "measureIndex": 0,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 1,
+      "midi": 43,
+      "start": 2,
+      "dur": 0.5,
+      "vel": 88,
+      "sourceLane": "authored-beta",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:left-punctuation:origin",
+          "originalId": "ks11-v1:aperture-held:left-punctuation:written",
+          "measureIndex": 0,
+          "occurrence": 1,
+          "part": "authored-beta",
+          "staff": "2",
+          "voice": "1"
+        }
+      ],
+      "hand": "L"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 79,
+      "start": 4,
+      "dur": 0.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:high-window:origin",
+          "originalId": "ks11-v1:aperture-held:high-window:written",
+          "measureIndex": 1,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 65,
+      "start": 12,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-01:origin",
+          "originalId": "ks11-v1:aperture-held:line-01:written",
+          "measureIndex": 3,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 1,
+      "midi": 43,
+      "start": 16,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-beta",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:anchor-01:origin",
+          "originalId": "ks11-v1:aperture-held:anchor-01:written",
+          "measureIndex": 4,
+          "occurrence": 1,
+          "part": "authored-beta",
+          "staff": "2",
+          "voice": "1"
+        }
+      ],
+      "hand": "L"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 67,
+      "start": 16,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-02:origin",
+          "originalId": "ks11-v1:aperture-held:line-02:written",
+          "measureIndex": 4,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 69,
+      "start": 20,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-03:origin",
+          "originalId": "ks11-v1:aperture-held:line-03:written",
+          "measureIndex": 5,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 67,
+      "start": 24,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-04:origin",
+          "originalId": "ks11-v1:aperture-held:line-04:written",
+          "measureIndex": 6,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 64,
+      "start": 28,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-05:origin",
+          "originalId": "ks11-v1:aperture-held:line-05:written",
+          "measureIndex": 7,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 1,
+      "midi": 45,
+      "start": 32,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-beta",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:anchor-02:origin",
+          "originalId": "ks11-v1:aperture-held:anchor-02:written",
+          "measureIndex": 8,
+          "occurrence": 1,
+          "part": "authored-beta",
+          "staff": "2",
+          "voice": "1"
+        }
+      ],
+      "hand": "L"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 62,
+      "start": 32,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-06:origin",
+          "originalId": "ks11-v1:aperture-held:line-06:written",
+          "measureIndex": 8,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 65,
+      "start": 36,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-07:origin",
+          "originalId": "ks11-v1:aperture-held:line-07:written",
+          "measureIndex": 9,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 69,
+      "start": 40,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-08:origin",
+          "originalId": "ks11-v1:aperture-held:line-08:written",
+          "measureIndex": 10,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 71,
+      "start": 44,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-09:origin",
+          "originalId": "ks11-v1:aperture-held:line-09:written",
+          "measureIndex": 11,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 1,
+      "midi": 47,
+      "start": 48,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-beta",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:anchor-03:origin",
+          "originalId": "ks11-v1:aperture-held:anchor-03:written",
+          "measureIndex": 12,
+          "occurrence": 1,
+          "part": "authored-beta",
+          "staff": "2",
+          "voice": "1"
+        }
+      ],
+      "hand": "L"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 69,
+      "start": 48,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-10:origin",
+          "originalId": "ks11-v1:aperture-held:line-10:written",
+          "measureIndex": 12,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 67,
+      "start": 52,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-11:origin",
+          "originalId": "ks11-v1:aperture-held:line-11:written",
+          "measureIndex": 13,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 64,
+      "start": 56,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-12:origin",
+          "originalId": "ks11-v1:aperture-held:line-12:written",
+          "measureIndex": 14,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 62,
+      "start": 60,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-13:origin",
+          "originalId": "ks11-v1:aperture-held:line-13:written",
+          "measureIndex": 15,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 1,
+      "midi": 45,
+      "start": 64,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-beta",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:anchor-04:origin",
+          "originalId": "ks11-v1:aperture-held:anchor-04:written",
+          "measureIndex": 16,
+          "occurrence": 1,
+          "part": "authored-beta",
+          "staff": "2",
+          "voice": "1"
+        }
+      ],
+      "hand": "L"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 65,
+      "start": 64,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-14:origin",
+          "originalId": "ks11-v1:aperture-held:line-14:written",
+          "measureIndex": 16,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 67,
+      "start": 68,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-15:origin",
+          "originalId": "ks11-v1:aperture-held:line-15:written",
+          "measureIndex": 17,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 69,
+      "start": 72,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-16:origin",
+          "originalId": "ks11-v1:aperture-held:line-16:written",
+          "measureIndex": 18,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 72,
+      "start": 76,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-17:origin",
+          "originalId": "ks11-v1:aperture-held:line-17:written",
+          "measureIndex": 19,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 1,
+      "midi": 41,
+      "start": 80,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-beta",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:anchor-05:origin",
+          "originalId": "ks11-v1:aperture-held:anchor-05:written",
+          "measureIndex": 20,
+          "occurrence": 1,
+          "part": "authored-beta",
+          "staff": "2",
+          "voice": "1"
+        }
+      ],
+      "hand": "L"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 71,
+      "start": 80,
+      "dur": 1.5,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-18:origin",
+          "originalId": "ks11-v1:aperture-held:line-18:written",
+          "measureIndex": 20,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 69,
+      "start": 84,
+      "dur": 1,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-19:origin",
+          "originalId": "ks11-v1:aperture-held:line-19:written",
+          "measureIndex": 21,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    },
+    {
+      "sourceMidiChannel": 0,
+      "midi": 65,
+      "start": 88,
+      "dur": 2,
+      "vel": 88,
+      "sourceLane": "authored-alpha",
+      "sourceOrigins": [
+        {
+          "id": "ks11-v1:aperture-held:line-20:origin",
+          "originalId": "ks11-v1:aperture-held:line-20:written",
+          "measureIndex": 22,
+          "occurrence": 1,
+          "part": "authored-alpha",
+          "staff": "1",
+          "voice": "1"
+        }
+      ],
+      "hand": "R"
+    }
+  ],
+  "trackNames": [
+    "Authored alpha",
+    "Authored beta",
+    "Authored gamma"
+  ],
+  "notationMeasures": [
+    {
+      "index": 0,
+      "startBeat": 0,
+      "endBeat": 4
+    },
+    {
+      "index": 1,
+      "startBeat": 4,
+      "endBeat": 8
+    },
+    {
+      "index": 2,
+      "startBeat": 8,
+      "endBeat": 12
+    },
+    {
+      "index": 3,
+      "startBeat": 12,
+      "endBeat": 16
+    },
+    {
+      "index": 4,
+      "startBeat": 16,
+      "endBeat": 20
+    },
+    {
+      "index": 5,
+      "startBeat": 20,
+      "endBeat": 24
+    },
+    {
+      "index": 6,
+      "startBeat": 24,
+      "endBeat": 28
+    },
+    {
+      "index": 7,
+      "startBeat": 28,
+      "endBeat": 32
+    },
+    {
+      "index": 8,
+      "startBeat": 32,
+      "endBeat": 36
+    },
+    {
+      "index": 9,
+      "startBeat": 36,
+      "endBeat": 40
+    },
+    {
+      "index": 10,
+      "startBeat": 40,
+      "endBeat": 44
+    },
+    {
+      "index": 11,
+      "startBeat": 44,
+      "endBeat": 48
+    },
+    {
+      "index": 12,
+      "startBeat": 48,
+      "endBeat": 52
+    },
+    {
+      "index": 13,
+      "startBeat": 52,
+      "endBeat": 56
+    },
+    {
+      "index": 14,
+      "startBeat": 56,
+      "endBeat": 60
+    },
+    {
+      "index": 15,
+      "startBeat": 60,
+      "endBeat": 64
+    },
+    {
+      "index": 16,
+      "startBeat": 64,
+      "endBeat": 68
+    },
+    {
+      "index": 17,
+      "startBeat": 68,
+      "endBeat": 72
+    },
+    {
+      "index": 18,
+      "startBeat": 72,
+      "endBeat": 76
+    },
+    {
+      "index": 19,
+      "startBeat": 76,
+      "endBeat": 80
+    },
+    {
+      "index": 20,
+      "startBeat": 80,
+      "endBeat": 84
+    },
+    {
+      "index": 21,
+      "startBeat": 84,
+      "endBeat": 88
+    },
+    {
+      "index": 22,
+      "startBeat": 88,
+      "endBeat": 92
+    },
+    {
+      "index": 23,
+      "startBeat": 92,
+      "endBeat": 96
+    }
+  ],
+  "durationBeats": 96,
+  "title": "Aperture — occupied window"
+}

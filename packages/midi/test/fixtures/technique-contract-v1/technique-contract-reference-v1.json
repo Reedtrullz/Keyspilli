@@ -1,0 +1,2547 @@
+{
+  "schemaVersion": 1,
+  "kind": "keyspilli-technique-contract-reference",
+  "version": "1.0.0-proposed-2",
+  "reviewStatus": "PROPOSED — independently checked freeze pending",
+  "authority": "Independent source arithmetic over authored declarations, not current or future diagnostic output.",
+  "quantityEncoding": "Rational strings are the exact mathematical expectations; number fields are a convenient finite JSON encoding.",
+  "identityArraySemantics": "Event/origin ID witness lists denote complete sets unless an explicit chronological pair or ordered sequence is named. Stable rendered output uses the policy ordering; compatible-unison origin IDs are ASCII-sorted.",
+  "sourceBinding": {
+    "aperture-open": "ae3fcb1375f0fe9db7b1ecc51c98f7e626d3ea4d37981ac091b138b89e4284ef",
+    "aperture-held": "a03aac26048e1cb2f88a9b909964ce701820a2d5c55024250d9a181176e55864",
+    "boundary-garden": "4eff3146f680cf8400b98616b3353d2189fe8df6dc95eeb2a8b0197c50695b5e",
+    "alternating-beacon": "8a728b8cec5dd8eb2ee144d20a3e6e80bc9d611548980e4b3b804d9384f3dc8d",
+    "prism-barline": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+    "changing-hourglass": "a98441dede3e2491aa60255250261c5d7880cce9e3d079b00e592d705b7c5a70",
+    "pedal-envelope": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+    "unnamed-hands": "eed0e35a69c5c9343bd78a34bf826f29570f17de11867c6cc793028e6a12be9c",
+    "clock-unknown": "d90dfc2c1050dea21079e4c20ddde23b905b58aa927aa9db8f43290e257f4165",
+    "clock-malformed": "c5d221b8484330524abc2f58183cf4a7823a73683d2e81c7588ff99572c96bb1",
+    "same-key-overlap": "ddbef3a6d80919afae6744c97b425c6c6edd8634105d73b3d158ffb4832d13a5"
+  },
+  "appliesTo": "Authored source inputs and explicitly named hypothetical clock witnesses. These are not complete desired tier arrangements.",
+  "generatedOutputUse": "Compare required mapped event-pair fields when applicable. Full generated held sets and adjacency may differ if allowed optional material changes; retain those as observed facts. Never overwrite source references from generated outputs.",
+  "cases": {
+    "aperture-open": {
+      "clockStatus": "known",
+      "localWindowSourceBeats": [
+        "0",
+        "8"
+      ],
+      "localRPhysicalAttackCount": 2,
+      "events": [
+        {
+          "eventId": "ks11-v1:aperture-open:low-window:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:aperture-open:high-window:attack",
+          "midi": 79,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "9/2",
+              "number": 4.5
+            },
+            "nativeSeconds": {
+              "rational": "9/4",
+              "number": 2.25
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          }
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "aperture-open:at-high-window",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:aperture-open:high-window:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "registerTransitions": [
+        {
+          "id": "aperture-open:low-to-high",
+          "priorGroupEventIds": [
+            "ks11-v1:aperture-open:low-window:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:aperture-open:high-window:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            60,
+            60
+          ],
+          "nextPitchRange": [
+            79,
+            79
+          ],
+          "priorAnchorMidi": 60,
+          "nextAnchorMidi": 79,
+          "signedSemitoneDisplacement": 19,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "7/2",
+              "number": 3.5
+            },
+            "nativeSeconds": {
+              "rational": "7/4",
+              "number": 1.75
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        }
+      ],
+      "pairedControl": {
+        "otherCaseId": "aperture-held",
+        "onlyAuthoredMusicalDifference": "low-window physical duration: 1/2 beat versus 9/2 beats",
+        "sameOnsetIntervalSourceBeats": "4",
+        "sameOnsetIntervalNativeSeconds": "2",
+        "samePitchDisplacementSemitones": 19
+      }
+    },
+    "aperture-held": {
+      "clockStatus": "known",
+      "localWindowSourceBeats": [
+        "0",
+        "8"
+      ],
+      "localRPhysicalAttackCount": 2,
+      "events": [
+        {
+          "eventId": "ks11-v1:aperture-held:low-window:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "9/2",
+              "number": 4.5
+            },
+            "nativeSeconds": {
+              "rational": "9/4",
+              "number": 2.25
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "9/2",
+              "number": 4.5
+            },
+            "nativeSeconds": {
+              "rational": "9/4",
+              "number": 2.25
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:aperture-held:high-window:attack",
+          "midi": 79,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "9/2",
+              "number": 4.5
+            },
+            "nativeSeconds": {
+              "rational": "9/4",
+              "number": 2.25
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          }
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "aperture-held:at-high-window",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:aperture-held:high-window:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [
+            "ks11-v1:aperture-held:low-window:attack"
+          ],
+          "expectedReleasedExactlyAtAttackEventIds": [],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "registerTransitions": [
+        {
+          "id": "aperture-held:low-to-high",
+          "priorGroupEventIds": [
+            "ks11-v1:aperture-held:low-window:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:aperture-held:high-window:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            60,
+            60
+          ],
+          "nextPitchRange": [
+            79,
+            79
+          ],
+          "priorAnchorMidi": 60,
+          "nextAnchorMidi": 79,
+          "signedSemitoneDisplacement": 19,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "9/2",
+              "number": 4.5
+            },
+            "nativeSeconds": {
+              "rational": "9/4",
+              "number": 2.25
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "-1/2",
+              "number": -0.5
+            },
+            "nativeSeconds": {
+              "rational": "-1/4",
+              "number": -0.25
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        }
+      ],
+      "pairedControl": {
+        "otherCaseId": "aperture-open",
+        "onlyAuthoredMusicalDifference": "low-window physical duration: 1/2 beat versus 9/2 beats",
+        "sameOnsetIntervalSourceBeats": "4",
+        "sameOnsetIntervalNativeSeconds": "2",
+        "samePitchDisplacementSemitones": 19
+      }
+    },
+    "boundary-garden": {
+      "clockStatus": "known",
+      "events": [
+        {
+          "eventId": "ks11-v1:boundary-garden:release-at-two:attack",
+          "midi": 64,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:boundary-garden:carry-until-four:attack",
+          "midi": 67,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:boundary-garden:attack-at-two:attack",
+          "midi": 76,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:boundary-garden:attack-at-three:attack",
+          "midi": 72,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:boundary-garden:attack-at-four:attack",
+          "midi": 74,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "5/2",
+              "number": 2.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "boundary-garden:at-two",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:boundary-garden:attack-at-two:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [
+            "ks11-v1:boundary-garden:carry-until-four:attack"
+          ],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:boundary-garden:release-at-two:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        },
+        {
+          "id": "boundary-garden:at-three",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:boundary-garden:attack-at-three:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [
+            "ks11-v1:boundary-garden:carry-until-four:attack"
+          ],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:boundary-garden:attack-at-two:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        },
+        {
+          "id": "boundary-garden:at-four",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:boundary-garden:attack-at-four:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:boundary-garden:carry-until-four:attack",
+            "ks11-v1:boundary-garden:attack-at-three:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        },
+        {
+          "id": "boundary-garden:left-at-two",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "hand": "L",
+          "newAttackEventIds": [
+            "ks11-v1:boundary-garden:left-attack-at-two:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:boundary-garden:left-release-at-two:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "registerTransitions": [
+        {
+          "id": "boundary-garden:zero-to-two",
+          "priorGroupEventIds": [
+            "ks11-v1:boundary-garden:release-at-two:attack",
+            "ks11-v1:boundary-garden:carry-until-four:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:boundary-garden:attack-at-two:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            64,
+            67
+          ],
+          "nextPitchRange": [
+            76,
+            76
+          ],
+          "priorAnchorMidi": 67,
+          "nextAnchorMidi": 76,
+          "signedSemitoneDisplacement": 9,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "-2",
+              "number": -2
+            },
+            "nativeSeconds": {
+              "rational": "-1",
+              "number": -1
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        },
+        {
+          "id": "boundary-garden:two-to-three",
+          "priorGroupEventIds": [
+            "ks11-v1:boundary-garden:attack-at-two:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:boundary-garden:attack-at-three:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            76,
+            76
+          ],
+          "nextPitchRange": [
+            72,
+            72
+          ],
+          "priorAnchorMidi": 76,
+          "nextAnchorMidi": 72,
+          "signedSemitoneDisplacement": -4,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        },
+        {
+          "id": "boundary-garden:three-to-four",
+          "priorGroupEventIds": [
+            "ks11-v1:boundary-garden:attack-at-three:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:boundary-garden:attack-at-four:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            72,
+            72
+          ],
+          "nextPitchRange": [
+            74,
+            74
+          ],
+          "priorAnchorMidi": 72,
+          "nextAnchorMidi": 74,
+          "signedSemitoneDisplacement": 2,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        }
+      ],
+      "nonadjacentCarryWitness": {
+        "atSourceBeat": "3",
+        "carriedEventId": "ks11-v1:boundary-garden:carry-until-four:attack",
+        "carriedEventAttackBeat": "0",
+        "immediatelyPriorRGroupAttackBeat": "2",
+        "basis": "Carry checks all earlier active events, not just the previous attack group."
+      }
+    },
+    "alternating-beacon": {
+      "clockStatus": "known",
+      "events": [
+        {
+          "eventId": "ks11-v1:alternating-beacon:key60-a:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:alternating-beacon:key60-b:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "3/2",
+              "number": 1.5
+            },
+            "nativeSeconds": {
+              "rational": "3/4",
+              "number": 0.75
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "9/4",
+              "number": 2.25
+            },
+            "nativeSeconds": {
+              "rational": "9/8",
+              "number": 1.125
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "3/4",
+              "number": 0.75
+            },
+            "nativeSeconds": {
+              "rational": "3/8",
+              "number": 0.375
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:alternating-beacon:key60-c:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:alternating-beacon:key60-d:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "5/2",
+              "number": 2.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        }
+      ],
+      "sameKeyRecurrences": [
+        {
+          "id": "alternating-beacon:a-to-b",
+          "hand": "R",
+          "midi": 60,
+          "priorEventId": "ks11-v1:alternating-beacon:key60-a:attack",
+          "nextEventId": "ks11-v1:alternating-beacon:key60-b:attack",
+          "consecutiveForHandAndKey": true,
+          "interveningOtherHandEventIds": [
+            "ks11-v1:alternating-beacon:left-between-ab:attack"
+          ],
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "3/2",
+              "number": 1.5
+            },
+            "nativeSeconds": {
+              "rational": "3/4",
+              "number": 0.75
+            }
+          },
+          "priorPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        },
+        {
+          "id": "alternating-beacon:b-to-c",
+          "hand": "R",
+          "midi": 60,
+          "priorEventId": "ks11-v1:alternating-beacon:key60-b:attack",
+          "nextEventId": "ks11-v1:alternating-beacon:key60-c:attack",
+          "consecutiveForHandAndKey": true,
+          "interveningOtherHandEventIds": [
+            "ks11-v1:alternating-beacon:left-between-bc:attack"
+          ],
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "3/2",
+              "number": 1.5
+            },
+            "nativeSeconds": {
+              "rational": "3/4",
+              "number": 0.75
+            }
+          },
+          "priorPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "9/4",
+              "number": 2.25
+            },
+            "nativeSeconds": {
+              "rational": "9/8",
+              "number": 1.125
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "3/4",
+              "number": 0.75
+            },
+            "nativeSeconds": {
+              "rational": "3/8",
+              "number": 0.375
+            }
+          }
+        },
+        {
+          "id": "alternating-beacon:c-to-d",
+          "hand": "R",
+          "midi": 60,
+          "priorEventId": "ks11-v1:alternating-beacon:key60-c:attack",
+          "nextEventId": "ks11-v1:alternating-beacon:key60-d:attack",
+          "consecutiveForHandAndKey": true,
+          "interveningOtherHandEventIds": [
+            "ks11-v1:alternating-beacon:left-between-cd:attack"
+          ],
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          },
+          "priorPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          }
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "alternating-beacon:at-d",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:alternating-beacon:key60-d:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:alternating-beacon:key60-c:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "occurrenceCheck": {
+        "firstOrigin": "ks11-v1:alternating-beacon:key60-a:origin",
+        "firstOccurrence": 1,
+        "secondOrigin": "ks11-v1:alternating-beacon:key60-b:origin",
+        "secondOccurrence": 2,
+        "sameOriginalId": "ks11-v1:alternating-beacon:returned-key60:written",
+        "independentPlayedAttacks": 2
+      }
+    },
+    "prism-barline": {
+      "clockStatus": "known",
+      "events": [
+        {
+          "eventId": "ks11-v1:prism-barline:barline-tie69:attack",
+          "midi": 69,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "5/2",
+              "number": 2.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:prism-barline:triplet72:attack",
+          "midi": 72,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "5/2",
+              "number": 2.5
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "16/3",
+              "number": 5.333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "8/3",
+              "number": 2.6666666666666665
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/3",
+              "number": 0.3333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "1/6",
+              "number": 0.16666666666666666
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:prism-barline:triplet74:attack",
+          "midi": 74,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "16/3",
+              "number": 5.333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "8/3",
+              "number": 2.6666666666666665
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "17/3",
+              "number": 5.666666666666667
+            },
+            "nativeSeconds": {
+              "rational": "17/6",
+              "number": 2.8333333333333335
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/3",
+              "number": 0.3333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "1/6",
+              "number": 0.16666666666666666
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:prism-barline:triplet76:attack",
+          "midi": 76,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "17/3",
+              "number": 5.666666666666667
+            },
+            "nativeSeconds": {
+              "rational": "17/6",
+              "number": 2.8333333333333335
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "6",
+              "number": 6
+            },
+            "nativeSeconds": {
+              "rational": "3",
+              "number": 3
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/3",
+              "number": 0.3333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "1/6",
+              "number": 0.16666666666666666
+            }
+          }
+        }
+      ],
+      "multiplicity": [
+        {
+          "atSourceBeat": "0",
+          "globalPhysicalAttackCount": 4,
+          "globalSourceOriginOccurrenceCount": 5,
+          "rightPhysicalAttackCount": 3,
+          "rightSourceOriginOccurrenceCount": 4,
+          "compatibleUnisonPhysicalEventId": "ks11-v1:prism-barline:unison60:attack",
+          "compatibleUnisonOriginIds": [
+            "ks11-v1:prism-barline:unison60-secondary:origin",
+            "ks11-v1:prism-barline:unison60:origin"
+          ],
+          "serializedPhysicalUnisonAttackCount": 1,
+          "inventedSecondUnisonAttackAllowed": false
+        }
+      ],
+      "ties": [
+        {
+          "physicalEventId": "ks11-v1:prism-barline:barline-tie69:attack",
+          "notationSegmentCount": 2,
+          "physicalAttackCount": 1,
+          "sourceAttackBeat": "3",
+          "sourcePhysicalReleaseBeat": "5",
+          "barBoundaryBeat": "4",
+          "newAttackCountAtBarBoundary": 0,
+          "tieCreatesSameKeyRecurrence": false
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "prism-barline:first-triplet",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "5/2",
+              "number": 2.5
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:prism-barline:triplet72:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:prism-barline:barline-tie69:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        },
+        {
+          "id": "prism-barline:second-triplet",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "16/3",
+              "number": 5.333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "8/3",
+              "number": 2.6666666666666665
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:prism-barline:triplet74:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:prism-barline:triplet72:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        },
+        {
+          "id": "prism-barline:third-triplet",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "17/3",
+              "number": 5.666666666666667
+            },
+            "nativeSeconds": {
+              "rational": "17/6",
+              "number": 2.8333333333333335
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:prism-barline:triplet76:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:prism-barline:triplet74:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        },
+        {
+          "id": "prism-barline:cadence",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "6",
+              "number": 6
+            },
+            "nativeSeconds": {
+              "rational": "3",
+              "number": 3
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:prism-barline:cadence67:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [
+            "ks11-v1:prism-barline:triplet76:attack"
+          ],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "registerTransitions": [
+        {
+          "id": "prism-barline:triplet-one-two",
+          "priorGroupEventIds": [
+            "ks11-v1:prism-barline:triplet72:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:prism-barline:triplet74:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            72,
+            72
+          ],
+          "nextPitchRange": [
+            74,
+            74
+          ],
+          "priorAnchorMidi": 72,
+          "nextAnchorMidi": 74,
+          "signedSemitoneDisplacement": 2,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "1/3",
+              "number": 0.3333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "1/6",
+              "number": 0.16666666666666666
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "16/3",
+              "number": 5.333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "8/3",
+              "number": 2.6666666666666665
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        },
+        {
+          "id": "prism-barline:triplet-two-three",
+          "priorGroupEventIds": [
+            "ks11-v1:prism-barline:triplet74:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:prism-barline:triplet76:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            74,
+            74
+          ],
+          "nextPitchRange": [
+            76,
+            76
+          ],
+          "priorAnchorMidi": 74,
+          "nextAnchorMidi": 76,
+          "signedSemitoneDisplacement": 2,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "1/3",
+              "number": 0.3333333333333333
+            },
+            "nativeSeconds": {
+              "rational": "1/6",
+              "number": 0.16666666666666666
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "17/3",
+              "number": 5.666666666666667
+            },
+            "nativeSeconds": {
+              "rational": "17/6",
+              "number": 2.8333333333333335
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        }
+      ]
+    },
+    "changing-hourglass": {
+      "clockStatus": "known",
+      "clockFormula": "T(b)=b/2 for 0<=b<=4; T(b)=2+(b-4) for b>=4; seconds at native speed.",
+      "clockCheckpoints": [
+        {
+          "sourceBeat": {
+            "rational": "0",
+            "number": 0
+          },
+          "nativeSeconds": {
+            "rational": "0",
+            "number": 0
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "2",
+            "number": 2
+          },
+          "nativeSeconds": {
+            "rational": "1",
+            "number": 1
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "4",
+            "number": 4
+          },
+          "nativeSeconds": {
+            "rational": "2",
+            "number": 2
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "6",
+            "number": 6
+          },
+          "nativeSeconds": {
+            "rational": "4",
+            "number": 4
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "13/2",
+            "number": 6.5
+          },
+          "nativeSeconds": {
+            "rational": "9/2",
+            "number": 4.5
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "7",
+            "number": 7
+          },
+          "nativeSeconds": {
+            "rational": "5",
+            "number": 5
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "12",
+            "number": 12
+          },
+          "nativeSeconds": {
+            "rational": "10",
+            "number": 10
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "88",
+            "number": 88
+          },
+          "nativeSeconds": {
+            "rational": "86",
+            "number": 86
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "90",
+            "number": 90
+          },
+          "nativeSeconds": {
+            "rational": "88",
+            "number": 88
+          }
+        },
+        {
+          "sourceBeat": {
+            "rational": "96",
+            "number": 96
+          },
+          "nativeSeconds": {
+            "rational": "94",
+            "number": 94
+          }
+        }
+      ],
+      "events": [
+        {
+          "eventId": "ks11-v1:changing-hourglass:tempo-hold60:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "7",
+              "number": 7
+            },
+            "nativeSeconds": {
+              "rational": "5",
+              "number": 5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "4",
+              "number": 4
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:changing-hourglass:after-change79:attack",
+          "midi": 79,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "6",
+              "number": 6
+            },
+            "nativeSeconds": {
+              "rational": "4",
+              "number": 4
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "13/2",
+              "number": 6.5
+            },
+            "nativeSeconds": {
+              "rational": "9/2",
+              "number": 4.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        }
+      ],
+      "holdPartition": {
+        "eventId": "ks11-v1:changing-hourglass:tempo-hold60:attack",
+        "segments": [
+          {
+            "startSourceBeat": "2",
+            "endSourceBeat": "4",
+            "quarterNoteSeconds": "1/2",
+            "segmentNativeSeconds": "1"
+          },
+          {
+            "startSourceBeat": "4",
+            "endSourceBeat": "7",
+            "quarterNoteSeconds": "1",
+            "segmentNativeSeconds": "3"
+          }
+        ],
+        "totalSourceDurationBeats": "5",
+        "totalNativeDurationSeconds": "4"
+      },
+      "heldAtAttack": [
+        {
+          "id": "changing-hourglass:at-after-change",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "6",
+              "number": 6
+            },
+            "nativeSeconds": {
+              "rational": "4",
+              "number": 4
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:changing-hourglass:after-change79:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [
+            "ks11-v1:changing-hourglass:tempo-hold60:attack"
+          ],
+          "expectedReleasedExactlyAtAttackEventIds": [],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "registerTransitions": [
+        {
+          "id": "changing-hourglass:hold-to-high",
+          "priorGroupEventIds": [
+            "ks11-v1:changing-hourglass:tempo-hold60:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:changing-hourglass:after-change79:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            60,
+            60
+          ],
+          "nextPitchRange": [
+            79,
+            79
+          ],
+          "priorAnchorMidi": 60,
+          "nextAnchorMidi": 79,
+          "signedSemitoneDisplacement": 19,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "3",
+              "number": 3
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "7",
+              "number": 7
+            },
+            "nativeSeconds": {
+              "rational": "5",
+              "number": 5
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "-1",
+              "number": -1
+            },
+            "nativeSeconds": {
+              "rational": "-1",
+              "number": -1
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        }
+      ],
+      "scenarioReference": {
+        "scenarioId": "half-native-speed",
+        "speedMultiplier": "1/2",
+        "noteIdentityAndSourceBeatsUnchanged": true,
+        "holdAttackSeconds": "2",
+        "nextAttackSeconds": "8",
+        "holdPhysicalReleaseSeconds": "10",
+        "onsetIntervalSeconds": "6",
+        "releaseToNextAttackSeconds": "-2"
+      },
+      "hypotheticalConstantClockWitness": {
+        "status": "authored arithmetic example, not an observed generated tier",
+        "constantClockQuarterBpm": 120,
+        "transform": "v(b)=T(b)*120/60",
+        "holdStartVariantBeat": "2",
+        "holdReleaseVariantBeat": "10",
+        "holdDurationVariantBeats": "8",
+        "nextStartVariantBeat": "8",
+        "nextReleaseVariantBeat": "9",
+        "nativeTempoMustNotBeIntegratedAgain": true
+      }
+    },
+    "pedal-envelope": {
+      "clockStatus": "known",
+      "events": [
+        {
+          "eventId": "ks11-v1:pedal-envelope:released60:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:pedal-envelope:new72:attack",
+          "midi": 72,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "5/2",
+              "number": 2.5
+            },
+            "nativeSeconds": {
+              "rational": "5/4",
+              "number": 1.25
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": {
+              "rational": "1/4",
+              "number": 0.25
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+          "midi": 48,
+          "sourceHand": "L",
+          "attack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "11/4",
+              "number": 2.75
+            },
+            "nativeSeconds": {
+              "rational": "11/8",
+              "number": 1.375
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "3/4",
+              "number": 0.75
+            },
+            "nativeSeconds": {
+              "rational": "3/8",
+              "number": 0.375
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+          "midi": 67,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "5/2",
+              "number": 2.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "pedal-envelope:at-new72",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:pedal-envelope:new72:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        },
+        {
+          "id": "pedal-envelope:at-pedal-up",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:pedal-envelope:after-pedal-up67:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "registerTransitions": [
+        {
+          "id": "pedal-envelope:released-to-new",
+          "priorGroupEventIds": [
+            "ks11-v1:pedal-envelope:released60:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:pedal-envelope:new72:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            60,
+            60
+          ],
+          "nextPitchRange": [
+            72,
+            72
+          ],
+          "priorAnchorMidi": 60,
+          "nextAnchorMidi": 72,
+          "signedSemitoneDisplacement": 12,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        },
+        {
+          "id": "pedal-envelope:new-to-pedal-up",
+          "priorGroupEventIds": [
+            "ks11-v1:pedal-envelope:new72:attack"
+          ],
+          "nextGroupEventIds": [
+            "ks11-v1:pedal-envelope:after-pedal-up67:attack"
+          ],
+          "hand": "R",
+          "groupRelation": "successive complete authored R attack groups in the local probe",
+          "anchor": "highest attacked MIDI pitch in each group",
+          "priorPitchRange": [
+            72,
+            72
+          ],
+          "nextPitchRange": [
+            67,
+            67
+          ],
+          "priorAnchorMidi": 72,
+          "nextAnchorMidi": 67,
+          "signedSemitoneDisplacement": -5,
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "priorGroupLatestPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "5/2",
+              "number": 2.5
+            },
+            "nativeSeconds": {
+              "rational": "5/4",
+              "number": 1.25
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "3/2",
+              "number": 1.5
+            },
+            "nativeSeconds": {
+              "rational": "3/4",
+              "number": 0.75
+            }
+          },
+          "handPositionTravel": "not-assessed",
+          "ergonomicInterpretation": "not-established"
+        }
+      ],
+      "cc64Facts": [
+        {
+          "atSourceBeat": "2",
+          "eventId": "ks11-v1:pedal-envelope:released60:attack",
+          "sourceMidiChannel": 0,
+          "physicalKeyHeld": false,
+          "physicalReleaseSourceBeat": "1",
+          "cc64OnlySustainEligible": true,
+          "cc64UpSourceBeat": "4"
+        },
+        {
+          "eventId": "ks11-v1:pedal-envelope:unpedalled-left48:attack",
+          "sourceMidiChannel": 1,
+          "cc64OnlySustainEligibleAfterRelease": false,
+          "basis": "Complete authored pedal timeline has no channel-1 pedal-down declaration."
+        },
+        {
+          "atSourceBeat": "4",
+          "releaseBeforeAttackForCc64": true,
+          "previousReleasedEligibleEventIds": [
+            "ks11-v1:pedal-envelope:released60:attack",
+            "ks11-v1:pedal-envelope:new72:attack"
+          ],
+          "newAttackEventId": "ks11-v1:pedal-envelope:after-pedal-up67:attack",
+          "cc64DownForNewAttack": false
+        }
+      ],
+      "resonanceLimit": "CC64-sustain eligibility is a declared controller fact, not a measured acoustic decay or finger/key occupation."
+    },
+    "unnamed-hands": {
+      "clockStatus": "known",
+      "handMapStatus": "incomplete-self-authored",
+      "events": [
+        {
+          "eventId": "ks11-v1:unnamed-hands:unassigned66-a:attack",
+          "midi": 66,
+          "sourceHand": null,
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:unnamed-hands:known-right76:attack",
+          "midi": 76,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "3",
+              "number": 3
+            },
+            "nativeSeconds": {
+              "rational": "3/2",
+              "number": 1.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:unnamed-hands:unassigned66-b:attack",
+          "midi": 66,
+          "sourceHand": null,
+          "attack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": {
+              "rational": "2",
+              "number": 2
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "5",
+              "number": 5
+            },
+            "nativeSeconds": {
+              "rational": "5/2",
+              "number": 2.5
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1",
+              "number": 1
+            },
+            "nativeSeconds": {
+              "rational": "1/2",
+              "number": 0.5
+            }
+          }
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "unnamed-hands:known-right-at-two",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:unnamed-hands:known-right76:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [],
+          "expectedReleasedExactlyAtAttackEventIds": [],
+          "unknownHandRelevantEventIds": [
+            "ks11-v1:unnamed-hands:unassigned66-a:attack"
+          ],
+          "qualification": "unknown-hand-attribution"
+        }
+      ],
+      "globalKeyFacts": {
+        "atSourceBeat": "2",
+        "knownPhysicalCarriedEventIds": [
+          "ks11-v1:unnamed-hands:unassigned66-a:attack"
+        ],
+        "carriedEventHand": null,
+        "rightCarriedListIsOnlyKnownLowerBound": true
+      },
+      "unqualifiedSameKeyPair": {
+        "priorEventId": "ks11-v1:unnamed-hands:unassigned66-a:attack",
+        "nextEventId": "ks11-v1:unnamed-hands:unassigned66-b:attack",
+        "midi": 66,
+        "globalKeyOnsetInterval": {
+          "sourceBeats": {
+            "rational": "4",
+            "number": 4
+          },
+          "nativeSeconds": {
+            "rational": "2",
+            "number": 2
+          }
+        },
+        "globalKeyReleaseToNextAttack": {
+          "sourceBeats": {
+            "rational": "1",
+            "number": 1
+          },
+          "nativeSeconds": {
+            "rational": "1/2",
+            "number": 0.5
+          }
+        },
+        "handSpecificRecurrence": "unknown",
+        "handMustNotDefaultTo": "R"
+      },
+      "unqualifiedRegisterPair": {
+        "priorEventId": "ks11-v1:unnamed-hands:unassigned66-a:attack",
+        "nextEventId": "ks11-v1:unnamed-hands:known-right76:attack",
+        "sameHandRelation": "unknown",
+        "handSpecificRegisterTransition": "not-assessed"
+      }
+    },
+    "clock-unknown": {
+      "clockStatus": "unknown",
+      "reason": "tempoMetaPresent=false, no native tempo events, and tempoBpm=120 is an explicitly untrusted parser-shaped placeholder.",
+      "events": [
+        {
+          "eventId": "ks11-v1:clock-unknown:low-window:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": null
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": null
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": null
+          }
+        },
+        {
+          "eventId": "ks11-v1:clock-unknown:high-window:attack",
+          "midi": 79,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "4",
+              "number": 4
+            },
+            "nativeSeconds": null
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "9/2",
+              "number": 4.5
+            },
+            "nativeSeconds": null
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "1/2",
+              "number": 0.5
+            },
+            "nativeSeconds": null
+          }
+        }
+      ],
+      "beatOnlyOnsetInterval": {
+        "rational": "4",
+        "number": 4
+      },
+      "beatOnlyReleaseGap": {
+        "rational": "7/2",
+        "number": 3.5
+      },
+      "nativeOnsetIntervalSeconds": null,
+      "nativeReleaseGapSeconds": null,
+      "nativeAttackRate": null,
+      "handMapStatus": "complete-self-authored",
+      "timingErrorCategory": null,
+      "requiredTierDisposition": "retained-refusal; no native-time-qualified generation from an undeclared native clock"
+    },
+    "clock-malformed": {
+      "clockStatus": "invalid",
+      "reason": "The explicitly declared tempo event at tick 3840 / beat 4 has microsecondsPerQuarter=0.",
+      "invalidField": "tempoEvents[1].microsecondsPerQuarter",
+      "invalidValue": 0,
+      "nativeSecondsResult": "invalid-input-refusal",
+      "fallbackTempoAllowed": false,
+      "silentFilteringAllowed": false,
+      "requiredTierDisposition": "retained-refusal; malformed explicit clock metadata"
+    },
+    "same-key-overlap": {
+      "clockStatus": "known",
+      "events": [
+        {
+          "eventId": "ks11-v1:same-key-overlap:key60-a:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "0",
+              "number": 0
+            },
+            "nativeSeconds": {
+              "rational": "0",
+              "number": 0
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          }
+        },
+        {
+          "eventId": "ks11-v1:same-key-overlap:key60-b:attack",
+          "midi": 60,
+          "sourceHand": "R",
+          "attack": {
+            "sourceBeat": {
+              "rational": "3/2",
+              "number": 1.5
+            },
+            "nativeSeconds": {
+              "rational": "3/4",
+              "number": 0.75
+            }
+          },
+          "physicalRelease": {
+            "sourceBeat": {
+              "rational": "9/4",
+              "number": 2.25
+            },
+            "nativeSeconds": {
+              "rational": "9/8",
+              "number": 1.125
+            }
+          },
+          "physicalDuration": {
+            "sourceBeats": {
+              "rational": "3/4",
+              "number": 0.75
+            },
+            "nativeSeconds": {
+              "rational": "3/8",
+              "number": 0.375
+            }
+          }
+        }
+      ],
+      "sameKeyRecurrences": [
+        {
+          "id": "same-key-overlap:a-to-b-overlap",
+          "hand": "R",
+          "midi": 60,
+          "priorEventId": "ks11-v1:same-key-overlap:key60-a:attack",
+          "nextEventId": "ks11-v1:same-key-overlap:key60-b:attack",
+          "consecutiveForHandAndKey": true,
+          "interveningOtherHandEventIds": [
+            "ks11-v1:same-key-overlap:left-between-ab:attack"
+          ],
+          "onsetInterval": {
+            "sourceBeats": {
+              "rational": "3/2",
+              "number": 1.5
+            },
+            "nativeSeconds": {
+              "rational": "3/4",
+              "number": 0.75
+            }
+          },
+          "priorPhysicalRelease": {
+            "sourceBeat": {
+              "rational": "2",
+              "number": 2
+            },
+            "nativeSeconds": {
+              "rational": "1",
+              "number": 1
+            }
+          },
+          "releaseToNextAttack": {
+            "sourceBeats": {
+              "rational": "-1/2",
+              "number": -0.5
+            },
+            "nativeSeconds": {
+              "rational": "-1/4",
+              "number": -0.25
+            }
+          }
+        }
+      ],
+      "heldAtAttack": [
+        {
+          "id": "same-key-overlap:same-key-reattack",
+          "atAttack": {
+            "sourceBeat": {
+              "rational": "3/2",
+              "number": 1.5
+            },
+            "nativeSeconds": {
+              "rational": "3/4",
+              "number": 0.75
+            }
+          },
+          "hand": "R",
+          "newAttackEventIds": [
+            "ks11-v1:same-key-overlap:key60-b:attack"
+          ],
+          "expectedCarriedPhysicalEventIds": [
+            "ks11-v1:same-key-overlap:key60-a:attack"
+          ],
+          "expectedReleasedExactlyAtAttackEventIds": [],
+          "unknownHandRelevantEventIds": [],
+          "qualification": "complete-authored-hand-map-for-this-probe"
+        }
+      ],
+      "physicalCollision": {
+        "hand": "R",
+        "midi": 60,
+        "priorEventId": "ks11-v1:same-key-overlap:key60-a:attack",
+        "nextEventId": "ks11-v1:same-key-overlap:key60-b:attack",
+        "overlapSourceBeats": "1/2",
+        "overlapNativeSeconds": "1/4",
+        "independentAttackCount": 2,
+        "tiedContinuation": false,
+        "compatibleUnison": false
+      },
+      "requiredTierDisposition": "retained-refusal when both independently attacked same-key events and their overlapping releases are exact requirements",
+      "forbiddenRepairs": [
+        "truncate the first physical release",
+        "drop either required origin",
+        "turn the second attack into a tie",
+        "merge overlapping independent attacks"
+      ]
+    }
+  }
+}

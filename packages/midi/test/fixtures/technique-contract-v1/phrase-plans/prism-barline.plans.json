@@ -1,0 +1,4699 @@
+{
+  "schemaVersion": 1,
+  "kind": "keyspilli-ks11-authored-plan-set",
+  "caseId": "prism-barline",
+  "reviewStatus": "PROPOSED — independent reference review pending",
+  "plans": {
+    "very-beginner": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "very-beginner"
+      ],
+      "source": {
+        "sha256": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+        "compositionId": "ks11-v1:prism:original-composition",
+        "performanceId": "ks11-v1:prism-barline:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "prism-barline:local-probe",
+          "occurrenceId": "prism-barline:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:left-chord48:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:left-chord48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 0,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:unison60:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:unison60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord64:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord64:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:barline-tie69:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:barline-tie69:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 3,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet72:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 5,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet74:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet74:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 5.333333333333333,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet76:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet76:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 76,
+                "startBeat": 5.666666666666667,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:cadence67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:cadence67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 6,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:continuation",
+          "occurrenceId": "prism-barline:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:line-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 45,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-06:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-07:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-08:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-09:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 41,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-10:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-11:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-12:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-13:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-14:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-15:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-16:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 67,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-17:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-18:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-19:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-20:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:declared-rests",
+          "occurrenceId": "prism-barline:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "prism-barline:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "prism-barline:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "prism-barline:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "beginner": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "beginner"
+      ],
+      "source": {
+        "sha256": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+        "compositionId": "ks11-v1:prism:original-composition",
+        "performanceId": "ks11-v1:prism-barline:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "prism-barline:local-probe",
+          "occurrenceId": "prism-barline:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:left-chord48:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:left-chord48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 0,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:unison60:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:unison60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord64:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord64:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:barline-tie69:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:barline-tie69:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 3,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet72:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 5,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet74:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet74:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 5.333333333333333,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet76:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet76:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 76,
+                "startBeat": 5.666666666666667,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:cadence67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:cadence67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 6,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:continuation",
+          "occurrenceId": "prism-barline:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:line-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 45,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-06:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-07:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-08:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-09:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 41,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-10:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-11:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-12:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-13:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-14:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-15:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-16:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 67,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-17:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 48,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-18:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-19:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-20:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:declared-rests",
+          "occurrenceId": "prism-barline:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "prism-barline:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "prism-barline:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "prism-barline:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "very-easy": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "very-easy"
+      ],
+      "source": {
+        "sha256": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+        "compositionId": "ks11-v1:prism:original-composition",
+        "performanceId": "ks11-v1:prism-barline:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "prism-barline:local-probe",
+          "occurrenceId": "prism-barline:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:left-chord48:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:left-chord48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 0,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:unison60:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:unison60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord64:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord64:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:barline-tie69:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:barline-tie69:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 3,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet72:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 5,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet74:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet74:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 5.333333333333333,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet76:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet76:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 76,
+                "startBeat": 5.666666666666667,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:cadence67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:cadence67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 6,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:continuation",
+          "occurrenceId": "prism-barline:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:line-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 45,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-06:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-07:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-08:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-09:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 41,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-10:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-11:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-12:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-13:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-14:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-15:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-16:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 67,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-17:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-18:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-19:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-20:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:declared-rests",
+          "occurrenceId": "prism-barline:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "prism-barline:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "prism-barline:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "prism-barline:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "easy": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "easy"
+      ],
+      "source": {
+        "sha256": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+        "compositionId": "ks11-v1:prism:original-composition",
+        "performanceId": "ks11-v1:prism-barline:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "prism-barline:local-probe",
+          "occurrenceId": "prism-barline:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:left-chord48:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:left-chord48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 0,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:unison60:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:unison60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord64:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord64:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:barline-tie69:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:barline-tie69:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 3,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet72:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 5,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet74:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet74:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 5.333333333333333,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet76:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet76:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 76,
+                "startBeat": 5.666666666666667,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:cadence67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:cadence67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 6,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:continuation",
+          "occurrenceId": "prism-barline:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:line-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 45,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-06:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-07:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-08:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-09:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 41,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-10:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-11:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-12:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-13:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 25,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-14:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-15:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-16:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 67,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-17:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-18:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-19:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-20:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:declared-rests",
+          "occurrenceId": "prism-barline:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "prism-barline:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "prism-barline:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "prism-barline:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "medium": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "medium"
+      ],
+      "source": {
+        "sha256": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+        "compositionId": "ks11-v1:prism:original-composition",
+        "performanceId": "ks11-v1:prism-barline:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "prism-barline:local-probe",
+          "occurrenceId": "prism-barline:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:left-chord48:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:left-chord48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 0,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:unison60:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:unison60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord64:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord64:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:barline-tie69:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:barline-tie69:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 3,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet72:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 5,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet74:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet74:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 5.333333333333333,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet76:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet76:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 76,
+                "startBeat": 5.666666666666667,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:cadence67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:cadence67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 6,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:continuation",
+          "occurrenceId": "prism-barline:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:line-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 45,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-06:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-07:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-08:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-09:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 41,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-10:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-11:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-12:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-13:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-14:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-15:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-16:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 67,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-17:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-18:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-19:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-20:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:declared-rests",
+          "occurrenceId": "prism-barline:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "prism-barline:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "prism-barline:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "prism-barline:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    },
+    "advanced": {
+      "schemaVersion": 1,
+      "kind": "keyspilli-phrase-plan",
+      "levels": [
+        "advanced"
+      ],
+      "source": {
+        "sha256": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+        "compositionId": "ks11-v1:prism:original-composition",
+        "performanceId": "ks11-v1:prism-barline:authored-performance-1",
+        "clock": {
+          "timebase": "source-quarter-beats",
+          "division": 960,
+          "tempoBpm": 120,
+          "durationBeats": 96,
+          "timeSig": [
+            4,
+            4
+          ],
+          "tempoEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "microsecondsPerQuarter": 500000,
+              "bpm": 120
+            }
+          ],
+          "timeSigEvents": [
+            {
+              "tick": 0,
+              "beat": 0,
+              "timeSig": [
+                4,
+                4
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            },
+            {
+              "index": 2,
+              "startBeat": 8,
+              "endBeat": 12
+            },
+            {
+              "index": 3,
+              "startBeat": 12,
+              "endBeat": 16
+            },
+            {
+              "index": 4,
+              "startBeat": 16,
+              "endBeat": 20
+            },
+            {
+              "index": 5,
+              "startBeat": 20,
+              "endBeat": 24
+            },
+            {
+              "index": 6,
+              "startBeat": 24,
+              "endBeat": 28
+            },
+            {
+              "index": 7,
+              "startBeat": 28,
+              "endBeat": 32
+            },
+            {
+              "index": 8,
+              "startBeat": 32,
+              "endBeat": 36
+            },
+            {
+              "index": 9,
+              "startBeat": 36,
+              "endBeat": 40
+            },
+            {
+              "index": 10,
+              "startBeat": 40,
+              "endBeat": 44
+            },
+            {
+              "index": 11,
+              "startBeat": 44,
+              "endBeat": 48
+            },
+            {
+              "index": 12,
+              "startBeat": 48,
+              "endBeat": 52
+            },
+            {
+              "index": 13,
+              "startBeat": 52,
+              "endBeat": 56
+            },
+            {
+              "index": 14,
+              "startBeat": 56,
+              "endBeat": 60
+            },
+            {
+              "index": 15,
+              "startBeat": 60,
+              "endBeat": 64
+            },
+            {
+              "index": 16,
+              "startBeat": 64,
+              "endBeat": 68
+            },
+            {
+              "index": 17,
+              "startBeat": 68,
+              "endBeat": 72
+            },
+            {
+              "index": 18,
+              "startBeat": 72,
+              "endBeat": 76
+            },
+            {
+              "index": 19,
+              "startBeat": 76,
+              "endBeat": 80
+            },
+            {
+              "index": 20,
+              "startBeat": 80,
+              "endBeat": 84
+            },
+            {
+              "index": 21,
+              "startBeat": 84,
+              "endBeat": 88
+            },
+            {
+              "index": 22,
+              "startBeat": 88,
+              "endBeat": 92
+            },
+            {
+              "index": 23,
+              "startBeat": 92,
+              "endBeat": 96
+            }
+          ]
+        }
+      },
+      "phrases": [
+        {
+          "id": "prism-barline:local-probe",
+          "occurrenceId": "prism-barline:performance-1:local-probe",
+          "startBeat": 0,
+          "endBeat": 8,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:left-chord48:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:left-chord48:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 0,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:unison60:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:unison60:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 60,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord64:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord64:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:chord67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:chord67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 0,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:barline-tie69:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:barline-tie69:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 3,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet72:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet72:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 5,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet74:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet74:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 5.333333333333333,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:triplet76:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:triplet76:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 76,
+                "startBeat": 5.666666666666667,
+                "durationBeats": 0.3333333333333333,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:cadence67:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:cadence67:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 6,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:continuation",
+          "occurrenceId": "prism-barline:performance-1:continuation",
+          "startBeat": 12,
+          "endBeat": 90,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original KS-11 symbolic source and identity choices authored before diagnostic implementation; not human or musical approval."
+          },
+          "events": [
+            {
+              "id": "ks11-v1:prism-barline:line-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-01:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 12,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-01:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-01:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-02:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 16,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-03:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 20,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-04:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 71,
+                "startBeat": 24,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-05:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 28,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-02:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-02:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 45,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-06:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-06:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 32,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-07:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-07:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 36,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-08:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-08:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 40,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-09:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-09:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 44,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-03:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-03:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 41,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-10:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-10:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 74,
+                "startBeat": 48,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-11:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-11:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 52,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-12:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-12:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 69,
+                "startBeat": 56,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-13:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-13:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 60,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-04:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-04:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 43,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-14:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-14:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 64,
+                "startBeat": 64,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-15:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-15:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 65,
+                "startBeat": 68,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-16:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-16:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 25,
+              "expected": {
+                "midi": 67,
+                "startBeat": 72,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": false,
+              "allowedTransformations": [
+                "omit",
+                "octave-displacement",
+                "onset-change",
+                "release-change",
+                "hand-reassignment",
+                "velocity-change"
+              ]
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-17:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-17:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 71,
+                "startBeat": 76,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:anchor-05:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:anchor-05:origin",
+              "sourceOccurrence": 1,
+              "role": "bass",
+              "priority": 100,
+              "expected": {
+                "midi": 48,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "L"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-18:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-18:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 72,
+                "startBeat": 80,
+                "durationBeats": 1.5,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-19:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-19:origin",
+              "sourceOccurrence": 1,
+              "role": "melody",
+              "priority": 100,
+              "expected": {
+                "midi": 69,
+                "startBeat": 84,
+                "durationBeats": 1,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            },
+            {
+              "id": "ks11-v1:prism-barline:line-20:attack",
+              "sourceOriginId": "ks11-v1:prism-barline:line-20:origin",
+              "sourceOccurrence": 1,
+              "role": "hook",
+              "priority": 100,
+              "expected": {
+                "midi": 67,
+                "startBeat": 88,
+                "durationBeats": 2,
+                "hand": "R"
+              },
+              "required": true,
+              "allowedTransformations": []
+            }
+          ],
+          "rests": []
+        },
+        {
+          "id": "prism-barline:declared-rests",
+          "occurrenceId": "prism-barline:performance-1:rests",
+          "startBeat": 0,
+          "endBeat": 96,
+          "evidence": {
+            "authority": "self-authored",
+            "confidence": null,
+            "basis": "Original source-declared all-role and bass-role silences, including physical release and declared CC64 extension."
+          },
+          "events": [],
+          "rests": [
+            {
+              "id": "prism-barline:local-breath",
+              "startBeat": 8,
+              "endBeat": 12,
+              "scope": "all"
+            },
+            {
+              "id": "prism-barline:bass-breath",
+              "startBeat": 40,
+              "endBeat": 48,
+              "scope": "bass"
+            },
+            {
+              "id": "prism-barline:terminal-silence",
+              "startBeat": 90,
+              "endBeat": 96,
+              "scope": "all"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
