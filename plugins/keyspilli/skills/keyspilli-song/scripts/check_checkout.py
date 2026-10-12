@@ -92,9 +92,19 @@ def deterministic_implementation_fingerprint(root):
 
 def check_deterministic_preparation_capabilities(root, node_executable):
     script = root / OPTIONAL['deterministic_workflow_script']
-    if not script.is_file():
-        return {'status': 'absent', 'reason': 'Optional deterministic checkpoints absent; ordinary preparation remains available.'}
     try:
+        # Validate the executable path and the working source before running any
+        # capability code. A broken symlink is incompatible, not an absent host.
+        path = root
+        for part in Path(OPTIONAL['deterministic_workflow_script']).parts:
+            path = path / part
+            if path.is_symlink():
+                raise ValueError('deterministic entrypoint symlink refused')
+        if not script.exists():
+            return {'status': 'absent', 'reason': 'Optional deterministic checkpoints absent; ordinary preparation remains available.'}
+        if not stat.S_ISREG(script.stat().st_mode):
+            raise ValueError('deterministic entrypoint must be a regular file')
+        implementation = deterministic_implementation_fingerprint(root)
         output = subprocess.run([node_executable, '--import', 'tsx', str(script), 'capabilities'],
                                 cwd=root, capture_output=True, text=True, timeout=15, check=True,
                                 stdin=subprocess.DEVNULL, env=deterministic_probe_environment()).stdout
@@ -107,19 +117,29 @@ def check_deterministic_preparation_capabilities(root, node_executable):
                     'sourceFormats': ['midi'], 'resume': True, 'readOnlyVerify': True,
                     'maxPreparationAttempts': 3, 'automaticRetries': False, 'providerCalls': 0,
                     'productionAdmission': False,
-                    'implementationSha256': deterministic_implementation_fingerprint(root)}
+                    'implementationSha256': implementation}
+        # V1 has an exact shallow shape. Never retain arbitrary nested child
+        # output in the ordinary preflight report, which must remain printable.
+        if value.keys() != expected.keys():
+            raise ValueError('deterministic capabilities contain missing or unknown fields')
+        for key, required in expected.items():
+            actual = value[key]
+            if type(actual) is not type(required):
+                raise ValueError('deterministic capability has the wrong JSON type')
+            if isinstance(required, list) and (len(actual) > 8 or any(type(item) is not type(required[0]) for item in actual)):
+                raise ValueError('deterministic capability list has an invalid shape')
+        if deterministic_implementation_fingerprint(root) != implementation:
+            raise ValueError('deterministic working source changed during capability discovery')
         # JSON equality preserves booleans versus numbers, including inside version lists.
         mismatches = [{'field': key, 'expected': required, 'actual': value.get(key)}
                       for key, required in expected.items()
                       if json.dumps(value.get(key), sort_keys=True) != json.dumps(required, sort_keys=True)]
-        mismatches += [{'field': key, 'expected': 'absent in deterministic v1', 'actual': value[key]}
-                       for key in ('workflowContractVersions', 'decisionContractVersions', 'selectionContractVersions') if key in value]
         compatible = not mismatches
         return {'status': 'compatible' if compatible else 'incompatible', 'capabilities': value,
                 'incompatibilities': mismatches,
                 'command': [node_executable, '--import', 'tsx', str(script)] if compatible else None,
                 'scope': 'Optional deterministic MIDI checkpoints and read-only saved-output verification; no experimental decision/selection contract, audio review or musical admission.'}
-    except (OSError, subprocess.SubprocessError, ValueError, TypeError, UnicodeError):
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError, UnicodeError, RecursionError):
         return {'status': 'incompatible', 'reason': 'Deterministic contract or independent implementation fingerprint unavailable; use the checked ordinary path.'}
 
 

@@ -209,6 +209,55 @@ class PreflightTests(unittest.TestCase):
         for key in unsafe:
             self.assertNotIn(key, child.call_args.kwargs['env'])
 
+    def test_deterministic_probe_rejects_entrypoint_symlink_before_execution(self):
+        script = self.root / 'apps/web/scripts/prepare-workflow.mts'
+        outside = self.root / 'outside.mts'
+        outside.write_text('must not execute')
+        script.symlink_to(outside)
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(self.deterministic_caps()))) as child, \
+             patch.object(preflight, 'deterministic_implementation_fingerprint', side_effect=ValueError('symlink refused')):
+            result = preflight.check_deterministic_preparation_capabilities(self.root, NODE)
+        self.assertEqual(result['status'], 'incompatible', result)
+        child.assert_not_called()
+
+    def test_deep_capability_json_remains_optional_incompatible(self):
+        (self.root / 'apps/web/scripts/prepare-workflow.mts').write_text('fixture')
+        for depth in (2000, 10000):
+            output = json.dumps(self.deterministic_caps())[:-1] + ',"nested":' + '[' * depth + '0' + ']' * depth + '}'
+            with self.subTest(depth=depth), \
+                 patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=output)), \
+                 patch.object(preflight, 'deterministic_implementation_fingerprint', return_value='a' * 64):
+                result = preflight.check_deterministic_preparation_capabilities(self.root, NODE)
+                self.assertEqual(result['status'], 'incompatible', result)
+                self.assertLess(len(json.dumps(result, indent=2)), 4096)
+
+    def test_deterministic_probe_rejects_symlinked_source_parent_before_execution(self):
+        parent = self.root / 'apps/web/scripts'
+        parent.rename(self.root / 'source-scripts')
+        (self.root / 'source-scripts/prepare-workflow.mts').write_text('must not execute')
+        parent.symlink_to(self.root / 'source-scripts', target_is_directory=True)
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(self.deterministic_caps()))) as child, \
+             patch.object(preflight, 'deterministic_implementation_fingerprint', return_value='a' * 64):
+            result = preflight.check_deterministic_preparation_capabilities(self.root, NODE)
+        self.assertEqual(result['status'], 'incompatible', result)
+        child.assert_not_called()
+
+    def test_deterministic_probe_does_not_retain_invalid_nested_known_fields(self):
+        for changed in ({'implementationSha256': {'nested': [1]}},
+                        {'sourceFormats': [['midi']]}, {'schemaVersion': {'nested': 1}}):
+            with self.subTest(changed=changed):
+                result = self.probe_deterministic({**self.deterministic_caps(), **changed})
+                self.assertEqual(result['status'], 'incompatible', result)
+                self.assertNotIn('capabilities', result)
+
+    def test_deterministic_probe_refuses_working_changes_during_execution(self):
+        (self.root / 'apps/web/scripts/prepare-workflow.mts').write_text('fixture')
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(self.deterministic_caps()))), \
+             patch.object(preflight, 'deterministic_implementation_fingerprint', side_effect=['a' * 64, 'b' * 64]):
+            result = preflight.check_deterministic_preparation_capabilities(self.root, NODE)
+        self.assertEqual(result['status'], 'incompatible', result)
+        self.assertFalse(result.get('command'))
+
     def test_deterministic_fingerprint_detects_working_source_configuration_and_catalog_changes(self):
         first = preflight.deterministic_implementation_fingerprint(self.root)
         source = self.root / 'packages/midi/src/probe.ts'
