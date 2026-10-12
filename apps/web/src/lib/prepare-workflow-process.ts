@@ -86,16 +86,25 @@ export async function runOwnedProcess(input: {
       // Runtime helpers may finish just after their successful leader closes.
       // Keep the original timeout/abort authority and require full group absence.
       const drainDeadline = performance.now() + 250;
+      let drainExpired = false;
       while (termination === "exit" && !unsafe) {
-        if (performance.now() >= commandDeadline) { stop("timeout"); break; }
-        if (!alive(child.pid) || unsafe || termination !== "exit") break;
-        const remaining = Math.min(drainDeadline, commandDeadline) - performance.now();
-        if (remaining <= 0) break;
+        const beforeProbe = performance.now();
+        if (beforeProbe >= commandDeadline) { stop("timeout"); break; }
+        if (beforeProbe >= drainDeadline) { drainExpired = true; break; }
+        const present = alive(child.pid), observedAt = performance.now();
+        if (unsafe || termination !== "exit") break;
+        if (observedAt >= commandDeadline) { stop("timeout"); break; }
+        if (observedAt >= drainDeadline) { drainExpired = true; break; }
+        if (!present) break;
+        const remaining = Math.min(drainDeadline, commandDeadline) - observedAt;
         await delay(Math.min(25, remaining));
       }
       // A queued timeout callback may trail the awaited poll after an event-loop
       // delay. Its original monotonic deadline still wins over success/refusal.
       if (termination === "exit" && performance.now() >= commandDeadline) stop("timeout");
+      // Later absence can prove cleanup, but cannot retroactively satisfy the
+      // bounded passive observation window. Preserve any authoritative stop.
+      if (termination === "exit" && drainExpired) termination = "descendants";
     }
     if (child.pid !== undefined && alive(child.pid)) {
       if (termination === "exit") termination = "descendants";

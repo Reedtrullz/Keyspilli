@@ -21,6 +21,10 @@ as `descendants`. This does not establish the historical verifier's helper or st
 2. Allow at most 250 ms of passive group drain only after an actual closed,
    zero-exit, unsignalled, otherwise safe command. Keep the original monotonic
    command deadline and abort handler authoritative across every wait.
+   Absence must be observed within that window, including a timestamp after
+   the probe. If the allowance expires first, later absence can establish
+   cleanup but the command remains refused as `descendants`; an authoritative
+   timeout or cancellation retains priority over that refusal.
 3. Require the same final direct-child close and whole-group absence certificate.
    Persistent descendants keep the existing TERM/KILL cleanup and refusal rules.
    Any non-ESRCH probe error becomes sticky uncertainty for this invocation:
@@ -43,7 +47,9 @@ armed at the first actual successful post-close signal-0 probe. Its unchanged
 timer must complete without receiving TERM after the correction. A persistent
 helper still requires bounded escalation and refusal. Cancellation and controlled
 deadline expiry are anchored to that same phase, including an overdue monotonic
-deadline whose callback has not yet run. Nonzero and signalled exits receive no
+deadline whose callback has not yet run. A delayed poll and a delay during the
+first absence probe each must refuse absence first observed after 250 ms while
+the original command budget remains unexpired. Nonzero and signalled exits receive no
 passive success allowance. Transient and persistent probe errors, and a signal
 error with separately owned test cleanup, must remain ambiguous.
 
