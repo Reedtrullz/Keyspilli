@@ -3,6 +3,7 @@ import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js"
 import { sectionsFromMarkers } from "./source-sections.js";
 import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 import { mergedNoteLineage } from "./quantize.js";
+import { musicXmlElementFidelity } from "./musicxml-fidelity.js";
 
 interface ParsedXmlNote extends Note {
   tieStart?: boolean;
@@ -35,7 +36,7 @@ function firstMatch(s: string, re: RegExp): string {
 }
 
 /** Validate the MusicXML subset before regex extraction can mistake comments for music. */
-function cleanMusicXml(xml: string): string {
+function cleanMusicXml(xml: string, semanticWarnings: string[] = []): string {
   const stack: string[] = [];
   let roots = 0;
   let clean = "";
@@ -81,11 +82,16 @@ function cleanMusicXml(xml: string): string {
       }
       const suffix = tag.match(/\/\s*>$/)?.[0] ?? ">";
       let attributes = tag.slice(match[0].length, tag.length - suffix.length);
+      const parsedAttributes: Record<string, string> = Object.create(null);
       while (attributes.trim()) {
         const attr = attributes.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([^<]*?)\2/);
         if (!attr || /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/.test(attr[3]!)) throw new Error("invalid MusicXML attribute");
+        const attributeName = attr[1]!;
+        if (Object.hasOwn(parsedAttributes, attributeName)) throw new Error(`duplicate MusicXML attribute: ${attributeName}`);
+        parsedAttributes[attributeName] = decodeXmlEntities(attr[3]!);
         attributes = attributes.slice(attr[0].length);
       }
+      semanticWarnings.push(...musicXmlElementFidelity(name, parsedAttributes));
       if (!/\/\s*>$/.test(tag)) stack.push(name);
     }
     clean += tag;
@@ -167,7 +173,12 @@ function repeatOrder(xml: string, measures: string[]): { index: number; occurren
  */
 export function parseMusicXmlNotes(xml: string): ParsedMidi {
   if (xml.length > 8 * 1024 * 1024) throw new Error("MusicXML source workload exceeds supported limits");
-  const clean = cleanMusicXml(xml);
+  const semanticWarnings: string[] = [];
+  const clean = cleanMusicXml(xml, semanticWarnings);
+  const withFidelity = (parsed: ParsedMidi): ParsedMidi => {
+    const warnings = [...new Set([...(parsed.unsupportedControls ?? []), ...semanticWarnings])];
+    return { ...parsed, ...(warnings.length ? { unsupportedControls: warnings } : {}) };
+  };
   const partNodes = [...clean.matchAll(/<part(?![-\w])([^>]*)>[\s\S]*?<\/part>/g)];
   const partNames = new Map<string, string>();
   for (const match of clean.matchAll(/<score-part\b([^>]*)>([\s\S]*?)<\/score-part>/g)) {
@@ -200,8 +211,9 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       .map(([beat, timeSig]) => ({ beat, timeSig, tick: Math.round(beat * first.division) }));
     const notes = parsedParts.flatMap(({ parsed }) => parsed.notes).sort((a, b) => a.start - b.start || a.midi - b.midi);
     const sections=sectionsFromMarkers(sourceMarkers,notes.reduce((end,n)=>Math.max(end,n.start+n.dur),0));
-    return {
+    return withFidelity({
       ...first,
+      unsupportedControls: [...new Set(parsedParts.flatMap(({ parsed }) => parsed.unsupportedControls ?? []))],
       sections,
       notes,
       trackNames: parsedParts.map(({ name }) => name),
@@ -216,11 +228,11 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       })),
       durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur), 0),
       ...(timeSigEvents.length ? { timeSigEvents } : {}),
-    };
+    });
   }
   const node = partNodes[0];
   const id = node ? xmlAttribute(node[1]!, "id") || "part-1" : "part-1";
-  return parseSingleMusicXmlNotes(clean, { id: `musicxml:${id}`, name: partNames.get(id) ?? "MusicXML" });
+  return withFidelity(parseSingleMusicXmlNotes(clean, { id: `musicxml:${id}`, name: partNames.get(id) ?? "MusicXML" }));
 }
 
 function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: string }, markerCollector?:Array<{beat:number;label:string}>): ParsedMidi {

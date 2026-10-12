@@ -3397,7 +3397,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const notes = learnerLineageEnabled ? internalNotes.map(stripLearnerTrace) : internalNotes;
     const pedalErrors=src.sourcePedal?sourcePedalErrors(notes,src.sourcePedal):[];
     const keepPedal=src.sourcePedal && level==="advanced" && opts.arrangementProfile==="source" && !pedalErrors.length;
-    const variantWarnings=[...warnings,...(src.unsupportedControls?.length?[`Unsupported source controllers omitted: ${src.unsupportedControls.join(", ")}.`]:[]),...(src.sourcePedal?[keepPedal?"Source CC64 is retained separately from arranged key holds; listening and physical playability are unverified.":`Source CC64 omitted from this reduction${pedalErrors.length?`: ${pedalErrors.join(" ")}`:"; use a supported Original arrangement"}.`]:[])];
+    const variantWarnings=[...warnings,...(src.unsupportedControls?.length?[`Unsupported source semantics: ${src.unsupportedControls.join("; ")}.`]:[]),...(src.sourcePedal?[keepPedal?"Source CC64 is retained separately from arranged key holds; listening and physical playability are unverified.":`Source CC64 omitted from this reduction${pedalErrors.length?`: ${pedalErrors.join(" ")}`:"; use a supported Original arrangement"}.`]:[])];
     return {
       level,
       difficultyScore: scores[level]!,
@@ -3465,7 +3465,11 @@ export function buildShortStudyVariants(
     level,
     difficultyScore: scores[level],
     ...(parsed.sections?.length ? {sections:parsed.sections.map(s=>({...s}))} : {}),
-    ...(parsed.sourcePedal?{sourcePedal:structuredClone(parsed.sourcePedal),warnings:["Source CC64 is retained separately from physical key holds; musical review is unverified."]}:{}),
+    ...(parsed.sourcePedal?{sourcePedal:structuredClone(parsed.sourcePedal)}:{}),
+    warnings: [
+      ...(parsed.unsupportedControls?.length ? [`Unsupported source semantics: ${parsed.unsupportedControls.join("; ")}.`] : []),
+      ...(parsed.sourcePedal ? ["Source CC64 is retained separately from physical key holds; musical review is unverified."] : []),
+    ],
     notes: notes.map((note) => ({ ...note })),
     chords: [],
     bassPattern: "none",
