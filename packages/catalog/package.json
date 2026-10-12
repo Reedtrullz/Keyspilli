@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
+    "audit:exact-inputs": "node --import tsx scripts/exact-input-evidence.ts",
     "fetch-seed": "tsx scripts/fetch-seed.ts",
     "pipeline": "tsx scripts/pipeline.ts",
     "verify-catalog": "tsx scripts/verify-catalog.ts",
