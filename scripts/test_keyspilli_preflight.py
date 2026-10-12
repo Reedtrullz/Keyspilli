@@ -50,6 +50,7 @@ class PreflightTests(unittest.TestCase):
         self.assertEqual(result['preparation']['route'], 'ordinary')
         self.assertEqual(result['preparation']['command'], [NODE, '--import', 'tsx', str(self.root / 'apps/web/scripts/prepare-song.mts')])
         self.assertEqual(result['host_workflow']['status'], 'absent')
+        self.assertEqual(result['deterministic_workflow']['status'], 'absent')
 
     def test_discover_keeps_requested_git_checkout_without_experimental_driver(self):
         code, result = self.run_cli('--discover')
@@ -149,6 +150,103 @@ class PreflightTests(unittest.TestCase):
         for value in (None, [], {'optionalBackends': None}):
             with self.subTest(value=value), patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(value))):
                 self.assertEqual(preflight.check_music_review_capabilities(self.root, NODE)['status'], 'incompatible')
+
+    def deterministic_caps(self):
+        return {'schemaVersion': 1, 'deterministicPreparationContractVersions': [1],
+                'sourceFormats': ['midi'], 'resume': True, 'readOnlyVerify': True,
+                'maxPreparationAttempts': 3, 'automaticRetries': False, 'providerCalls': 0,
+                'productionAdmission': False, 'implementationSha256': 'a' * 64}
+
+    def probe_deterministic(self, caps):
+        script = self.root / 'apps/web/scripts/prepare-workflow.mts'
+        script.write_text('fixture')
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(caps))), \
+             patch.object(preflight, 'deterministic_implementation_fingerprint', return_value='a' * 64):
+            return preflight.check_deterministic_preparation_capabilities(self.root, NODE)
+
+    def test_deterministic_workflow_is_distinct_from_experimental_protocol(self):
+        result = self.probe_deterministic(self.deterministic_caps())
+        self.assertEqual(result['status'], 'compatible', result)
+        self.assertEqual(result['command'], [NODE, '--import', 'tsx', str(self.root / 'apps/web/scripts/prepare-workflow.mts')])
+        self.assertEqual(preflight.check_workflow_capabilities(self.root, NODE)['status'], 'absent')
+
+    def test_deterministic_workflow_rejects_stale_implementation(self):
+        caps = self.deterministic_caps()
+        caps['implementationSha256'] = 'b' * 64
+        result = self.probe_deterministic(caps)
+        self.assertEqual(result['status'], 'incompatible')
+        self.assertFalse(result.get('command'))
+        self.assertIn('implementationSha256', [item['field'] for item in result['incompatibilities']])
+
+    def test_deterministic_workflow_checks_exact_bounds_and_protocol_types(self):
+        for changed in ({'maxPreparationAttempts': 4}, {'providerCalls': False},
+                        {'deterministicPreparationContractVersions': [True]},
+                        {'sourceFormats': ['midi', 'musicxml']}, {'readOnlyVerify': False},
+                        {'automaticRetries': True}, {'productionAdmission': True},
+                        {'decisionContractVersions': [2]}):
+            with self.subTest(changed=changed):
+                result = self.probe_deterministic({**self.deterministic_caps(), **changed})
+                self.assertEqual(result['status'], 'incompatible', result)
+                self.assertFalse(result.get('command'))
+
+    def test_deterministic_optional_probe_failure_does_not_disable_ordinary_preparation(self):
+        with patch.object(preflight, 'check_deterministic_preparation_capabilities', return_value={'status': 'incompatible'}):
+            code, result = self.run_cli()
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result['preparation']['status'], 'compatible')
+        self.assertEqual(result['deterministic_workflow']['status'], 'incompatible')
+
+    def test_deterministic_probe_excludes_injected_runtime_and_production_environment(self):
+        (self.root / 'apps/web/scripts/prepare-workflow.mts').write_text('fixture')
+        unsafe = {'NODE_OPTIONS': '--require /untrusted.js', 'NODE_PATH': '/untrusted',
+                  'TSX_TSCONFIG_PATH': '/untrusted.json', 'KEYSPILLI_DATA_DIR': '/production',
+                  'OPENAI_API_KEY': 'synthetic-control-not-a-key'}
+        with patch.dict(os.environ, unsafe), \
+             patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(self.deterministic_caps()))) as child, \
+             patch.object(preflight, 'deterministic_implementation_fingerprint', return_value='a' * 64):
+            result = preflight.check_deterministic_preparation_capabilities(self.root, NODE)
+        self.assertEqual(result['status'], 'compatible', result)
+        for key in unsafe:
+            self.assertNotIn(key, child.call_args.kwargs['env'])
+
+    def test_deterministic_fingerprint_detects_working_source_configuration_and_catalog_changes(self):
+        first = preflight.deterministic_implementation_fingerprint(self.root)
+        source = self.root / 'packages/midi/src/probe.ts'
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text('export const value = 1;')
+        second = preflight.deterministic_implementation_fingerprint(self.root)
+        self.assertNotEqual(first, second)
+        source.write_text('export const value = 2;')
+        third = preflight.deterministic_implementation_fingerprint(self.root)
+        self.assertNotEqual(second, third)
+        config = self.root / 'apps/web/tsconfig.song-tools.json'
+        config.write_text('{}')
+        fourth = preflight.deterministic_implementation_fingerprint(self.root)
+        self.assertNotEqual(third, fourth)
+        catalog = self.root / 'catalog/chord-sources.json'
+        catalog.parent.mkdir()
+        catalog.write_text('{"schemaVersion":1,"entries":[]}')
+        fifth = preflight.deterministic_implementation_fingerprint(self.root)
+        self.assertNotEqual(fourth, fifth)
+        subprocess.run(['git', 'add', '.'], cwd=self.root, check=True, capture_output=True)
+        self.assertEqual(fifth, preflight.deterministic_implementation_fingerprint(self.root))
+
+    def test_deterministic_fingerprint_refuses_symlinks_and_oversized_files(self):
+        source = self.root / 'packages/midi/src/probe.ts'
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.symlink_to(self.root / 'package.json')
+        with self.assertRaisesRegex(ValueError, 'symlink|regular'):
+            preflight.deterministic_implementation_fingerprint(self.root)
+        source.unlink()
+        with source.open('wb') as output:
+            output.truncate(16 * 1024 * 1024 + 1)
+        with self.assertRaisesRegex(ValueError, 'bound|limit'):
+            preflight.deterministic_implementation_fingerprint(self.root)
+
+    def test_deterministic_fingerprint_refuses_path_escape_before_reading(self):
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=b'../outside\0')):
+            with self.assertRaisesRegex(ValueError, 'path'):
+                preflight.deterministic_implementation_fingerprint(self.root)
 
 
 if __name__ == '__main__':

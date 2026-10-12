@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 
@@ -21,6 +22,7 @@ REQUIRED = (
     'apps/web/scripts/song-bundle.mts',
 )
 OPTIONAL = {
+    'deterministic_workflow_script': 'apps/web/scripts/prepare-workflow.mts',
     'host_workflow_script': 'apps/web/scripts/song-workflow.mts',
     'arrangement_script': 'apps/web/scripts/arrange-song.mts',
     'chords_render_script': 'apps/web/scripts/render-prepared-chords.mts',
@@ -33,6 +35,92 @@ WORKFLOW_SCOPES = ('packages/midi/src', 'packages/catalog/src', 'packages/catalo
 # Actual generator fingerprint inputs in prepare-catalog-chords.mts.
 PREPARATION_SCOPES = ('packages/midi/src', 'packages/player-core/src', 'packages/catalog/src',
                       'apps/web/src/lib', 'apps/web/src/components/player', 'package-lock.json')
+
+# Independently match the deterministic wrapper's working-byte fingerprint, including
+# catalog maps and module-resolution configuration omitted by the experimental protocol.
+DETERMINISTIC_SCOPES = WORKFLOW_SCOPES + (
+    'catalog', 'package.json', 'tsconfig.base.json',
+    'apps/web/package.json', 'apps/web/tsconfig.json', 'apps/web/tsconfig.song-tools.json',
+    'packages/midi/package.json', 'packages/midi/tsconfig.json',
+    'packages/catalog/package.json', 'packages/catalog/tsconfig.json',
+    'packages/player-core/package.json', 'packages/player-core/tsconfig.json',
+)
+
+
+def deterministic_probe_environment():
+    """Capability discovery cannot inherit alternate hooks or production/provider settings."""
+    allowed = ('PATH', 'HOME', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TMPDIR', 'TMP', 'TEMP',
+               'SYSTEMROOT', 'SystemRoot')
+    return {**{key: os.environ[key] for key in allowed if key in os.environ}, 'GIT_OPTIONAL_LOCKS': '0'}
+
+
+def deterministic_implementation_fingerprint(root):
+    root = Path(root).resolve()
+    result = subprocess.run(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', *DETERMINISTIC_SCOPES],
+                            cwd=root, capture_output=True, timeout=10, check=True, stdin=subprocess.DEVNULL,
+                            env=deterministic_probe_environment()).stdout
+    if len(result) > 1024 * 1024:
+        raise ValueError('deterministic source inventory exceeds its metadata bound')
+    names = sorted(set(filter(None, result.decode('ascii').split('\0'))))
+    if not names or len(names) > 4096:
+        raise ValueError('deterministic source inventory exceeds its file-count bound')
+    rows, total = [], 0
+    for name in names:
+        parts = name.split('/')
+        if (len(name) > 4096 or any(part in ('', '.', '..') for part in parts)
+                or '\\' in name or any(ord(char) < 32 or ord(char) > 126 for char in name)):
+            raise ValueError('invalid deterministic source path')
+        path = root
+        for part in parts:
+            path = path / part
+            if path.is_symlink():
+                raise ValueError('deterministic source symlink refused')
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+        with os.fdopen(descriptor, 'rb') as source:
+            info = os.fstat(source.fileno())
+            if not stat.S_ISREG(info.st_mode):
+                raise ValueError('deterministic source must be a regular file')
+            if info.st_size > 16 * 1024 * 1024 or total + info.st_size > 128 * 1024 * 1024:
+                raise ValueError('deterministic source bytes exceed their bound')
+            data = source.read(16 * 1024 * 1024 + 1)
+        total += len(data)
+        if len(data) > 16 * 1024 * 1024 or total > 128 * 1024 * 1024:
+            raise ValueError('deterministic source bytes exceed their bound')
+        rows.append([name, hashlib.sha256(data).hexdigest()])
+    return hashlib.sha256(json.dumps(rows, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+
+
+def check_deterministic_preparation_capabilities(root, node_executable):
+    script = root / OPTIONAL['deterministic_workflow_script']
+    if not script.is_file():
+        return {'status': 'absent', 'reason': 'Optional deterministic checkpoints absent; ordinary preparation remains available.'}
+    try:
+        output = subprocess.run([node_executable, '--import', 'tsx', str(script), 'capabilities'],
+                                cwd=root, capture_output=True, text=True, timeout=15, check=True,
+                                stdin=subprocess.DEVNULL, env=deterministic_probe_environment()).stdout
+        if len(output.encode()) > 64 * 1024:
+            raise ValueError('deterministic capability response exceeds its bound')
+        value = json.loads(output)
+        if not isinstance(value, dict):
+            raise ValueError('deterministic capabilities must be an object')
+        expected = {'schemaVersion': 1, 'deterministicPreparationContractVersions': [1],
+                    'sourceFormats': ['midi'], 'resume': True, 'readOnlyVerify': True,
+                    'maxPreparationAttempts': 3, 'automaticRetries': False, 'providerCalls': 0,
+                    'productionAdmission': False,
+                    'implementationSha256': deterministic_implementation_fingerprint(root)}
+        # JSON equality preserves booleans versus numbers, including inside version lists.
+        mismatches = [{'field': key, 'expected': required, 'actual': value.get(key)}
+                      for key, required in expected.items()
+                      if json.dumps(value.get(key), sort_keys=True) != json.dumps(required, sort_keys=True)]
+        mismatches += [{'field': key, 'expected': 'absent in deterministic v1', 'actual': value[key]}
+                       for key in ('workflowContractVersions', 'decisionContractVersions', 'selectionContractVersions') if key in value]
+        compatible = not mismatches
+        return {'status': 'compatible' if compatible else 'incompatible', 'capabilities': value,
+                'incompatibilities': mismatches,
+                'command': [node_executable, '--import', 'tsx', str(script)] if compatible else None,
+                'scope': 'Optional deterministic MIDI checkpoints and read-only saved-output verification; no experimental decision/selection contract, audio review or musical admission.'}
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError, UnicodeError):
+        return {'status': 'incompatible', 'reason': 'Deterministic contract or independent implementation fingerprint unavailable; use the checked ordinary path.'}
 
 
 def implementation_fingerprint(root):
@@ -429,6 +517,7 @@ def main():
     report['music_review'] = check_music_review_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     report['score_review'] = check_score_review_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     report['host_workflow'] = check_workflow_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
+    report['deterministic_workflow'] = check_deterministic_preparation_capabilities(root, node_executable) if not report['errors'] else {'status': 'unchecked'}
     free_gib = shutil.disk_usage(root).free / 2**30
     report['free_gib'] = round(free_gib, 2)
     report['disk_budget'] = {'minimum_free_gib': args.minimum_free_gib, 'status': 'not-requested' if args.minimum_free_gib == 0 else 'sufficient' if free_gib >= args.minimum_free_gib else 'insufficient'}

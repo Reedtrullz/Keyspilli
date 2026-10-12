@@ -29,6 +29,9 @@ Preserve accepted Original/backing when improving an existing catalog entry.
    Node and `--import tsx`. Use a fresh local run and isolated catalogs. Inspect
    all six variants, the second import and actual resolved Original/Chords
    events. The command returns provisional artifacts, not musical approval.
+   For a local MIDI task that needs a resumable checkpoint, use the
+   [deterministic preparation workflow](references/deterministic-preparation.md)
+   only when `deterministic_workflow.status: compatible`.
 4. **Diagnose and correct.** When `score_review.status: compatible`, use the
    [offline score review](references/score-review-workflow.md). Repair only an
    exact authorized event with unchanged evidence pins. Preserve protected
@@ -49,6 +52,7 @@ Preserve accepted Original/backing when improving an existing catalog entry.
 | Task | Reference |
 | --- | --- |
 | Explicit source-bound note/phrase protections, when the inspector is present | [Phrase protection pilot](references/phrase-protection.md) |
+| Resumable deterministic local MIDI preparation, when compatible | [Deterministic preparation](references/deterministic-preparation.md) |
 | Optional bounded driver/arranger, only when compatible | [Experimental workflow](references/experimental-host-workflow.md), [phrase recipe](references/constrained-arrangement.md) |
 | Score/tab or vocal acquisition | [Authorized score intake](references/ultimate-guitar.md), [vocal recovery](references/vocal-recovery.md) |
 | Optional captured audio or model triage | [Music review](references/music-review-workflow.md), [audio review](references/audio-listening-review.md) |

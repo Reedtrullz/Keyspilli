@@ -39,6 +39,8 @@ The default is ordinary preparation through the returned `preparation.command`. 
 
 Optional constrained phrase edits require `apps/web/scripts/arrange-song.mts`; preflight executes capabilities and reports `arrangement.status: compatible`; legal choices also require `selection_supported`. See the skill's `references/constrained-arrangement.md`. Older preparation checkouts remain supported. The feature remains opt-in: the controlled phrase pilot found import timing/clock limits and has no listening or verified monetary comparison. Its final-MIDI audit must pass before claiming protected source timing survives.
 
+For one completed local MIDI source, optional `prepare-workflow.mts` adds exact input/instruction pins, a prepared checkpoint, bounded explicit retries and read-only verification of retained outputs. Require `deterministic_workflow.status: compatible` and follow [deterministic preparation](skills/keyspilli-song/references/deterministic-preparation.md). This separate prototype reuses ordinary six-tier preparation and isolated bundle imports. The experimental decision/selection driver has its own compatibility check. Checkpoint completion leaves source, listening and musical acceptance provisional; the wrapper makes no model calls or cost-saving claim.
+
 No MCP server, daemon or deployment hook is included. Import commands prepare isolated offline catalogs; live publication still requires the user's authorization.
 
 ## Maintain
