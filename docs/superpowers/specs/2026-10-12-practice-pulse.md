@@ -110,3 +110,34 @@ sparse groups, default timing updates and damaged preference containers; each
 was corrected before the final GREEN run. No test invokes a live audio device,
 provider, production service or browser session. The integration owner still
 performs independent diff review and the final combined-workspace gates.
+
+## Independent-review correction — delayed score navigation
+
+Review of `c5a5dfeedd89536be988d07cbf57d71d1a8cdd13` found that the Player
+persistently removed a valid saved pulse when its temporary arithmetic map
+failed alignment, before the accepted score map arrived. Runtime resolution now
+supplies safe default settings only to the engine. The Player retains the
+user's choice in state and per-song storage, including during unrelated settings
+saves, and revalidates it whenever the current bar map changes. The visible
+notice describes the current fallback and retained choice; it disappears when
+the choice becomes usable. A genuinely unsupported current map remains on
+default clicks until supported timing or an explicit user choice is available.
+Malformed stored settings remain visibly excluded at the existing load boundary.
+No planner, source-timing authority or alignment check was relaxed.
+
+The review also identified redundant synchronization after an unchanged
+no-count-in start. The start adapter now retains the existing settings identity,
+and the Player skips the no-op settings update. Real setting changes still reach
+the engine before grading starts.
+
+Five new lifecycle checks replay the actual Player resolution/effects and
+settings callbacks from its syntax tree, with real storage, MusicXML export,
+score-navigation validation and playback scheduling. They cover delayed map
+success, unrelated settings saves during fallback, an unsupported map with
+explicit return to default clicks, malformed saved settings, and one opening
+note/click with no redundant cancellation on an unchanged start. This remains
+callback replay rather than a DOM mount or physical listening qualification.
+The retained RED run fails four of these checks on the reviewed implementation;
+the corrected focused suite passes all 23 tests and the web/song-tools typecheck
+passes. The expanded Player/navigation/export suite includes all five new cases.
+It passes 57 tests in nine files on Node 22.22.3.

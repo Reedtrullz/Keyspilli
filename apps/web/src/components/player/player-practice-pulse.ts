@@ -41,13 +41,13 @@ export function practicePulseDraft(
   return { settings: error ? undefined : readPracticePulseSettings(candidate), error };
 }
 
-/** A stale or malformed optional choice cannot prevent ordinary Player startup. */
+/** Resolve safe runtime settings without discarding intent on a temporary map. */
 export function resolvePlayerPracticePulse(settings: PlayerSettings, timing: EngineSongMeta): { settings: PlayerSettings; notice: string | null } {
   if (settings.practicePulse === undefined) return { settings, notice: null };
   const problem = practicePulseProblem(timing, settings.practicePulse, timing.endBeat ?? 0);
   if (!problem) return { settings, notice: null };
   const { practicePulse: _practicePulse, ...fallback } = settings;
-  return { settings: fallback, notice: `Default quarter-note clicks are selected. ${problem} Review the pulse in Set up practice.` };
+  return { settings: fallback, notice: `Default quarter-note clicks are active for the current bar map. Your pulse choice is kept. ${problem} Review it in Set up practice.` };
 }
 
 /** Install the explicit choice before the first graded event; save only a valid start. */
@@ -65,12 +65,17 @@ export function startPracticeWithPulse(
   }
   const { practicePulse: _practicePulse, ...rest } = current;
   const pulse = readPracticePulseSettings(setup.practicePulse);
-  const next: PlayerSettings = { ...rest, metronome: setup.metronome ?? current.metronome, ...(pulse ? { practicePulse: pulse } : {}) };
+  const metronome = setup.metronome ?? current.metronome;
+  const pulseChanged = JSON.stringify(pulse) !== JSON.stringify(current.practicePulse);
+  // Preserve identity so an unchanged no-count-in start does not trigger the
+  // Player timeline effect after its first notes and clicks have been scheduled.
+  const next: PlayerSettings = metronome === current.metronome && !pulseChanged
+    ? current : { ...rest, metronome, ...(pulse ? { practicePulse: pulse } : {}) };
   const previous = engine.settings;
   engine.setSettings(next, timing, engine.duration);
   try { engine.startGrading(setup.wait, range, setup.articulation ? setup.articulationToleranceMs ?? 150 : undefined); }
   catch (error) { engine.setSettings(previous, timing, engine.duration); throw error; }
   if (next.metronome !== current.metronome) saveSettings(next);
-  if (JSON.stringify(next.practicePulse) !== JSON.stringify(current.practicePulse)) saveSongPrefs(songId, { practicePulse: next.practicePulse });
+  if (pulseChanged) saveSongPrefs(songId, { practicePulse: next.practicePulse });
   return next;
 }

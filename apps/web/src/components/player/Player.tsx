@@ -667,13 +667,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     () => playerPracticeTiming(activeData, navigationMeasures, playbackTimingForPlayer),
     [activeData, navigationMeasures, playbackTimingForPlayer],
   );
+  // Keep the user's choice while an asynchronous score map or a different
+  // arrangement makes it unavailable. Only the engine uses this safe fallback;
+  // settings and persistence retain the intent for the next supported map.
   const pulseResolution = useMemo(() => resolvePlayerPracticePulse(settings, engineSongTiming), [settings, engineSongTiming]);
-  useEffect(() => {
-    if (!pulseResolution.notice) return;
-    setPracticePulseNotice(pulseResolution.notice);
-    setSettings(pulseResolution.settings);
-    saveSongPrefs(initial.song.id, { practicePulse: undefined });
-  }, [pulseResolution, initial.song.id]);
 
   const chordSources = useMemo(
     () => playerChordSources(activeData, arrangementEnd),
@@ -1839,7 +1836,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     if(setup.articulation&&(setup.input!=="midi"||setup.wait||!midiSelection.device||midiSelection.channel===null)){setPracticeError("Hold/release assessment requires timed practice on one selected MIDI device and channel.");return;}
     try {
       const practiceSettings = startPracticeWithPulse(eng, settings, initial.song.id, engineSongTiming, setup, range);
-      setSettings(practiceSettings);
+      if (practiceSettings !== settings) setSettings(practiceSettings);
       setPracticePulseNotice("");
     }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
@@ -2734,7 +2731,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         <RhythmCoach data={guidanceData} startBeat={rhythmRange.startSec/secPerBeat(activeData.tempoBpm,settings.speed)}
           endBeat={rhythmRange.endSec/secPerBeat(activeData.tempoBpm,settings.speed)} speed={settings.speed} disabled={grading||showPracticeSetup||chordPracticeActive||playing||auxiliary==="take"} onPrepare={()=>prepareAuxiliary("rhythm")} onDone={()=>releaseAuxiliary("rhythm")}/>
         {practiceSaveNotice && <p role="status" className="px-4 text-xs">{practiceSaveNotice}</p>}
-        {practicePulseNotice && <p role="status" className="px-4 text-xs">{practicePulseNotice}</p>}
+        {(pulseResolution.notice ?? practicePulseNotice) && <p role="status" className="px-4 text-xs">{pulseResolution.notice ?? practicePulseNotice}</p>}
       </div>
 
       {displayVariants.length > 1 && (
