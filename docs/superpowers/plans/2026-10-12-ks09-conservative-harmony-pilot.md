@@ -48,9 +48,17 @@ Metrics use exact event boundaries and union duration, not sample counts: wrong-
 
 - [x] Read current APIs, recovery scope and repository workflow; verify focused harmony baseline.
 - [x] Freeze the development/holdout compositions and record this design before product code.
-- [ ] Write failing development-policy tests and watch expected label/pitch/bass failures.
-- [ ] Implement bounded candidate admission in `packages/midi/src/harmony.ts`, leaving legacy default behavior intact.
-- [ ] Add actual `replayChordsBacking` and `resolveAccompaniment` checks plus the read-only evaluator/CLI; verify duration metrics with hand-calculated examples before trusting reports.
-- [ ] Run development checks and focused existing suites; freeze algorithm before first holdout evaluation. Any later algorithm change would disclose holdout contamination and require a new holdout for broad admission.
+- [x] Write failing development-policy tests and watch expected label/pitch/bass failures.
+- [x] Implement bounded candidate admission in `packages/midi/src/harmony.ts`, leaving legacy default behavior intact.
+- [x] Add actual `replayChordsBacking` and `resolveAccompaniment` checks plus the read-only evaluator/CLI; verify duration metrics with hand-calculated examples before trusting reports.
+- [x] Run development checks and focused existing suites; freeze algorithm before first holdout evaluation. Any later algorithm change would disclose holdout contamination and require a new holdout for broad admission.
 - [ ] Evaluate frozen holdout once, preserve raw event receipts and report remaining failure/coverage identities.
 - [ ] Run focused typechecks, hand off integrated suite and independent review to root, commit cohesive patches, recommend only the admitted scope supported by evidence.
+
+## Development observations before holdout
+
+The seven expected algorithm regressions failed first, then all 39 MIDI tests and 63 Player/evaluation/held-harmony tests passed. The hand-calculated duration tests distinguish wrong harmony, rest intrusion, audible supported coverage and label abstention.
+
+Actual Player replay revealed a stronger arpeggio limitation than the initial test expected: the first supported label starts after the source root attack, and the existing resolver has no supported attack inside it. It emits no chord. The test expectation was corrected to the existing source-rhythm contract; the algorithm and frozen reference were not changed to conceal this loss. The 3-beat arpeggio remains entirely in the coverage denominator. A released third similarly leaves a 2.5-beat silent fifth-only tail because there is no fresh source attack.
+
+Development results before holdout: legacy 18.25 wrong-harmony beats and 32.75/35.25 supported audible beats (92.91%); conservative 0 wrong-harmony beats and 29.75/35.25 supported audible beats (84.40%). Both have zero notes in reference rests. These small synthetic results justify inspection, not default admission.
