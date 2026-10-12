@@ -191,6 +191,25 @@ independent review improved a concrete correctness boundary but supplies no
 independent musical acceptance or real-song error estimate. Admission remains
 the same bounded opt-in scope.
 
+#### Observed coverage cost for small onset jitter
+
+A subsequent reviewer control uses a standard C triad with C3 at beat 0, E3 at
+0.02 and G3 at 0.04, all released at beat 4. Revision 2 correctly withholds the
+complete C label until 0.04. The existing Player still groups that source attack
+at zero, so the later supported label has no new eligible attack: **0 of 3.96
+supported beats are audible, with zero wrong-harmony beats**. The unchanged
+frozen-corpus results therefore do not imply that the correction has no coverage
+cost. This limitation extends beyond dry arpeggios to small onset jitter in an
+ordinary complete triad.
+
+The exact self-authored input, source hash, current algorithm hash, labels,
+actual resolution and duration metrics are retained in
+[revision2-jitter-observation.json](revision2-jitter-observation.json). It is a
+known post-review observation, separate from the original corpus and the five
+earlier review controls. No retuning followed. Recovering such delayed supported
+stacks while preserving justified attack timing needs a separately evaluated
+policy; it is outside the present opt-in admission.
+
 The bounded programmatic entry point uses the same admission checks as the CLI:
 
 ```typescript

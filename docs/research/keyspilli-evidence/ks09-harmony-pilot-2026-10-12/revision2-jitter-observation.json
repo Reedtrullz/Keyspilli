@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "kind": "ks09-post-review-coverage-observation",
+  "implementationRevision": 2,
+  "implementationCommit": "73af13c068e8d14b465b6f37572170f2141867df",
+  "algorithmSha256": "928a20597db90567d0ead574425d8fb7e55da35072cd664d41c963a75347ddc4",
+  "usage": "Known coverage regression observation after review; excluded from the immutable original corpus and five earlier review controls. No retuning followed.",
+  "sourceSha256": "d450f8cf6fac75eee7c66cf1a53377c12281330b3d8dfd5e06d78a2346594248",
+  "source": {
+    "notes": [
+      {
+        "midi": 48,
+        "start": 0,
+        "dur": 4,
+        "vel": 80,
+        "hand": "L"
+      },
+      {
+        "midi": 52,
+        "start": 0.02,
+        "dur": 3.98,
+        "vel": 80,
+        "hand": "L"
+      },
+      {
+        "midi": 55,
+        "start": 0.04,
+        "dur": 3.96,
+        "vel": 80,
+        "hand": "L"
+      }
+    ],
+    "measures": [
+      {
+        "index": 0,
+        "startBeat": 0,
+        "endBeat": 4
+      }
+    ],
+    "key": "C",
+    "timeSig": [
+      4,
+      4
+    ],
+    "tempoBpm": 60,
+    "chords": []
+  },
+  "input": {
+    "id": "review-jittered-complete-triad",
+    "compositionId": "review-jittered-complete-triad",
+    "split": "development",
+    "category": "post-review-coverage-observation",
+    "key": "C",
+    "durationBeats": 4,
+    "notes": [
+      {
+        "midi": 48,
+        "start": 0,
+        "dur": 4,
+        "vel": 80,
+        "hand": "L"
+      },
+      {
+        "midi": 52,
+        "start": 0.02,
+        "dur": 3.98,
+        "vel": 80,
+        "hand": "L"
+      },
+      {
+        "midi": 55,
+        "start": 0.04,
+        "dur": 3.96,
+        "vel": 80,
+        "hand": "L"
+      }
+    ],
+    "reference": [
+      {
+        "startBeat": 0,
+        "endBeat": 0.04,
+        "kind": "unknown",
+        "allowedPitchClasses": []
+      },
+      {
+        "startBeat": 0.04,
+        "endBeat": 4,
+        "kind": "supported",
+        "allowedPitchClasses": [
+          0,
+          4,
+          7
+        ],
+        "bassPc": 0
+      }
+    ]
+  },
+  "result": {
+    "id": "review-jittered-complete-triad",
+    "compositionId": "review-jittered-complete-triad",
+    "split": "development",
+    "category": "post-review-coverage-observation",
+    "policy": "conservative-backing-v1",
+    "measures": [
+      {
+        "index": 0,
+        "startBeat": 0,
+        "endBeat": 4
+      }
+    ],
+    "labels": [
+      {
+        "beat": 0,
+        "name": "N.C.",
+        "notes": [],
+        "sourceKind": "generated",
+        "inferred": true,
+        "inferenceType": "harmony-window",
+        "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+        "durationBeats": 0.04
+      },
+      {
+        "beat": 0.04,
+        "name": "C",
+        "notes": [
+          48,
+          60,
+          64,
+          67
+        ],
+        "sourceKind": "generated",
+        "inferred": true,
+        "inferenceType": "harmony-window",
+        "durationBeats": 3.96
+      }
+    ],
+    "resolution": {
+      "style": "bass-chords",
+      "notes": [],
+      "chords": [],
+      "displayChords": [
+        {
+          "beat": 0,
+          "name": "N.C.",
+          "notes": [],
+          "sourceKind": "generated",
+          "inferred": true,
+          "inferenceType": "harmony-window",
+          "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+          "durationBeats": 0.04
+        },
+        {
+          "beat": 0.04,
+          "name": "C",
+          "notes": [
+            36,
+            67,
+            72,
+            76
+          ],
+          "sourceKind": "generated",
+          "inferred": true,
+          "inferenceType": "harmony-window",
+          "durationBeats": 3.96,
+          "suggestedHands": [
+            "L",
+            "R",
+            "R",
+            "R"
+          ]
+        }
+      ],
+      "guidanceNotes": [],
+      "fallbackSpans": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.04,
+          "reason": "uncertain harmony"
+        },
+        {
+          "startBeat": 0.04,
+          "endBeat": 4,
+          "reason": "no supported source attack"
+        }
+      ]
+    },
+    "realizedEvents": [],
+    "metrics": {
+      "durationBeats": 4,
+      "supportedReferenceBeats": 3.96,
+      "unknownReferenceBeats": 0.04,
+      "restReferenceBeats": 0,
+      "wrongHarmonyBeats": 0,
+      "restViolationBeats": 0,
+      "audibleSupportedBeats": 0,
+      "supportedCoverage": 0,
+      "audibleReferenceBeats": 0,
+      "audibleCoverage": 0,
+      "abstentionBeats": 0.04,
+      "abstentionRate": 0.01
+    }
+  },
+  "finding": "A 0/.02/.04-beat jittered C triad has a supported label only from .04, after the existing source attack cluster at zero. The Player emits nothing: zero of3.96 supported beats audible, zero wrong harmony. Exact onset support trades coverage for avoiding a premature defining tone."
+}

@@ -409,5 +409,14 @@
   },
   "admission": "Bounded opt-in inspection/API only; no default admission. Existing source-attack coverage limits remain.",
   "musicalAcceptance": "not-established",
-  "providerCalls": 0
+  "providerCalls": 0,
+  "additionalCoverageObservation": {
+    "file": "revision2-jitter-observation.json",
+    "sha256": "b150f2af6418748d1b346b694634d32908bba4625bbbdf971be148fb75e93f5b",
+    "supportedReferenceBeats": 3.96,
+    "audibleSupportedBeats": 0,
+    "wrongHarmonyBeats": 0,
+    "retunedAfterObservation": false,
+    "scope": "Known post-review onset-jitter coverage cost; not part of the immutable original48results or five earlier review controls."
+  }
 }
