@@ -26,8 +26,8 @@ const retained = (test: () => Promise<void>) => async () => {
  * after a startup-relative sleep. Both fixtures acknowledge their TERM handler
  * before their leader exits and never retain the leader's output handles. */
 async function descendant(options: {
-  finite?: boolean; exitCode?: number; exitSignal?: boolean; signal?: AbortSignal; timeoutMs?: number;
-  onFirstProbe?: () => void; onSignal?: (signal: string | number | undefined) => void;
+  finite?: boolean; finiteMs?: number; exitCode?: number; exitSignal?: boolean; signal?: AbortSignal; timeoutMs?: number;
+  onFirstProbe?: (group: number) => void; onSignal?: (signal: string | number | undefined) => void;
   rejectTerm?: boolean;
 } = {}) {
   const directory = mkdtempSync(join(scratch, "descendant-"));
@@ -38,7 +38,7 @@ async function descendant(options: {
     const log=event=>appendFileSync(events,JSON.stringify({event,atNs:process.hrtime.bigint().toString(),pid:process.pid,parentPid:process.ppid})+'\\n');
     process.on('SIGTERM',()=>log('term'));
     log('ready'); process.send({ready:true});
-    ${options.finite ? `const wait=setInterval(()=>{if(!existsSync(arm))return;clearInterval(wait);log('armed');setTimeout(()=>{log('natural-completion');process.exit(0)},75)},5);` : "setInterval(()=>{},1000);"}
+    ${options.finite ? `const wait=setInterval(()=>{if(!existsSync(arm))return;clearInterval(wait);log('armed');setTimeout(()=>{log('natural-completion');process.exit(0)},${options.finiteMs ?? 75})},5);` : "setInterval(()=>{},1000);"}
   `);
   writeFileSync(join(directory, "leader.mjs"), `
     import {spawn} from 'node:child_process';
@@ -55,7 +55,7 @@ async function descendant(options: {
         if (!firstProbe) {
           firstProbe = true;
           if (options.finite) writeFileSync(arm, "armed at first post-close presence probe\n", { flag: "wx" });
-          options.onFirstProbe?.();
+          options.onFirstProbe?.(group);
         }
         return present;
       }
@@ -172,6 +172,31 @@ describe("owned child groups", () => {
     expect(result.firstProbe).toBe(true);
     expect(result.receipt).toEqual({ command: "fixture", exitCode: 0, signal: null, termination: "timeout", groupClosed: true });
     expect(result.signals).toContain("SIGTERM");
+  }));
+
+  it("refuses closure first observed after the passive deadline even when the delayed poll finds no group", retained(async () => {
+    const schedule = setTimeout, actualKill = process.kill.bind(process);
+    let group: number | undefined, heldPoll = false, absentBeforeRelease = false;
+    vi.spyOn(globalThis, "setTimeout").mockImplementation(((callback: (...args: unknown[]) => void, ms?: number, ...args: unknown[]) => {
+      if (group !== undefined && ms === 25 && !heldPoll) {
+        heldPoll = true;
+        const stopObservingAt = Date.now() + 1000;
+        const releaseAfterNaturalClosure = () => {
+          try { actualKill(-group!, 0); }
+          catch (error) { if ((error as NodeJS.ErrnoException).code === "ESRCH") absentBeforeRelease = true; }
+          if (absentBeforeRelease || Date.now() >= stopObservingAt) callback(...args);
+          else schedule(releaseAfterNaturalClosure, 5);
+        };
+        return schedule(releaseAfterNaturalClosure, 5);
+      }
+      return schedule(callback, ms, ...args);
+    }) as typeof setTimeout);
+    const result = await descendant({ finite: true, finiteMs: 350, timeoutMs: 1737,
+      onFirstProbe: pid => { group = pid; } });
+    expect(result.firstProbe).toBe(true); expect(heldPoll).toBe(true); expect(absentBeforeRelease).toBe(true);
+    expect(result.receipt).toEqual({ command: "fixture", exitCode: 0, signal: null, termination: "descendants", groupClosed: true });
+    expect(result.journal.map(entry => entry.event)).toEqual(["ready", "armed", "natural-completion"]);
+    expect(result.signals).toEqual([]); expect(result.cleanupNeeded).toBe(false);
   }));
 
   for (const options of [{ exitCode: 7, exitSignal: false }, { exitCode: undefined, exitSignal: true }]) {
