@@ -8,9 +8,9 @@ const arg = (name: string) => args.includes(name) ? args[args.indexOf(name) + 1]
 const receiptPath = arg('--receipt');
 const sourcePath = arg('--source');
 if (!receiptPath || !sourcePath) throw Error('--receipt RECEIPT.json --source SOURCE.json required');
-const receipt = await readLocalEvidenceJson(resolve(receiptPath));
 const source = await readLocalEvidenceJson(resolve(sourcePath)) as SourceAnchors;
+const receipt = await readLocalEvidenceJson(resolve(receiptPath), source.validationReceiptSha256);
 const validated = validateSourceValidationReceipt(receipt, source);
-console.log(JSON.stringify({status:'validated',sourceSha256:validated.sourceSha256,phraseId:selectedPhraseId(validated),timingKnown:validated.timingKnown,assertionWritten:false},null,2));
+console.log(JSON.stringify({status:validated.schemaVersion === 2 ? 'validated' : 'historical',schemaVersion:validated.schemaVersion,sourceSha256:validated.sourceSha256,phraseId:selectedPhraseId(validated),timingKnown:validated.timingKnown,repairAuthority:validated.schemaVersion === 2 ? 'exact-reviewed-events-only' : 'none',assertionWritten:false},null,2));
 
 function selectedPhraseId(value: {selected:{phraseId:string}}): string { return value.selected.phraseId; }

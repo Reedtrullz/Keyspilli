@@ -51,6 +51,9 @@ not merely Git HEAD. Legacy `symbolicChecks: passed` declarations are not admitt
 
 Source fidelity requires independent authoritative anchors, known timing and,
 for human-validated inputs, the actual hash-verified scoped reviewer receipt.
+New source authority requires a V2 semantic binding; V1 remains historical.
+See [exact source and repair authority](source-validation-authority.md) for the
+label/clock/interval contract and per-event repair restrictions.
 Candidate-derived references never gain authority by roundtripping. The existing
 Chords policy allows scoped melody omission; unresolved alternate voicing does
 not pass. Structural screening uses native elapsed times with existing difficulty

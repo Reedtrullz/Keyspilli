@@ -9,9 +9,5 @@ it("refuses advisory edits and stale target bindings", () => {
     const action = { id: "f", findingId: "f", inputSha256: "a".repeat(64), evidenceHashes: ["a".repeat(64)], kind: "advisory-only" as const, reason: "unknown source", mode: "original" as const, phraseId: "p", occurrenceId: "o", targetEventId: "bad", expectedPitch: 60, targetPitch: 61, startSeconds: 0, sourceAuthority: "unknown" as const, validationReceiptSha256: null };
     expect(() => createScoreReviewRepairPreview({ snapshot, proposal }, action)).toThrow(/advisory|eligible/);
     const eligible = { ...action, kind: "bounded-preview" as const, sourceAuthority: "self-authored" as const };
-    const r = createScoreReviewRepairPreview({ snapshot, proposal }, eligible);
-    expect(r.snapshot.events[0]?.midi).toBe(60);
-    expect(r.catalogMutations).toBe(0);
-    expect(r.requiredRechecks).not.toContain("human-listening-and-keyboard-review");
-    expect(() => createScoreReviewRepairPreview({ snapshot, proposal: { ...proposal, sourceSha256: "b".repeat(64) } }, eligible)).toThrow(/stale/);
+    expect(() => createScoreReviewRepairPreview({ snapshot, proposal }, eligible)).toThrow(/unscoped.*authority/);
 });

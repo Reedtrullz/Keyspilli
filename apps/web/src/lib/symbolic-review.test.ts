@@ -2,11 +2,16 @@ import { expect, it } from "vitest";
 import { scoreFixture } from "./score-review-test-fixture.js";
 import { loadSymbolicReviewInput, validateScoreReviewInput } from "./symbolic-review-input.js";
 import { buildSymbolicReviewReceipt } from "./symbolic-review.js";
+import { sourceValidationSemanticHash, type SourceValidationReceiptV2 } from "./music-source-validation.js";
+import type { SourceAnchors } from "./music-correspondence.js";
 it("opens the actual scoped source receipt and refuses a changed mode", async () => {
     const f = await scoreFixture();
     try {
-        const receipt = await f.pin("reviewer.json", { schemaVersion: 1, kind: "keyspilli-source-validation", sourceSha256: f.delivery.sha256, selected: { phraseId: "phrase", occurrenceId: "occ-1", role: "melody", onsetSeconds: 0 }, reviewer: { id: "fixture-reviewer", role: "source-reviewer", assertion: "validated" }, scope: { mode: "original", difficulty: "medium" }, timingKnown: true });
-        const anchors = await f.pin("anchors.json", { sha256: f.delivery.sha256, authority: "human-validated", timingKnown: true, validationReceiptSha256: receipt.sha256, anchors: [{ id: "landmark", phraseId: "phrase", occurrenceId: "occ-1", role: "melody", midi: 60, onsetSeconds: 0, durationSeconds: 0.5, required: true }] });
+        const source: SourceAnchors = { sha256: f.delivery.sha256, authority: "human-validated", timingKnown: true, timebase: "source-native-seconds", anchors: [{ id: "landmark", phraseId: "phrase", occurrenceId: "occ-1", role: "melody", midi: 60, onsetSeconds: 0, durationSeconds: 0.5, required: true }] };
+        const receiptValue: SourceValidationReceiptV2 = { schemaVersion: 2, kind: "keyspilli-source-validation", sourceSha256: f.delivery.sha256, selected: { phraseId: "phrase", occurrenceId: "occ-1", role: "melody", onsetSeconds: 0 }, reviewer: { id: "fixture-reviewer", role: "source-reviewer", assertion: "validated" }, scope: { mode: "original", difficulty: "medium" }, timingKnown: true, semanticBinding: { schemaVersion: 1, timebase: "source-native-seconds", clockSha256: f.input.modes.original.clock.evidence.sha256, reviewedAnchorIds: ["landmark"], reviewedIntervals: [{ phraseId: "phrase", occurrenceId: "occ-1", startSeconds: 0, endSeconds: 0.5 }], sha256: "" } };
+        receiptValue.semanticBinding.sha256 = sourceValidationSemanticHash(source, receiptValue);
+        const receipt = await f.pin("reviewer.json", receiptValue);
+        const anchors = await f.pin("anchors.json", { ...source, validationReceiptSha256: receipt.sha256 });
         const roles = await f.pin("roles.json", { ...f.scope, kind: "keyspilli-score-roles", assignments: { "delivery-0": { value: "melody", origin: "authored" } } });
         const raw = { ...f.input, source: { authority: "human-validated", relationship: "independent-reference", anchors, validationReceipt: receipt }, modes: { original: { ...f.input.modes.original, roles } } };
         const n = await loadSymbolicReviewInput(validateScoreReviewInput(raw));
