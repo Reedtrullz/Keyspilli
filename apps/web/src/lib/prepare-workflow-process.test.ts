@@ -199,6 +199,25 @@ describe("owned child groups", () => {
     expect(result.signals).toEqual([]); expect(result.cleanupNeeded).toBe(false);
   }));
 
+  it("refuses first absence observed across the passive deadline during its probe", retained(async () => {
+    const actualKill = process.kill.bind(process), now = performance.now.bind(performance);
+    let crossedDuringProbe = false, stalledMs = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now() + stalledMs);
+    vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
+      try { return actualKill(pid, signal); }
+      catch (error) {
+        if (pid < 0 && signal === 0 && (error as NodeJS.ErrnoException).code === "ESRCH" && !crossedDuringProbe) {
+          crossedDuringProbe = true; stalledMs = 251;
+        }
+        throw error;
+      }
+    });
+    const result = await runOwnedProcess({ ...base, args: ["-e", "process.exit(0)"] });
+    writeFileSync(join(scratch, "late-absence-probe-receipt.json"), JSON.stringify({ crossedDuringProbe, stalledMs, result }) + "\n");
+    expect(crossedDuringProbe).toBe(true);
+    expect(result).toEqual({ command: "fixture", exitCode: 0, signal: null, termination: "descendants", groupClosed: true });
+  }));
+
   for (const options of [{ exitCode: 7, exitSignal: false }, { exitCode: undefined, exitSignal: true }]) {
     it(`does not grant successful-close drain to a ${options.exitSignal ? "signalled" : "nonzero-exit"} leader`, retained(async () => {
       let yielded = false; const signalAfterYield: boolean[] = [];
