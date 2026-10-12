@@ -5,7 +5,7 @@ import { constants, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {getDb} from "./db.js";
 import {dataDir} from "./paths.js";
-import { validateArtifactFiles, type Variant } from "@keyspilli/midi";
+import { artifactFidelityForRead, validateArtifactFiles, type Variant } from "@keyspilli/midi";
 import { parseArrangementManifest } from "./artifact-manifest.js";
 import type { ArrangementManifest } from "./artifact-manifest.js";
 
@@ -281,7 +281,7 @@ export async function validateStagedArtifactTree(
     // the structural checks above ensure this cast cannot hide malformed
     // note data while avoiding a second, drifting round-trip comparator.
     const variant = { ...(raw as Record<string, unknown>), level } as unknown as Variant;
-    issues.push(...validateArtifactFiles(variant, { midi, xml }).map((issue) => `${prefix}: ${issue}`));
+    issues.push(...validateArtifactFiles(variant, { midi, xml, fidelity: artifactFidelityForRead((raw as Record<string, unknown>).artifactFidelity) }).map((issue) => `${prefix}: ${issue}`));
   }
   return issues;
 }

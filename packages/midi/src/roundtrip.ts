@@ -10,13 +10,32 @@ export interface VariantArtifacts {
   midi: Uint8Array;
   xml: string;
   /** Format capabilities, not a musical approval or a claim that checks ran. */
-  fidelity: {
-    schemaVersion: 1;
-    validationScope: "symbolic-events";
-    expressivePreservation: "not-established";
-    midi: { noteVelocities: "encoded" };
-    musicxml: { noteVelocities: "omitted"; dynamics: "omitted" };
-  };
+  fidelity: typeof CURRENT_ARTIFACT_FIDELITY;
+}
+
+export const LEGACY_ARTIFACT_FIDELITY = {
+  schemaVersion: 1, validationScope: "symbolic-events", expressivePreservation: "not-established",
+  midi: { noteVelocities: "encoded" }, musicxml: { noteVelocities: "omitted", dynamics: "omitted" },
+} as const;
+
+export const CURRENT_ARTIFACT_FIDELITY = {
+  schemaVersion: 2, validationScope: "symbolic-events-and-attack-velocities", expressivePreservation: "not-established",
+  midi: { noteVelocities: "encoded" }, musicxml: { noteVelocities: "encoded", dynamics: "omitted" },
+} as const;
+
+/** Historical reads explicitly adopt v1 when the diagnostic record is absent.
+ * Present malformed, null, or future records are retained for refusal. */
+export function artifactFidelityForRead(value: unknown): unknown {
+  return value === undefined ? LEGACY_ARTIFACT_FIDELITY : value;
+}
+
+function exactRecord(actual: unknown, expected: unknown): boolean {
+  if (expected === null || typeof expected !== "object") return actual === expected;
+  if (actual === null || typeof actual !== "object" || Array.isArray(actual)) return false;
+  const record = actual as Record<string, unknown>;
+  const wanted = expected as Record<string, unknown>;
+  return Object.keys(record).length === Object.keys(wanted).length
+    && Object.entries(wanted).every(([key, value]) => Object.hasOwn(record, key) && exactRecord(record[key], value));
 }
 
 const ROUNDTRIP_TOLERANCE = 0.01;
@@ -26,13 +45,85 @@ const ROUNDTRIP_TOLERANCE = 0.01;
 // still accepting the format's lossless-in-practice quantization.
 export const ARTIFACT_TEMPO_TOLERANCE = 0.01;
 
-function noteShape(notes: Note[]): { midi: number; start: number; dur: number }[] {
+function noteShape(notes: Note[]): { midi: number; start: number; dur: number; vel: number }[] {
   return notes
-    .map((n) => ({ midi: n.midi, start: n.start, dur: n.dur }))
-    .sort((a, b) => a.midi - b.midi || a.start - b.start || a.dur - b.dur);
+    .map((n) => ({ midi: n.midi, start: n.start, dur: n.dur, vel: n.vel }))
+    .sort((a, b) => a.midi - b.midi || a.start - b.start || a.dur - b.dur || a.vel - b.vel);
 }
 
-function compareNotes(expected: ReturnType<typeof noteShape>, actual: Note[], label: string): string[] {
+type ArtifactNote = ReturnType<typeof noteShape>[number];
+
+function timingMatches(a: ArtifactNote, b: ArtifactNote): boolean {
+  return Math.abs(a.start - b.start) <= ROUNDTRIP_TOLERANCE && Math.abs(a.dur - b.dur) <= ROUNDTRIP_TOLERANCE;
+}
+
+/** Attack multiplicities are exact; allowed timing quantization must not pair
+ * different velocities. Ambiguous windows need a one-to-one matching, since a
+ * greedy choice can steal the only rendering available to another attack. */
+function velocityNoteIssues(expected: ArtifactNote[], actual: ArtifactNote[], label: string): string[] {
+  const groups = (notes: ArtifactNote[]) => {
+    const result = new Map<string, ArtifactNote[]>();
+    for (const note of notes) {
+      const key = `${note.midi}:${note.vel}`;
+      const group = result.get(key) ?? [];
+      group.push(note);
+      result.set(key, group);
+    }
+    return result;
+  };
+  const source = groups(expected), rendered = groups(actual);
+  const issues: string[] = [];
+  for (const [key, a] of source) {
+    const b = rendered.get(key) ?? [];
+    if (a.length !== b.length) {
+      issues.push(`${label}: note pitch ${a[0]!.midi} velocity ${a[0]!.vel} count ${b.length} != source ${a.length}`);
+      continue;
+    }
+    // The ordinary case remains linear after sorting, including large groups
+    // of identical unisons; no candidate graph is materialized.
+    if (a.every((note, index) => timingMatches(note, b[index]!))) continue;
+    const sourceToActual = new Int32Array(a.length).fill(-1);
+    const actualToSource = new Int32Array(b.length).fill(-1);
+    for (let start = 0; start < a.length; start++) {
+      const queue = [start], seenSource = new Set([start]);
+      const via = new Map<number, number>();
+      let free = -1;
+      for (let cursor = 0; cursor < queue.length && free < 0; cursor++) {
+        const sourceIndex = queue[cursor]!, note = a[sourceIndex]!;
+        // Sorted onsets bound each search to its tolerance window.
+        let low = 0, high = b.length;
+        while (low < high) {
+          const middle = (low + high) >>> 1;
+          if (b[middle]!.start < note.start - ROUNDTRIP_TOLERANCE) low = middle + 1;
+          else high = middle;
+        }
+        for (let actualIndex = low; actualIndex < b.length && b[actualIndex]!.start <= note.start + ROUNDTRIP_TOLERANCE; actualIndex++) {
+          if (via.has(actualIndex) || !timingMatches(note, b[actualIndex]!)) continue;
+          via.set(actualIndex, sourceIndex);
+          const owner = actualToSource[actualIndex]!;
+          if (owner < 0) { free = actualIndex; break; }
+          if (!seenSource.has(owner)) { seenSource.add(owner); queue.push(owner); }
+        }
+      }
+      if (free < 0) {
+        issues.push(`${label}: note ${a[start]!.midi}@${a[start]!.start.toFixed(3)}:${a[start]!.dur.toFixed(3)} velocity ${a[start]!.vel} has no one-to-one match within ${ROUNDTRIP_TOLERANCE} beats`);
+        continue;
+      }
+      // Follow the alternating path iteratively to avoid recursion on long
+      // ambiguous runs and retain every source/rendered attack separately.
+      while (free >= 0) {
+        const sourceIndex = via.get(free)!;
+        const previous = sourceToActual[sourceIndex]!;
+        sourceToActual[sourceIndex] = free;
+        actualToSource[free] = sourceIndex;
+        free = previous;
+      }
+    }
+  }
+  return issues;
+}
+
+function compareNotes(expected: ReturnType<typeof noteShape>, actual: Note[], label: string, velocities: boolean): string[] {
   const a = expected;
   const b = noteShape(actual);
   const issues: string[] = [];
@@ -40,6 +131,7 @@ function compareNotes(expected: ReturnType<typeof noteShape>, actual: Note[], la
     issues.push(`${label}: note count ${b.length} != source ${a.length}`);
     return issues;
   }
+  if (velocities) return velocityNoteIssues(a, b, label);
   for (let i = 0; i < a.length; i++) {
     const expected = a[i]!;
     const got = b[i]!;
@@ -115,10 +207,7 @@ export function writeVariantArtifacts(variant: Variant, title: string, artist: s
   });
   return {
     midi, xml: writeMusicXml(variant, title, artist),
-    fidelity: {
-      schemaVersion: 1, validationScope: "symbolic-events", expressivePreservation: "not-established",
-      midi: { noteVelocities: "encoded" }, musicxml: { noteVelocities: "omitted", dynamics: "omitted" },
-    },
+    fidelity: structuredClone(CURRENT_ARTIFACT_FIDELITY),
   };
 }
 
@@ -136,9 +225,15 @@ export function validateArtifactRoundtrip(variant: Variant, title: string, artis
   return validateArtifactFiles(variant, artifacts);
 }
 
-/** Validate symbolic pitch/timing/tempo/meter (and supported pedal), not expression. */
-export function validateArtifactFiles(variant: Variant, artifacts: Pick<VariantArtifacts, "midi" | "xml">): string[] {
+/** Validate symbolic pitch/timing/tempo/meter/pedal and v2 attack integers.
+ * This does not establish acoustic or expressive equivalence. Fresh exports
+ * default to v2; historical callers must explicitly supply their read contract. */
+export function validateArtifactFiles(variant: Variant, artifacts: Pick<VariantArtifacts, "midi" | "xml"> & { fidelity?: unknown }): string[] {
   const issues: string[] = [];
+  const fidelity = artifacts.fidelity === undefined ? CURRENT_ARTIFACT_FIDELITY : artifacts.fidelity;
+  const legacy = exactRecord(fidelity, LEGACY_ARTIFACT_FIDELITY);
+  if (!legacy && !exactRecord(fidelity, CURRENT_ARTIFACT_FIDELITY)) issues.push("artifact fidelity record malformed or unsupported");
+  if (!legacy && variant.notes.some(n => !Number.isInteger(n.vel) || n.vel < 1 || n.vel > 127)) issues.push("artifact source attack velocity must be an integer between 1 and 127");
   if(variant.sourcePedal){const errors=sourcePedalErrors(variant.notes,variant.sourcePedal);if(errors.length)return errors;}
   // The canonical notes are compared against both renderings. Normalize that
   // shared side once instead of sorting the same source array twice for large
@@ -148,7 +243,7 @@ export function validateArtifactFiles(variant: Variant, artifacts: Pick<VariantA
     const parsedMidi = parseMidi(artifacts.midi);
     issues.push(...compareTempo(variant.tempoBpm, parsedMidi.tempoBpm, parsedMidi.tempoMetaPresent === true, "midi roundtrip"));
     issues.push(...compareTimeSigEvents(expectedTimeSigEvents(variant), parsedMidi.timeSigEvents, "midi roundtrip"));
-    issues.push(...compareNotes(expectedNotes, parsedMidi.notes, "midi roundtrip"));
+    issues.push(...compareNotes(expectedNotes, parsedMidi.notes, "midi roundtrip", !legacy));
     issues.push(...comparePedal(variant,parsedMidi,"midi roundtrip"));
   } catch (e) {
     issues.push(`midi roundtrip parse failed: ${(e as Error).message}`);
@@ -157,7 +252,7 @@ export function validateArtifactFiles(variant: Variant, artifacts: Pick<VariantA
     const parsedXml = parseMusicXmlNotes(artifacts.xml);
     issues.push(...compareTempo(variant.tempoBpm, parsedXml.tempoBpm, parsedXml.tempoMetaPresent === true, "xml roundtrip"));
     issues.push(...compareTimeSigEvents(expectedTimeSigEvents(variant), parsedXml.timeSigEvents, "xml roundtrip"));
-    issues.push(...compareNotes(expectedNotes, parsedXml.notes, "xml roundtrip"));
+    issues.push(...compareNotes(expectedNotes, parsedXml.notes, "xml roundtrip", !legacy));
     issues.push(...comparePedal(variant,parsedXml,"xml roundtrip"));
   } catch (e) {
     issues.push(`xml roundtrip parse failed: ${(e as Error).message}`);

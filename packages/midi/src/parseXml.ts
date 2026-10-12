@@ -3,7 +3,7 @@ import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js"
 import { sectionsFromMarkers } from "./source-sections.js";
 import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 import { mergedNoteLineage } from "./quantize.js";
-import { musicXmlElementFidelity } from "./musicxml-fidelity.js";
+import { musicXmlElementFidelity, musicXmlNoteVelocity } from "./musicxml-fidelity.js";
 
 interface ParsedXmlNote extends Note {
   tieStart?: boolean;
@@ -19,20 +19,43 @@ function xmlAttribute(attributes: string, name: string): string {
   return attributes.match(new RegExp(`\\b${escaped}\\s*=\\s*(["'])(.*?)\\1`))?.[2] ?? "";
 }
 
-/** Decode the standard XML entities that appear in MusicXML lyrics. */
+/** Decode original source references once; escaped entity text stays literal. */
 function decodeXmlEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
+  const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+  return s.replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, (_reference, entity: string) => {
+    if (!entity.startsWith("#")) return named[entity]!;
+    const code = entity.startsWith("#x") ? Number.parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+    return String.fromCodePoint(code);
+  });
 }
 
 function firstMatch(s: string, re: RegExp): string {
   return s.match(re)?.[1] ?? "";
+}
+
+/** Preserve exact source keys for both semantic validation and note decoding. */
+function exactMusicXmlAttributes(source: string): Record<string, string> {
+  const parsed: Record<string, string> = Object.create(null);
+  while (source.trim()) {
+    const attr = source.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([^<]*?)\2/);
+    if (!attr || /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/.test(attr[3]!)) throw new Error("invalid MusicXML attribute");
+    const name = attr[1]!;
+    if (Object.hasOwn(parsed, name)) throw new Error(`duplicate MusicXML attribute: ${name}`);
+    parsed[name] = decodeXmlEntities(attr[3]!);
+    source = source.slice(attr[0].length);
+  }
+  return parsed;
+}
+
+function noteAttributes(element: string): Record<string, string> {
+  let quote = "";
+  for (let end = "<note".length; end < element.length; end++) {
+    const char = element[end]!;
+    if (quote) { if (char === quote) quote = ""; }
+    else if (char === '"' || char === "'") quote = char;
+    else if (char === ">") return exactMusicXmlAttributes(element.slice("<note".length, end));
+  }
+  throw new Error("invalid MusicXML note tag");
 }
 
 /** Validate the MusicXML subset before regex extraction can mistake comments for music. */
@@ -81,16 +104,7 @@ function cleanMusicXml(xml: string, semanticWarnings: string[] = []): string {
         if (name !== "score-partwise" || ++roots !== 1) throw new Error("invalid MusicXML document root");
       }
       const suffix = tag.match(/\/\s*>$/)?.[0] ?? ">";
-      let attributes = tag.slice(match[0].length, tag.length - suffix.length);
-      const parsedAttributes: Record<string, string> = Object.create(null);
-      while (attributes.trim()) {
-        const attr = attributes.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([^<]*?)\2/);
-        if (!attr || /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/.test(attr[3]!)) throw new Error("invalid MusicXML attribute");
-        const attributeName = attr[1]!;
-        if (Object.hasOwn(parsedAttributes, attributeName)) throw new Error(`duplicate MusicXML attribute: ${attributeName}`);
-        parsedAttributes[attributeName] = decodeXmlEntities(attr[3]!);
-        attributes = attributes.slice(attr[0].length);
-      }
+      const parsedAttributes = exactMusicXmlAttributes(tag.slice(match[0].length, tag.length - suffix.length));
       semanticWarnings.push(...musicXmlElementFidelity(name, parsedAttributes));
       if (!/\/\s*>$/.test(tag)) stack.push(name);
     }
@@ -373,7 +387,7 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
           : {}),
         start: measureStart + start,
         dur: durBeats,
-        vel: 80,
+        vel: musicXmlNoteVelocity(noteAttributes(el)),
         hand: staffRaw === "2" ? "L" : staffRaw === "1" ? "R" : voiceRaw === "2" ? "L" : "R",
         lyrics: lyric ? decodeXmlEntities(lyric) : undefined,
         tieStart,

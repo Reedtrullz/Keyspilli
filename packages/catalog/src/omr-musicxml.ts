@@ -20,7 +20,7 @@ import type {
   OmrTieInput,
 } from "./omr-consensus.js";
 
-export const OMR_MUSICXML_ADAPTER_VERSION = "omr-musicxml-v2-fidelity" as const;
+export const OMR_MUSICXML_ADAPTER_VERSION = "omr-musicxml-v3-note-velocity-boundary" as const;
 
 export class OmrMusicXmlError extends Error {
   constructor(message: string) {
@@ -106,14 +106,15 @@ function decodeXml(value: string): string {
 
 function parseAttributes(source: string): Record<string, string> {
   const attrs: Record<string, string> = Object.create(null);
-  // MusicXML attributes are simple quoted values.  Ignore malformed/unquoted
-  // attributes rather than trying to interpret arbitrary markup as a value.
-  const attrRe = /([^\s=/>]+)\s*=\s*(["'])([\s\S]*?)\2/g;
-  let match: RegExpExecArray | null;
-  while ((match = attrRe.exec(source))) {
+  // Consume the complete source: unmatched tokens cannot erase an explicit
+  // playback attribute or hide a malformed duplicate from semantic policy.
+  while (source.trim()) {
+    const match = source.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([\s\S]*?)\2/);
+    if (!match) throw new OmrMusicXmlError("invalid XML attribute syntax");
     const name = match[1]!;
     if (Object.hasOwn(attrs, name)) throw new OmrMusicXmlError(`duplicate XML attribute: ${name}`);
     attrs[name] = decodeXml(match[3]!);
+    source = source.slice(match[0].length);
   }
   return attrs;
 }
@@ -653,7 +654,7 @@ export function parseOmrMusicXml(xml: string, options: OmrMusicXmlParseOptions =
   const pending = [root];
   while (pending.length) {
     const node = pending.pop()!;
-    for (const warning of musicXmlElementFidelity(node.name, node.exactAttrs)) warnings.add(warning);
+    for (const warning of musicXmlElementFidelity(node.name, node.exactAttrs, "notation")) warnings.add(warning);
     for (const element of node.children) pending.push(element);
   }
   return parseScorePartwise(root, options, [...warnings].sort(stableCompare));
