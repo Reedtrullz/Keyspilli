@@ -54,6 +54,11 @@ preparation for other supported source formats.
 
 Run from the selected checkout. Set `KEYSPILLI_NODE` to the absolute executable
 returned by preflight. Choose a new directory under `output/song-prep`.
+The checkout and run need consistent exclusive-create, atomic-rename and unlink
+visibility between processes. Capability discovery does not certify that
+filesystem behavior. If a removed lock or state file reappears, preserve the run
+and use a new checkout/run on a consistent local filesystem; do not remove or
+steal a lock to make resume succeed.
 
 ```sh
 "$KEYSPILLI_NODE" --import tsx apps/web/scripts/prepare-workflow.mts prepare /absolute/request.json output/song-prep/NEW-RUN --until prepared
@@ -63,7 +68,7 @@ returned by preflight. Choose a new directory under `output/song-prep`.
 
 Omit `--until prepared` to prepare and seal in the same invocation. The prepared
 checkpoint already hashes its outputs. Resume validates that checkpoint and
-reuses the same six-tier payload. Inspect the returned status and artifact paths;
+reuses the same six-tier payload. Inspect the returned status and owned run;
 retain the complete run, including failed attempts and exact input snapshots.
 
 The host allows at most three preparation attempts in total, with at most one
