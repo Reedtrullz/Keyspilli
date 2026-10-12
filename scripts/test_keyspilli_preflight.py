@@ -28,7 +28,9 @@ class PreflightTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         subprocess.run(['git', 'init', '-q', str(self.root)], check=True, capture_output=True)
         (self.root / 'package.json').write_text(json.dumps({'name': 'keyspilli', 'engines': {'node': '>=22.22.3 <23'}}))
-        for name in (*preflight.REQUIRED, 'node_modules/.bin/tsx'):
+        fingerprint_files = (name for name in preflight.DETERMINISTIC_REQUIRED
+                             if name not in ('package.json', preflight.OPTIONAL['deterministic_workflow_script']))
+        for name in (*preflight.REQUIRED, *fingerprint_files, 'node_modules/.bin/tsx'):
             file = self.root / name
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_text('')
@@ -250,6 +252,13 @@ class PreflightTests(unittest.TestCase):
                 self.assertEqual(result['status'], 'incompatible', result)
                 self.assertNotIn('capabilities', result)
 
+    def test_deterministic_fingerprint_refuses_an_ignored_entrypoint(self):
+        script = self.root / 'apps/web/scripts/prepare-workflow.mts'
+        script.write_text('must be covered by the independent fingerprint')
+        (self.root / '.gitignore').write_text('apps/web/scripts/prepare-workflow.mts\n')
+        with self.assertRaisesRegex(ValueError, 'entrypoint|inventory'):
+            preflight.deterministic_implementation_fingerprint(self.root)
+
     def test_deterministic_probe_refuses_working_changes_during_execution(self):
         (self.root / 'apps/web/scripts/prepare-workflow.mts').write_text('fixture')
         with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=json.dumps(self.deterministic_caps()))), \
@@ -259,6 +268,7 @@ class PreflightTests(unittest.TestCase):
         self.assertFalse(result.get('command'))
 
     def test_deterministic_fingerprint_detects_working_source_configuration_and_catalog_changes(self):
+        (self.root / 'apps/web/scripts/prepare-workflow.mts').write_text('fixture')
         first = preflight.deterministic_implementation_fingerprint(self.root)
         source = self.root / 'packages/midi/src/probe.ts'
         source.parent.mkdir(parents=True, exist_ok=True)
@@ -273,7 +283,7 @@ class PreflightTests(unittest.TestCase):
         fourth = preflight.deterministic_implementation_fingerprint(self.root)
         self.assertNotEqual(third, fourth)
         catalog = self.root / 'catalog/chord-sources.json'
-        catalog.parent.mkdir()
+        catalog.parent.mkdir(exist_ok=True)
         catalog.write_text('{"schemaVersion":1,"entries":[]}')
         fifth = preflight.deterministic_implementation_fingerprint(self.root)
         self.assertNotEqual(fourth, fifth)
@@ -281,6 +291,7 @@ class PreflightTests(unittest.TestCase):
         self.assertEqual(fifth, preflight.deterministic_implementation_fingerprint(self.root))
 
     def test_deterministic_fingerprint_refuses_symlinks_and_oversized_files(self):
+        (self.root / 'apps/web/scripts/prepare-workflow.mts').write_text('fixture')
         source = self.root / 'packages/midi/src/probe.ts'
         source.parent.mkdir(parents=True, exist_ok=True)
         source.symlink_to(self.root / 'package.json')

@@ -45,6 +45,13 @@ DETERMINISTIC_SCOPES = WORKFLOW_SCOPES + (
     'packages/catalog/package.json', 'packages/catalog/tsconfig.json',
     'packages/player-core/package.json', 'packages/player-core/tsconfig.json',
 )
+DETERMINISTIC_REQUIRED = (
+    'apps/web/scripts/prepare-workflow.mts', 'apps/web/scripts/prepare-song.mts',
+    'apps/web/scripts/prepare-catalog-chords.mts', 'apps/web/scripts/song-bundle.mts',
+    'apps/web/src/lib/prepare-workflow.ts', 'apps/web/src/lib/prepare-workflow-pins.ts',
+    'apps/web/src/lib/prepare-workflow-process.ts', 'package.json', 'package-lock.json',
+    'catalog/chord-sources.json',
+)
 
 
 def deterministic_probe_environment():
@@ -87,6 +94,8 @@ def deterministic_implementation_fingerprint(root):
         if len(data) > 16 * 1024 * 1024 or total > 128 * 1024 * 1024:
             raise ValueError('deterministic source bytes exceed their bound')
         rows.append([name, hashlib.sha256(data).hexdigest()])
+    if any(name not in names for name in DETERMINISTIC_REQUIRED):
+        raise ValueError('deterministic source inventory must include its entrypoint and required implementation files')
     return hashlib.sha256(json.dumps(rows, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
 
 
