@@ -29,8 +29,12 @@ Exit 0 is a completed diagnosis, not approval; 2 is invalid/prerequisite-blocked
 3 is an attempted rejected/failed audio result with local receipts retained.
 Unknown roles/hands/authority limit the claim; they are not owner review tasks.
 Score equality is not hearing, recognizable-song correctness or pianist approval.
-Provider-only advice cannot change notes. Trusted source-supported previews use
-bounded edits and automatic fresh rechecks with neighbors protected.
+Provider-only advice cannot change notes. Source-supported previews require a
+version-2 semantic source binding and a unique exact target/expected event with
+unchanged source, label, clock, occurrence and replay pins. Historical v1
+receipts and a mode-wide source-fidelity pass cannot authorize unrelated notes.
+The host rejects stale or ambiguous authority and rechecks bounded previews with
+neighbors protected. See [source and delivery contracts](source-and-delivery-contracts.md).
 
 Do not resume immutable failed studies. Provider listening remains unverified,
 musicalAcceptance not-established, productionAdmission false. Candidate artifacts

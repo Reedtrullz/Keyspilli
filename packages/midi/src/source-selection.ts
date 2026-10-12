@@ -26,6 +26,7 @@ export function selectSourceParts(parsed: ParsedMidi, partIds: readonly string[]
     notes,
     trackNames: selected.map((part) => part.name),
     sourceParts: selected,
-    durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur), sourcePedal?.endBeat ?? 0),
+    durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur),
+      Math.max(parsed.durationBeats, parsed.notationMeasures?.at(-1)?.endBeat ?? 0, sourcePedal?.endBeat ?? 0)),
   };
 }

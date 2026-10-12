@@ -1,7 +1,8 @@
 import {sourcePedalErrors} from "./source-pedal.js";
+import { writeNotationMeasures } from "./notation-measures.js";
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
-import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, PUBLIC_DIFFICULTY_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
+import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, PUBLIC_DIFFICULTY_ORDER, ChordLabel, MidiTimeSignatureEvent, SourcePreparationChange } from "./types.js";
 import { mergedNoteLineage, quantize } from "./quantize.js";
 import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS, validateShortStudySource, validateVariants } from "./validate.js";
@@ -2844,6 +2845,11 @@ export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
     || (src.tempoEvents?.length ?? 0) > 20_000
     || src.notes.length * (src.tempoEvents?.length ?? 0) > 40_000_000) fail();
   let end = src.durationBeats;
+  if (src.notationMeasures !== undefined) {
+    if (!Array.isArray(src.notationMeasures)) fail();
+    writeNotationMeasures(src.notationMeasures);
+    end = Math.max(end, src.notationMeasures.at(-1)?.endBeat ?? 0);
+  }
   for (const note of src.notes) {
     if (!Number.isFinite(note.start) || !Number.isFinite(note.dur) || note.start < 0 || note.dur < 0) fail();
     end = Math.max(end, note.start + note.dur);
@@ -2894,6 +2900,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     src = { ...source, tempoBpm: sourceTempo, tempoEvents: undefined,
       ...(source.sections ? {sections:source.sections.map(s=>({...s,startBeat:beat(s.startBeat),endBeat:beat(s.endBeat)}))} : {}),
       durationBeats: beat(source.durationBeats),
+      ...(source.notationMeasures ? { notationMeasures: source.notationMeasures.map(measure => ({ ...measure, startBeat: beat(measure.startBeat), endBeat: beat(measure.endBeat) })) } : {}),
       ...(source.sourcePedal?{sourcePedal:{...source.sourcePedal,endBeat:beat(source.sourcePedal.endBeat),changes:source.sourcePedal.changes.map(e=>({...e,beat:beat(e.beat)}))}}:{}),
       notes: source.notes.map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
       ...(source.timeSigEvents?.length ? {
@@ -2917,7 +2924,16 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
   // this second pass is intentionally idempotent and protects direct callers.
-  const sanitizeOptions: Parameters<typeof sanitizeImportedNotes>[1] = { tempoBpm: tempo };
+  const sourceChanges: SourcePreparationChange[] = [];
+  const recordSourceChange = (before: Note[], after: Note[], reason: SourcePreparationChange["reason"]) => {
+    // Snapshots retain neutral source locations, without mutable aliases or
+    // development-only learner tags. Source bytes remain the exact reference.
+    sourceChanges.push({ reason, before: structuredClone(before.map(stripLearnerTrace)), after: structuredClone(after.map(stripLearnerTrace)) });
+  };
+  const sanitizeOptions: Parameters<typeof sanitizeImportedNotes>[1] = {
+    tempoBpm: tempo,
+    onTransformation: change => recordSourceChange([change.before], change.after ? [change.after] : [], change.reason),
+  };
   // Preserve the distinction between an omitted option (legacy direct-call
   // safety default) and an explicit null (human-authored source, no blanket
   // duration cap). Catalog ingestion always supplies one of these policies.
@@ -2961,10 +2977,13 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
   const sourceHandInference = opts.arrangementProfile === "source" && opts.inferSourceHands
     ? inferSourceHandLanes(arrangedImported) : undefined;
-  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
+  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125, onTransformation: recordSourceChange });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const protectedNormalized = clearMixedProtectedIdentity(normalized);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
+  base.forEach((note, i) => {
+    if (normalized[i]!.midi !== note.midi) recordSourceChange([note], [normalized[i]!], "octave-normalization");
+  });
   const sourceWarnings = shifted.length
     ? [`${shifted.length} source notes were octave-normalized into the piano range 21-108`]
     : [];
@@ -2972,6 +2991,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? ["learner inner-voice redistribution applied (inferred staff assignment)"]
     : [];
   const warnings = [...sourceWarnings, ...arrangementWarnings,
+    ...(sourceChanges.length ? [`Source preparation changed ${sourceChanges.length} event groups; inspect sourcePreparation for exact sanitization, quantization, merge and octave changes. Original source bytes remain the reference.`] : []),
     ...(src.repeatPlayback === "declared" ? ["Source occurrence lineage is declared in import metadata; it was not verified from repeat notation."] : []),
     ...(sourceHandInference ? [`tutorial source hand inference: ${sourceHandInference.reason} (not verified staff assignment)`] : []),
   ];
@@ -3397,13 +3417,14 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     const notes = learnerLineageEnabled ? internalNotes.map(stripLearnerTrace) : internalNotes;
     const pedalErrors=src.sourcePedal?sourcePedalErrors(notes,src.sourcePedal):[];
     const keepPedal=src.sourcePedal && level==="advanced" && opts.arrangementProfile==="source" && !pedalErrors.length;
-    const variantWarnings=[...warnings,...(src.unsupportedControls?.length?[`Unsupported source controllers omitted: ${src.unsupportedControls.join(", ")}.`]:[]),...(src.sourcePedal?[keepPedal?"Source CC64 is retained separately from arranged key holds; listening and physical playability are unverified.":`Source CC64 omitted from this reduction${pedalErrors.length?`: ${pedalErrors.join(" ")}`:"; use a supported Original arrangement"}.`]:[])];
+    const variantWarnings=[...warnings,...(src.unsupportedControls?.length?[`Unsupported source semantics: ${src.unsupportedControls.join("; ")}.`]:[]),...(src.sourcePedal?[keepPedal?"Source CC64 is retained separately from arranged key holds; listening and physical playability are unverified.":`Source CC64 omitted from this reduction${pedalErrors.length?`: ${pedalErrors.join(" ")}`:"; use a supported Original arrangement"}.`]:[])];
     return {
       level,
       difficultyScore: scores[level]!,
       ...(src.sections?.length ? {sections:src.sections.map(s=>({...s}))} : {}),
       notes,
       ...(variantWarnings.length ? { warnings:variantWarnings } : {}),
+      ...(sourceChanges.length ? { sourcePreparation: { schemaVersion: 1 as const, timebase: "variant-beats" as const, changes: structuredClone(sourceChanges) } } : {}),
       ...(keepPedal?{sourcePedal:structuredClone(src.sourcePedal)}:{}),
       chords: opts.chords
         ? opts.chords.map((chord) => ({ ...chord, notes: [...chord.notes] }))
@@ -3417,7 +3438,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       tempoBpm: tempo,
       timeSig: src.timeSig,
       ...(sourceTimeSigEvents.length ? { timeSigEvents: sourceTimeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
-      measures: src.repeatPlayback && src.notationMeasures ? src.notationMeasures.map(measure=>({...measure})) : buildMeasures(notes, src.timeSig, src.durationBeats, sourceTimeSigEvents),
+      measures: sourceMeasures(src, notes, sourceTimeSigEvents),
     };
   });
 }
@@ -3445,12 +3466,14 @@ export function buildShortStudyVariants(
       tempoBpm: sourceTempo,
       tempoEvents: undefined,
       durationBeats: beat(source.durationBeats),
+      ...(source.notationMeasures ? { notationMeasures: source.notationMeasures.map(measure => ({ ...measure, startBeat: beat(measure.startBeat), endBeat: beat(measure.endBeat) })) } : {}),
       ...(source.sections ? {sections:source.sections.map(s=>({...s,startBeat:beat(s.startBeat),endBeat:beat(s.endBeat)}))} : {}),
       ...(source.sourcePedal?{sourcePedal:{...source.sourcePedal,endBeat:beat(source.sourcePedal.endBeat),changes:source.sourcePedal.changes.map(e=>({...e,beat:beat(e.beat)}))}}:{}),
       notes: source.notes.map((note) => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
       ...(source.timeSigEvents?.length ? { timeSigEvents: source.timeSigEvents.map((event) => ({ ...event, beat: beat(event.beat) })) } : {}),
     };
   }
+  assertSourceWorkload(parsed);
   const tempoBpm = normalizeTempoBpm(meta.tempo ?? parsed.tempoBpm);
   const notes = parsed.notes.map((note) => ({ ...note }));
   if(parsed.sourcePedal){const errors=sourcePedalErrors(notes,parsed.sourcePedal);if(errors.length)throw new Error(errors.join(" "));}
@@ -3465,7 +3488,11 @@ export function buildShortStudyVariants(
     level,
     difficultyScore: scores[level],
     ...(parsed.sections?.length ? {sections:parsed.sections.map(s=>({...s}))} : {}),
-    ...(parsed.sourcePedal?{sourcePedal:structuredClone(parsed.sourcePedal),warnings:["Source CC64 is retained separately from physical key holds; musical review is unverified."]}:{}),
+    ...(parsed.sourcePedal?{sourcePedal:structuredClone(parsed.sourcePedal)}:{}),
+    warnings: [
+      ...(parsed.unsupportedControls?.length ? [`Unsupported source semantics: ${parsed.unsupportedControls.join("; ")}.`] : []),
+      ...(parsed.sourcePedal ? ["Source CC64 is retained separately from physical key holds; musical review is unverified."] : []),
+    ],
     notes: notes.map((note) => ({ ...note })),
     chords: [],
     bassPattern: "none",
@@ -3473,7 +3500,7 @@ export function buildShortStudyVariants(
     tempoBpm,
     timeSig: [...parsed.timeSig] as [number, number],
     ...(timeSigEvents.length ? { timeSigEvents: timeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
-    measures: parsed.repeatPlayback && parsed.notationMeasures ? parsed.notationMeasures.map(measure=>({...measure})) : buildMeasures(notes, parsed.timeSig, parsed.durationBeats, timeSigEvents),
+    measures: sourceMeasures(parsed, notes, timeSigEvents),
   }));
   const available = candidates.filter((variant) => validateVariants([variant], {
     shortStudy: true,
@@ -3481,6 +3508,16 @@ export function buildShortStudyVariants(
   }).length === 0);
   if (!available.length) throw new Error("study does not pass any public level's playability limits");
   return available;
+}
+
+/** Preserve an explicit, complete map without inferring source phase from it.
+ * Incomplete multipart maps retain the existing arithmetic fallback. */
+function sourceMeasures(source: ParsedMidi, notes: Note[], events: readonly MidiTimeSignatureEvent[]): Variant["measures"] {
+  const measures = source.notationMeasures;
+  if (measures?.length && measures.at(-1)!.endBeat >= Math.max(source.durationBeats, maxNoteEnd(notes)) - 1e-6) {
+    return measures.map(measure => ({ ...measure }));
+  }
+  return buildMeasures(notes, source.timeSig, source.durationBeats, events);
 }
 
 function buildMeasures(

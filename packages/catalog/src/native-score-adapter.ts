@@ -13,6 +13,7 @@
 
 import { readFile, realpath, stat } from "node:fs/promises";
 import { basename, extname, isAbsolute, relative, resolve } from "node:path";
+import { UnsupportedMusicXmlSemanticsError } from "@keyspilli/midi";
 import { sha256Hex } from "./fixture-evidence.js";
 import { normalizeCanonicalScore, type CanonicalScore } from "./omr-canonical.js";
 import {
@@ -27,7 +28,7 @@ import type {
 } from "./omr-consensus.js";
 import type { NativeScoreArtifactType } from "./native-score-discovery.js";
 
-export const NATIVE_SCORE_ADAPTER_VERSION = "native-score-adapter-v1" as const;
+export const NATIVE_SCORE_ADAPTER_VERSION = "native-score-adapter-v2-fidelity" as const;
 const DEFAULT_MAX_BYTES = 128 * 1024 * 1024;
 const EPS = 1e-9;
 
@@ -660,6 +661,9 @@ export function adaptNativeSymbolicBytes(
       warnings: [...new Set(warnings)].sort(compareText),
     };
   } catch (error) {
+    if (error instanceof UnsupportedMusicXmlSemanticsError) {
+      return { status: "unsupported", format, score: null, canonical: null, provenance, warnings: [], reason: error.message };
+    }
     return {
       status: "invalid",
       format,

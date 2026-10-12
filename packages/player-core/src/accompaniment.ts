@@ -17,6 +17,7 @@ export type AccompanimentHand = "L" | "R";
 
 export type AccompanimentFallbackReason =
   | "no source notes"
+  | "no supported source attack"
   | "unsupported chord"
   | "explicit no-chord"
   | "uncertain harmony"
@@ -511,7 +512,18 @@ function sourceRhythmStrikes(
       const previous = result.at(-1);
       if (previous && (attack.start - previous.beat < spacing - EPSILON
         || (!stack && previous.beat + previous.durationBeats! > attack.start + EPSILON))) continue;
-      const release = releases[stack ? 1 : 0]!;
+      let release = releases[stack ? 1 : 0]!;
+      if ([...chordPcs].every(pc => byPc.has(pc))) {
+        // A complete played stack supports the full voicing only until its
+        // first defining pitch class releases, regardless of merged labels.
+        release = Math.min(...byPc.values());
+        const lowest = Math.min(...members.map(n => n.midi));
+        if (lowest % 12 === bassPc) {
+          // An upper octave of the same pitch class cannot keep a released
+          // inversion bass sounding in the generated lower register.
+          release = Math.min(release, Math.max(...members.filter(n => n.midi === lowest).map(n => n.start + n.dur)));
+        }
+      }
       if (previous) previous.durationBeats = Math.min(previous.durationBeats!, attack.start - previous.beat);
       result.push({ ...chord, beat: attack.start, durationBeats: Math.min(end - attack.start, release - attack.start, chord.maxStrikeDurationBeats ?? Infinity) });
     }
@@ -1203,7 +1215,6 @@ export function resolveAccompaniment(
     covered.push({ startBeat: event.startBeat, endBeat: event.endBeat });
   }
 
-  const fallbackSpans = buildFallbackSpans(events, covered, fallbackEvents, durationBeats);
   const retainedSourceNotes = style === "bass-chords" ? [] : sourceNotes.filter((_, index) => keep[index]);
   const strikeTuning = options.strikeTuning ?? CHORDS_TUNING.strikes;
   const onsets = style === "bass-chords" && options.sourceRhythmMeasures ? accompanimentOnsets(sourceNotes, strikeTuning.minSpacingBeats) : null;
@@ -1212,7 +1223,24 @@ export function resolveAccompaniment(
   if (onsets) for (const note of sourceNotes) sourceByOnset.set(note.start, [...(sourceByOnset.get(note.start) ?? []), note]);
   const hasLeftHand = hasAuthored && sourceNotes.some((note) => note.hand === "L");
   let struckChords = onsets
-    ? effectiveChords.flatMap((chord) => sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning, sourceByOnset, hasLeftHand))
+    ? effectiveChords.flatMap((chord) => {
+      const strikes = sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning, sourceByOnset, hasLeftHand);
+      const endBeat = chord.beat + (chord.durationBeats ?? 0);
+      if (chord.sourceKind === "generated") {
+        const sounding = strikes.map(strike => ({ startBeat: strike.beat, endBeat: strike.beat + strike.durationBeats! }));
+        const unsupported = sourceNotes.filter(note => note.identitySource !== "vocals" && !note.lyrics && overlaps(note, chord.beat, endBeat))
+          .flatMap(note => {
+            const start = Math.max(chord.beat, note.start);
+            const dur = Math.min(endBeat, note.start + note.dur) - start;
+            return subtractCoveredIntervals({ ...note, start, dur }, sounding);
+          }).map(note => ({ startBeat: note.start, endBeat: note.start + note.dur, reason: "no supported source attack" as const }));
+        // A label may outlast a complete stack's support, or contain a later
+        // real attack. Report every unrealized source span, not only labels
+        // with zero strikes; source rests remain outside this support warning.
+        fallbackEvents.push(...mergeFallbackEvents(unsupported));
+      }
+      return strikes;
+    })
     : effectiveChords;
 
   if (struckChords.some(chord => chord.sourceKind === "inferred" && chord.inferenceType === "learner-harmonization")) {
@@ -1248,7 +1276,7 @@ export function resolveAccompaniment(
         hand: style === "bass-chords" && index === 0 ? "L" as const : "R" as const,
       }))),
     ].sort((a, b) => a.start - b.start || a.midi - b.midi),
-    fallbackSpans,
+    fallbackSpans: buildFallbackSpans(events, covered, fallbackEvents, durationBeats),
   };
 }
 

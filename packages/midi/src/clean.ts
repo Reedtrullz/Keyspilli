@@ -84,6 +84,14 @@ export interface ImportedSanitizeOptions {
   maxDurSec?: number;
   /** maximum number of notes allowed to overlap at any instant */
   maxSounding?: number;
+  /** Each deliberate duration change/deletion, with unchanged source identity. */
+  onTransformation?: (change: ImportedNoteTransformation) => void;
+}
+
+export interface ImportedNoteTransformation {
+  reason: "invalid-event" | "duration-policy" | "sounding-limit";
+  before: Note;
+  after: Note | null;
 }
 
 /**
@@ -102,20 +110,23 @@ export function sanitizeImportedNotes(notes: Note[], opts: ImportedSanitizeOptio
     : opts.maxDurBeats ?? maxDurationBeatsForTempo(opts.tempoBpm);
   const maxSounding = Math.max(1, Math.floor(opts.maxSounding ?? DEFAULT_IMPORTED_MAX_SOUNDING));
   const hadHandLabels = notes.some((n) => n.hand !== undefined);
-  const valid = notes.filter((n) =>
+  const valid = notes.filter((n) => {
+    const valid =
     Number.isFinite(n.midi) &&
     Number.isFinite(n.start) && n.start >= 0 &&
     Number.isFinite(n.dur) && n.dur > 0 &&
-    Number.isFinite(n.vel),
-  );
+    Number.isFinite(n.vel);
+    if (!valid) opts.onTransformation?.({ reason: "invalid-event", before: structuredClone(n), after: null });
+    return valid;
+  }).map(n => structuredClone(n));
   // Keep the shortest grid supported by the importer. Human-authored
   // MusicXML/MIDI commonly contains 16th notes; the AI cleanup path below
   // intentionally keeps its historical 0.25-beat floor.
   // A null ceiling is the explicit human-authored path. Legitimate MIDI and
   // MusicXML arrangements can hold a pedal/bass note for many measures, so a
   // generic seconds-based cap must not silently rewrite those sources.
-  let out = maxDurBeats === undefined ? valid : capHandOverlaps(valid, maxDurBeats, 0.125);
-  out = capSoundingPolyphony(out, maxSounding);
+  let out = maxDurBeats === undefined ? valid : capHandOverlaps(valid, maxDurBeats, 0.125, (before, after) => opts.onTransformation?.({ reason: "duration-policy", before: structuredClone(before), after: structuredClone(after) }));
+  out = capSoundingPolyphony(out, maxSounding, true, (before, after) => opts.onTransformation?.({ reason: "sounding-limit", before: structuredClone(before), after: after ? structuredClone(after) : null }));
   if (!hadHandLabels) {
     out = out.map(({ hand: _hand, ...n }) => n);
   }
@@ -163,7 +174,7 @@ export function cleanTranscription(notes: Note[], opts: CleanOptions = {}): Note
 }
 
 /** Cap drones per hand: notes past the ceiling end at the next attack (floor 0.25); legato overlaps under the ceiling are kept. */
-export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0, minDurBeats = 0.25): Note[] {
+export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0, minDurBeats = 0.25, onChange?: (before: Note, after: Note) => void): Note[] {
   // Preserve explicit staff/hand assignments from MusicXML and curated MIDI.
   // Only infer a pitch split for unlabeled imports; otherwise a low note
   // intentionally written on the RH staff (or a cross-handed LH note) would
@@ -175,13 +186,13 @@ export function capHandOverlaps(notes: Note[], maxDurBeats = 2.0, minDurBeats = 
         lh: notes.filter((n) => n.hand === "L"),
       }
     : splitHands(notes);
-  return [...truncateHand(rh, maxDurBeats, minDurBeats), ...truncateHand(lh, maxDurBeats, minDurBeats)].sort(
+  return [...truncateHand(rh, maxDurBeats, minDurBeats, onChange), ...truncateHand(lh, maxDurBeats, minDurBeats, onChange)].sort(
     (a, b) => a.start - b.start || a.midi - b.midi,
   );
 }
 
 /** Shorten a hand's notes only when they are drones: duration past the ceiling AND overlapping the next same-hand attack. */
-function truncateHand(notes: Note[], maxDurBeats: number, minDurBeats: number): Note[] {
+function truncateHand(notes: Note[], maxDurBeats: number, minDurBeats: number, onChange?: (before: Note, after: Note) => void): Note[] {
   const sorted = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi);
   const slices: { start: number; notes: Note[] }[] = [];
   for (const n of sorted) {
@@ -206,7 +217,9 @@ function truncateHand(notes: Note[], maxDurBeats: number, minDurBeats: number): 
         dur = Math.min(dur, Math.max(timeToNext, minDurBeats));
       }
       dur = Math.min(dur, maxDurBeats);
-      out.push({ ...n, dur: Math.max(minDurBeats, dur) });
+      const changed = { ...n, dur: Math.max(minDurBeats, dur) };
+      if (changed.dur !== n.dur) onChange?.(n, changed);
+      out.push(changed);
     }
   }
   return out;
@@ -260,7 +273,7 @@ export function capPolyphony(notes: Note[], maxPolyphony: number): Note[] {
  * pianist could play; this drops the quietest offenders so the result stays
  * within what two hands can actually do.
  */
-export function capSoundingPolyphony(notes: Note[], maxSounding: number): Note[] {
+export function capSoundingPolyphony(notes: Note[], maxSounding: number, preserveHistory = false, onChange?: (before: Note, after: Note | null) => void): Note[] {
   const sorted = [...notes].sort((a, b) => a.start - b.start || a.midi - b.midi);
   const out: Note[] = [];
   const active: Note[] = [];
@@ -277,10 +290,20 @@ export function capSoundingPolyphony(notes: Note[], maxSounding: number): Note[]
     // at capacity: keep the louder of (quietest active, new note)
     const quietestIdx = active.reduce((bi, x, i) => (x.vel < active[bi]!.vel ? i : bi), 0);
     if (n.vel >= active[quietestIdx]!.vel) {
-      out.splice(out.indexOf(active[quietestIdx]!), 1);
+      const previous = active[quietestIdx]!;
+      const index = out.indexOf(previous);
+      // The active allocation can end now without erasing a valid earlier
+      // interval. Same-onset overflow has no positive prefix to preserve.
+      const prefix = preserveHistory && previous.start < n.start
+        ? { ...previous, dur: n.start - previous.start } : null;
+      if (prefix) out[index] = prefix;
+      else out.splice(index, 1);
+      onChange?.(previous, prefix);
       active.splice(quietestIdx, 1);
       active.push(n);
       out.push(n);
+    } else {
+      onChange?.(n, null);
     }
   }
   return out.sort((a, b) => a.start - b.start || a.midi - b.midi);

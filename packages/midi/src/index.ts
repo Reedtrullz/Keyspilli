@@ -73,6 +73,7 @@ export type {
 } from "./metal-arrange.js";
 export { PITCH_COLORS, pitchColor } from "./pitchColors.js";
 export { parseMusicXmlNotes } from "./parseXml.js";
+export { musicXmlElementFidelity, UnsupportedMusicXmlSemanticsError } from "./musicxml-fidelity.js";
 export { selectSourceParts } from "./source-selection.js";
 export { matchingSourcePitch } from "./source-pitch.js";
 export { ARTIFACT_TEMPO_TOLERANCE, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";

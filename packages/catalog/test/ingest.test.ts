@@ -90,6 +90,29 @@ describe("ingestSource .mxl", () => {
     else process.env.KEYSPILLI_DATA_DIR = OLD_DATA_DIR;
   });
 
+  it("stores source-preparation changes while retaining the original uploaded bytes", async () => {
+    const source = writeMidi([
+      { midi: 72, start: 0, dur: 8, vel: 20, hand: "R" },
+      ...Array.from({ length: 12 }, (_, i) => ({ midi: 36 + i, start: 7, dur: 0.5, vel: 100, hand: "L" as const })),
+      // Meet the unchanged minimum-song gate with a later, separate phrase.
+      ...Array.from({ length: 16 }, (_, i) => ({ midi: 72 + i % 5, start: 12 + i * 2, dur: 1, vel: 80, hand: "R" as const })),
+    ], { tempoBpm: 120 });
+    const result = await ingestSource({ buf: source, title: "Synthetic source history", artist: "Test", contentType: "upload", arrangementProfile: "source" });
+    expect(result.error).toBeUndefined();
+    expect(result.songIds).toHaveLength(6);
+    expect(new Uint8Array(readFileSync(join(uploadsDir(), `${result.baseId}.mid`)))).toEqual(source);
+    const dir = join(tmp, "artifacts", result.baseId);
+    const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+    expect(manifest.sourceArtifactHash).toBe(createHash("sha256").update(source).digest("hex"));
+    for (const code of ["vb", "b", "ve", "e", "m", "a"]) {
+      const artifact = JSON.parse(readFileSync(join(artifactsDir(result.baseId, code), "notes.json"), "utf8"));
+      const change = artifact.sourcePreparation.changes.find((c: { reason: string }) => c.reason === "sounding-limit");
+      expect(change).toMatchObject({ before: [{ midi: 72, start: 0, dur: 8 }], after: [{ midi: 72, start: 0, dur: 7 }] });
+      expect(change.after[0].sourceOrigins).toEqual(change.before[0].sourceOrigins);
+      if (code === "a") expect(artifact.notes.find((n: { midi: number; start: number }) => n.midi === 72 && n.start === 0)?.dur).toBe(7);
+    }
+  });
+
   it("unzips a compressed MusicXML score and ingests it", async () => {
     const xml = scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]);
     const mxl = zipSync({
@@ -133,6 +156,27 @@ describe("ingestSource .mxl", () => {
     expect(sidecar.provenance.candidate).toEqual(manifest.candidate);
   });
 
+  it("persists expression limitations in all six variants while retaining exact source bytes", async () => {
+    const xml = scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79])
+      .replace("</attributes>", '</attributes><direction><direction-type><dynamics><p/></dynamics><wedge type="crescendo"/></direction-type></direction>');
+    const buf = new TextEncoder().encode(xml);
+    const preflight = createSymbolicUploadPreflight(buf);
+    expect(preflight.unsupportedControls.join(" ")).toMatch(/dynamics.*note velocities/i);
+    const result = await ingest(buf, "Expression fidelity fixture");
+    expect(result.error).toBeUndefined();
+    expect(result.songIds).toHaveLength(6);
+    expect(readFileSync(join(uploadsDir(), `${result.baseId}.xml`))).toEqual(Buffer.from(buf));
+    const manifest = JSON.parse(readFileSync(join(tmp, "artifacts", result.baseId, "manifest.json"), "utf8"));
+    expect(manifest.sourceArtifactHash).toBe(createHash("sha256").update(buf).digest("hex"));
+    for (const id of result.songIds) {
+      const code = id.slice(result.baseId.length + 1);
+      const stored = JSON.parse(readFileSync(join(artifactsDir(result.baseId, code), "notes.json"), "utf8"));
+      expect(stored.warnings.join(" ")).toMatch(/dynamics.*note velocities/i);
+      expect(stored.warnings.join(" ")).toMatch(/wedge.*velocity/i);
+      expect(stored.artifactFidelity).toMatchObject({ schemaVersion: 1, expressivePreservation: "not-established", musicxml: { noteVelocities: "omitted", dynamics: "omitted" } });
+    }
+  });
+
   it("bounds generated ids when display metadata is empty or unusually long", async () => {
     const xml = new Uint8Array(new TextEncoder().encode(scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79])));
     const result = await ingestSource({
@@ -146,16 +190,44 @@ describe("ingestSource .mxl", () => {
     expect(result.baseId.length).toBeLessThanOrEqual(120);
   });
 
-  it("prefers a .musicxml entry over META-INF files when container has no rootfile", async () => {
+  it("accepts a legacy single-score archive without a container, ignoring META-INF metadata", async () => {
     const xml = scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]);
     const mxl = zipSync({
       "META-INF/signatures.xml": new TextEncoder().encode("<Signature/>"),
-      "META-INF/container.xml": new TextEncoder().encode('<?xml version="1.0"?><container><rootfiles/></container>'),
       "score.musicxml": new TextEncoder().encode(xml),
     });
     const res = await ingest(new Uint8Array(mxl));
     expect(res.error).toBeUndefined();
     expect(res.songIds).toHaveLength(6);
+  });
+
+  it.each(["single quotes", "comment", "namespace", "foreign element", "missing root"])("refuses the declared unsupported or missing MXL source at actual ingestion: %s", async (syntax) => {
+    const xml = scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]);
+    const transposing = xml.replace("</attributes>", "<transpose><chromatic>-2</chromatic></transpose></attributes>");
+    const declaration = syntax === "single quotes" ? "<rootfile full-path='main.musicxml'/>"
+      : syntax === "comment" ? '<!-- <rootfile full-path="companion.musicxml"/> --><rootfile full-path="main.musicxml"/>'
+        : syntax === "namespace" ? '<rootfile full-path="main.musicxml" xmlns:full-path="urn:keyspilli:companion.musicxml"/>'
+        : syntax === "foreign element" ? '<other:rootfile xmlns:other="urn:metadata" full-path="companion.musicxml"/><rootfile full-path="main.musicxml"/>'
+        : '<rootfile full-path="missing.musicxml"/>';
+    const before = artifactDigests(tmp);
+    const result = await ingest(zipSync({
+      "META-INF/container.xml": new TextEncoder().encode(`<container><rootfiles>${declaration}</rootfiles></container>`),
+      "companion.musicxml": new TextEncoder().encode(xml),
+      "urn:keyspilli:companion.musicxml": new TextEncoder().encode(xml),
+      "main.musicxml": new TextEncoder().encode(transposing),
+    }));
+    expect(result.songIds).toEqual([]);
+    expect(result.error).toMatch(syntax === "missing root" ? /MXL.*rootfile.*missing/i : /transpose.*concert-pitch/i);
+    expect(artifactDigests(tmp)).toEqual(before);
+  });
+
+  it.each(["attack", "release"])("refuses masked %s offsets before any catalog writes", async (attribute) => {
+    const xml = scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]).replace("<note>", `<note ${attribute}="1" xmlns:meta="urn:metadata" meta:${attribute}="0">`);
+    const before = artifactDigests(tmp);
+    const result = await ingest(new TextEncoder().encode(xml));
+    expect(result.songIds).toEqual([]);
+    expect(result.error).toMatch(/attack.*release.*timing/i);
+    expect(artifactDigests(tmp)).toEqual(before);
   });
 
   it("rejects a zip with more than 200 entries before inflating", async () => {

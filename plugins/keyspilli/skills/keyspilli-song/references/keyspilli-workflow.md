@@ -4,7 +4,7 @@ Source inspected on 2026-09-27 in a capable local checkout. Re-read the relevant
 
 ## Capable checkout
 
-Run the loaded skill's `check_checkout.py CHECKOUT --node /absolute/node --discover`. Use its returned checkout/runtime; the host workflow must report a matching implementation/schema fingerprint. Preserve primary WIP. Ambiguous candidates require an explicit compatible path. The [resumable driver](evaluation-and-repair.md#resumable-host-preparation) is the preferred local MIDI path; ordinary preparation remains supported after its own successful preflight.
+Run the loaded skill's `python3 scripts/check_checkout.py CHECKOUT --node /absolute/node --discover`. Use its returned checkout/runtime and `preparation.command` for ordinary preparation. A supported requested checkout is retained; only an unsupported checkout triggers discovery of other ordinary Git worktrees. Ambiguous candidates remain blocked. Experimental drivers are independent optional capabilities; see [optional host preparation](experimental-host-workflow.md) only when required. Preserve WIP and use fresh isolated run/catalog directories.
 
 ## Acquisition
 

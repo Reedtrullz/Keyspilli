@@ -45,6 +45,7 @@ import { AUDIO_ONSET_DETECTOR_CONFIG, ONSET_MATCH_SEC, TRANSCRIPTION_FILTER_VERS
 import { ArtifactReconciliationError, assertCompleteArtifactTree, REQUIRED_ARTIFACT_FILES, inspectBaseArtifact, publishBaseArtifact } from "./publish.js";
 import { validateSourceCandidateHandoffLink, type SourceCandidateHandoffLink } from "./source-candidate-handoff.js";
 import { stagePreparedBacking } from "./chord-timeline.js";
+import { selectMusicXmlRootfile } from "./omr-musicxml.js";
 
 const LEVEL_CODE: Record<string, string> = {
   "very-beginner": "vb",
@@ -65,7 +66,7 @@ export const MAX_YOUTUBE_IMPORT_DUR_BEATS = TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_
 // These identifiers are part of the rebuild identity. Bumping one when its
 // corresponding transformation changes makes an old fingerprint stale even
 // when the input bytes and user-facing ingest options are unchanged.
-export const INGEST_NORMALIZER_ID = "midi-normalizer-v2";
+export const INGEST_NORMALIZER_ID = "midi-normalizer-v3-preserve-source-prefix";
 export const INGEST_GRID_POLICY_ID = "beat-grid-v2";
 export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v10-source-easy-spacing";
 
@@ -365,17 +366,8 @@ function mxlScoreXml(buf: Uint8Array): string {
     if (output.length !== entry.size || (entry.method === 0 && entry.compressed !== entry.size)) throw new Error("invalid .mxl zip entry size");
     files[entry.name] = output;
   }
-  const names = Object.keys(files);
-  let scoreName: string | undefined;
   const container = files["META-INF/container.xml"];
-  if (container) {
-    // ponytail: regex on container.xml; a DOM parser only if files ever miss rootfile full-path
-    const m = new TextDecoder().decode(container).match(/full-path="([^"]+)"/);
-    if (m?.[1] && files[m[1]]) scoreName = m[1];
-  }
-  if (!scoreName) scoreName = names.find((n) => n.endsWith(".musicxml"));
-  if (!scoreName) scoreName = names.find((n) => n.endsWith(".xml") && !n.startsWith("META-INF/"));
-  if (!scoreName) throw new Error("no MusicXML score in .mxl");
+  const scoreName = selectMusicXmlRootfile(container === undefined ? undefined : new TextDecoder().decode(container), Object.keys(files));
   return new TextDecoder().decode(files[scoreName]);
 }
 
@@ -602,7 +594,10 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       const artifacts = writeVariantArtifacts(v, inp.title, inp.artist);
       const issues = validateArtifactFiles(v, artifacts);
       if (issues.length) artifactErrors.push(`${v.level}: ${issues.join("; ")}`);
-      const durationSec = Math.round(Math.max(...v.notes.map((note) => note.start + note.dur)) * 60 / v.tempoBpm);
+      // Native symbolic scores may end with explicit rests. Derived audio keeps
+      // its existing note-based duration after ghost-tail cleanup.
+      const measureEnds = inp.contentType === "youtube" ? [] : v.measures.map(measure => measure.endBeat);
+      const durationSec = Math.round(Math.max(0, ...v.notes.map((note) => note.start + note.dur), ...measureEnds) * 60 / v.tempoBpm);
       const previous = existingRows.find((row) => row.difficulty === v.level);
       const row: SongRow = {
         id: `${baseId}-${code}`,
@@ -644,6 +639,8 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         : [];
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
+        ...(v.sourcePreparation ? { sourcePreparation: v.sourcePreparation } : {}),
+        artifactFidelity: artifacts.fidelity,
         ...(v.sections?.length ? {sections:v.sections} : {}),
         ...(v.sourcePedal?{sourcePedal:v.sourcePedal}:{}),
         ...(beginnerOffGridRh.length ? { beginnerOffGridRh } : {}),

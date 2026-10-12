@@ -31,6 +31,8 @@ export interface SourceAnchors {
   authority: "unknown" | "model-estimate" | "self-authored" | "human-validated";
   validationReceiptSha256?: string;
   timingKnown?: boolean;
+  /** V2 source reviews use seconds in the pinned source's native tempo map. */
+  timebase?: "source-native-seconds";
   anchors: Array<MusicalEvent & { required: boolean; ambiguous?: boolean }>;
 }
 export interface ArrangementIntent {

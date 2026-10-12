@@ -9,6 +9,14 @@ import { Note, Variant } from "./types.js";
 export interface VariantArtifacts {
   midi: Uint8Array;
   xml: string;
+  /** Format capabilities, not a musical approval or a claim that checks ran. */
+  fidelity: {
+    schemaVersion: 1;
+    validationScope: "symbolic-events";
+    expressivePreservation: "not-established";
+    midi: { noteVelocities: "encoded" };
+    musicxml: { noteVelocities: "omitted"; dynamics: "omitted" };
+  };
 }
 
 const ROUNDTRIP_TOLERANCE = 0.01;
@@ -105,7 +113,13 @@ export function writeVariantArtifacts(variant: Variant, title: string, artist: s
       { name: "Left Hand", notes: variant.notes.filter((n) => n.hand === "L") },
     ],
   });
-  return { midi, xml: writeMusicXml(variant, title, artist) };
+  return {
+    midi, xml: writeMusicXml(variant, title, artist),
+    fidelity: {
+      schemaVersion: 1, validationScope: "symbolic-events", expressivePreservation: "not-established",
+      midi: { noteVelocities: "encoded" }, musicxml: { noteVelocities: "omitted", dynamics: "omitted" },
+    },
+  };
 }
 
 /**
@@ -122,8 +136,8 @@ export function validateArtifactRoundtrip(variant: Variant, title: string, artis
   return validateArtifactFiles(variant, artifacts);
 }
 
-/** Validate already-rendered bytes/markup (used by catalog verification). */
-export function validateArtifactFiles(variant: Variant, artifacts: VariantArtifacts): string[] {
+/** Validate symbolic pitch/timing/tempo/meter (and supported pedal), not expression. */
+export function validateArtifactFiles(variant: Variant, artifacts: Pick<VariantArtifacts, "midi" | "xml">): string[] {
   const issues: string[] = [];
   if(variant.sourcePedal){const errors=sourcePedalErrors(variant.notes,variant.sourcePedal);if(errors.length)return errors;}
   // The canonical notes are compared against both renderings. Normalize that
