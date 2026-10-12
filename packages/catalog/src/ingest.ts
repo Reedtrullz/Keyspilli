@@ -65,7 +65,7 @@ export const MAX_YOUTUBE_IMPORT_DUR_BEATS = TRANSCRIPTION_MAX_RECONSTRUCTED_DUR_
 // These identifiers are part of the rebuild identity. Bumping one when its
 // corresponding transformation changes makes an old fingerprint stale even
 // when the input bytes and user-facing ingest options are unchanged.
-export const INGEST_NORMALIZER_ID = "midi-normalizer-v2";
+export const INGEST_NORMALIZER_ID = "midi-normalizer-v3-preserve-source-prefix";
 export const INGEST_GRID_POLICY_ID = "beat-grid-v2";
 export const INGEST_VARIANT_POLICY_ID = "learner-variant-ladder-v10-source-easy-spacing";
 
@@ -644,6 +644,7 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
         : [];
       prepared.push({ code, row, midi: artifacts.midi, xml: artifacts.xml, notesJson: JSON.stringify({
         notes: v.notes,
+        ...(v.sourcePreparation ? { sourcePreparation: v.sourcePreparation } : {}),
         ...(v.sections?.length ? {sections:v.sections} : {}),
         ...(v.sourcePedal?{sourcePedal:v.sourcePedal}:{}),
         ...(beginnerOffGridRh.length ? { beginnerOffGridRh } : {}),

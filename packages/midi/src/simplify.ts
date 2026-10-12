@@ -1,7 +1,7 @@
 import {sourcePedalErrors} from "./source-pedal.js";
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
-import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, PUBLIC_DIFFICULTY_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
+import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, PUBLIC_DIFFICULTY_ORDER, ChordLabel, MidiTimeSignatureEvent, SourcePreparationChange } from "./types.js";
 import { mergedNoteLineage, quantize } from "./quantize.js";
 import { midiBeatToNativeSeconds } from "./parse.js";
 import { BEGINNER_OFFGRID_CANDIDATE, LADDER_TOL, PLAYABILITY_LIMITS, validateShortStudySource, validateVariants } from "./validate.js";
@@ -2917,7 +2917,16 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   // Every source type passes through the same conservative structural cleanup.
   // YouTube ingestion may additionally run cleanTranscription() beforehand;
   // this second pass is intentionally idempotent and protects direct callers.
-  const sanitizeOptions: Parameters<typeof sanitizeImportedNotes>[1] = { tempoBpm: tempo };
+  const sourceChanges: SourcePreparationChange[] = [];
+  const recordSourceChange = (before: Note[], after: Note[], reason: SourcePreparationChange["reason"]) => {
+    // Snapshots retain neutral source locations, without mutable aliases or
+    // development-only learner tags. Source bytes remain the exact reference.
+    sourceChanges.push({ reason, before: structuredClone(before.map(stripLearnerTrace)), after: structuredClone(after.map(stripLearnerTrace)) });
+  };
+  const sanitizeOptions: Parameters<typeof sanitizeImportedNotes>[1] = {
+    tempoBpm: tempo,
+    onTransformation: change => recordSourceChange([change.before], change.after ? [change.after] : [], change.reason),
+  };
   // Preserve the distinction between an omitted option (legacy direct-call
   // safety default) and an explicit null (human-authored source, no blanket
   // duration cap). Catalog ingestion always supplies one of these policies.
@@ -2961,10 +2970,13 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
   const arrangedImported = innerVoiceArrangement ? redistributeInnerVoices(imported) : imported;
   const sourceHandInference = opts.arrangementProfile === "source" && opts.inferSourceHands
     ? inferSourceHandLanes(arrangedImported) : undefined;
-  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125 });
+  const base = quantize(sourceHandInference?.notes ?? arrangedImported, { grid: 0.125, minDur: 0.125, onTransformation: recordSourceChange });
   const normalized = opts.normalizeRange === false ? base : normalizePianoRange(base);
   const protectedNormalized = clearMixedProtectedIdentity(normalized);
   const shifted = base.filter((n, i) => normalized[i]!.midi !== n.midi);
+  base.forEach((note, i) => {
+    if (normalized[i]!.midi !== note.midi) recordSourceChange([note], [normalized[i]!], "octave-normalization");
+  });
   const sourceWarnings = shifted.length
     ? [`${shifted.length} source notes were octave-normalized into the piano range 21-108`]
     : [];
@@ -2972,6 +2984,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     ? ["learner inner-voice redistribution applied (inferred staff assignment)"]
     : [];
   const warnings = [...sourceWarnings, ...arrangementWarnings,
+    ...(sourceChanges.length ? [`Source preparation changed ${sourceChanges.length} event groups; inspect sourcePreparation for exact sanitization, quantization, merge and octave changes. Original source bytes remain the reference.`] : []),
     ...(src.repeatPlayback === "declared" ? ["Source occurrence lineage is declared in import metadata; it was not verified from repeat notation."] : []),
     ...(sourceHandInference ? [`tutorial source hand inference: ${sourceHandInference.reason} (not verified staff assignment)`] : []),
   ];
@@ -3404,6 +3417,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       ...(src.sections?.length ? {sections:src.sections.map(s=>({...s}))} : {}),
       notes,
       ...(variantWarnings.length ? { warnings:variantWarnings } : {}),
+      ...(sourceChanges.length ? { sourcePreparation: { schemaVersion: 1 as const, timebase: "variant-beats" as const, changes: structuredClone(sourceChanges) } } : {}),
       ...(keepPedal?{sourcePedal:structuredClone(src.sourcePedal)}:{}),
       chords: opts.chords
         ? opts.chords.map((chord) => ({ ...chord, notes: [...chord.notes] }))

@@ -7,6 +7,8 @@ export interface QuantizeOptions {
   minDur?: number;
   /** drop notes quieter than this */
   minVel?: number;
+  /** Exact changes for source-preparation disclosure; no musical authority. */
+  onTransformation?: (before: Note[], after: Note[], reason: "quantization" | "quantization-drop" | "unison-merge") => void;
 }
 
 function roundTo(x: number, g: number): number {
@@ -55,6 +57,7 @@ export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
   const minDur = opts.minDur ?? 0.125;
   const minVel = opts.minVel ?? 8;
   const out = new Map<string, Note>();
+  const sourceGroups = opts.onTransformation ? new Map<string, Note[]>() : undefined;
   // Canonical processing order makes collision metadata stable under input
   // reordering while leaving single-note behavior unchanged.
   const ordered = [...notes].sort((a, b) => {
@@ -67,11 +70,22 @@ export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
       || compareCollisionRepresentative(a, b, aDur, bDur);
   });
   for (const n of ordered) {
-    if (n.vel < minVel) continue;
+    if (n.vel < minVel) {
+      opts.onTransformation?.([n], [], "quantization-drop");
+      continue;
+    }
     const start = roundTo(n.start, grid);
     const dur = roundTo(n.start + n.dur, grid) - start;
-    if (dur < minDur) continue; // drop sub-minDur ghosts instead of inflating them
+    if (dur < minDur) {
+      opts.onTransformation?.([n], [], "quantization-drop");
+      continue; // drop sub-minDur ghosts instead of inflating them
+    }
     const key = `${n.midi}:${start.toFixed(3)}`;
+    if (sourceGroups) {
+      const group = sourceGroups.get(key) ?? [];
+      group.push(n);
+      sourceGroups.set(key, group);
+    }
     const prev = out.get(key);
     if (prev) {
       const prevRefs = (prev as LearnerTaggedNote).learnerTraceRefs ?? [];
@@ -88,8 +102,16 @@ export function quantize(notes: Note[], opts: QuantizeOptions = {}): Note[] {
       };
       out.set(key, merged);
     } else {
-      out.set(key, { ...n, start, dur });
+      const changed = { ...n, start, dur };
+      out.set(key, changed);
     }
+  }
+  // Emit a collision once, with its original parents and final event. Logging
+  // each growing intermediate union would make evidence storage quadratic.
+  if (sourceGroups) for (const [key, before] of sourceGroups) {
+    const after = out.get(key)!;
+    if (before.length > 1) opts.onTransformation!(before, [after], "unison-merge");
+    else if (before[0]!.start !== after.start || before[0]!.dur !== after.dur) opts.onTransformation!(before, [after], "quantization");
   }
   return [...out.values()].sort((a, b) => a.start - b.start || a.midi - b.midi);
 }

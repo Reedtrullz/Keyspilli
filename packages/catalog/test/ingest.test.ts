@@ -90,6 +90,29 @@ describe("ingestSource .mxl", () => {
     else process.env.KEYSPILLI_DATA_DIR = OLD_DATA_DIR;
   });
 
+  it("stores source-preparation changes while retaining the original uploaded bytes", async () => {
+    const source = writeMidi([
+      { midi: 72, start: 0, dur: 8, vel: 20, hand: "R" },
+      ...Array.from({ length: 12 }, (_, i) => ({ midi: 36 + i, start: 7, dur: 0.5, vel: 100, hand: "L" as const })),
+      // Meet the unchanged minimum-song gate with a later, separate phrase.
+      ...Array.from({ length: 16 }, (_, i) => ({ midi: 72 + i % 5, start: 12 + i * 2, dur: 1, vel: 80, hand: "R" as const })),
+    ], { tempoBpm: 120 });
+    const result = await ingestSource({ buf: source, title: "Synthetic source history", artist: "Test", contentType: "upload", arrangementProfile: "source" });
+    expect(result.error).toBeUndefined();
+    expect(result.songIds).toHaveLength(6);
+    expect(new Uint8Array(readFileSync(join(uploadsDir(), `${result.baseId}.mid`)))).toEqual(source);
+    const dir = join(tmp, "artifacts", result.baseId);
+    const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+    expect(manifest.sourceArtifactHash).toBe(createHash("sha256").update(source).digest("hex"));
+    for (const code of ["vb", "b", "ve", "e", "m", "a"]) {
+      const artifact = JSON.parse(readFileSync(join(artifactsDir(result.baseId, code), "notes.json"), "utf8"));
+      const change = artifact.sourcePreparation.changes.find((c: { reason: string }) => c.reason === "sounding-limit");
+      expect(change).toMatchObject({ before: [{ midi: 72, start: 0, dur: 8 }], after: [{ midi: 72, start: 0, dur: 7 }] });
+      expect(change.after[0].sourceOrigins).toEqual(change.before[0].sourceOrigins);
+      if (code === "a") expect(artifact.notes.find((n: { midi: number; start: number }) => n.midi === 72 && n.start === 0)?.dur).toBe(7);
+    }
+  });
+
   it("unzips a compressed MusicXML score and ingests it", async () => {
     const xml = scoreXml([60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79]);
     const mxl = zipSync({

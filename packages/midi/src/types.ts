@@ -253,6 +253,12 @@ export interface Variant {
   notes: Note[];
   /** Non-fatal source transformations applied before publication. */
   warnings?: string[];
+  /** Exact before/after changes before tier selection; not source authority. */
+  sourcePreparation?: {
+    schemaVersion: 1;
+    timebase: "variant-beats";
+    changes: SourcePreparationChange[];
+  };
   chords: ChordLabel[];
   bassPattern: string;
   key: string;
@@ -261,6 +267,12 @@ export interface Variant {
   /** Explicit source meter declarations used to build measure boundaries. */
   timeSigEvents?: MidiTimeSignatureEvent[];
   measures: MeasureInfo[];
+}
+
+export interface SourcePreparationChange {
+  reason: "invalid-event" | "duration-policy" | "sounding-limit" | "quantization" | "quantization-drop" | "unison-merge" | "octave-normalization";
+  before: Note[];
+  after: Note[];
 }
 
 export interface MeasureInfo {
