@@ -66,6 +66,28 @@ describe("MusicXML source and review adapter fidelity", () => {
       expect(()=>parseSymbolicUploadSource(invalid)).toThrow(/dynamics|duplicate/i);
     }
   });
+  it.each(["musicxml","mxl"] as const)("decodes actual and escaped numeric dynamics once in native %s",format=>{
+    for(const value of ["&amp;#51;0","&amp;#x33;0","&amp;#38;#51;0"]){
+      const bytes=bytesFor(score("").replace("<note>",`<note dynamics="${value}">`),format);
+      expect(adaptNativeSymbolicBytes(bytes,format).status).not.toBe("parsed");
+      expect(()=>parseSymbolicUploadSource(bytes)).toThrow(/dynamics.*velocity/i);
+    }
+    for(const value of ["&#51;0","&#x33;0"]){
+      const bytes=bytesFor(score("").replace("<note>",`<note dynamics="${value}">`),format);
+      expect(adaptNativeSymbolicBytes(bytes,format).status).toBe("parsed");
+      expect(parseSymbolicUploadSource(bytes).parsed.notes[0]?.vel).toBe(27);
+    }
+  });
+  it.each(["musicxml","mxl"] as const)("refuses every unmatched attribute token in native %s",format=>{
+    for(const attrs of ['dynamics=0','dynamics="30" dynamics=0','dynamics="30" dynamics','dynamics','dynamics="30" garbage','dynamics="30"dynamics="100"','xmlns:meta="urn:meta" meta:dynamics=0 dynamics="30"']){
+      const bytes=bytesFor(score("").replace("<note>",`<note ${attrs}>`),format);
+      expect(adaptNativeSymbolicBytes(bytes,format).status).not.toBe("parsed");
+      expect(()=>parseSymbolicUploadSource(bytes)).toThrow(/attribute/i);
+    }
+    const valid=bytesFor(score("").replace("<note>",'<note xmlns:meta="urn:meta" meta:dynamics="0" meta:label=" > \'quoted\' " dynamics = \'30\'>'),format);
+    expect(adaptNativeSymbolicBytes(valid,format).status).toBe("parsed");
+    expect(parseSymbolicUploadSource(valid).parsed.notes[0]?.vel).toBe(27);
+  });
   it("uses exact dynamics keys in the namespaced native model",()=>{
     for(const attrs of ['dynamics="30" xmlns:meta="urn:meta" meta:dynamics="0"','xmlns:meta="urn:meta" meta:dynamics="0" dynamics="30"']){
       const xml=score("").replace("<note>",`<note ${attrs}>`).replace(/<(\/?)([\w-]+)/g,"<$1m:$2").replace("<m:score-partwise>",'<m:score-partwise xmlns:m="http://www.musicxml.org/ns/musicxml">');

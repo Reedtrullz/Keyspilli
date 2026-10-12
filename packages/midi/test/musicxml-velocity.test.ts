@@ -33,6 +33,12 @@ describe("MusicXML per-note attack velocity", () => {
   it.each(['dynamics="30" xmlns:meta="urn:meta" meta:dynamics="100"','xmlns:meta="urn:meta" meta:dynamics="100" dynamics="30"','dynamics="30" xmlns:dynamics="urn:meta"','dynamics="&#51;0"','xmlns:meta="urn:meta" meta:label="> dynamics=100" dynamics="30"'])("preserves exact attribute identity: %s",attrs=>{
     expect(parseMusicXmlNotes(score(attrs)).notes[0]?.vel).toBe(27);
   });
+  it.each(["&amp;#51;0", "&amp;#x33;0", "&amp;#38;#51;0"])("decodes escaped numeric dynamics only once: %s", value=>{
+    expect(()=>parseMusicXmlNotes(score(`dynamics="${value}"`))).toThrow(/dynamics.*velocity/i);
+  });
+  it.each(["&#51;0", "&#x33;0"])("keeps actual numeric dynamics entity decoding: %s", value=>{
+    expect(parseMusicXmlNotes(score(`dynamics="${value}"`)).notes[0]?.vel).toBe(27);
+  });
   it.each(["", "0", ".1", "-1", "NaN", "Infinity", "1e2", "141.2", "100garbage"])("refuses invalid or unrepresentable percentage %s", d=>{
     for(const attrs of [`dynamics="${d}"`,`dynamics="${d}" xmlns:meta="urn:meta" meta:dynamics="100"`,`xmlns:meta="urn:meta" meta:dynamics="100" dynamics="${d}"`]) expect(()=>parseMusicXmlNotes(score(attrs))).toThrow(/dynamics.*velocity/i);
   });
@@ -52,6 +58,27 @@ describe("MusicXML per-note attack velocity", () => {
     expect(v).toEqual(before);
     const continuation=a.xml.replace(/<note\b[^>]*>[\s\S]*?<\/note>/g, note=> note.includes('<tie type="stop"/>') ? note.replace(/dynamics="[^"]*"/,'dynamics="111.111111"') : note);
     expect(parseMusicXmlNotes(continuation).notes[0]?.vel).toBe(20);
+  });
+  it("matches distinct simultaneous velocities through allowed duration quantization",()=>{
+    const v=variant([{midi:60,start:0,dur:1,vel:100,hand:"R"},{midi:60,start:0,dur:1.0001,vel:20,hand:"L"}]);
+    const a=writeVariantArtifacts(v,"Quantized unisons","Synthetic");
+    for(const parsed of [parseMidi(a.midi),parseMusicXmlNotes(a.xml)])expect(parsed.notes.map(n=>[n.hand,n.vel]).sort()).toEqual([["L",20],["R",100]]);
+    expect(validateArtifactFiles(v,a)).toEqual([]);
+    const changed=writeVariantArtifacts({...v,notes:[v.notes[0]!,{...v.notes[1]!,vel:100}]},"Changed attack","Synthetic");
+    expect(validateArtifactFiles(v,changed).join(" ")).toMatch(/velocity/i);
+    const missing=writeVariantArtifacts({...v,notes:[v.notes[0]!]},"Missing attack","Synthetic");
+    expect(validateArtifactFiles(v,missing).join(" ")).toMatch(/note count/i);
+  });
+  it("matches ambiguous timing windows one-to-one instead of stealing a constrained attack",()=>{
+    const v=variant([{midi:60,start:0,dur:1.015,vel:100,hand:"R"},{midi:60,start:.01,dur:1,vel:100,hand:"L"}]);
+    const rendered=variant([{midi:60,start:0,dur:1.006,vel:100,hand:"R"},{midi:60,start:0,dur:1.022,vel:100,hand:"L"}]);
+    expect(validateArtifactFiles(v,writeVariantArtifacts(rendered,"Ambiguous pairing","Synthetic"))).toEqual([]);
+  });
+  it("refuses velocity swaps between distinguishable attacks and keeps timing/pitch checks",()=>{
+    const v=variant([{midi:60,start:0,dur:1,vel:100,hand:"R"},{midi:60,start:2,dur:1,vel:20,hand:"L"}]);
+    for(const notes of [v.notes.map(n=>({...n,vel:n.vel===100?20:100})),v.notes.map(n=>({...n,start:n.start+.02})),v.notes.map(n=>({...n,dur:n.dur+.02})),v.notes.map(n=>({...n,midi:61}))]){
+      expect(validateArtifactFiles(v,writeVariantArtifacts({...v,notes},"Tampered attacks","Synthetic")).length).toBeGreaterThan(0);
+    }
   });
   it("detects velocity-only tampering in both artifacts but retains explicit legacy symbolic checks",()=>{
     const a=writeVariantArtifacts(contrast,"Contract","Synthetic"), xml=a.xml.replace(/ dynamics="[^"]*"/g,"");

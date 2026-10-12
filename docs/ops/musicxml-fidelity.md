@@ -69,7 +69,11 @@ velocity for malformed source notes nor silently repairs them.
 Both importer validation and note decoding use exact source attribute keys.
 Qualified lookalikes, namespace declarations, case changes, attribute order,
 quoted metadata containing `>` and entity-encoded values cannot overwrite the
-actual value. Duplicate attributes refuse. Tied continuations do not create
+actual value. Original XML references decode in one pass: `&#51;0` becomes 30, but
+`&amp;#51;0` remains literal `&#51;0` and refuses as a percentage. The native
+reader consumes the entire attribute source, refusing unquoted, bare or unmatched
+tokens rather than treating malformed explicit dynamics as absence.
+Duplicate attributes refuse. Tied continuations do not create
 fresh attacks: merged notes retain the initial attack velocity. Independent
 chord notes and staves retain their own velocities.
 
@@ -103,7 +107,12 @@ validation rather than selecting a less strict policy.
 Fresh artifact validation defaults to schema 2 and compares integer attack
 velocities in both real reparsed formats, in addition to pitches, onsets, key
 releases, tempo, meter and supported source pedal. Source 20/100 now reparses as
-20/100 through MusicXML. Changing only note dynamics is detected when it changes the reparsed attack
+20/100 through MusicXML. Current validation matches attack multiplicities by pitch and exact velocity,
+then requires a one-to-one pairing within the existing 0.01-beat onset/duration
+tolerance. Sorting rounded durations cannot manufacture a velocity swap; attacks
+at distinguishable times still cannot exchange their velocities. Ambiguous
+windows use a matching search rather than a greedy pair or deduplication.
+Changing only note dynamics is detected when it changes the reparsed attack
 integer; an absent attribute still has the documented default 80.
 
 Historical reads explicitly use `artifactFidelityForRead`: a missing diagnostic

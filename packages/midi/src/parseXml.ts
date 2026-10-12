@@ -19,16 +19,14 @@ function xmlAttribute(attributes: string, name: string): string {
   return attributes.match(new RegExp(`\\b${escaped}\\s*=\\s*(["'])(.*?)\\1`))?.[2] ?? "";
 }
 
-/** Decode the standard XML entities that appear in MusicXML lyrics. */
+/** Decode original source references once; escaped entity text stays literal. */
 function decodeXmlEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
+  const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+  return s.replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, (_reference, entity: string) => {
+    if (!entity.startsWith("#")) return named[entity]!;
+    const code = entity.startsWith("#x") ? Number.parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+    return String.fromCodePoint(code);
+  });
 }
 
 function firstMatch(s: string, re: RegExp): string {

@@ -38,3 +38,15 @@ No source acquisition or provider calls, accepted-pin update, merge or deploy.
 Symbolic velocity equality cannot establish acoustic loudness, articulation,
 third-party renderer compatibility, listening/keyboard approval or musical
 acceptance. Direction dynamics, wedges and ornaments remain unimplemented.
+
+## Independent review corrections
+
+The first review rejected three boundary inconsistencies. New tests reproduce
+escaped numeric references being decoded twice, malformed native attributes
+being dropped, and permitted timing quantization causing unison velocity
+mispairing. Correct the ordinary decoder to one source pass and require the
+native reader to consume every attribute token. For schema 2, match attack
+multiplicity by pitch/exact velocity with a one-to-one pairing inside the
+existing 0.01 timing tolerance, including ambiguous windows. Preserve legacy
+comparison semantics, distinguishable-time velocity-swap detection, and all
+original review/implementation evidence.

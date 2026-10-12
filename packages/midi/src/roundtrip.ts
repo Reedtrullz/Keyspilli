@@ -51,6 +51,78 @@ function noteShape(notes: Note[]): { midi: number; start: number; dur: number; v
     .sort((a, b) => a.midi - b.midi || a.start - b.start || a.dur - b.dur || a.vel - b.vel);
 }
 
+type ArtifactNote = ReturnType<typeof noteShape>[number];
+
+function timingMatches(a: ArtifactNote, b: ArtifactNote): boolean {
+  return Math.abs(a.start - b.start) <= ROUNDTRIP_TOLERANCE && Math.abs(a.dur - b.dur) <= ROUNDTRIP_TOLERANCE;
+}
+
+/** Attack multiplicities are exact; allowed timing quantization must not pair
+ * different velocities. Ambiguous windows need a one-to-one matching, since a
+ * greedy choice can steal the only rendering available to another attack. */
+function velocityNoteIssues(expected: ArtifactNote[], actual: ArtifactNote[], label: string): string[] {
+  const groups = (notes: ArtifactNote[]) => {
+    const result = new Map<string, ArtifactNote[]>();
+    for (const note of notes) {
+      const key = `${note.midi}:${note.vel}`;
+      const group = result.get(key) ?? [];
+      group.push(note);
+      result.set(key, group);
+    }
+    return result;
+  };
+  const source = groups(expected), rendered = groups(actual);
+  const issues: string[] = [];
+  for (const [key, a] of source) {
+    const b = rendered.get(key) ?? [];
+    if (a.length !== b.length) {
+      issues.push(`${label}: note pitch ${a[0]!.midi} velocity ${a[0]!.vel} count ${b.length} != source ${a.length}`);
+      continue;
+    }
+    // The ordinary case remains linear after sorting, including large groups
+    // of identical unisons; no candidate graph is materialized.
+    if (a.every((note, index) => timingMatches(note, b[index]!))) continue;
+    const sourceToActual = new Int32Array(a.length).fill(-1);
+    const actualToSource = new Int32Array(b.length).fill(-1);
+    for (let start = 0; start < a.length; start++) {
+      const queue = [start], seenSource = new Set([start]);
+      const via = new Map<number, number>();
+      let free = -1;
+      for (let cursor = 0; cursor < queue.length && free < 0; cursor++) {
+        const sourceIndex = queue[cursor]!, note = a[sourceIndex]!;
+        // Sorted onsets bound each search to its tolerance window.
+        let low = 0, high = b.length;
+        while (low < high) {
+          const middle = (low + high) >>> 1;
+          if (b[middle]!.start < note.start - ROUNDTRIP_TOLERANCE) low = middle + 1;
+          else high = middle;
+        }
+        for (let actualIndex = low; actualIndex < b.length && b[actualIndex]!.start <= note.start + ROUNDTRIP_TOLERANCE; actualIndex++) {
+          if (via.has(actualIndex) || !timingMatches(note, b[actualIndex]!)) continue;
+          via.set(actualIndex, sourceIndex);
+          const owner = actualToSource[actualIndex]!;
+          if (owner < 0) { free = actualIndex; break; }
+          if (!seenSource.has(owner)) { seenSource.add(owner); queue.push(owner); }
+        }
+      }
+      if (free < 0) {
+        issues.push(`${label}: note ${a[start]!.midi}@${a[start]!.start.toFixed(3)}:${a[start]!.dur.toFixed(3)} velocity ${a[start]!.vel} has no one-to-one match within ${ROUNDTRIP_TOLERANCE} beats`);
+        continue;
+      }
+      // Follow the alternating path iteratively to avoid recursion on long
+      // ambiguous runs and retain every source/rendered attack separately.
+      while (free >= 0) {
+        const sourceIndex = via.get(free)!;
+        const previous = sourceToActual[sourceIndex]!;
+        sourceToActual[sourceIndex] = free;
+        actualToSource[free] = sourceIndex;
+        free = previous;
+      }
+    }
+  }
+  return issues;
+}
+
 function compareNotes(expected: ReturnType<typeof noteShape>, actual: Note[], label: string, velocities: boolean): string[] {
   const a = expected;
   const b = noteShape(actual);
@@ -59,10 +131,10 @@ function compareNotes(expected: ReturnType<typeof noteShape>, actual: Note[], la
     issues.push(`${label}: note count ${b.length} != source ${a.length}`);
     return issues;
   }
+  if (velocities) return velocityNoteIssues(a, b, label);
   for (let i = 0; i < a.length; i++) {
     const expected = a[i]!;
     const got = b[i]!;
-    if (velocities && expected.vel !== got.vel) issues.push(`${label}: note ${i} velocity ${got.vel} != source ${expected.vel}`);
     if (expected.midi !== got.midi || Math.abs(expected.start - got.start) > ROUNDTRIP_TOLERANCE || Math.abs(expected.dur - got.dur) > ROUNDTRIP_TOLERANCE) {
       issues.push(
         `${label}: note ${i} ${got.midi}@${got.start.toFixed(3)}:${got.dur.toFixed(3)} != ${expected.midi}@${expected.start.toFixed(3)}:${expected.dur.toFixed(3)}`,
