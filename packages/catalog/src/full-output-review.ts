@@ -1,5 +1,6 @@
 /** A bounded evidence package for the existing musical-review receipt contract. */
-import { parseMidi, parseMusicXmlNotes } from "@keyspilli/midi";
+import { ARTIFACT_TEMPO_TOLERANCE, parseMidi, parseMusicXmlNotes, validateChordLabels, type Note, type SourcePedalTimeline } from "@keyspilli/midi";
+import { sourcePedalErrors } from "../../midi/src/source-pedal.js";
 import { assertMusic, identityHash, isHash } from "./acoustic-receipt.js";
 import { sha256Hex } from "./fixture-evidence.js";
 import { auditExactInputs, evidenceObject, parseExactInputRegistry, readExactAsset, type ExactInputRegistry, type ExactInputAudit } from "./exact-input-evidence.js";
@@ -28,6 +29,62 @@ const validId = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9]
 const positive = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
 const nonnegative = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0;
 const nullableId = (v: unknown) => v === null || validId(v);
+const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const hand = (v: unknown) => v === "L" || v === "R";
+const pitch = (v: unknown) => Number.isInteger(v) && Number(v) >= 0 && Number(v) <= 127;
+const EPS = 1e-8;
+// The maintained exports use 480 MIDI ticks and 960 notation ticks per beat.
+const EXPORT_BEAT_TOLERANCE = 1 / 480 + EPS;
+
+/** Validate the existing two snapshot shapes without normalizing their digest. */
+function snapshotClock(snapshot: Record<string, unknown>, mode: MusicalReviewMode, endBeat: number): number {
+  assertMusic(snapshot.schemaVersion === 1 && snapshot.endBeatExclusive === endBeat, "partial/missing Player snapshot extent");
+  assertMusic(finite(snapshot.tempoBpm) && snapshot.tempoBpm >= 20 && snapshot.tempoBpm <= 300, "invalid snapshot native clock");
+  const meter = (v: unknown): boolean => Array.isArray(v) && v.length === 2 && Number.isInteger(v[0]) && v[0] >= 1 && v[0] <= 16
+    && Number.isInteger(v[1]) && v[1] >= 1 && v[1] <= 32 && Number.isInteger(Math.log2(v[1]));
+  assertMusic(meter(snapshot.timeSig), "invalid snapshot meter");
+  // The maintained Player snapshots contain constant-clock quarter beats.
+  // A supplied native tempo map cannot silently change their interpretation.
+  assertMusic(snapshot.tempoEvents === undefined || Array.isArray(snapshot.tempoEvents) && snapshot.tempoEvents.length === 0, "unsupported snapshot tempo map");
+  if (snapshot.timeSigEvents !== undefined) {
+    assertMusic(Array.isArray(snapshot.timeSigEvents) && snapshot.timeSigEvents.length <= 2048, "invalid snapshot meter inventory");
+    let previous = -1;
+    for (const value of snapshot.timeSigEvents) {
+      const e = evidenceObject(value, "snapshot meter event");
+      assertMusic(nonnegative(e.beat) && e.beat >= previous && e.beat <= endBeat && Number.isInteger(e.tick) && Number(e.tick) >= 0 && meter(e.timeSig), "invalid snapshot meter event");
+      previous = e.beat;
+    }
+  }
+  assertMusic(Array.isArray(snapshot.notes) && snapshot.notes.length <= 20000, "invalid snapshot note inventory");
+  const notes = snapshot.notes.map(value => {
+    const n = evidenceObject(value, "snapshot note");
+    assertMusic(pitch(n.midi) && nonnegative(n.start) && positive(n.dur) && n.start + n.dur <= endBeat + EPS
+      && Number.isInteger(n.vel) && Number(n.vel) >= 0 && Number(n.vel) <= 127 && (n.hand === undefined || hand(n.hand))
+      && (n.sourceMidiChannel === undefined || Number.isInteger(n.sourceMidiChannel) && Number(n.sourceMidiChannel) >= 0 && Number(n.sourceMidiChannel) <= 15), "invalid or out-of-extent snapshot note");
+    return n as unknown as Note;
+  });
+  let chordPitches = 0;
+  if (mode === "Chords") {
+    assertMusic(Array.isArray(snapshot.chords) && snapshot.chords.length + notes.length <= 20000, "invalid snapshot chord inventory");
+    // Bound nested work before the shared chord-symbol validator runs.
+    for (const value of snapshot.chords) {
+      const c = evidenceObject(value, "snapshot chord");
+      assertMusic(Array.isArray(c.notes) && c.notes.length > 0 && c.notes.length <= 16 && typeof c.name === "string" && c.name.length <= 128
+        && nonnegative(c.beat) && positive(c.durationBeats) && c.beat + c.durationBeats <= endBeat + EPS
+        && Array.isArray(c.suggestedHands) && c.suggestedHands.length === c.notes.length && c.suggestedHands.every(hand), "invalid or out-of-extent snapshot chord");
+      chordPitches += c.notes.length;
+      assertMusic(chordPitches + notes.length <= 40000, "snapshot sounding inventory exceeds bounds");
+    }
+    assertMusic(validateChordLabels(snapshot.chords).length === 0, "invalid snapshot chord events");
+  } else assertMusic(snapshot.chords === undefined || Array.isArray(snapshot.chords) && snapshot.chords.length === 0, "Original snapshot cannot contain Chords playback events");
+  assertMusic(notes.some(n => n.vel > 0) || chordPitches > 0, "snapshot has no sounding events");
+  if (snapshot.sourcePedal !== undefined && !(Array.isArray(snapshot.sourcePedal) && snapshot.sourcePedal.length === 0)) {
+    const pedal = evidenceObject(snapshot.sourcePedal, "snapshot source pedal") as unknown as SourcePedalTimeline;
+    assertMusic(mode === "Original" && finite(pedal.endBeat) && pedal.endBeat <= endBeat + EPS
+      && sourcePedalErrors(notes, pedal).length === 0, "invalid or out-of-extent snapshot source pedal");
+  }
+  return endBeat * 60 / snapshot.tempoBpm;
+}
 
 export function parseFullOutputReviewRequest(input: unknown): FullOutputReviewRequest {
   const raw = evidenceObject(input, "full review request"), request = raw as unknown as FullOutputReviewRequest;
@@ -125,8 +182,14 @@ export async function prepareFullOutputReview(requestValue: unknown, registryVal
   const json = async (id: string) => evidenceObject(JSON.parse((await readExactAsset(registry, roots, id, "review")).toString("utf8")), "evidence JSON");
   for (const p of request.pieces) {
     const modes: PreparedFullReviewMode[] = [];
+    const identities = p.modes.flatMap(m => m.identity ? [m.identity] : []);
+    const familyMismatch = identities.length === 2 && (identities[0]!.baseId !== identities[1]!.baseId
+      || identities[0]!.publicationRevision !== identities[1]!.publicationRevision
+      || identities[0]!.sourceArtifactSha256 !== identities[1]!.sourceArtifactSha256
+      || identities[0]!.variantId === identities[1]!.variantId && identities[0]!.sourceFingerprint !== identities[1]!.sourceFingerprint);
     for (const m of p.modes) {
       const blockers: string[] = [], receiptIssues: string[] = [];
+      if (familyMismatch) blockers.push("cross-mode-publication-identity-mismatch");
       const requiredAssets = new Set<string>();
       const requireAsset = (id: string | null, slot: string, role?: string): void => {
         if (id !== null && status.get(id) === "available" && role && byId.get(id)?.role !== role) blockers.push(`${id}:wrong-${slot}-role`);
@@ -160,21 +223,34 @@ export async function prepareFullOutputReview(requestValue: unknown, registryVal
             && recorder.sampleAssets.every(a => a && typeof a === "object" && isHash(a.sha256) && positive(a.bytes)), "sampled Player frame-clock evidence required");
           assertMusic(audio.sha256 === byId.get(m.artifacts.playerAudio!)!.sha256 && recorder.sha256 === audio.sha256, "capture/audio hash mismatch");
           const physical = pcm16Clock(await readExactAsset(registry, roots, m.artifacts.playerAudio!, "review", 256 * 1024 * 1024));
-          assertMusic(["frames", "channels", "sampleRate", "durationSeconds"].every(k => Math.abs(Number(audio[k]) - physical[k as keyof typeof physical]) < 1e-8), "capture/audio clock mismatch");
+          assertMusic(["frames", "channels", "sampleRate", "durationSeconds"].every(k => finite(audio[k]) && Math.abs(audio[k] - physical[k as keyof typeof physical]) < EPS), "capture/audio clock mismatch");
+          assertMusic(finite(recorder.durationSeconds) && Math.abs(recorder.durationSeconds - physical.durationSeconds) < EPS
+            && recorder.sampleRate === physical.sampleRate, "recorder/audio clock mismatch");
           const output = m.outputClock!;
           assertMusic(clock.basis === "resolved-playback-seconds" && clock.endBeat === output.endBeat && clock.endSeconds === output.endSeconds
             && clock.captureOffsetSeconds === output.captureOffsetSeconds && clock.audioSha256 === audio.sha256 && clock.snapshotSha256 === byId.get(m.artifacts.playerSnapshot!)!.sha256
             && positive(clock.speed) && Number.isInteger(clock.transpose), "output clock binding mismatch");
+          // capturePlayerClip explicitly initializes these settings. It does not
+          // accept speed/transpose options, so a new declaration is not evidence
+          // that those controls were used by this legacy recorder.
+          assertMusic(clock.speed === 1 && clock.transpose === 0 && (plan.speed === undefined || plan.speed === 1)
+            && (plan.playbackSpeed === undefined || plan.playbackSpeed === 1) && (plan.transpose === undefined || plan.transpose === 0), "unsupported legacy recorder speed/transpose settings");
+          const expectedSeconds = snapshotClock(snapshot, m.mode, output.endBeat);
+          assertMusic(Math.abs(output.endSeconds - expectedSeconds) <= 1 / physical.sampleRate + EPS, "snapshot/output clock duration mismatch");
           assertMusic(recorder.sourceClockOffsetSeconds === output.captureOffsetSeconds, "recorder/output clock offset mismatch");
-          assertMusic(physical.durationSeconds + 1 / physical.sampleRate >= output.endSeconds + output.captureOffsetSeconds
-            && typeof plan.durationMs === "number" && plan.durationMs / 1000 >= output.endSeconds + output.captureOffsetSeconds, "partial Player capture coverage");
-          assertMusic(snapshot.schemaVersion === 1 && snapshot.endBeatExclusive === output.endBeat && Array.isArray(snapshot.notes), "partial/missing Player snapshot extent");
+          assertMusic(physical.durationSeconds + 1 / physical.sampleRate >= expectedSeconds + output.captureOffsetSeconds
+            && positive(plan.durationMs) && plan.durationMs <= 1805_000 && plan.durationMs / 1000 >= expectedSeconds + output.captureOffsetSeconds, "partial Player capture coverage");
           // owner-admission.musicalHash hashes JSON.stringify(snapshot), not the
           // pretty-printed file bytes. Keep that existing receipt identity intact.
           assertMusic(sha256Hex(Buffer.from(JSON.stringify(snapshot))) === m.identity!.playbackSha256, "existing playback digest mismatch");
           const midi = parseMidi(await readExactAsset(registry, roots, m.artifacts.midi!, "review"));
           const xml = parseMusicXmlNotes((await readExactAsset(registry, roots, m.artifacts.musicxml!, "review")).toString("utf8"));
-          assertMusic(midi.durationBeats + 1e-6 >= output.endBeat && xml.durationBeats + 1e-6 >= output.endBeat, "partial export coverage");
+          for (const exported of [midi, xml]) {
+            assertMusic(exported.tempoMetaPresent === true && Math.abs(exported.tempoBpm - Number(snapshot.tempoBpm)) <= ARTIFACT_TEMPO_TOLERANCE, "export/snapshot clock mismatch");
+            assertMusic(exported.durationBeats + EXPORT_BEAT_TOLERANCE >= output.endBeat, "partial export coverage");
+            assertMusic(exported.notes.length > 0 && exported.notes.every(n => n.start + n.dur <= output.endBeat + EXPORT_BEAT_TOLERANCE)
+              && (!exported.sourcePedal || exported.sourcePedal.endBeat <= output.endBeat + EXPORT_BEAT_TOLERANCE), "export sounding events exceed complete output extent");
+          }
         } catch (error) { blockers.push(`invalid-output-evidence:${error instanceof Error ? error.message.slice(0, 180) : "validation"}`); }
       }
       const receipts: MusicalReviewReceipt[] = [];

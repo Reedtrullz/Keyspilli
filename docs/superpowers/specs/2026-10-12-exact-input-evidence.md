@@ -53,3 +53,26 @@ The integration owner runs the full suite. Known starting environment failures:
 10 TSX Unix-IPC `listen EPERM` startup failures, alongside 3019 passing tests.
 No merges, publication, provider requests, installed plugin replacement, accepted
 hash repins, copyrighted asset commits or actual musical approvals are in scope.
+
+## Independent-review corrections
+
+The first review found that echoed output seconds and loosely shaped snapshot
+JSON could produce false completeness. The bounded correction validates the
+existing Original/Chords snapshot shapes without changing their receipt digest:
+finite native tempo/meter, typed note/chord events, supported pedal, nonempty
+sounding inventory and no event beyond the declared end. Required capture
+seconds are derived from the snapshot's constant beat clock. The current legacy
+recorder fixes speed to 1 and transpose to 0; unsupported clock/plan settings
+remain blocked rather than being treated as recorded controls. Both recorder and
+audio metadata must agree with actual PCM frames. Exported sounding events must
+fit the declared extent, and both export containers must cover it; silent format
+padding is not additional claimed playback. Modes share one base/publication,
+with independently pinned tier/playback identities. When their tier is the same,
+the source fingerprint must also agree. None of these checks authenticate capture
+origin or establish correspondence between music and audio.
+
+Regression controls preserve the independently supplied invalid receipts and
+exercise shortened audio with consistently repinned declarations, malformed or
+out-of-extent snapshots, unsupported recording controls, recorder/WAV mismatch,
+export overrun and unrelated mode identities. Corrections are verified through
+the actual preparation API and CLI, and then independently reviewed again.

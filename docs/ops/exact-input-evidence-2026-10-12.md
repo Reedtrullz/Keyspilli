@@ -84,3 +84,40 @@ Full repository integration is owned by the integration workstream. The results
 above are catalog coverage and do not claim a fully passing repository suite.
 No accepted pin repin, publication, deployment, catalog mutation, provider call,
 installed-plugin replacement or copyrighted asset commit occurred.
+
+## Independent review and completeness corrections
+
+Independent review reproduced two material false-completeness cases through
+the maintained CLI: a four-beat, 120 BPM snapshot with only half a second of
+audio, and a malformed snapshot with a declared extent but no valid native
+clock or note inventory. Self-consistently repinning the supplied declarations
+had allowed both to prepare. The original reproductions and their earlier
+successful CLI receipts were retained unchanged.
+
+The corrected gate derives the required two-second duration from that actual
+snapshot clock and validates the maintained Original and Chords event shapes.
+It also checks recorder duration and sample rate against actual PCM frames,
+rejects events outside the full output extent, checks export tempo and sounding
+extent, and binds both modes to one publication family. The legacy recorder's
+supported speed and transpose remain explicitly fixed at one and zero. Silent
+export container padding and separately pinned tiers of the same publication
+remain supported.
+
+Follow-up validation used Node 22.22.3:
+
+- **14 new regression cases failed before the correction** and passed after it.
+  Three additional compatibility controls then passed.
+- **43 focused tests passed in three files**, including all original exact-input,
+  full-output and CLI tests; catalog typecheck passed.
+- Re-running both retained malformed and truncated packages through the
+  maintained CLI now exited **2**, with `status: blocked` and incomplete Original
+  evidence. The unmodified valid synthetic package still exited **0**, with
+  `status: prepared`, `synthetic-only`, and no musical acceptance.
+
+These checks establish bounded structural and clock integrity. They do not
+authenticate a supplied capture's origin, establish musical correspondence
+between independently pinned files, or provide listening, source-correctness,
+keyboard, or acceptance judgments. The actual 12-entry recovery inventory and
+its unavailable current source bytes remain unchanged. Combined full-suite
+verification belongs to the integration workstream; the historical full-catalog
+result above was not reclassified as a new fully passing run.

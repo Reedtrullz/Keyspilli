@@ -157,8 +157,29 @@ The existing `keyspilli-player-capture` receipt omits mode, so the separate plan
 is required. Its `mode` and `songId` must match the mode's receipt identity.
 Recorder frame clock, sample asset pins, WAV byte hash, sample rate, frame count,
 duration, capture offset and complete output coverage are checked. Digital-zero
-captures remain diagnostic. MIDI and MusicXML must parse and cover the declared
-complete beat extent. Their musical correspondence is a separate review gate.
+captures remain diagnostic. Both audio and recorder metadata must match the
+actual WAV frames. Native tempo, meter, note/chord inventory and any supported
+source-pedal timeline are validated in the existing snapshot shapes. Original
+may omit `chords`; Chords includes its independently resolved note and chord
+streams, with explicit chord durations and suggested hands. Malformed, empty or
+out-of-extent sounding inventories cannot count as complete evidence.
+
+Required recording time is derived from the snapshot as
+`endBeatExclusive * 60 / tempoBpm`, then combined with the separate capture
+offset. Echoing a shorter duration in several files cannot establish coverage.
+The currently maintained legacy recorder explicitly sets speed to `1` and
+transpose to `0`. Other speed/transpose claims are blocked because that recorder
+does not apply corresponding plan options. A snapshot with a native tempo map
+is also unsupported; current Player snapshots already use a constant beat clock.
+
+MIDI and MusicXML must parse, use the snapshot's tempo, and cover the declared
+beat extent. Every sounding exported event and supported pedal tail must fit
+within it (allowing one 480th of a beat for export tick rounding). Extra silent
+container padding does not extend the declared playback. Musical correspondence
+between those exports, the source and recorded audio remains a separate review
+gate. Both modes must identify the same base and publication revision. Original
+can use a different difficulty tier; modes using the same tier must also agree
+on its source fingerprint.
 
 The pinned output clock JSON has `basis: "resolved-playback-seconds"`,
 `endBeat`, `endSeconds`, `captureOffsetSeconds`, `speed`, `transpose`,
