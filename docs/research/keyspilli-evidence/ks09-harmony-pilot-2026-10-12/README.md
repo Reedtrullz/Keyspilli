@@ -4,7 +4,7 @@
 
 The opt-in `conservative-backing-v1` policy removes the forced major/minor choices in the frozen power-dyad and ambiguous-cluster examples. It reuses the existing harmony path, strict role filtering, `5` parser and actual Player backing resolver. Selected source-supported labels are **not** a guarantee of an audible event: the resolver still requires a real supported source attack.
 
-**Admit only the explicit read-only pilot and its API. Do not enable it as the catalog/upload default.** There are no live-song, independent musician, acoustic listening, transcription-model or prevalence results here. The evaluation exposes a substantial arpeggio coverage loss and does not establish broadly calibrated harmony recovery. No catalog artifact, accepted source pin, publication or provider changed.
+**Admit only the explicit read-only pilot and its bounded replay API. Do not enable it as the catalog/upload default.** There are no live-song, independent musician, acoustic listening, transcription-model or prevalence results here. The evaluation exposes a substantial arpeggio coverage loss and does not establish broadly calibrated harmony recovery. No catalog artifact, accepted source pin, publication or provider changed.
 
 ## Frozen protocol
 
@@ -191,16 +191,26 @@ independent review improved a concrete correctness boundary but supplies no
 independent musical acceptance or real-song error estimate. Admission remains
 the same bounded opt-in scope.
 
-The programmatic option is:
+The bounded programmatic entry point uses the same admission checks as the CLI:
 
 ```typescript
-inferHarmonyTimeline(notes, measures, {
-  key: "C",
-  policy: "conservative-backing-v1",
-});
+import { replayHarmonyPolicy } from "./apps/web/src/lib/harmony-pilot-evaluation";
+
+const replay = replayHarmonyPolicy(songData, "conservative-backing-v1");
 ```
 
-The opt-in implies backing-only vocal/lyric exclusion. Existing callers without the policy retain their behavior. Results use existing generated `harmony-window` provenance; source-supported inference remains separate from authored evidence and composed `learner-harmonization`. The CLI receipt retains the selected policy for review.
+The lower-level `inferHarmonyTimeline(notes, measures, { key, policy:
+"conservative-backing-v1" })` helper remains available inside the MIDI package.
+It does **not** validate external JSON, clocks or workload limits; its caller must
+admit valid bounded input first. Directly calling it is not equivalent to using
+the bounded CLI/replay entry point. Use the replay adapter when inspecting local
+`SongData` so both input admission and actual Player realization are exercised.
+
+The opt-in implies backing-only vocal/lyric exclusion. Existing callers without
+the policy retain their behavior. Results use existing generated
+`harmony-window` provenance; source-supported inference remains separate from
+authored evidence and composed `learner-harmonization`. The CLI receipt retains
+the selected policy for review.
 
 ## Original validation and remaining work
 
