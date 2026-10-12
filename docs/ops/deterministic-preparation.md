@@ -114,6 +114,14 @@ If cleanup cannot be proved, the lock and running state remain as evidence. A mi
 leader PID or old timestamp is never proof that descendants stopped. This is bounded
 failure/interruption/checkpoint resume, not arbitrary crash recovery.
 
+The checkout and run need exclusive filesystem ownership during an invocation:
+exclusive creation, atomic rename, directory fsync and unlink must keep their normal
+local semantics. A background synchronizer that restores deleted files can make a
+released mutation lock appear again. The host still refuses that lock; it cannot
+certify ownership by guessing which process restored it. Preserve the affected run
+and prepare a new run in an isolated checkout whose files are not being restored
+by another writer. Moving an existing run does not preserve its admission identity.
+
 ## Verification and interpretation
 
 `verify` is read-only for run and catalog bytes. It does not acquire a lock, increment
