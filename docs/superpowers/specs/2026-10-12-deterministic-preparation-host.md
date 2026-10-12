@@ -48,7 +48,9 @@ payload, including SQLite files and any remaining sidecars. Finalization seals
 those same bytes without repeating preparation. Inventory limits are 4,096 regular
 files and 1 GiB aggregate. Missing, extra, changed, or symlinked payload files fail
 integrity checking. Host `verify` parses bounded state/pins/checkpoints and hashes
-bytes only: no lock, child processes, catalog/SQLite imports, writes, or repairs.
+bytes only: no lock, stage processes, catalog/SQLite imports, writes, or repairs.
+Read-only Git enumeration (with optional locks disabled) discovers effective
+source paths; it does not execute a preparation stage or open a catalog.
 
 State replacement is atomic and mutation has an exclusive lock. Attempt count and
 running state are durable before spawning. Three preparation attempts are allowed
