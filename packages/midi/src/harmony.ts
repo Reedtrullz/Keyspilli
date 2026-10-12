@@ -36,6 +36,9 @@ const QUALITIES: ReadonlyArray<readonly [string, readonly number[]]> = [
   ["maj7", [0, 4, 7, 11]],
   ["sus4", [0, 5, 7]],
   ["dim", [0, 3, 6]],
+  // These are admitted only by the opt-in conservative backing policy.
+  ["5", [0, 7]],
+  ["sus2", [0, 2, 7]],
 ];
 
 export interface HarmonySegment { startBeat: number; endBeat: number }
@@ -52,10 +55,12 @@ function scale(key: { tonic: number; minor: boolean } | null): ReadonlySet<numbe
   return new Set(steps.map((step) => (key.tonic + step) % 12));
 }
 
-function templates(key: string | undefined, tuning: HarmonyTuning): Template[] {
+function templates(key: string | undefined, tuning: HarmonyTuning, conservative: boolean): Template[] {
   const names = key === undefined || parseKey(key) === null ? MIXED : FLAT_KEYS.has(key) ? FLAT : SHARP;
   const diatonic = scale(parseKey(key));
   return QUALITIES.flatMap(([quality, intervals]) => {
+    // Custom tuning on an existing caller must not opt into the pilot vocabulary.
+    if (!conservative && (quality === "5" || quality === "sus2")) return [];
     const cost = tuning.qualityCost[quality];
     if (cost === undefined || cost === null) return [];
     return names.map((root, rootPc) => {
@@ -134,6 +139,17 @@ function score(template: Template, observed: ReturnType<typeof evidence>, tuning
     - template.cost;
 }
 
+function completeCandidate(candidates: readonly Template[], observed: ReturnType<typeof evidence>, tuning: HarmonyTuning): number | undefined {
+  const pcs = new Set(observed.weights.flatMap((weight, pc) => weight > observed.total * 0.05 ? [pc] : []));
+  const complete = candidates.flatMap((candidate, k) => candidate.pcs.size === pcs.size
+    && [...candidate.pcs].every(pc => pcs.has(pc)) ? [{ k, score: score(candidate, observed, tuning) }] : [])
+    .sort((a, b) => b.score - a.score || a.k - b.k);
+  // A deterministic ranking margin among supported templates, not a
+  // probability that the winning chord is the intended harmony.
+  return complete.length > 0 && (complete.length === 1 || complete[0]!.score - complete[1]!.score >= 0.08)
+    ? complete[0]!.k : undefined;
+}
+
 /**
  * Label `measures` of `notes` with one chord (or N.C.) per segment path.
  * Measures should be the arrangement's own bars so meter changes and pickups
@@ -142,11 +158,21 @@ function score(template: Template, observed: ReturnType<typeof evidence>, tuning
 export function inferHarmonyTimeline(
   notes: readonly Note[],
   measures: readonly HarmonySegment[],
-  options: { key?: string; tuning?: HarmonyTuning; backingOnly?: boolean } = {},
+  options: {
+    key?: string;
+    tuning?: HarmonyTuning;
+    backingOnly?: boolean;
+    /** Bounded source-supported pilot; never supplies composed missing chord tones. */
+    policy?: "conservative-backing-v1";
+  } = {},
 ): ChordLabel[] {
-  const strict = options.backingOnly === true;
+  const conservative = options.policy === "conservative-backing-v1";
+  const strict = options.backingOnly === true || conservative;
   const baseTuning = options.tuning ?? CHORDS_TUNING.harmony;
-  const tuning = strict ? { ...baseTuning, qualityCost: { "": 0, m: 0, "7": 0.08, m7: 0.08, maj7: 0.08, sus4: 0.08, dim: 0.08 } } : baseTuning;
+  const tuning = strict ? { ...baseTuning, qualityCost: {
+    "": 0, m: 0, "7": 0.08, m7: 0.08, maj7: 0.08, sus4: 0.08, dim: 0.08,
+    ...(conservative ? { "5": 0, sus2: 0.08 } : {}),
+  } } : baseTuning;
   // Explicit vocal provenance is stronger than register/hand guesses.
   const source = notes.filter(note => note.dur > 0 && (!strict || (note.identitySource !== "vocals" && !note.lyrics)));
   const sourceAttacks = strict ? groupAttackClusters(source) : [];
@@ -164,10 +190,13 @@ export function inferHarmonyTimeline(
       const pcs = new Map<number, number>();
       for (const n of attack.notes) pcs.set(n.midi % 12, Math.max(pcs.get(n.midi % 12) ?? 0, n.start + n.dur));
       const releases = [...pcs.values()].sort((a, b) => b - a);
-      if (releases.length < 2) continue;
+      if (releases.length < 2 && !conservative) continue;
       // A member release can end a colour tone or change the sounding bass,
       // even while two other pitch classes still provide accompaniment.
-      for (const beat of [attack.start, ...attack.notes.map(n => n.start + n.dur)]) {
+      // The detector's transitive jitter clusters can span many attacks. Their
+      // later notes are not evidence at the first onset: the pilot also splits
+      // at every actual member start, so no future third or bass can backfill it.
+      for (const beat of [attack.start, ...(conservative ? attack.notes.map(n => n.start) : []), ...attack.notes.map(n => n.start + n.dur)]) {
         if (beat > start && beat < end) boundaries.add(beat);
       }
     }
@@ -180,7 +209,7 @@ export function inferHarmonyTimeline(
   const pickupEnd = first && second && first.endBeat - first.startBeat < second.endBeat - second.startBeat ? first.endBeat : -Infinity;
   const sorted = withPedal(source, measures, tuning.pedal)
     .sort((a, b) => a.start - b.start);
-  const candidates = templates(options.key, tuning);
+  const candidates = templates(options.key, tuning, conservative);
   const rest = candidates.length;
   let previous = new Array<number>(rest + 1).fill(0);
   const back: number[][] = [];
@@ -217,11 +246,7 @@ export function inferHarmonyTimeline(
       let supportNotes = attack?.notes ?? [];
       let played = evidence(supportNotes, segment.startBeat, segment.endBeat);
       const pcs = new Set(played.weights.flatMap((weight, pc) => weight > played.total * 0.05 ? [pc] : []));
-      const complete = candidates.flatMap((candidate, k) => [...candidate.pcs].every(pc => pcs.has(pc))
-        && candidate.pcs.size === pcs.size ? [{ k, score: score(candidate, played, tuning) }] : [])
-        .sort((a, b) => b.score - a.score || a.k - b.k);
-      let directCandidate = complete.length > 0 && (complete.length === 1 || complete[0]!.score - complete[1]!.score >= 0.08)
-        ? complete[0]!.k : undefined;
+      let directCandidate = completeCandidate(candidates, played, tuning);
       if (directCandidate !== undefined) {
         heldStack = { notes: supportNotes, candidate: directCandidate, pcs };
       } else if (heldStack && ([...heldStack.pcs].every(pc => heldStack!.notes.some(n =>
@@ -237,16 +262,45 @@ export function inferHarmonyTimeline(
       } else {
         heldStack = undefined;
       }
-      const direct = directCandidate !== undefined;
-      // Keep the contextual triad path for arpeggios and decorated melody. Only
-      // a complete played stack can introduce a seventh/suspension or inversion.
-      allowed = new Set((!raw.length && !articulationGap) || !roleSupported ? [] : directCandidate !== undefined ? [directCandidate]
-        : candidates.flatMap((c, k) => c.name.match(/^[A-G][#b]?m?$/) ? [k] : []));
-      if (direct) observed = played;
-      const anySource = notes.some(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
-      reasons.push(!allowed.size && anySource ? "Harmony or accompaniment role is uncertain; this span is left silent." : undefined);
-      const lowest = supportNotes.reduce((min, n) => Math.min(min, n.midi), Infinity);
-      bassPcs.push(direct && Number.isFinite(lowest) ? lowest % 12 : undefined);
+      if (conservative) {
+        const lowest = raw.reduce((min, n) => Math.min(min, n.midi), Infinity);
+        const actual = evidence(raw, segment.startBeat, segment.endBeat);
+        // Held notes need bass evidence even when this segment has no onset.
+        // A synthesized pedal extension cannot establish a released tone.
+        if (Number.isFinite(lowest)) {
+          actual.bass.fill(0);
+          actual.bass[lowest % 12] = 1;
+        }
+        if (directCandidate === undefined) {
+          directCandidate = completeCandidate(candidates, actual, tuning);
+          played = actual;
+        }
+        // A newly struck upper chord cannot silently replace a contradictory
+        // low pedal. Compatible observed basses remain explicit inversions.
+        if (directCandidate !== undefined && Number.isFinite(lowest)
+          && !candidates[directCandidate]!.pcs.has(lowest % 12)) {
+          directCandidate = undefined;
+          heldStack = undefined;
+        }
+        allowed = new Set((raw.length || articulationGap) && roleSupported && directCandidate !== undefined ? [directCandidate] : []);
+        if (allowed.size) observed = played;
+        const anySource = notes.some(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
+        reasons.push(!allowed.size && anySource
+          ? "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent."
+          : undefined);
+        bassPcs.push(allowed.size && Number.isFinite(lowest) ? lowest % 12 : undefined);
+      } else {
+        const direct = directCandidate !== undefined;
+        // Keep the contextual triad path for arpeggios and decorated melody. Only
+        // a complete played stack can introduce a seventh/suspension or inversion.
+        allowed = new Set((!raw.length && !articulationGap) || !roleSupported ? [] : directCandidate !== undefined ? [directCandidate]
+          : candidates.flatMap((c, k) => c.name.match(/^[A-G][#b]?m?$/) ? [k] : []));
+        if (direct) observed = played;
+        const anySource = notes.some(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
+        reasons.push(!allowed.size && anySource ? "Harmony or accompaniment role is uncertain; this span is left silent." : undefined);
+        const lowest = supportNotes.reduce((min, n) => Math.min(min, n.midi), Infinity);
+        bassPcs.push(direct && Number.isFinite(lowest) ? lowest % 12 : undefined);
+      }
     }
     let best = 0;
     for (let k = 1; k <= rest; k++) if (previous[k]! > previous[best]!) best = k;

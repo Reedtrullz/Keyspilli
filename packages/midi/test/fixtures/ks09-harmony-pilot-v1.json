@@ -1,0 +1,1679 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "ks09-conservative-harmony-synthetic-v1",
+  "frozenBeforeImplementation": true,
+  "annotationPolicy": "Original synthetic compositions; no accepted song, golden fixture, or provider ground truth. Reference spans identify allowed accompaniment pitch classes and actual bass. Supported arpeggio prefixes and unstruck released tails remain in the coverage denominator. Unknown spans require abstention; rest spans require silence. Labels are explanatory and pitch/bass duration is authoritative.",
+  "cases": [
+    {
+      "id": "dev-open-fifth",
+      "compositionId": "dev-open-fifth",
+      "split": "development",
+      "category": "power",
+      "description": "The played root and fifth do not establish either third.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C5"
+        }
+      ]
+    },
+    {
+      "id": "dev-semitone",
+      "compositionId": "dev-semitone",
+      "split": "development",
+      "category": "ambiguous-dyad",
+      "description": "C and Db do not establish a compatible chord template.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0.5,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 49,
+          "start": 0.5,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.5,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 0.5,
+          "endBeat": 3,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 4,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "dev-seventh-hold",
+      "compositionId": "dev-seventh-hold",
+      "split": "development",
+      "category": "held-seventh",
+      "description": "Complete seventh spans beat and bar boundaries.",
+      "key": "C",
+      "durationBeats": 8,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0.5,
+          "dur": 5.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 0.5,
+          "dur": 5.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 0.5,
+          "dur": 5.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 58,
+          "start": 0.5,
+          "dur": 5.5,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.5,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 0.5,
+          "endBeat": 6,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "bassPc": 0,
+          "name": "C7"
+        },
+        {
+          "startBeat": 6,
+          "endBeat": 8,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "dev-first-inversion",
+      "compositionId": "dev-first-inversion",
+      "split": "development",
+      "category": "inversion",
+      "description": "",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 52,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 60,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            4,
+            7
+          ],
+          "bassPc": 4,
+          "name": "C/E"
+        }
+      ]
+    },
+    {
+      "id": "dev-sung-thirds",
+      "compositionId": "dev-sung-thirds",
+      "split": "development",
+      "category": "vocal-and-lyric-exclusion",
+      "description": "Vocal C and lyric-bearing Db cannot supply an accompaniment third.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 45,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 72,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R",
+          "identitySource": "vocals"
+        },
+        {
+          "midi": 73,
+          "start": 2,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R",
+          "lyrics": "word"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            4,
+            9
+          ],
+          "bassPc": 9,
+          "name": "A5"
+        }
+      ]
+    },
+    {
+      "id": "dev-overlap-arpeggio",
+      "compositionId": "dev-overlap-arpeggio",
+      "split": "development",
+      "category": "pedal-arpeggio",
+      "description": "Intended C arpeggio; conservative admission may wait for all tones, which counts as lost coverage.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0,
+          "dur": 3,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 0.5,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 1,
+          "dur": 2,
+          "vel": 80,
+          "hand": "L"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 3,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            4,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C"
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 4,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "dev-borrowed-inversion",
+      "compositionId": "dev-borrowed-inversion",
+      "split": "development",
+      "category": "non-diatonic-bass",
+      "description": "A borrowed minor chord with its played third in the bass remains supported in C major.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 44,
+          "start": 1,
+          "dur": 3,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 48,
+          "start": 1,
+          "dur": 3,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 53,
+          "start": 1,
+          "dur": 3,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 1,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 1,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            5,
+            8
+          ],
+          "bassPc": 8,
+          "name": "Fm/Ab"
+        }
+      ]
+    },
+    {
+      "id": "dev-foreign-pedal",
+      "compositionId": "dev-foreign-pedal",
+      "split": "development",
+      "category": "incompatible-bass",
+      "description": "Db bass conflicts with the C triad; this pilot must not replace it with C bass.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 37,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 48,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 52,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "dev-suspension-resolution",
+      "compositionId": "dev-suspension-resolution",
+      "split": "development",
+      "category": "suspension",
+      "description": "",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 53,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 48,
+          "start": 2,
+          "dur": 2,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 2,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 2,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 2,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            5,
+            7
+          ],
+          "bassPc": 0,
+          "name": "Csus4"
+        },
+        {
+          "startBeat": 2,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            4,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C"
+        }
+      ]
+    },
+    {
+      "id": "dev-repeated-fifths",
+      "compositionId": "dev-repeated-fifths",
+      "split": "development",
+      "category": "attacks-and-rests",
+      "description": "",
+      "key": "C",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0,
+          "dur": 1.25,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 0,
+          "dur": 1.25,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 48,
+          "start": 1.5,
+          "dur": 1.25,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 1.5,
+          "dur": 1.25,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 48,
+          "start": 3,
+          "dur": 1.25,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 3,
+          "dur": 1.25,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 1.25,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C5"
+        },
+        {
+          "startBeat": 1.25,
+          "endBeat": 1.5,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 1.5,
+          "endBeat": 2.75,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C5"
+        },
+        {
+          "startBeat": 2.75,
+          "endBeat": 3,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 4.25,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C5"
+        },
+        {
+          "startBeat": 4.25,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "dev-third-release",
+      "compositionId": "dev-third-release",
+      "split": "development",
+      "category": "member-release",
+      "description": "After the third release a new fifth-only label is safe, but a missing source reattack must not be invented; silent tail counts against audible coverage.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 0,
+          "dur": 1.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 1.5,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            4,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C"
+        },
+        {
+          "startBeat": 1.5,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            7
+          ],
+          "bassPc": 0,
+          "name": "C5"
+        }
+      ]
+    },
+    {
+      "id": "dev-solo-register",
+      "compositionId": "dev-solo-register",
+      "split": "development",
+      "category": "unclassified-line",
+      "description": "LH assignment alone cannot turn a dry solo line into backing.",
+      "key": "C",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 48,
+          "start": 0,
+          "dur": 1,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 1,
+          "dur": 1,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 2,
+          "dur": 1,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 60,
+          "start": 3,
+          "dur": 1,
+          "vel": 80,
+          "hand": "L"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-modal-riff",
+      "compositionId": "holdout-modal-riff",
+      "split": "holdout",
+      "category": "power",
+      "description": "Distinct modal riff with off-grid changes and unequal rests.",
+      "key": "D",
+      "durationBeats": 8,
+      "notes": [
+        {
+          "midi": 50,
+          "start": 0.25,
+          "dur": 1.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 57,
+          "start": 0.25,
+          "dur": 1.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 53,
+          "start": 2.25,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 60,
+          "start": 2.25,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 52,
+          "start": 3.75,
+          "dur": 2,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 59,
+          "start": 3.75,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.25,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 0.25,
+          "endBeat": 1.75,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            2,
+            9
+          ],
+          "bassPc": 2,
+          "name": "D5"
+        },
+        {
+          "startBeat": 1.75,
+          "endBeat": 2.25,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 2.25,
+          "endBeat": 3,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            5
+          ],
+          "bassPc": 5,
+          "name": "F5"
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 3.75,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3.75,
+          "endBeat": 5.75,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            4,
+            11
+          ],
+          "bassPc": 4,
+          "name": "E5"
+        },
+        {
+          "startBeat": 5.75,
+          "endBeat": 8,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-colliding-thirds",
+      "compositionId": "holdout-colliding-thirds",
+      "split": "holdout",
+      "category": "ambiguous-third",
+      "description": "Both third spellings conflict; the later fifth-only attack is independently supported.",
+      "key": "Bb",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 46,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 49,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 50,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 53,
+          "start": 0,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 46,
+          "start": 3,
+          "dur": 2,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 53,
+          "start": 3,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 2,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 2,
+          "endBeat": 3,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 5,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            5,
+            10
+          ],
+          "bassPc": 10,
+          "name": "Bb5"
+        },
+        {
+          "startBeat": 5,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-chromatic-inversions",
+      "compositionId": "holdout-chromatic-inversions",
+      "split": "holdout",
+      "category": "non-diatonic-bass",
+      "description": "Distinct chromatic major and minor inversion phrase.",
+      "key": "E",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 51,
+          "start": 0,
+          "dur": 1.75,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 54,
+          "start": 0,
+          "dur": 1.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 59,
+          "start": 0,
+          "dur": 1.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 46,
+          "start": 2.5,
+          "dur": 3,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 50,
+          "start": 2.5,
+          "dur": 3,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 2.5,
+          "dur": 3,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 1.75,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            3,
+            6,
+            11
+          ],
+          "bassPc": 3,
+          "name": "B/D#"
+        },
+        {
+          "startBeat": 1.75,
+          "endBeat": 2.5,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 2.5,
+          "endBeat": 5.5,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            2,
+            7,
+            10
+          ],
+          "bassPc": 10,
+          "name": "Gm/Bb"
+        },
+        {
+          "startBeat": 5.5,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-seventh-with-decoration",
+      "compositionId": "holdout-seventh-with-decoration",
+      "split": "holdout",
+      "category": "held-and-melody",
+      "description": "An unrelated upper attack cannot replace an already complete held stack.",
+      "key": "G",
+      "durationBeats": 8,
+      "notes": [
+        {
+          "midi": 47,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 50,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 54,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 72,
+          "start": 1.5,
+          "dur": 0.25,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 73,
+          "start": 3,
+          "dur": 0.5,
+          "vel": 80,
+          "hand": "R",
+          "identitySource": "vocals"
+        },
+        {
+          "midi": 47,
+          "start": 4.5,
+          "dur": 2.75,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 50,
+          "start": 4.5,
+          "dur": 2.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 54,
+          "start": 4.5,
+          "dur": 2.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 55,
+          "start": 4.5,
+          "dur": 2.75,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            2,
+            6,
+            7,
+            11
+          ],
+          "bassPc": 11,
+          "name": "Gmaj7/B"
+        },
+        {
+          "startBeat": 4,
+          "endBeat": 4.5,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 4.5,
+          "endBeat": 7.25,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            2,
+            6,
+            7,
+            11
+          ],
+          "bassPc": 11,
+          "name": "Gmaj7/B"
+        },
+        {
+          "startBeat": 7.25,
+          "endBeat": 8,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-lyric-pulse",
+      "compositionId": "holdout-lyric-pulse",
+      "split": "holdout",
+      "category": "vocal-and-lyric-exclusion",
+      "description": "A long lyric-bearing third cannot fill accompaniment release gaps.",
+      "key": "E",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 49,
+          "start": 0,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 56,
+          "start": 0,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 49,
+          "start": 1,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 56,
+          "start": 1,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 49,
+          "start": 2.5,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 56,
+          "start": 2.5,
+          "dur": 0.75,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 76,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "R",
+          "lyrics": "held"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.75,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            1,
+            8
+          ],
+          "bassPc": 1,
+          "name": "C#5"
+        },
+        {
+          "startBeat": 0.75,
+          "endBeat": 1,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 1,
+          "endBeat": 1.75,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            1,
+            8
+          ],
+          "bassPc": 1,
+          "name": "C#5"
+        },
+        {
+          "startBeat": 1.75,
+          "endBeat": 2.5,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 2.5,
+          "endBeat": 3.25,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            1,
+            8
+          ],
+          "bassPc": 1,
+          "name": "C#5"
+        },
+        {
+          "startBeat": 3.25,
+          "endBeat": 4,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-pedalled-suspension",
+      "compositionId": "holdout-pedalled-suspension",
+      "split": "holdout",
+      "category": "pedal-arpeggio",
+      "description": "Overlapping source durations establish suspension without inferred sustain extension; leading abstention counts as lost coverage.",
+      "key": "D",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 50,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 57,
+          "start": 0.5,
+          "dur": 3.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 55,
+          "start": 1.25,
+          "dur": 2.75,
+          "vel": 80,
+          "hand": "L"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            2,
+            7,
+            9
+          ],
+          "bassPc": 2,
+          "name": "Dsus4"
+        },
+        {
+          "startBeat": 4,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-conflicting-bass-entry",
+      "compositionId": "holdout-conflicting-bass-entry",
+      "split": "holdout",
+      "category": "incompatible-bass",
+      "description": "A pre-existing Ab pedal cannot be silently replaced by an invented A bass.",
+      "key": "Am",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 44,
+          "start": 0,
+          "dur": 4,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 57,
+          "start": 1,
+          "dur": 2,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 60,
+          "start": 1,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 64,
+          "start": 1,
+          "dur": 2,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 4,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 4,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-inverted-fifth-and-cluster",
+      "compositionId": "holdout-inverted-fifth-and-cluster",
+      "split": "holdout",
+      "category": "power-and-unknown",
+      "description": "A supported inverted fifth and a separate semitone cluster need different outcomes.",
+      "key": "Am",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 52,
+          "start": 0.5,
+          "dur": 1.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 57,
+          "start": 0.5,
+          "dur": 1.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 59,
+          "start": 3,
+          "dur": 1.75,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 60,
+          "start": 3,
+          "dur": 1.75,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.5,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 0.5,
+          "endBeat": 2,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            4,
+            9
+          ],
+          "bassPc": 4,
+          "name": "A5/E"
+        },
+        {
+          "startBeat": 2,
+          "endBeat": 3,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 4.75,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 4.75,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-released-fifth",
+      "compositionId": "holdout-released-fifth",
+      "split": "holdout",
+      "category": "member-release",
+      "description": "Released fifth cannot be fabricated from the remaining root/third dyad.",
+      "key": "Fm",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 53,
+          "start": 0,
+          "dur": 3,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 56,
+          "start": 0,
+          "dur": 3,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 60,
+          "start": 0,
+          "dur": 1.25,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 1.25,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            0,
+            5,
+            8
+          ],
+          "bassPc": 5,
+          "name": "Fm"
+        },
+        {
+          "startBeat": 1.25,
+          "endBeat": 3,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 4,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-second-suspension",
+      "compositionId": "holdout-second-suspension",
+      "split": "holdout",
+      "category": "suspension",
+      "description": "An explicit sus2 stack precedes its major resolution.",
+      "key": "G",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 43,
+          "start": 0.25,
+          "dur": 2.25,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 50,
+          "start": 0.25,
+          "dur": 2.25,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 57,
+          "start": 0.25,
+          "dur": 2.25,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 43,
+          "start": 3,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 47,
+          "start": 3,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 50,
+          "start": 3,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.25,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 0.25,
+          "endBeat": 2.5,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            2,
+            7,
+            9
+          ],
+          "bassPc": 7,
+          "name": "Gsus2"
+        },
+        {
+          "startBeat": 2.5,
+          "endBeat": 3,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3,
+          "endBeat": 5.5,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            2,
+            7,
+            11
+          ],
+          "bassPc": 7,
+          "name": "G"
+        },
+        {
+          "startBeat": 5.5,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-root-third-with-singer",
+      "compositionId": "holdout-root-third-with-singer",
+      "split": "holdout",
+      "category": "incomplete-triad",
+      "description": "A singer cannot supply the missing accompaniment fifth.",
+      "key": "G",
+      "durationBeats": 4,
+      "notes": [
+        {
+          "midi": 43,
+          "start": 0.75,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 47,
+          "start": 0.75,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 74,
+          "start": 0.75,
+          "dur": 2.5,
+          "vel": 80,
+          "hand": "R",
+          "identitySource": "vocals"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 0.75,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 0.75,
+          "endBeat": 3.25,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 3.25,
+          "endBeat": 4,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    },
+    {
+      "id": "holdout-octaves-then-answer",
+      "compositionId": "holdout-octaves-then-answer",
+      "split": "holdout",
+      "category": "unison-and-power",
+      "description": "Octave duplication is not harmonic evidence; the later distinct fifth has its own support.",
+      "key": "Am",
+      "durationBeats": 6,
+      "notes": [
+        {
+          "midi": 40,
+          "start": 0,
+          "dur": 1.5,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 0,
+          "dur": 1.5,
+          "vel": 80,
+          "hand": "R"
+        },
+        {
+          "midi": 45,
+          "start": 2.75,
+          "dur": 1,
+          "vel": 80,
+          "hand": "L"
+        },
+        {
+          "midi": 52,
+          "start": 2.75,
+          "dur": 1,
+          "vel": 80,
+          "hand": "R"
+        }
+      ],
+      "reference": [
+        {
+          "startBeat": 0,
+          "endBeat": 1.5,
+          "kind": "unknown",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 1.5,
+          "endBeat": 2.75,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        },
+        {
+          "startBeat": 2.75,
+          "endBeat": 3.75,
+          "kind": "supported",
+          "allowedPitchClasses": [
+            4,
+            9
+          ],
+          "bassPc": 9,
+          "name": "A5"
+        },
+        {
+          "startBeat": 3.75,
+          "endBeat": 6,
+          "kind": "rest",
+          "allowedPitchClasses": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6204 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "ks09-conservative-harmony-synthetic-v1",
+  "inputSha256": "7d6e8861fa5f15f5065166c8d8a9d5642b0bf190c62c6dbe47a9d09f051383c6",
+  "split": "holdout",
+  "evidenceScope": "Original synthetic contract examples; not independent listening or real-song calibration.",
+  "policies": [
+    {
+      "policy": "legacy-backing",
+      "summary": {
+        "cases": 12,
+        "durationBeats": 70,
+        "supportedReferenceBeats": 32.5,
+        "unknownReferenceBeats": 13.5,
+        "restReferenceBeats": 24,
+        "wrongHarmonyBeats": 24.25,
+        "restViolationBeats": 0,
+        "audibleSupportedBeats": 32.5,
+        "supportedCoverage": 1,
+        "audibleReferenceBeats": 41.75,
+        "audibleCoverage": 0.907608695652174,
+        "abstentionBeats": 1.5,
+        "abstentionRate": 0.03260869565217391
+      },
+      "splits": [
+        {
+          "split": "holdout",
+          "cases": 12,
+          "durationBeats": 70,
+          "supportedReferenceBeats": 32.5,
+          "unknownReferenceBeats": 13.5,
+          "restReferenceBeats": 24,
+          "wrongHarmonyBeats": 24.25,
+          "restViolationBeats": 0,
+          "audibleSupportedBeats": 32.5,
+          "supportedCoverage": 1,
+          "audibleReferenceBeats": 41.75,
+          "audibleCoverage": 0.907608695652174,
+          "abstentionBeats": 1.5,
+          "abstentionRate": 0.03260869565217391
+        }
+      ],
+      "rows": [
+        {
+          "id": "holdout-modal-riff",
+          "compositionId": "holdout-modal-riff",
+          "split": "holdout",
+          "category": "power",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.25
+            },
+            {
+              "beat": 0.25,
+              "name": "D",
+              "notes": [
+                50,
+                62,
+                66,
+                69
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.5
+            },
+            {
+              "beat": 1.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            },
+            {
+              "beat": 2.25,
+              "name": "F",
+              "notes": [
+                53,
+                65,
+                69,
+                72
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 3,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 3.75,
+              "name": "Em",
+              "notes": [
+                52,
+                64,
+                67,
+                71
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            },
+            {
+              "beat": 5.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.25
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0.25,
+                "name": "D",
+                "notes": [
+                  38,
+                  69,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.25,
+                "name": "F",
+                "notes": [
+                  41,
+                  69,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3.75,
+                "name": "Em",
+                "notes": [
+                  40,
+                  67,
+                  71,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.25
+              },
+              {
+                "beat": 0.25,
+                "name": "D",
+                "notes": [
+                  38,
+                  69,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              },
+              {
+                "beat": 2.25,
+                "name": "F",
+                "notes": [
+                  41,
+                  69,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 3.75,
+                "name": "Em",
+                "notes": [
+                  40,
+                  67,
+                  71,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 38,
+                "start": 0.25,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 0.25,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0.25,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 78,
+                "start": 0.25,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 41,
+                "start": 2.25,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 2.25,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 72,
+                "start": 2.25,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 77,
+                "start": 2.25,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 40,
+                "start": 3.75,
+                "dur": 2,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 3.75,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 3.75,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 3.75,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.25,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 1.75,
+                "endBeat": 2.25,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 3,
+                "endBeat": 3.75,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5.75,
+                "endBeat": 8,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0.25,
+              "durationBeats": 1.5,
+              "name": "D",
+              "notes": [
+                38,
+                69,
+                74,
+                78
+              ],
+              "pitchClasses": [
+                2,
+                6,
+                9
+              ],
+              "bassPc": 2
+            },
+            {
+              "beat": 2.25,
+              "durationBeats": 0.75,
+              "name": "F",
+              "notes": [
+                41,
+                69,
+                72,
+                77
+              ],
+              "pitchClasses": [
+                0,
+                5,
+                9
+              ],
+              "bassPc": 5
+            },
+            {
+              "beat": 3.75,
+              "durationBeats": 2,
+              "name": "Em",
+              "notes": [
+                40,
+                67,
+                71,
+                76
+              ],
+              "pitchClasses": [
+                4,
+                7,
+                11
+              ],
+              "bassPc": 4
+            }
+          ],
+          "metrics": {
+            "durationBeats": 8,
+            "supportedReferenceBeats": 4.25,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 3.75,
+            "wrongHarmonyBeats": 4.25,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 4.25,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4.25,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-colliding-thirds",
+          "compositionId": "holdout-colliding-thirds",
+          "split": "holdout",
+          "category": "ambiguous-third",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "Bb",
+              "notes": [
+                58,
+                70,
+                74,
+                77
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            },
+            {
+              "beat": 2,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 3,
+              "name": "Bb",
+              "notes": [
+                58,
+                70,
+                74,
+                77
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            },
+            {
+              "beat": 5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "Bb",
+                "notes": [
+                  46,
+                  70,
+                  74,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "Bb",
+                "notes": [
+                  46,
+                  70,
+                  74,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "Bb",
+                "notes": [
+                  46,
+                  70,
+                  74,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              },
+              {
+                "beat": 3,
+                "name": "Bb",
+                "notes": [
+                  46,
+                  70,
+                  74,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 46,
+                "start": 0,
+                "dur": 2,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 70,
+                "start": 0,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 77,
+                "start": 0,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 46,
+                "start": 3,
+                "dur": 2,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 70,
+                "start": 3,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 3,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 77,
+                "start": 3,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 2,
+                "endBeat": 3,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 2,
+              "name": "Bb",
+              "notes": [
+                46,
+                70,
+                74,
+                77
+              ],
+              "pitchClasses": [
+                2,
+                5,
+                10
+              ],
+              "bassPc": 10
+            },
+            {
+              "beat": 3,
+              "durationBeats": 2,
+              "name": "Bb",
+              "notes": [
+                46,
+                70,
+                74,
+                77
+              ],
+              "pitchClasses": [
+                2,
+                5,
+                10
+              ],
+              "bassPc": 10
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 2,
+            "unknownReferenceBeats": 2,
+            "restReferenceBeats": 2,
+            "wrongHarmonyBeats": 4,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 2,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-chromatic-inversions",
+          "compositionId": "holdout-chromatic-inversions",
+          "split": "holdout",
+          "category": "non-diatonic-bass",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "B/Eb",
+              "notes": [
+                51,
+                71,
+                75,
+                78
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.75
+            },
+            {
+              "beat": 1.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 2.5,
+              "name": "Gm/Bb",
+              "notes": [
+                58,
+                67,
+                70,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 3
+            },
+            {
+              "beat": 5.5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "B/Eb",
+                "notes": [
+                  39,
+                  66,
+                  71,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.5,
+                "name": "Gm/Bb",
+                "notes": [
+                  46,
+                  67,
+                  70,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 3,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "B/Eb",
+                "notes": [
+                  39,
+                  66,
+                  71,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 2.5,
+                "name": "Gm/Bb",
+                "notes": [
+                  46,
+                  67,
+                  70,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 3,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5.5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 39,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 66,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 75,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 46,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 70,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 1.75,
+                "endBeat": 2.5,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5.5,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 1.75,
+              "name": "B/Eb",
+              "notes": [
+                39,
+                66,
+                71,
+                75
+              ],
+              "pitchClasses": [
+                3,
+                6,
+                11
+              ],
+              "bassPc": 3
+            },
+            {
+              "beat": 2.5,
+              "durationBeats": 3,
+              "name": "Gm/Bb",
+              "notes": [
+                46,
+                67,
+                70,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                7,
+                10
+              ],
+              "bassPc": 10
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 4.75,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.25,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 4.75,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4.75,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-seventh-with-decoration",
+          "compositionId": "holdout-seventh-with-decoration",
+          "split": "holdout",
+          "category": "held-and-melody",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "Gmaj7/B",
+              "notes": [
+                59,
+                67,
+                71,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 7.25
+            },
+            {
+              "beat": 7.25,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "Gmaj7/B",
+                "notes": [
+                  47,
+                  67,
+                  71,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 4,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 4.5,
+                "name": "Gmaj7/B",
+                "notes": [
+                  47,
+                  67,
+                  71,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "Gmaj7/B",
+                "notes": [
+                  47,
+                  67,
+                  71,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 7.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 7.25,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 47,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 78,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 47,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 78,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 7.25,
+                "endBeat": 8,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 4,
+              "name": "Gmaj7/B",
+              "notes": [
+                47,
+                67,
+                71,
+                74,
+                78
+              ],
+              "pitchClasses": [
+                2,
+                6,
+                7,
+                11
+              ],
+              "bassPc": 11
+            },
+            {
+              "beat": 4.5,
+              "durationBeats": 2.75,
+              "name": "Gmaj7/B",
+              "notes": [
+                47,
+                67,
+                71,
+                74,
+                78
+              ],
+              "pitchClasses": [
+                2,
+                6,
+                7,
+                11
+              ],
+              "bassPc": 11
+            }
+          ],
+          "metrics": {
+            "durationBeats": 8,
+            "supportedReferenceBeats": 6.75,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.25,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 6.75,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 6.75,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-lyric-pulse",
+          "compositionId": "holdout-lyric-pulse",
+          "split": "holdout",
+          "category": "vocal-and-lyric-exclusion",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "C#m",
+              "notes": [
+                49,
+                61,
+                64,
+                68
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.75
+            },
+            {
+              "beat": 1.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Harmony or accompaniment role is uncertain; this span is left silent.",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 2.5,
+              "name": "C#m",
+              "notes": [
+                49,
+                61,
+                64,
+                68
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 3.25,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Harmony or accompaniment role is uncertain; this span is left silent.",
+              "durationBeats": 0.75
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "C#m",
+                "notes": [
+                  37,
+                  68,
+                  73,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1,
+                "name": "C#m",
+                "notes": [
+                  37,
+                  68,
+                  73,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.5,
+                "name": "C#m",
+                "notes": [
+                  37,
+                  68,
+                  73,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "C#m",
+                "notes": [
+                  37,
+                  68,
+                  73,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Harmony or accompaniment role is uncertain; this span is left silent.",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 2.5,
+                "name": "C#m",
+                "notes": [
+                  37,
+                  68,
+                  73,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3.25,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Harmony or accompaniment role is uncertain; this span is left silent.",
+                "durationBeats": 0.75
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 37,
+                "start": 0,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 0,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 73,
+                "start": 0,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 0,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 37,
+                "start": 1,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 1,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 73,
+                "start": 1,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 1,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 37,
+                "start": 2.5,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 2.5,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 73,
+                "start": 2.5,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 2.5,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 1.75,
+                "endBeat": 2.5,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 3.25,
+                "endBeat": 4,
+                "reason": "uncertain harmony"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 0.75,
+              "name": "C#m",
+              "notes": [
+                37,
+                68,
+                73,
+                76
+              ],
+              "pitchClasses": [
+                1,
+                4,
+                8
+              ],
+              "bassPc": 1
+            },
+            {
+              "beat": 1,
+              "durationBeats": 0.75,
+              "name": "C#m",
+              "notes": [
+                37,
+                68,
+                73,
+                76
+              ],
+              "pitchClasses": [
+                1,
+                4,
+                8
+              ],
+              "bassPc": 1
+            },
+            {
+              "beat": 2.5,
+              "durationBeats": 0.75,
+              "name": "C#m",
+              "notes": [
+                37,
+                68,
+                73,
+                76
+              ],
+              "pitchClasses": [
+                1,
+                4,
+                8
+              ],
+              "bassPc": 1
+            }
+          ],
+          "metrics": {
+            "durationBeats": 4,
+            "supportedReferenceBeats": 2.25,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.75,
+            "wrongHarmonyBeats": 2.25,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 2.25,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 2.25,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-pedalled-suspension",
+          "compositionId": "holdout-pedalled-suspension",
+          "split": "holdout",
+          "category": "pedal-arpeggio",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "D",
+              "notes": [
+                50,
+                62,
+                66,
+                69
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 4
+            },
+            {
+              "beat": 4,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "D",
+                "notes": [
+                  38,
+                  69,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 4,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "D",
+                "notes": [
+                  38,
+                  69,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 4,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 4,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 38,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 78,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 4,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 4,
+              "name": "D",
+              "notes": [
+                38,
+                69,
+                74,
+                78
+              ],
+              "pitchClasses": [
+                2,
+                6,
+                9
+              ],
+              "bassPc": 2
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 4,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 2,
+            "wrongHarmonyBeats": 4,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 4,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-conflicting-bass-entry",
+          "compositionId": "holdout-conflicting-bass-entry",
+          "split": "holdout",
+          "category": "incompatible-bass",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "G#",
+              "notes": [
+                56,
+                68,
+                72,
+                75
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 1,
+              "name": "Am",
+              "notes": [
+                57,
+                69,
+                72,
+                76
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            },
+            {
+              "beat": 3,
+              "name": "E",
+              "notes": [
+                52,
+                64,
+                68,
+                71
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 4,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "G#",
+                "notes": [
+                  44,
+                  68,
+                  72,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1,
+                "name": "Am",
+                "notes": [
+                  45,
+                  69,
+                  72,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "G#",
+                "notes": [
+                  44,
+                  68,
+                  72,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1,
+                "name": "Am",
+                "notes": [
+                  45,
+                  69,
+                  72,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "E",
+                "notes": [
+                  40,
+                  68,
+                  71,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 4,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 44,
+                "start": 0,
+                "dur": 1,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 0,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 72,
+                "start": 0,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 75,
+                "start": 0,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 45,
+                "start": 1,
+                "dur": 2,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 1,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 72,
+                "start": 1,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 1,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 3,
+                "endBeat": 4,
+                "reason": "no supported source attack"
+              },
+              {
+                "startBeat": 4,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 1,
+              "name": "G#",
+              "notes": [
+                44,
+                68,
+                72,
+                75
+              ],
+              "pitchClasses": [
+                0,
+                3,
+                8
+              ],
+              "bassPc": 8
+            },
+            {
+              "beat": 1,
+              "durationBeats": 2,
+              "name": "Am",
+              "notes": [
+                45,
+                69,
+                72,
+                76
+              ],
+              "pitchClasses": [
+                0,
+                4,
+                9
+              ],
+              "bassPc": 9
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 0,
+            "unknownReferenceBeats": 4,
+            "restReferenceBeats": 2,
+            "wrongHarmonyBeats": 3,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 0,
+            "supportedCoverage": null,
+            "audibleReferenceBeats": 3,
+            "audibleCoverage": 0.75,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-inverted-fifth-and-cluster",
+          "compositionId": "holdout-inverted-fifth-and-cluster",
+          "split": "holdout",
+          "category": "power-and-unknown",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            },
+            {
+              "beat": 0.5,
+              "name": "Am",
+              "notes": [
+                57,
+                69,
+                72,
+                76
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.5
+            },
+            {
+              "beat": 2,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 3,
+              "name": "B",
+              "notes": [
+                59,
+                71,
+                75,
+                78
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.75
+            },
+            {
+              "beat": 4.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.25
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0.5,
+                "name": "Am",
+                "notes": [
+                  45,
+                  69,
+                  72,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "B",
+                "notes": [
+                  47,
+                  66,
+                  71,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              },
+              {
+                "beat": 0.5,
+                "name": "Am",
+                "notes": [
+                  45,
+                  69,
+                  72,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              },
+              {
+                "beat": 3,
+                "name": "B",
+                "notes": [
+                  47,
+                  66,
+                  71,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 4.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.25
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 45,
+                "start": 0.5,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 0.5,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 72,
+                "start": 0.5,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 0.5,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 47,
+                "start": 3,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 66,
+                "start": 3,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 3,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 75,
+                "start": 3,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.5,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 2,
+                "endBeat": 3,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 4.75,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0.5,
+              "durationBeats": 1.5,
+              "name": "Am",
+              "notes": [
+                45,
+                69,
+                72,
+                76
+              ],
+              "pitchClasses": [
+                0,
+                4,
+                9
+              ],
+              "bassPc": 9
+            },
+            {
+              "beat": 3,
+              "durationBeats": 1.75,
+              "name": "B",
+              "notes": [
+                47,
+                66,
+                71,
+                75
+              ],
+              "pitchClasses": [
+                3,
+                6,
+                11
+              ],
+              "bassPc": 11
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 1.5,
+            "unknownReferenceBeats": 1.75,
+            "restReferenceBeats": 2.75,
+            "wrongHarmonyBeats": 3.25,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 1.5,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 3.25,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-released-fifth",
+          "compositionId": "holdout-released-fifth",
+          "split": "holdout",
+          "category": "member-release",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "Fm",
+              "notes": [
+                53,
+                65,
+                68,
+                72
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 3
+            },
+            {
+              "beat": 3,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "Fm",
+                "notes": [
+                  41,
+                  68,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "Fm",
+                "notes": [
+                  41,
+                  68,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 3,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 41,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 72,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 77,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 1.25,
+                "endBeat": 3,
+                "reason": "no supported source attack"
+              },
+              {
+                "startBeat": 3,
+                "endBeat": 4,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 1.25,
+              "name": "Fm",
+              "notes": [
+                41,
+                68,
+                72,
+                77
+              ],
+              "pitchClasses": [
+                0,
+                5,
+                8
+              ],
+              "bassPc": 5
+            }
+          ],
+          "metrics": {
+            "durationBeats": 4,
+            "supportedReferenceBeats": 1.25,
+            "unknownReferenceBeats": 1.75,
+            "restReferenceBeats": 1,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 1.25,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 1.25,
+            "audibleCoverage": 0.4166666666666667,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-second-suspension",
+          "compositionId": "holdout-second-suspension",
+          "split": "holdout",
+          "category": "suspension",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.25
+            },
+            {
+              "beat": 0.25,
+              "name": "Dsus4/G",
+              "notes": [
+                55,
+                62,
+                67,
+                69
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.25
+            },
+            {
+              "beat": 2.5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            },
+            {
+              "beat": 3,
+              "name": "G",
+              "notes": [
+                55,
+                67,
+                71,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.5
+            },
+            {
+              "beat": 5.5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0.25,
+                "name": "Dsus4/G",
+                "notes": [
+                  43,
+                  67,
+                  69,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "G",
+                "notes": [
+                  43,
+                  67,
+                  71,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.25
+              },
+              {
+                "beat": 0.25,
+                "name": "Dsus4/G",
+                "notes": [
+                  43,
+                  67,
+                  69,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              },
+              {
+                "beat": 3,
+                "name": "G",
+                "notes": [
+                  43,
+                  67,
+                  71,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5.5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 43,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 69,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 43,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.25,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 2.5,
+                "endBeat": 3,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5.5,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0.25,
+              "durationBeats": 2.25,
+              "name": "Dsus4/G",
+              "notes": [
+                43,
+                67,
+                69,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                7,
+                9
+              ],
+              "bassPc": 7
+            },
+            {
+              "beat": 3,
+              "durationBeats": 2.5,
+              "name": "G",
+              "notes": [
+                43,
+                67,
+                71,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                7,
+                11
+              ],
+              "bassPc": 7
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 4.75,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.25,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 4.75,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4.75,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-root-third-with-singer",
+          "compositionId": "holdout-root-third-with-singer",
+          "split": "holdout",
+          "category": "incomplete-triad",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 0.75,
+              "name": "G",
+              "notes": [
+                55,
+                67,
+                71,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.5
+            },
+            {
+              "beat": 3.25,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0.75,
+                "name": "G",
+                "notes": [
+                  43,
+                  67,
+                  71,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 0.75,
+                "name": "G",
+                "notes": [
+                  43,
+                  67,
+                  71,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3.25,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 43,
+                "start": 0.75,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 0.75,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 0.75,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0.75,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.75,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 3.25,
+                "endBeat": 4,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0.75,
+              "durationBeats": 2.5,
+              "name": "G",
+              "notes": [
+                43,
+                67,
+                71,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                7,
+                11
+              ],
+              "bassPc": 7
+            }
+          ],
+          "metrics": {
+            "durationBeats": 4,
+            "supportedReferenceBeats": 0,
+            "unknownReferenceBeats": 2.5,
+            "restReferenceBeats": 1.5,
+            "wrongHarmonyBeats": 2.5,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 0,
+            "supportedCoverage": null,
+            "audibleReferenceBeats": 2.5,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-octaves-then-answer",
+          "compositionId": "holdout-octaves-then-answer",
+          "split": "holdout",
+          "category": "unison-and-power",
+          "policy": "legacy-backing",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Harmony or accompaniment role is uncertain; this span is left silent.",
+              "durationBeats": 2
+            },
+            {
+              "beat": 2,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 2.75,
+              "name": "Am",
+              "notes": [
+                57,
+                69,
+                72,
+                76
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 3.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.25
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 2.75,
+                "name": "Am",
+                "notes": [
+                  45,
+                  69,
+                  72,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Harmony or accompaniment role is uncertain; this span is left silent.",
+                "durationBeats": 2
+              },
+              {
+                "beat": 2,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 2.75,
+                "name": "Am",
+                "notes": [
+                  45,
+                  69,
+                  72,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 45,
+                "start": 2.75,
+                "dur": 1,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 2.75,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 72,
+                "start": 2.75,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 2.75,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 2,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 2,
+                "endBeat": 2.75,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 3.75,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 2.75,
+              "durationBeats": 1,
+              "name": "Am",
+              "notes": [
+                45,
+                69,
+                72,
+                76
+              ],
+              "pitchClasses": [
+                0,
+                4,
+                9
+              ],
+              "bassPc": 9
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 1,
+            "unknownReferenceBeats": 1.5,
+            "restReferenceBeats": 3.5,
+            "wrongHarmonyBeats": 1,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 1,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 1,
+            "audibleCoverage": 0.4,
+            "abstentionBeats": 1.5,
+            "abstentionRate": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "policy": "conservative-backing-v1",
+      "summary": {
+        "cases": 12,
+        "durationBeats": 70,
+        "supportedReferenceBeats": 32.5,
+        "unknownReferenceBeats": 13.5,
+        "restReferenceBeats": 24,
+        "wrongHarmonyBeats": 0,
+        "restViolationBeats": 0,
+        "audibleSupportedBeats": 28.5,
+        "supportedCoverage": 0.8769230769230769,
+        "audibleReferenceBeats": 28.5,
+        "audibleCoverage": 0.6195652173913043,
+        "abstentionBeats": 14,
+        "abstentionRate": 0.30434782608695654
+      },
+      "splits": [
+        {
+          "split": "holdout",
+          "cases": 12,
+          "durationBeats": 70,
+          "supportedReferenceBeats": 32.5,
+          "unknownReferenceBeats": 13.5,
+          "restReferenceBeats": 24,
+          "wrongHarmonyBeats": 0,
+          "restViolationBeats": 0,
+          "audibleSupportedBeats": 28.5,
+          "supportedCoverage": 0.8769230769230769,
+          "audibleReferenceBeats": 28.5,
+          "audibleCoverage": 0.6195652173913043,
+          "abstentionBeats": 14,
+          "abstentionRate": 0.30434782608695654
+        }
+      ],
+      "rows": [
+        {
+          "id": "holdout-modal-riff",
+          "compositionId": "holdout-modal-riff",
+          "split": "holdout",
+          "category": "power",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.25
+            },
+            {
+              "beat": 0.25,
+              "name": "D5",
+              "notes": [
+                50,
+                62,
+                69
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.5
+            },
+            {
+              "beat": 1.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            },
+            {
+              "beat": 2.25,
+              "name": "F5",
+              "notes": [
+                53,
+                65,
+                72
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 3,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 3.75,
+              "name": "E5",
+              "notes": [
+                52,
+                64,
+                71
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            },
+            {
+              "beat": 5.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.25
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0.25,
+                "name": "D5",
+                "notes": [
+                  38,
+                  69,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.25,
+                "name": "F5",
+                "notes": [
+                  41,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3.75,
+                "name": "E5",
+                "notes": [
+                  40,
+                  71,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.25
+              },
+              {
+                "beat": 0.25,
+                "name": "D5",
+                "notes": [
+                  38,
+                  69,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              },
+              {
+                "beat": 2.25,
+                "name": "F5",
+                "notes": [
+                  41,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 3.75,
+                "name": "E5",
+                "notes": [
+                  40,
+                  71,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 38,
+                "start": 0.25,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 0.25,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0.25,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 41,
+                "start": 2.25,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 72,
+                "start": 2.25,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 77,
+                "start": 2.25,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 40,
+                "start": 3.75,
+                "dur": 2,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 71,
+                "start": 3.75,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 3.75,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.25,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 1.75,
+                "endBeat": 2.25,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 3,
+                "endBeat": 3.75,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5.75,
+                "endBeat": 8,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0.25,
+              "durationBeats": 1.5,
+              "name": "D5",
+              "notes": [
+                38,
+                69,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                9
+              ],
+              "bassPc": 2
+            },
+            {
+              "beat": 2.25,
+              "durationBeats": 0.75,
+              "name": "F5",
+              "notes": [
+                41,
+                72,
+                77
+              ],
+              "pitchClasses": [
+                0,
+                5
+              ],
+              "bassPc": 5
+            },
+            {
+              "beat": 3.75,
+              "durationBeats": 2,
+              "name": "E5",
+              "notes": [
+                40,
+                71,
+                76
+              ],
+              "pitchClasses": [
+                4,
+                11
+              ],
+              "bassPc": 4
+            }
+          ],
+          "metrics": {
+            "durationBeats": 8,
+            "supportedReferenceBeats": 4.25,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 3.75,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 4.25,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4.25,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-colliding-thirds",
+          "compositionId": "holdout-colliding-thirds",
+          "split": "holdout",
+          "category": "ambiguous-third",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 2
+            },
+            {
+              "beat": 2,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 3,
+              "name": "Bb5",
+              "notes": [
+                58,
+                70,
+                77
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            },
+            {
+              "beat": 5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 3,
+                "name": "Bb5",
+                "notes": [
+                  46,
+                  70,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 2
+              },
+              {
+                "beat": 2,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              },
+              {
+                "beat": 3,
+                "name": "Bb5",
+                "notes": [
+                  46,
+                  70,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 46,
+                "start": 3,
+                "dur": 2,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 70,
+                "start": 3,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 77,
+                "start": 3,
+                "dur": 2,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 2,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 2,
+                "endBeat": 3,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 3,
+              "durationBeats": 2,
+              "name": "Bb5",
+              "notes": [
+                46,
+                70,
+                77
+              ],
+              "pitchClasses": [
+                5,
+                10
+              ],
+              "bassPc": 10
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 2,
+            "unknownReferenceBeats": 2,
+            "restReferenceBeats": 2,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 2,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 2,
+            "audibleCoverage": 0.5,
+            "abstentionBeats": 2,
+            "abstentionRate": 0.5
+          }
+        },
+        {
+          "id": "holdout-chromatic-inversions",
+          "compositionId": "holdout-chromatic-inversions",
+          "split": "holdout",
+          "category": "non-diatonic-bass",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "B/Eb",
+              "notes": [
+                51,
+                71,
+                75,
+                78
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.75
+            },
+            {
+              "beat": 1.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 2.5,
+              "name": "Gm/Bb",
+              "notes": [
+                58,
+                67,
+                70,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 3
+            },
+            {
+              "beat": 5.5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "B/Eb",
+                "notes": [
+                  39,
+                  66,
+                  71,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.5,
+                "name": "Gm/Bb",
+                "notes": [
+                  46,
+                  67,
+                  70,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 3,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "B/Eb",
+                "notes": [
+                  39,
+                  66,
+                  71,
+                  75
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 2.5,
+                "name": "Gm/Bb",
+                "notes": [
+                  46,
+                  67,
+                  70,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 3,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5.5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 39,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 66,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 75,
+                "start": 0,
+                "dur": 1.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 46,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 70,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 2.5,
+                "dur": 3,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 1.75,
+                "endBeat": 2.5,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5.5,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 1.75,
+              "name": "B/Eb",
+              "notes": [
+                39,
+                66,
+                71,
+                75
+              ],
+              "pitchClasses": [
+                3,
+                6,
+                11
+              ],
+              "bassPc": 3
+            },
+            {
+              "beat": 2.5,
+              "durationBeats": 3,
+              "name": "Gm/Bb",
+              "notes": [
+                46,
+                67,
+                70,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                7,
+                10
+              ],
+              "bassPc": 10
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 4.75,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.25,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 4.75,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4.75,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-seventh-with-decoration",
+          "compositionId": "holdout-seventh-with-decoration",
+          "split": "holdout",
+          "category": "held-and-melody",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 8
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "Gmaj7/B",
+              "notes": [
+                59,
+                67,
+                71,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 7.25
+            },
+            {
+              "beat": 7.25,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "Gmaj7/B",
+                "notes": [
+                  47,
+                  67,
+                  71,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 4,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 4.5,
+                "name": "Gmaj7/B",
+                "notes": [
+                  47,
+                  67,
+                  71,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "Gmaj7/B",
+                "notes": [
+                  47,
+                  67,
+                  71,
+                  74,
+                  78
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 7.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 7.25,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 47,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 78,
+                "start": 0,
+                "dur": 4,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 47,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 78,
+                "start": 4.5,
+                "dur": 2.75,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 7.25,
+                "endBeat": 8,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 4,
+              "name": "Gmaj7/B",
+              "notes": [
+                47,
+                67,
+                71,
+                74,
+                78
+              ],
+              "pitchClasses": [
+                2,
+                6,
+                7,
+                11
+              ],
+              "bassPc": 11
+            },
+            {
+              "beat": 4.5,
+              "durationBeats": 2.75,
+              "name": "Gmaj7/B",
+              "notes": [
+                47,
+                67,
+                71,
+                74,
+                78
+              ],
+              "pitchClasses": [
+                2,
+                6,
+                7,
+                11
+              ],
+              "bassPc": 11
+            }
+          ],
+          "metrics": {
+            "durationBeats": 8,
+            "supportedReferenceBeats": 6.75,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.25,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 6.75,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 6.75,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-lyric-pulse",
+          "compositionId": "holdout-lyric-pulse",
+          "split": "holdout",
+          "category": "vocal-and-lyric-exclusion",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "C#5",
+              "notes": [
+                49,
+                61,
+                68
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.75
+            },
+            {
+              "beat": 1.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 2.5,
+              "name": "C#5",
+              "notes": [
+                49,
+                61,
+                68
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 3.25,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 0.75
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "C#5",
+                "notes": [
+                  37,
+                  68,
+                  73
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1,
+                "name": "C#5",
+                "notes": [
+                  37,
+                  68,
+                  73
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.5,
+                "name": "C#5",
+                "notes": [
+                  37,
+                  68,
+                  73
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "C#5",
+                "notes": [
+                  37,
+                  68,
+                  73
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 2.5,
+                "name": "C#5",
+                "notes": [
+                  37,
+                  68,
+                  73
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3.25,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 0.75
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 37,
+                "start": 0,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 0,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 73,
+                "start": 0,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 37,
+                "start": 1,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 1,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 73,
+                "start": 1,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 37,
+                "start": 2.5,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 2.5,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 73,
+                "start": 2.5,
+                "dur": 0.75,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 1.75,
+                "endBeat": 2.5,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 3.25,
+                "endBeat": 4,
+                "reason": "uncertain harmony"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 0.75,
+              "name": "C#5",
+              "notes": [
+                37,
+                68,
+                73
+              ],
+              "pitchClasses": [
+                1,
+                8
+              ],
+              "bassPc": 1
+            },
+            {
+              "beat": 1,
+              "durationBeats": 0.75,
+              "name": "C#5",
+              "notes": [
+                37,
+                68,
+                73
+              ],
+              "pitchClasses": [
+                1,
+                8
+              ],
+              "bassPc": 1
+            },
+            {
+              "beat": 2.5,
+              "durationBeats": 0.75,
+              "name": "C#5",
+              "notes": [
+                37,
+                68,
+                73
+              ],
+              "pitchClasses": [
+                1,
+                8
+              ],
+              "bassPc": 1
+            }
+          ],
+          "metrics": {
+            "durationBeats": 4,
+            "supportedReferenceBeats": 2.25,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.75,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 2.25,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 2.25,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-pedalled-suspension",
+          "compositionId": "holdout-pedalled-suspension",
+          "split": "holdout",
+          "category": "pedal-arpeggio",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 0.5
+            },
+            {
+              "beat": 0.5,
+              "name": "D5",
+              "notes": [
+                50,
+                62,
+                69
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 1.25,
+              "name": "Dsus4",
+              "notes": [
+                50,
+                62,
+                67,
+                69
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.75
+            },
+            {
+              "beat": 4,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 0.5
+              },
+              {
+                "beat": 0.5,
+                "name": "D5",
+                "notes": [
+                  38,
+                  69,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.25,
+                "name": "Dsus4",
+                "notes": [
+                  38,
+                  69,
+                  74,
+                  79
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.75,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 4,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2
+              }
+            ],
+            "guidanceNotes": [],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.5,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 0.5,
+                "endBeat": 1.25,
+                "reason": "no supported source attack"
+              },
+              {
+                "startBeat": 1.25,
+                "endBeat": 4,
+                "reason": "no supported source attack"
+              },
+              {
+                "startBeat": 4,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 4,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 2,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 0,
+            "supportedCoverage": 0,
+            "audibleReferenceBeats": 0,
+            "audibleCoverage": 0,
+            "abstentionBeats": 0.5,
+            "abstentionRate": 0.125
+          }
+        },
+        {
+          "id": "holdout-conflicting-bass-entry",
+          "compositionId": "holdout-conflicting-bass-entry",
+          "split": "holdout",
+          "category": "incompatible-bass",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 4
+            },
+            {
+              "beat": 4,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 4
+              },
+              {
+                "beat": 4,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2
+              }
+            ],
+            "guidanceNotes": [],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 4,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 4,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 0,
+            "unknownReferenceBeats": 4,
+            "restReferenceBeats": 2,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 0,
+            "supportedCoverage": null,
+            "audibleReferenceBeats": 0,
+            "audibleCoverage": 0,
+            "abstentionBeats": 4,
+            "abstentionRate": 1
+          }
+        },
+        {
+          "id": "holdout-inverted-fifth-and-cluster",
+          "compositionId": "holdout-inverted-fifth-and-cluster",
+          "split": "holdout",
+          "category": "power-and-unknown",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            },
+            {
+              "beat": 0.5,
+              "name": "A5/E",
+              "notes": [
+                52,
+                69,
+                76
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.5
+            },
+            {
+              "beat": 2,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 3,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 1.75
+            },
+            {
+              "beat": 4.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.25
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0.5,
+                "name": "A5/E",
+                "notes": [
+                  40,
+                  69,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              },
+              {
+                "beat": 0.5,
+                "name": "A5/E",
+                "notes": [
+                  40,
+                  69,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              },
+              {
+                "beat": 3,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 1.75
+              },
+              {
+                "beat": 4.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.25
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 40,
+                "start": 0.5,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 0.5,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 0.5,
+                "dur": 1.5,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.5,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 2,
+                "endBeat": 3,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 3,
+                "endBeat": 4.75,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 4.75,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0.5,
+              "durationBeats": 1.5,
+              "name": "A5/E",
+              "notes": [
+                40,
+                69,
+                76
+              ],
+              "pitchClasses": [
+                4,
+                9
+              ],
+              "bassPc": 4
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 1.5,
+            "unknownReferenceBeats": 1.75,
+            "restReferenceBeats": 2.75,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 1.5,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 1.5,
+            "audibleCoverage": 0.46153846153846156,
+            "abstentionBeats": 1.75,
+            "abstentionRate": 0.5384615384615384
+          }
+        },
+        {
+          "id": "holdout-released-fifth",
+          "compositionId": "holdout-released-fifth",
+          "split": "holdout",
+          "category": "member-release",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "Fm",
+              "notes": [
+                53,
+                65,
+                68,
+                72
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.25
+            },
+            {
+              "beat": 1.25,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 1.75
+            },
+            {
+              "beat": 3,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0,
+                "name": "Fm",
+                "notes": [
+                  41,
+                  68,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "Fm",
+                "notes": [
+                  41,
+                  68,
+                  72,
+                  77
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 1.25,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 1.75
+              },
+              {
+                "beat": 3,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 41,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 68,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 72,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 77,
+                "start": 0,
+                "dur": 1.25,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 1.25,
+                "endBeat": 3,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 3,
+                "endBeat": 4,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0,
+              "durationBeats": 1.25,
+              "name": "Fm",
+              "notes": [
+                41,
+                68,
+                72,
+                77
+              ],
+              "pitchClasses": [
+                0,
+                5,
+                8
+              ],
+              "bassPc": 5
+            }
+          ],
+          "metrics": {
+            "durationBeats": 4,
+            "supportedReferenceBeats": 1.25,
+            "unknownReferenceBeats": 1.75,
+            "restReferenceBeats": 1,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 1.25,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 1.25,
+            "audibleCoverage": 0.4166666666666667,
+            "abstentionBeats": 1.75,
+            "abstentionRate": 0.5833333333333334
+          }
+        },
+        {
+          "id": "holdout-second-suspension",
+          "compositionId": "holdout-second-suspension",
+          "split": "holdout",
+          "category": "suspension",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.25
+            },
+            {
+              "beat": 0.25,
+              "name": "Gsus2",
+              "notes": [
+                55,
+                67,
+                69,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.25
+            },
+            {
+              "beat": 2.5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            },
+            {
+              "beat": 3,
+              "name": "G",
+              "notes": [
+                55,
+                67,
+                71,
+                74
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.5
+            },
+            {
+              "beat": 5.5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.5
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 0.25,
+                "name": "Gsus2",
+                "notes": [
+                  43,
+                  67,
+                  69,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3,
+                "name": "G",
+                "notes": [
+                  43,
+                  67,
+                  71,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.25
+              },
+              {
+                "beat": 0.25,
+                "name": "Gsus2",
+                "notes": [
+                  43,
+                  67,
+                  69,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 2.5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              },
+              {
+                "beat": 3,
+                "name": "G",
+                "notes": [
+                  43,
+                  67,
+                  71,
+                  74
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.5,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 5.5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.5
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 43,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 69,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 0.25,
+                "dur": 2.25,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 43,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 67,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 71,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 74,
+                "start": 3,
+                "dur": 2.5,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.25,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 2.5,
+                "endBeat": 3,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 5.5,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 0.25,
+              "durationBeats": 2.25,
+              "name": "Gsus2",
+              "notes": [
+                43,
+                67,
+                69,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                7,
+                9
+              ],
+              "bassPc": 7
+            },
+            {
+              "beat": 3,
+              "durationBeats": 2.5,
+              "name": "G",
+              "notes": [
+                43,
+                67,
+                71,
+                74
+              ],
+              "pitchClasses": [
+                2,
+                7,
+                11
+              ],
+              "bassPc": 7
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 4.75,
+            "unknownReferenceBeats": 0,
+            "restReferenceBeats": 1.25,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 4.75,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 4.75,
+            "audibleCoverage": 1,
+            "abstentionBeats": 0,
+            "abstentionRate": 0
+          }
+        },
+        {
+          "id": "holdout-root-third-with-singer",
+          "compositionId": "holdout-root-third-with-singer",
+          "split": "holdout",
+          "category": "incomplete-triad",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            },
+            {
+              "beat": 0.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 2.5
+            },
+            {
+              "beat": 3.25,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 0.75
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              },
+              {
+                "beat": 0.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 2.5
+              },
+              {
+                "beat": 3.25,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 0.75
+              }
+            ],
+            "guidanceNotes": [],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 0.75,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 0.75,
+                "endBeat": 3.25,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 3.25,
+                "endBeat": 4,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [],
+          "metrics": {
+            "durationBeats": 4,
+            "supportedReferenceBeats": 0,
+            "unknownReferenceBeats": 2.5,
+            "restReferenceBeats": 1.5,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 0,
+            "supportedCoverage": null,
+            "audibleReferenceBeats": 0,
+            "audibleCoverage": 0,
+            "abstentionBeats": 2.5,
+            "abstentionRate": 1
+          }
+        },
+        {
+          "id": "holdout-octaves-then-answer",
+          "compositionId": "holdout-octaves-then-answer",
+          "split": "holdout",
+          "category": "unison-and-power",
+          "policy": "conservative-backing-v1",
+          "measures": [
+            {
+              "index": 0,
+              "startBeat": 0,
+              "endBeat": 4
+            },
+            {
+              "index": 1,
+              "startBeat": 4,
+              "endBeat": 6
+            }
+          ],
+          "labels": [
+            {
+              "beat": 0,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+              "durationBeats": 1.5
+            },
+            {
+              "beat": 1.5,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1.25
+            },
+            {
+              "beat": 2.75,
+              "name": "A5",
+              "notes": [
+                57,
+                69,
+                76
+              ],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 1
+            },
+            {
+              "beat": 3.75,
+              "name": "N.C.",
+              "notes": [],
+              "sourceKind": "generated",
+              "inferred": true,
+              "inferenceType": "harmony-window",
+              "durationBeats": 2.25
+            }
+          ],
+          "resolution": {
+            "style": "bass-chords",
+            "notes": [],
+            "chords": [
+              {
+                "beat": 2.75,
+                "name": "A5",
+                "notes": [
+                  45,
+                  69,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              }
+            ],
+            "displayChords": [
+              {
+                "beat": 0,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "reviewReason": "Source pitches, bass or accompaniment role do not support a complete harmony; this uncertain span is left silent.",
+                "durationBeats": 1.5
+              },
+              {
+                "beat": 1.5,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1.25
+              },
+              {
+                "beat": 2.75,
+                "name": "A5",
+                "notes": [
+                  45,
+                  69,
+                  76
+                ],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 1,
+                "suggestedHands": [
+                  "L",
+                  "R",
+                  "R"
+                ]
+              },
+              {
+                "beat": 3.75,
+                "name": "N.C.",
+                "notes": [],
+                "sourceKind": "generated",
+                "inferred": true,
+                "inferenceType": "harmony-window",
+                "durationBeats": 2.25
+              }
+            ],
+            "guidanceNotes": [
+              {
+                "midi": 45,
+                "start": 2.75,
+                "dur": 1,
+                "vel": 70,
+                "hand": "L"
+              },
+              {
+                "midi": 69,
+                "start": 2.75,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              },
+              {
+                "midi": 76,
+                "start": 2.75,
+                "dur": 1,
+                "vel": 70,
+                "hand": "R"
+              }
+            ],
+            "fallbackSpans": [
+              {
+                "startBeat": 0,
+                "endBeat": 1.5,
+                "reason": "uncertain harmony"
+              },
+              {
+                "startBeat": 1.5,
+                "endBeat": 2.75,
+                "reason": "explicit no-chord"
+              },
+              {
+                "startBeat": 3.75,
+                "endBeat": 6,
+                "reason": "explicit no-chord"
+              }
+            ]
+          },
+          "realizedEvents": [
+            {
+              "beat": 2.75,
+              "durationBeats": 1,
+              "name": "A5",
+              "notes": [
+                45,
+                69,
+                76
+              ],
+              "pitchClasses": [
+                4,
+                9
+              ],
+              "bassPc": 9
+            }
+          ],
+          "metrics": {
+            "durationBeats": 6,
+            "supportedReferenceBeats": 1,
+            "unknownReferenceBeats": 1.5,
+            "restReferenceBeats": 3.5,
+            "wrongHarmonyBeats": 0,
+            "restViolationBeats": 0,
+            "audibleSupportedBeats": 1,
+            "supportedCoverage": 1,
+            "audibleReferenceBeats": 1,
+            "audibleCoverage": 0.4,
+            "abstentionBeats": 1.5,
+            "abstentionRate": 0.6
+          }
+        }
+      ]
+    }
+  ]
+}

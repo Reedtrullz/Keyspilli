@@ -48,6 +48,7 @@ Preserve accepted Original/backing when improving an existing catalog entry.
 
 | Task | Reference |
 | --- | --- |
+| Explicit source-bound note/phrase protections, when the inspector is present | [Phrase protection pilot](references/phrase-protection.md) |
 | Optional bounded driver/arranger, only when compatible | [Experimental workflow](references/experimental-host-workflow.md), [phrase recipe](references/constrained-arrangement.md) |
 | Score/tab or vocal acquisition | [Authorized score intake](references/ultimate-guitar.md), [vocal recovery](references/vocal-recovery.md) |
 | Optional captured audio or model triage | [Music review](references/music-review-workflow.md), [audio review](references/audio-listening-review.md) |

@@ -1,7 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "scripts/evaluate-harmony-pilot.mts",
     "scripts/prepare-song.mts",
+    "scripts/phrase-plan.mts",
     "scripts/prepare-catalog-chords.mts",
     "scripts/song-bundle.mts",
     "scripts/render-prepared-chords.mts",
