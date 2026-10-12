@@ -1,4 +1,5 @@
 import {sourcePedalErrors} from "./source-pedal.js";
+import { writeNotationMeasures } from "./notation-measures.js";
 import { inferSourceHandLanes } from "./source-hand-lanes.js";
 import { splitHands, detectBassPattern, detectKey, chordName } from "./analyze.js";
 import { Note, ParsedMidi, SongMeta, Variant, DifficultyLevel, LEVEL_ORDER, PUBLIC_DIFFICULTY_ORDER, ChordLabel, MidiTimeSignatureEvent } from "./types.js";
@@ -2844,6 +2845,11 @@ export function assertSourceWorkload(src: ParsedMidi, grid = 0.25): void {
     || (src.tempoEvents?.length ?? 0) > 20_000
     || src.notes.length * (src.tempoEvents?.length ?? 0) > 40_000_000) fail();
   let end = src.durationBeats;
+  if (src.notationMeasures !== undefined) {
+    if (!Array.isArray(src.notationMeasures)) fail();
+    writeNotationMeasures(src.notationMeasures);
+    end = Math.max(end, src.notationMeasures.at(-1)?.endBeat ?? 0);
+  }
   for (const note of src.notes) {
     if (!Number.isFinite(note.start) || !Number.isFinite(note.dur) || note.start < 0 || note.dur < 0) fail();
     end = Math.max(end, note.start + note.dur);
@@ -2894,6 +2900,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
     src = { ...source, tempoBpm: sourceTempo, tempoEvents: undefined,
       ...(source.sections ? {sections:source.sections.map(s=>({...s,startBeat:beat(s.startBeat),endBeat:beat(s.endBeat)}))} : {}),
       durationBeats: beat(source.durationBeats),
+      ...(source.notationMeasures ? { notationMeasures: source.notationMeasures.map(measure => ({ ...measure, startBeat: beat(measure.startBeat), endBeat: beat(measure.endBeat) })) } : {}),
       ...(source.sourcePedal?{sourcePedal:{...source.sourcePedal,endBeat:beat(source.sourcePedal.endBeat),changes:source.sourcePedal.changes.map(e=>({...e,beat:beat(e.beat)}))}}:{}),
       notes: source.notes.map(note => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
       ...(source.timeSigEvents?.length ? {
@@ -3417,7 +3424,7 @@ export function buildVariants(src: ParsedMidi, meta: SongMeta, opts: VariantOpti
       tempoBpm: tempo,
       timeSig: src.timeSig,
       ...(sourceTimeSigEvents.length ? { timeSigEvents: sourceTimeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
-      measures: src.repeatPlayback && src.notationMeasures ? src.notationMeasures.map(measure=>({...measure})) : buildMeasures(notes, src.timeSig, src.durationBeats, sourceTimeSigEvents),
+      measures: sourceMeasures(src, notes, sourceTimeSigEvents),
     };
   });
 }
@@ -3445,12 +3452,14 @@ export function buildShortStudyVariants(
       tempoBpm: sourceTempo,
       tempoEvents: undefined,
       durationBeats: beat(source.durationBeats),
+      ...(source.notationMeasures ? { notationMeasures: source.notationMeasures.map(measure => ({ ...measure, startBeat: beat(measure.startBeat), endBeat: beat(measure.endBeat) })) } : {}),
       ...(source.sections ? {sections:source.sections.map(s=>({...s,startBeat:beat(s.startBeat),endBeat:beat(s.endBeat)}))} : {}),
       ...(source.sourcePedal?{sourcePedal:{...source.sourcePedal,endBeat:beat(source.sourcePedal.endBeat),changes:source.sourcePedal.changes.map(e=>({...e,beat:beat(e.beat)}))}}:{}),
       notes: source.notes.map((note) => ({ ...note, start: beat(note.start), dur: beat(note.start + note.dur) - beat(note.start) })),
       ...(source.timeSigEvents?.length ? { timeSigEvents: source.timeSigEvents.map((event) => ({ ...event, beat: beat(event.beat) })) } : {}),
     };
   }
+  assertSourceWorkload(parsed);
   const tempoBpm = normalizeTempoBpm(meta.tempo ?? parsed.tempoBpm);
   const notes = parsed.notes.map((note) => ({ ...note }));
   if(parsed.sourcePedal){const errors=sourcePedalErrors(notes,parsed.sourcePedal);if(errors.length)throw new Error(errors.join(" "));}
@@ -3473,7 +3482,7 @@ export function buildShortStudyVariants(
     tempoBpm,
     timeSig: [...parsed.timeSig] as [number, number],
     ...(timeSigEvents.length ? { timeSigEvents: timeSigEvents.map((event) => ({ ...event, timeSig: [...event.timeSig] as [number, number] })) } : {}),
-    measures: parsed.repeatPlayback && parsed.notationMeasures ? parsed.notationMeasures.map(measure=>({...measure})) : buildMeasures(notes, parsed.timeSig, parsed.durationBeats, timeSigEvents),
+    measures: sourceMeasures(parsed, notes, timeSigEvents),
   }));
   const available = candidates.filter((variant) => validateVariants([variant], {
     shortStudy: true,
@@ -3481,6 +3490,16 @@ export function buildShortStudyVariants(
   }).length === 0);
   if (!available.length) throw new Error("study does not pass any public level's playability limits");
   return available;
+}
+
+/** Preserve an explicit, complete map without inferring source phase from it.
+ * Incomplete multipart maps retain the existing arithmetic fallback. */
+function sourceMeasures(source: ParsedMidi, notes: Note[], events: readonly MidiTimeSignatureEvent[]): Variant["measures"] {
+  const measures = source.notationMeasures;
+  if (measures?.length && measures.at(-1)!.endBeat >= Math.max(source.durationBeats, maxNoteEnd(notes)) - 1e-6) {
+    return measures.map(measure => ({ ...measure }));
+  }
+  return buildMeasures(notes, source.timeSig, source.durationBeats, events);
 }
 
 function buildMeasures(

@@ -199,11 +199,17 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       .sort(([left], [right]) => left - right)
       .map(([beat, timeSig]) => ({ beat, timeSig, tick: Math.round(beat * first.division) }));
     const notes = parsedParts.flatMap(({ parsed }) => parsed.notes).sort((a, b) => a.start - b.start || a.midi - b.midi);
-    const sections=sectionsFromMarkers(sourceMarkers,notes.reduce((end,n)=>Math.max(end,n.start+n.dur),0));
+    const durationBeats=parsedParts.reduce((end, { parsed }) => Math.max(end, parsed.durationBeats), 0);
+    // Part selection must not inherit a different part's pickup geometry.
+    const notationMeasures=parsedParts.every(({parsed})=>parsed.notationMeasures?.length===first.notationMeasures?.length
+      && parsed.notationMeasures?.every((measure,index)=>Math.abs(measure.startBeat-first.notationMeasures![index]!.startBeat)<=1e-9
+        && Math.abs(measure.endBeat-first.notationMeasures![index]!.endBeat)<=1e-9)) ? first.notationMeasures : undefined;
+    const sections=sectionsFromMarkers(sourceMarkers,durationBeats);
     return {
       ...first,
       sections,
       notes,
+      notationMeasures,
       trackNames: parsedParts.map(({ name }) => name),
       sourceParts: parsedParts.map(({ parsed, id, name }) => ({
         id: `musicxml:${id}`,
@@ -214,7 +220,7 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
         startBeat: parsed.notes.length ? Math.min(...parsed.notes.map((note) => note.start)) : null,
         endBeat: parsed.notes.length ? Math.max(...parsed.notes.map((note) => note.start + note.dur)) : null,
       })),
-      durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur), 0),
+      durationBeats,
       ...(timeSigEvents.length ? { timeSigEvents } : {}),
     };
   }
@@ -395,7 +401,9 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
   const pedals=[...xml.matchAll(/<miscellaneous-field\b([^>]*)>([\s\S]*?)<\/miscellaneous-field>/g)].filter(m=>xmlAttribute(m[1]!,"name")===SOURCE_PEDAL);
   if(pedals.length>1 || order && pedals.length)throw new Error("ambiguous source pedal metadata");
   const sourcePedal=pedals[0]?readSourcePedal(decodeXmlEntities(pedals[0][2]!),mergedNotes):undefined;
-  const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), order ? measureStart : 0);
+  // Explicit rests and an ordinary final empty measure belong to the score's
+  // timeline just as they do for an unfolded repeat.
+  const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), measureStart);
   const sections=sectionsFromMarkers(sectionMarkers,durationBeats);
   markerCollector?.push(...sectionMarkers);
   if (order && Math.ceil(durationBeats/.25)*mergedNotes.length > 200_000_000) throw new Error("repeat source workload exceeds supported limits");

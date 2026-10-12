@@ -1208,6 +1208,12 @@ This additive migration advances SQLite to epoch 2. Epoch-1 images refuse that d
 
 Repeat import supports one explicit forward barline at the first full bar and one right backward barline (two passes), in one part with constant state. No endings, nested/navigation forms, ties, grace notes, transposition or pickups are silently unfolded. Expanded note/beat/measure/grid limits apply. Canonical notes retain unique occurrence origins; MIDI sequencer-specific and standard MusicXML miscellaneous fields carry bounded occurrence maps. Re-imported metadata is explicitly declared provenance, not evidence that the parser verified source repeat notation or authorship. Native Verovio and browser export/navigation fixtures check this subset.
 
+Ordinary non-repeat pickups and final rest measures retain their explicit source
+coordinates through all six physical variants and exported artifacts. See
+[pickup and terminal-rest timing](ops/pickup-timing.md) for MIDI declarations,
+independent pedal limits, tempo normalization and the remaining Player
+navigation boundary.
+
 Chord-tone discovery remains sequential and octave-flexible. Optional held-shape and transition prototypes require owner-selected exact reference pitches and one chosen input; explicit physical releases, rolling/hold windows and raw gap/overlap are separate from pedal sound and technique. Missing/safety releases clear in-progress keys. Hardware and target playability remain unverified. Optional harmony degrees require owner-confirmed key regions and keep all analysis derived; correcting a region changes neither source chord evidence nor backing/export bytes. Independent musical teaching acceptance remains pending.
 
 ### Sheet renderer retention (roadmap PR-23)
@@ -1222,7 +1228,7 @@ The optional MIDI-take panel uses the existing selected input listener rather th
 
 Replay is limited to 1,024 performed notes/64 sounding voices, uses 0.5–2× speed and reconstructs pedal resonance separately from key duration. The visual/table overlay and JSON retain physical key intervals and unknown/synthetic endings. Performance MIDI exports elapsed seconds on piano channel 1 with explicit CC64; unobserved endings and a held pedal are closed at the take boundary, which is not physical-release evidence. Removing the local take clears the panel; downloaded files remain owner-managed. Tests cover synthetic capture/unplug, bytes, source/history invariance and rendered PCM; physical device latency and listening quality are not established.
 
-Source CC64 is a bounded channel-scoped timeline, separate from physical key intervals and grading. Source-profile Original and exact authored studies carry supported events; reduced/derived Chords arrangements disclose omission. Same-channel overlapping physical pitches, pedal-down coinciding with key release, ambiguous cross-track same-tick changes, percussion controllers and excessive work/voices remain unsupported. A missing pedal-up ends resonance at the file boundary.
+Source CC64 is a bounded channel-scoped timeline, separate from physical key intervals and grading. Source-profile Original and exact authored studies carry supported events; reduced/derived Chords arrangements disclose omission. Same-channel overlapping physical pitches, pedal-down coinciding with key release, ambiguous cross-track same-tick changes, percussion controllers and excessive work/voices remain unsupported. A missing pedal-up ends resonance at the original source extent, independently of a later exported terminal rest.
 
 Source-aware playback disables simulated background sustain, reconstructs only source carries after seek/reset and clips resonance at loop boundaries; owner live-input pedal stays on its independent input voice path. MIDI exports preserve channels/events/EOF, and Keyspilli MusicXML retains bounded channel-map/controller metadata. Other notation players may ignore that metadata. Metadata and calibration edits retain and transform the same controller clock; artifact checks reject changed events/channels. Parser, canonical roundtrip, browser and rendered PCM proof do not establish musical/device acceptance.
 

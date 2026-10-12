@@ -602,7 +602,10 @@ export async function ingestSource(inp: IngestInput, options: IngestOptions = {}
       const artifacts = writeVariantArtifacts(v, inp.title, inp.artist);
       const issues = validateArtifactFiles(v, artifacts);
       if (issues.length) artifactErrors.push(`${v.level}: ${issues.join("; ")}`);
-      const durationSec = Math.round(Math.max(...v.notes.map((note) => note.start + note.dur)) * 60 / v.tempoBpm);
+      // Native symbolic scores may end with explicit rests. Derived audio keeps
+      // its existing note-based duration after ghost-tail cleanup.
+      const measureEnds = inp.contentType === "youtube" ? [] : v.measures.map(measure => measure.endBeat);
+      const durationSec = Math.round(Math.max(0, ...v.notes.map((note) => note.start + note.dur), ...measureEnds) * 60 / v.tempoBpm);
       const previous = existingRows.find((row) => row.difficulty === v.level);
       const row: SongRow = {
         id: `${baseId}-${code}`,

@@ -1,5 +1,6 @@
 import {SOURCE_OCCURRENCES,writeSourceOccurrences} from "./source-occurrences.js";
-import {sourcePedalErrors} from "./source-pedal.js";
+import {NOTATION_MEASURES,writeNotationMeasures} from "./notation-measures.js";
+import {SOURCE_PEDAL_END,sourcePedalErrors} from "./source-pedal.js";
 import { MeasureInfo, MidiTimeSignatureEvent, Note, SourcePedalTimeline } from "./types.js";
 
 function varint(n: number): number[] {
@@ -19,7 +20,7 @@ interface TrackEvent {
   order?: number;
 }
 
-function buildTrack(events: TrackEvent[]): Uint8Array {
+function buildTrack(events: TrackEvent[], endTick = 0): Uint8Array {
   events.sort((a, b) => {
     if (a.tick !== b.tick) return a.tick - b.tick;
     if (a.order !== undefined || b.order !== undefined) return (a.order ?? 2) - (b.order ?? 2);
@@ -42,7 +43,7 @@ function buildTrack(events: TrackEvent[]): Uint8Array {
     body.push(...ev.bytes);
     last = ev.tick;
   }
-  body.push(...varint(0), 0xff, 0x2f, 0x00);
+  body.push(...varint(Math.max(0, endTick - last)), 0xff, 0x2f, 0x00);
   const len = body.length;
   return new Uint8Array([...strBytes("MTrk"), (len >>> 24) & 0xff, (len >>> 16) & 0xff, (len >>> 8) & 0xff, len & 0xff, ...body]);
 }
@@ -107,7 +108,9 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
   if(opts.pedalChanges && (opts.pedalChanges.length>4096 || opts.pedalChanges.some(event=>!Number.isFinite(event.beat)||event.beat<0||event.beat>1e7||!Number.isInteger(event.channel)||event.channel<0||event.channel>15||!Number.isInteger(event.value)||event.value<0||event.value>127)))throw new Error("Invalid or excessive MIDI pedal changes");
   if(opts.sourcePedal){const errors=sourcePedalErrors(notes,opts.sourcePedal);if(errors.length)throw new Error(errors.join(" "));if(opts.pedalChanges)throw new Error("Choose source or performed pedal events, not both");}
   const occurrences=writeSourceOccurrences(opts.measures ?? []);
+  const notationMeasures=occurrences ? null : writeNotationMeasures(opts.measures ?? []);
   const division = opts.division ?? 480;
+  const endTick=Math.round((opts.measures?.at(-1)?.endBeat ?? 0)*division);
   const [num, den] = opts.timeSig ?? [4, 4];
   const timeSigEvents = (opts.timeSigEvents ?? [])
     .filter((event) => Number.isFinite(event.beat) && event.beat >= 0
@@ -125,12 +128,20 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
   for (const track of tracks) {
     const events: TrackEvent[] = [];
     if (!trackBytes.length && occurrences) {const bytes=strBytes(`${SOURCE_OCCURRENCES}:${occurrences}`);events.push({tick:0,bytes:[0xff,0x7f,...varint(bytes.length),...bytes]});}
+    if (!trackBytes.length && notationMeasures) {const bytes=strBytes(`${NOTATION_MEASURES}:${notationMeasures}`);events.push({tick:0,bytes:[0xff,0x7f,...varint(bytes.length),...bytes]});}
     if (track.name) {
       const name = strBytes(track.name);
       events.push({ tick: 0, bytes: [0xff, 0x03, name.length, ...name] });
     }
     if (track === tracks[0]) {
-      if(opts.sourcePedal)events.push({tick:Math.round(opts.sourcePedal.endBeat*division),bytes:[0xff,0x01,0]});
+      if(opts.sourcePedal){
+        const pedalEndTick=Math.round(opts.sourcePedal.endBeat*division);
+        // A rest may extend EOT beyond the source's missing-up pedal cap.
+        // Preserve that cap independently without inventing a controller release.
+        const bytes=strBytes(`${SOURCE_PEDAL_END}:${pedalEndTick/division}`);
+        events.push({tick:0,bytes:[0xff,0x7f,...varint(bytes.length),...bytes]});
+        events.push({tick:pedalEndTick,bytes:[0xff,0x01,0]});
+      }
       for(const event of opts.sourcePedal?.changes ?? opts.pedalChanges ?? [])events.push({tick:Math.round(event.beat*division),order:2,bytes:[0xb0|event.channel,64,event.value]});
       for (const chord of opts.chordMarkers ?? []) {
         if (!Number.isFinite(chord.beat) || chord.beat < 0 || typeof chord.name !== "string" || chord.name.length > 256) throw new Error("Invalid chord marker");
@@ -176,7 +187,7 @@ export function writeMidi(notes: Note[], opts: WriteMidiOptions): Uint8Array {
       events.push({ tick: t, order: 3, bytes: [0x90 | channel, n.midi, Math.max(1, Math.min(127, vel))] });
       events.push({ tick: off, order: 0, bytes: [0x80 | channel, n.midi, 0] });
     }
-    trackBytes.push(buildTrack(events));
+    trackBytes.push(buildTrack(events,endTick));
   }
   const header = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, (trackBytes.length >> 8) & 0xff, trackBytes.length & 0xff, (division >> 8) & 0xff, division & 0xff];
   return new Uint8Array([...header, ...trackBytes.flatMap((t) => [...t])]);
