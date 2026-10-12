@@ -229,7 +229,12 @@ describe("actual CLI structural preparation", () => {
   it.each([false, true])("prepares all six tiers and both installations (PhrasePlan=%s), then seals without rerunning", withPlan => {
     const fixture = input(withPlan), run = runFor();
     const prepared = call(["prepare", fixture.requestPath, run, "--until", "prepared"]);
-    expect(prepared.status, prepared.stderr).toBe(0); const first = JSON.parse(prepared.stdout);
+    if (prepared.status !== 0) {
+      keepDiagnostic = true;
+      console.error("prepare diagnostic", { pid: prepared.pid, run, stdout: prepared.stdout, stderr: prepared.stderr,
+        signal: prepared.signal, error: prepared.error?.message, rootFiles: existsSync(run) ? readdirSync(run) : [] });
+    }
+    expect(prepared.status, prepared.stderr || prepared.stdout).toBe(0); const first = JSON.parse(prepared.stdout);
     expect(first).toMatchObject({ phase: "prepared", status: "prepared", provisional: true, attempts: 1, providerCalls: 0, productionAdmission: false });
     expect(first.assessments).toMatchObject({ sourceIdentity: "unknown", listening: "unknown", keyboardAssessment: "unknown", musicalAcceptance: "not-established", offlineScoreReview: { status: "unavailable" } });
     const work = join(run, "attempts/prepare-001/work"), baseId = `upload-${sha256(source)}`;
