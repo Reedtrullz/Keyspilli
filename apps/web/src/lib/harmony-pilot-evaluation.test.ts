@@ -14,6 +14,7 @@ const development = corpus.cases.filter(item => item.split === "development");
 const fixture = (id: string) => development.find(item => item.id === id)!;
 const pitches = (values: readonly number[]) => [...new Set(values.map(value => value % 12))].sort((a, b) => a - b);
 const played = (id: string) => evaluateHarmonyPilotCase(fixture(id), "conservative-backing-v1");
+const reviewControls = JSON.parse(readFileSync(new URL("../../../../packages/midi/test/fixtures/ks09-harmony-review-v2.json", import.meta.url), "utf8")) as { cases: HarmonyPilotCase[] };
 
 // These metrics are hand-calculated independently of harmony inference.
 describe("harmony pilot duration accounting", () => {
@@ -68,6 +69,20 @@ describe("harmony pilot duration accounting", () => {
   it("aggregates durations before computing rates", () => {
     const rows = [played("dev-open-fifth"), played("dev-third-release")];
     expect(summarizeHarmonyPilot(rows)).toMatchObject({ cases: 2, supportedReferenceBeats: 8, audibleSupportedBeats: 5.5, supportedCoverage: 5.5 / 8 });
+  });
+});
+
+describe("post-review onset support through actual Player resolution", () => {
+  it.each(reviewControls.cases)("keeps unsupported future pitches out of delivered backing for $id", item => {
+    const result = evaluateHarmonyPilotCase(item, "conservative-backing-v1");
+    expect(result.metrics.wrongHarmonyBeats).toBe(0);
+    expect(result.metrics.restViolationBeats).toBe(0);
+    if (item.id.includes("third")) expect(result.metrics.audibleSupportedBeats).toBeGreaterThan(0);
+    for (const note of result.resolution.guidanceNotes) {
+      for (const reference of item.reference.filter(span => span.startBeat < note.start + note.dur && span.endBeat > note.start)) {
+        expect(reference.allowedPitchClasses).toContain(note.midi % 12);
+      }
+    }
   });
 });
 

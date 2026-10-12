@@ -55,10 +55,12 @@ function scale(key: { tonic: number; minor: boolean } | null): ReadonlySet<numbe
   return new Set(steps.map((step) => (key.tonic + step) % 12));
 }
 
-function templates(key: string | undefined, tuning: HarmonyTuning): Template[] {
+function templates(key: string | undefined, tuning: HarmonyTuning, conservative: boolean): Template[] {
   const names = key === undefined || parseKey(key) === null ? MIXED : FLAT_KEYS.has(key) ? FLAT : SHARP;
   const diatonic = scale(parseKey(key));
   return QUALITIES.flatMap(([quality, intervals]) => {
+    // Custom tuning on an existing caller must not opt into the pilot vocabulary.
+    if (!conservative && (quality === "5" || quality === "sus2")) return [];
     const cost = tuning.qualityCost[quality];
     if (cost === undefined || cost === null) return [];
     return names.map((root, rootPc) => {
@@ -191,7 +193,10 @@ export function inferHarmonyTimeline(
       if (releases.length < 2 && !conservative) continue;
       // A member release can end a colour tone or change the sounding bass,
       // even while two other pitch classes still provide accompaniment.
-      for (const beat of [attack.start, ...attack.notes.map(n => n.start + n.dur)]) {
+      // The detector's transitive jitter clusters can span many attacks. Their
+      // later notes are not evidence at the first onset: the pilot also splits
+      // at every actual member start, so no future third or bass can backfill it.
+      for (const beat of [attack.start, ...(conservative ? attack.notes.map(n => n.start) : []), ...attack.notes.map(n => n.start + n.dur)]) {
         if (beat > start && beat < end) boundaries.add(beat);
       }
     }
@@ -204,7 +209,7 @@ export function inferHarmonyTimeline(
   const pickupEnd = first && second && first.endBeat - first.startBeat < second.endBeat - second.startBeat ? first.endBeat : -Infinity;
   const sorted = withPedal(source, measures, tuning.pedal)
     .sort((a, b) => a.start - b.start);
-  const candidates = templates(options.key, tuning);
+  const candidates = templates(options.key, tuning, conservative);
   const rest = candidates.length;
   let previous = new Array<number>(rest + 1).fill(0);
   const back: number[][] = [];
