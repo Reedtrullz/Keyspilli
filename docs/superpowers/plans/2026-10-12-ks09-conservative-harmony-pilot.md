@@ -82,3 +82,13 @@ immutable history; no later revision is described as an untouched holdout run.
    keep ordinary/custom-tuning non-policy calls unchanged, and record a separate
    implementation revision 2 regression report over the already exposed corpus.
    This correction does not establish new real-song or default admission evidence.
+
+Both corrections are implemented. The validation checkpoint is commit
+`51f44b272f8f94d75da829d918c2004aca573be6`; implementation revision 2 is
+`73af13c068e8d14b465b6f37572170f2141867df`. The policy name remains unchanged.
+Five post-review timing controls have zero wrong-harmony duration after the
+correction; two had 0.07 and 0.49 wrong beats before it. The 48 original
+corpus/policy results remain byte-identical but are now explicitly regression
+evidence. See the separate revision 2 report in
+`docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/` for exact pins,
+before/after realized events, test counts and residual admission limits.

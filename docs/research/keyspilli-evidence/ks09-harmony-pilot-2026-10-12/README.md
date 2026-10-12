@@ -23,7 +23,12 @@ Ground truth is a complete partition into supported, unknown and rest spans. Sup
 
 The reference denominator stays fixed when source-supported labels fail to produce attacks. It includes the whole intended arpeggio, even its initially incomplete evidence, and the safe fifth-only tail following a released third. These spans were not removed after playback results were observed.
 
-## Actual Player results
+## Original implementation revision 1: actual Player results
+
+These are the original pre-review results. Implementation revision 2 produces
+identical results on all 48 corpus/policy combinations, but that later run is an
+exposed regression run, not new holdout evidence. Its separate report appears
+below.
 
 | Split / policy | Wrong harmony (beats) | Notes in reference rests (beats) | Audible supported duration | Supported audible coverage | Label abstention / non-rest reference |
 |---|---:|---:|---:|---:|---:|
@@ -47,7 +52,7 @@ Counting selected chord names as delivered backing would conceal the following c
 |---|---|---|---|
 | `dev-overlap-arpeggio` | Intended C arpeggio over beats 0–3; policy admits C at beat 1 | No played chord, 0/3 supported beats audible | The original bass attack precedes the admitted label; there is no supported new attack inside it. |
 | `dev-third-release` | C at 0–1.5, then C5 at 1.5–4 after the third releases | C only at 0–1.5, 1.5/4 supported beats audible | Source has no fresh attack at 1.5; a new generated bass/chord attack would be fabricated. This audible loss is also present in the legacy baseline. |
-| `holdout-pedalled-suspension` | Intended D suspension over 0–4; policy has a supported fifth/suspension label after evidence accumulates | No played chord, 0/4 supported beats audible | Same source-rhythm limitation on a different composition; no post-holdout fix was applied. |
+| `holdout-pedalled-suspension` | Intended D suspension over 0–4; policy has a supported fifth/suspension label after evidence accumulates | No played chord, 0/4 supported beats audible | Same source-rhythm limitation on a different composition; this coverage loss remains in revision 2. |
 
 The first development replay test initially expected a C event at beat 1 of the arpeggio. Actual inspection showed that this would contradict the existing supported-attack contract. The test was corrected to assert the no-attack behavior and retain the full coverage penalty. The fixture annotation and algorithm were not changed to make the measured result easier.
 
@@ -128,6 +133,64 @@ algorithm and corpus hashes unchanged at this checkpoint. Exact hashes are in
 [post-holdout-input-validation.json](post-holdout-input-validation.json). This
 checkpoint precedes the separately disclosed implementation revision 2 timing fix.
 
+### Implementation revision 2: reviewed timing correction
+
+The public opt-in name remains `conservative-backing-v1`; **implementation
+revision 2** identifies the reviewed code at
+`73af13c068e8d14b465b6f37572170f2141867df`. The original implementation is retained
+at `7bd6891c1388104533ac7c337b5fd80e3f3cc2e6`. Exact current file hashes,
+the original receipt comparisons, validation results and review-control metrics
+are recorded in [revision2-regression-report.json](revision2-regression-report.json).
+
+The reviewer supplied a C/G stack with repeated attacks 0.07 beats apart and an E
+that first starts at beat 0.49. The detector treats adjacent jitter transitively,
+so its attack cluster included the later E at the first cluster onset. Revision 1
+therefore realized a C major chord from beat zero: **0.49 beats of an unsupported
+third**. This was outside the frozen corpus and disproved a universal timing
+claim that the original small synthetic results could not establish.
+
+The opt-in path now includes every actual member onset among its segment
+boundaries. Evidence from a later member cannot enter an earlier segment. The
+existing source-rhythm Player remains unchanged. In these controls it retains
+fifth-only backing when a later upper third joins a held C/G stack; that is a
+supported reduction, not a claim to reproduce every played chord tone. A later
+incompatible bass terminates the earlier supported chord at the bass's real onset
+and leaves the incompatible interval silent. The extra `5`/`sus2` vocabulary also
+now requires the explicit policy even when a legacy caller supplies custom
+quality costs.
+
+Five known post-review controls were recorded before the timing correction and
+replayed through the actual Player afterward. They are in
+[ks09-harmony-review-v2.json](../../../../packages/midi/test/fixtures/ks09-harmony-review-v2.json);
+their `development` split value is a corpus-schema convention, not a new
+development/holdout experiment.
+
+| Known review control | Revision 1 wrong harmony | Revision 2 wrong harmony | Revision 2 actual backing |
+|---|---:|---:|---|
+| E enters at 0.07 after C/G | 0.07 beats | 0 | C5 over 0–4, pitch classes `[0,7]` |
+| Transitive attack chain; E enters at 0.49 | 0.49 beats | 0 | C5 over 0–4, pitch classes `[0,7]` |
+| Longer chain; E enters at 0.98 | 0 | 0 | C5 over 0–4; positive existing-behavior control |
+| Db bass enters at 0.07 after C major | 0, but entirely silent | 0 | C major over 0–0.07, then silence |
+| Db bass enters at 0.49 after repeated C/G support | 0, but entirely silent | 0 | C major over 0–0.49, then silence |
+
+The exact before/after selected labels, MIDI notes, pitch classes, basses, source
+attack gaps and duration metrics are retained in
+[review-controls-implementation1.json](review-controls-implementation1.json) and
+[review-controls-implementation2.json](review-controls-implementation2.json).
+The correction passed seven inference/custom-tuning controls and five actual
+Player controls after six inference and two Player checks failed first. The
+whole MIDI package passed 548 tests in 32 files; 67 focused web tests and all
+three relevant typechecks passed. Forty-eight ordinary non-policy calls matched
+the Wave 1 baseline, including a separate custom-power-tuning reproduction.
+
+The previously exposed 24-composition corpus was rerun for both policies. All
+48 rows and both complete JSON receipts remain byte-for-byte identical to the
+original files; the report records those comparisons without overwriting the
+original evidence. **There is no fresh untouched holdout for revision 2.** The
+independent review improved a concrete correctness boundary but supplies no
+independent musical acceptance or real-song error estimate. Admission remains
+the same bounded opt-in scope.
+
 The programmatic option is:
 
 ```typescript
@@ -139,7 +202,7 @@ inferHarmonyTimeline(notes, measures, {
 
 The opt-in implies backing-only vocal/lyric exclusion. Existing callers without the policy retain their behavior. Results use existing generated `harmony-window` provenance; source-supported inference remains separate from authored evidence and composed `learner-harmonization`. The CLI receipt retains the selected policy for review.
 
-## Validation and remaining work
+## Original validation and remaining work
 
 - Focused baseline: 26/26 existing MIDI harmony/metal tests.
 - Algorithm RED: 7 expected failures in 13 new development tests before implementation, including power, semitone, voice exclusion, incompatible bass, arpeggio prefix, repeated fifth and released third cases.
