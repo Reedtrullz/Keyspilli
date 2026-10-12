@@ -52,8 +52,8 @@ Metrics use exact event boundaries and union duration, not sample counts: wrong-
 - [x] Implement bounded candidate admission in `packages/midi/src/harmony.ts`, leaving legacy default behavior intact.
 - [x] Add actual `replayChordsBacking` and `resolveAccompaniment` checks plus the read-only evaluator/CLI; verify duration metrics with hand-calculated examples before trusting reports.
 - [x] Run development checks and focused existing suites; freeze algorithm before first holdout evaluation. Any later algorithm change would disclose holdout contamination and require a new holdout for broad admission.
-- [ ] Evaluate frozen holdout once, preserve raw event receipts and report remaining failure/coverage identities.
-- [ ] Run focused typechecks, hand off integrated suite and independent review to root, commit cohesive patches, recommend only the admitted scope supported by evidence.
+- [x] Evaluate frozen holdout once, preserve raw event receipts and report remaining failure/coverage identities.
+- [x] Run focused typechecks, hand off integrated suite and independent review to root, commit cohesive patches, recommend only the admitted scope supported by evidence.
 
 ## Development observations before holdout
 
