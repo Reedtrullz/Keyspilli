@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "kind": "keyspilli-player-ui-maintenance",
+  "baselineCommit": "ed0b138e33a787bf12220b0239730761225d9d06",
+  "operation": "web_only_preserve_catalog",
+  "musicalQualification": "unchanged; no new acceptance claimed",
+  "ownerAuthorization": "Check post-merge CI for PR #249, deploy the fixes once it passes, and verify all five correctness fixes in the live app.",
+  "mergedFeature": "b491252f230da1829de4b08344f74c758543976c",
+  "applicationFiles": {
+    "apps/web/e2e/correctness-pass.spec.ts": "bd73dbbd04ee3bfde5e228811d3956137a87bea1522cd08c386361b853b72de1",
+    "apps/web/e2e/home-navigation.spec.ts": "b486049b2f69c0ea12359a9fa022b0060cbe230ff5752e8346b7b7a324c31589",
+    "apps/web/e2e/key-holds.spec.ts": "3f3f6b25f2ac8965c328748704372f0cdc9c305e64980612fd09916d66ab3b87",
+    "apps/web/playwright.roadmap.config.ts": "b5e4c11715a5d93999f1325da2527bf2284a8c519bf76d23f3e906cf75942dfa",
+    "apps/web/src/components/SongBrowser.test.ts": "66ca02f9cfdf3061ba794a53344c07d3642f37cadf90e42dabd50b3c84500feb",
+    "apps/web/src/components/SongBrowser.tsx": "c13132356b3db64bd29139592e0987ac9897beae40764869ebd216c00c3b2906",
+    "apps/web/src/components/player/DownloadDialog.tsx": "f1176b006a36d2f67908bd473b59c58f510179184f11de6f73ec840095595388",
+    "apps/web/src/components/player/LibraryReturnLink.tsx": "b91ca78b7b8791046eafa6dcae1a303982e26850f54d9b338e4774d4eb24f5f3",
+    "apps/web/src/components/player/Player.tsx": "8d79df86ae284d81bcc5c815cbd76b32ae813836373145c0aaed4eae0a5b2a01",
+    "apps/web/src/components/player/PracticeSetupDialog.tsx": "f389fbecc2522f47867107fb8bd4c0f78c69e1710d1bfec0f47d79edd6806850",
+    "apps/web/src/components/player/active-arrangement-export.ts": "24dda83aa6ae9a3f64614e2b593cd081fb19f5225786fd09a8030922053c22ae",
+    "apps/web/src/components/player/player-ui-improvements.test.tsx": "72b5de827860f0678a5cd15ce056a51f4c29236bcf211fcdb65e8b5412edcc5d",
+    "apps/web/src/components/player/transpose-parity.test.tsx": "08f470c954f4d2eba6d6304aed86b7e106c47e9cae319fc821aa15dbde86d881",
+    "apps/web/src/lib/library-navigation.test.ts": "67fb1479ef901a2b333fc42dd8488862e37bbf3f499b28e66248ecb19fa86c87",
+    "apps/web/src/lib/library-navigation.ts": "995dc8dde48b47be18277ec81074c8168bc53147bcd22b10e12bec5ca5645a87",
+    "packages/player-core/src/keyboard-range.ts": "b6f1168f0986ff45fbc2c60e58079edb0179752ea360b62ee3d1b7dbd8869363",
+    "packages/player-core/test/keyboard-range.test.ts": "f29ed225c735d820a6845d3ce54a7509825368ae6701c42dcfcaaac84a43911d"
+  }
+}
