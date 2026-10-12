@@ -18,8 +18,9 @@ anchored at the first onset, retaining individual source events. Do not change
 the shared transitive detector. Consider real member onsets in each group:
 the active generated harmony must have every defining pitch class present in
 members already sounding at that onset, and its declared bass must match the
-actual sounding non-vocal source bass. Take the latest valid complete candidate
-within that group, at most once. An incomplete prefix may remain silent; do not
+actual sounding non-vocal source bass. Preserve a complete first-onset candidate
+immediately; otherwise take the latest valid complete candidate within that
+group, at most once. An incomplete prefix may remain silent; do not
 turn its silence into a smaller reference denominator. A later incompatible
 member does not erase an earlier valid short candidate, which still ends before
 the incompatible label or release.

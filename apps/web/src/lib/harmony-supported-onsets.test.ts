@@ -31,7 +31,7 @@ describe("conservative delivery revision 3 source onset contract", () => {
     expect(result.realizedEvents[0]).toMatchObject({ beat: .04, durationBeats: 3.96, name: "C", pitchClasses: [0, 4, 7], bassPc: 0 });
   });
 
-  it.each([[48, 52, 55], [48, 55, 52], [52, 48, 55], [52, 55, 48], [55, 48, 52], [55, 52, 48]])("waits for the actual complete member onset with pitch order %j", (...pitches) => {
+  it.each([[48, 52, 55], [48, 55, 52], [52, 48, 55], [52, 55, 48], [55, 48, 52], [55, 52, 48]])("waits for the actual complete member onset with pitch order %s/%s/%s", (...pitches) => {
     const actual = events(pitches.map((midi, i) => note(midi, i * .02)));
     expect(actual).toHaveLength(1);
     expect(actual[0]).toMatchObject({ beat: .04, durationBeats: 3.96, name: "C" });

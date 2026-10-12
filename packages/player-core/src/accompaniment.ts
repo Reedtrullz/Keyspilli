@@ -11,6 +11,7 @@ import {
   type ProtectedMelodyNote,
   type StrikeTuning,
 } from "@keyspilli/midi";
+import { supportedSourceStrikes } from "./supported-source-strikes.js";
 
 export type AccompanimentStyle = "melody-accompaniment" | "bass-chords";
 export type AccompanimentHand = "L" | "R";
@@ -59,6 +60,8 @@ export interface AccompanimentChord extends ChordLabel {
 
 export interface AccompanimentOptions {
   durationBeats?: number;
+  /** Explicit evaluation-only delivery; ordinary generated backing stays unchanged. */
+  generatedHarmonyPolicy?: "conservative-backing-v1";
   /** Stable IDs for source notes that are explicitly replaceable. */
   replaceableSourceIds?: ReadonlySet<string>;
   /**
@@ -1141,6 +1144,9 @@ export function resolveAccompaniment(
   style: AccompanimentStyle,
   options: AccompanimentOptions = {},
 ): AccompanimentResolution {
+  if (options.generatedHarmonyPolicy !== undefined && options.generatedHarmonyPolicy !== "conservative-backing-v1") {
+    throw new Error("Unknown generated harmony delivery policy");
+  }
   const durationBeats = timelineDuration(sourceNotes, chordTimeline, options.durationBeats);
   const events = buildEvents(sourceNotes, chordTimeline, style, durationBeats);
   if (sourceNotes.length === 0 && style !== "bass-chords") {
@@ -1222,9 +1228,13 @@ export function resolveAccompaniment(
   const sourceByOnset = new Map<number, Note[]>();
   if (onsets) for (const note of sourceNotes) sourceByOnset.set(note.start, [...(sourceByOnset.get(note.start) ?? []), note]);
   const hasLeftHand = hasAuthored && sourceNotes.some((note) => note.hand === "L");
+  const supportedStrikes = onsets && options.generatedHarmonyPolicy === "conservative-backing-v1"
+    ? supportedSourceStrikes(sourceNotes, effectiveChords, strikeTuning) : null;
   let struckChords = onsets
     ? effectiveChords.flatMap((chord) => {
-      const strikes = sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning, sourceByOnset, hasLeftHand);
+      const strikes = supportedStrikes && chord.sourceKind === "generated"
+        ? supportedStrikes.get(chord) ?? []
+        : sourceRhythmStrikes(chord, onsets, options.sourceRhythmMeasures!, strikeTuning, sourceByOnset, hasLeftHand);
       const endBeat = chord.beat + (chord.durationBeats ?? 0);
       if (chord.sourceKind === "generated") {
         const sounding = strikes.map(strike => ({ startBeat: strike.beat, endBeat: strike.beat + strike.durationBeats! }));

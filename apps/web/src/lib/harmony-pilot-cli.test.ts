@@ -55,6 +55,7 @@ describe("harmony pilot validates source evidence before musical inference", () 
   });
   it("keeps the valid C5 actual replay", () => {
     const result = run(source()); expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout).implementationRevision).toBe(3);
     expect(JSON.parse(result.stdout).policies[0].replay.resolution.chords[0]).toMatchObject({ name: "C5", notes: [36, 67, 72] });
   });
   it("applies the same musical input boundary to direct replay", () => {

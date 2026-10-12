@@ -12,6 +12,7 @@ import { parseArgs } from "node:util";
 import {
   evaluateHarmonyPilotCase, replayHarmonyPolicy, summarizeHarmonyPilot,
   type HarmonyPilotPolicy,
+  HARMONY_PILOT_IMPLEMENTATION_REVISION,
 } from "../src/lib/harmony-pilot-evaluation";
 import { HARMONY_PILOT_LIMITS, validateHarmonyPilotCorpus, validateHarmonyPilotSource } from "../src/lib/harmony-pilot-validation";
 
@@ -44,7 +45,7 @@ if (values.source) {
   validateHarmonyPilotSource(input);
   const source = input;
   console.log(JSON.stringify({
-    schemaVersion: 1, purpose: "source-supported-backing-pilot", inputSha256,
+    schemaVersion: 1, purpose: "source-supported-backing-pilot", inputSha256, implementationRevision: HARMONY_PILOT_IMPLEMENTATION_REVISION,
     referenceMetrics: null, note: "No reference annotation supplied; pitch classes are observations, not accuracy evidence.",
     policies: policies.map(policy => ({ policy, replay: replayHarmonyPolicy(source, policy) })),
   }, null, 2));
@@ -54,7 +55,7 @@ if (values.source) {
   const cases = corpus.cases.filter(item => values.split === "all" || item.split === values.split);
   if (!cases.length) throw new Error("No cases in selected split");
   console.log(JSON.stringify({
-    schemaVersion: 1, corpusId: corpus.corpusId, inputSha256, split: values.split,
+    schemaVersion: 1, corpusId: corpus.corpusId, inputSha256, split: values.split, implementationRevision: HARMONY_PILOT_IMPLEMENTATION_REVISION,
     evidenceScope: "Original synthetic contract examples; not independent listening or real-song calibration.",
     policies: policies.map(policy => {
       const rows = cases.map(item => evaluateHarmonyPilotCase(item, policy));

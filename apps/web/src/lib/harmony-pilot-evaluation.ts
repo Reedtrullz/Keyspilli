@@ -5,6 +5,8 @@ import { HARMONY_PILOT_LIMITS, validateHarmonyPilotCase, validateHarmonyPilotNot
 
 /** A comparison profile, not a source-authority or confidence claim. */
 export type HarmonyPilotPolicy = "legacy-backing" | "conservative-backing-v1";
+/** Distinct from the inference policy ID; earlier receipts remain historical. */
+export const HARMONY_PILOT_IMPLEMENTATION_REVISION = 3;
 export interface HarmonyReferenceSpan {
   startBeat: number;
   endBeat: number;
@@ -126,7 +128,7 @@ export function replayHarmonyPolicy(
   return replayChordsBacking({
     notes: source.notes, measures: source.measures, key: source.key,
     tempoBpm: source.tempoBpm, timeSig: source.timeSig, chords: labels,
-  }, "generated");
+  }, "generated", policy === "conservative-backing-v1" ? { generatedHarmonyPolicy: policy } : {});
 }
 
 export function evaluateHarmonyPilotCase(item: HarmonyPilotCase, policy: HarmonyPilotPolicy): HarmonyPilotResult {

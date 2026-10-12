@@ -3,6 +3,7 @@ import {
   dedupeChords,
   resolveAccompaniment,
   type AccompanimentResolution,
+  type AccompanimentOptions,
   type ChordLabel,
   type Note,
   type SongData,
@@ -122,12 +123,13 @@ export function bassChordsBackground(
   chords: readonly ChordLabel[],
   arrangementEnd: number,
   sourceBackingNotes: Note[] | null,
+  options: Pick<AccompanimentOptions, "generatedHarmonyPolicy"> = {},
 ): AccompanimentResolution {
   if (sourceBackingNotes) {
     return { style: "bass-chords", notes: sourceBackingNotes, chords: [], displayChords: [], guidanceNotes: sourceBackingNotes, fallbackSpans: [] };
   }
   const resolution = sourcePlayedVoicings(data, chords, resolveAccompaniment(data.notes, chords, "bass-chords", {
-    durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures,
+    durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures, ...options,
   }));
   if (data.sourceFingerprint === journeySourceFingerprint && data.chordProvenance?.provider !== "owner-candidate") {
     // This chordal RH phrase repeats exactly; the RH elsewhere carries the vocal line.
@@ -170,7 +172,7 @@ export interface ChordsBackingReplay {
 }
 
 /** Replay the default Chords backing a Player builds for `data` (its `chordData ?? data`). */
-export function replayChordsBacking(data: SongData, preference: ChordSourceId = "auto"): ChordsBackingReplay {
+export function replayChordsBacking(data: SongData, preference: ChordSourceId = "auto", options: Pick<AccompanimentOptions, "generatedHarmonyPolicy"> = {}): ChordsBackingReplay {
   const arrangementEnd = playerArrangementEnd(data);
   const selected = selectChordSource(playerChordSources(data, arrangementEnd), preference);
   const chords = selected.source?.chords ?? [];
@@ -180,6 +182,6 @@ export function replayChordsBacking(data: SongData, preference: ChordSourceId = 
     selected,
     chords,
     reviewedSourceBacking: sourceBackingNotes !== null,
-    resolution: bassChordsBackground(data, chords, arrangementEnd, sourceBackingNotes),
+    resolution: bassChordsBackground(data, chords, arrangementEnd, sourceBackingNotes, options),
   };
 }
