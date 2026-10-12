@@ -35,6 +35,7 @@ import {
   saveTimingCalibration,
   clearTimingCalibrations,
   loadSongPrefs,
+  loadSongPracticePulse,
   loadPracticeState,
   passageAvailable,
   restoredMelodyChoice,
@@ -116,6 +117,7 @@ import { GradingPanel } from "./GradingPanel";
 import { PracticeWorkspace } from "./PracticeWorkspace";
 import { KeyboardRangeControls } from "./KeyboardRangeControls";
 import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
+import { playerPracticeTiming, resolvePlayerPracticePulse, startPracticeWithPulse } from "./player-practice-pulse";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
 import { loopFromBars, practiceContext, resolvePracticeRange } from "./player-ui-context";
@@ -328,6 +330,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     ...(mode ? { mode } : {}),
   }));
   const [settingsRestored, setSettingsRestored] = useState(false);
+  const [practicePulseNotice, setPracticePulseNotice] = useState("");
   const activeData = settings.backgroundMode === "chord" ? initial.chordData ?? initial.data : initial.data;
   const sourceBackingNotes = useMemo(
     () => reviewedSourceBacking(initial.chordData ?? initial.data),
@@ -361,6 +364,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     if (songPrefs.transpose !== undefined) s.transpose = songPrefs.transpose;
     if (songPrefs.mode !== undefined) s.mode = songPrefs.mode;
     if (songPrefs.hand !== undefined) s.hand = songPrefs.hand;
+    const savedPulse = loadSongPracticePulse(initial.song.id);
+    if (savedPulse.settings) s.practicePulse = savedPulse.settings;
+    else delete s.practicePulse;
+    setPracticePulseNotice(savedPulse.notice ?? "");
     if (mode) s.mode = mode;
     setSettings(s);
     setSettingsRestored(true);
@@ -422,6 +429,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     wait: settings.backgroundMode === "chord",
     scope: settings.backgroundMode === "chord" ? (loop ? "loop" : "bars") : "current",
     countInBeats: 0,
+    metronome: settings.metronome,
+    ...(settings.practicePulse ? { practicePulse: settings.practicePulse } : {}),
   };
   const [practiceSetup, setPracticeSetup] = useState<PracticeSetup>(defaultPracticeSetup);
   const practiceSetupRef = useRef(practiceSetup);
@@ -654,6 +663,17 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       : playbackMeasures({ ...activeData, sourceTiming: playbackTimingForPlayer }),
     [activeData, playbackTimingForPlayer, verifiedScoreMap, initial.data.sourceFingerprint, initial.publicationRevision, settings.backgroundMode, settings.transpose],
   );
+  const engineSongTiming = useMemo(
+    () => playerPracticeTiming(activeData, navigationMeasures, playbackTimingForPlayer),
+    [activeData, navigationMeasures, playbackTimingForPlayer],
+  );
+  const pulseResolution = useMemo(() => resolvePlayerPracticePulse(settings, engineSongTiming), [settings, engineSongTiming]);
+  useEffect(() => {
+    if (!pulseResolution.notice) return;
+    setPracticePulseNotice(pulseResolution.notice);
+    setSettings(pulseResolution.settings);
+    saveSongPrefs(initial.song.id, { practicePulse: undefined });
+  }, [pulseResolution, initial.song.id]);
 
   const chordSources = useMemo(
     () => playerChordSources(activeData, arrangementEnd),
@@ -1045,12 +1065,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       audio,
       notes,
       duration,
-      {
-        tempoBpm: activeData.tempoBpm,
-        timeSig: activeData.timeSig,
-        measureStarts: navigationMeasures.map((measure) => measure.startBeat),
-      },
-      settings,
+      engineSongTiming,
+      pulseResolution.settings,
       audioChords,
       guidanceNotes,
     );
@@ -1111,7 +1127,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     // Seconds change with speed; the musical beat must not. Install the new
     // timeline before seeking so the old duration cannot clamp the position.
     if (speedChanged) engine.stop();
-    engine.setSettings(settings);
+    engine.setSettings(pulseResolution.settings, engineSongTiming, duration);
     engine.setTimeline(notes, duration, audioChords, guidanceNotes);
     engine.setLoop(loop);
     if (speedChanged) {
@@ -1119,7 +1135,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       if (wasPlaying) engine.start();
       syncTransportState();
     }
-  }, [audioChords, duration, guidanceNotes, loop, notes, settings]);
+  }, [audioChords, duration, engineSongTiming, guidanceNotes, loop, notes, settings, pulseResolution.settings]);
 
   // Discrete events (play/pause/seek) still update React state so buttons
   // and progress bar re-render; per-frame engine ticks only touch refs.
@@ -1629,6 +1645,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       transpose: next.transpose,
       mode: next.mode,
       hand: next.hand,
+      practicePulse: next.practicePulse,
     });
   }
 
@@ -1820,7 +1837,11 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     heldInputRef.current?.releaseAll();
     gradedInputOffsetRef.current=setup.input==="microphone"?0:loadTimingCalibration(effectiveTimingBinding(setup.input))??0;
     if(setup.articulation&&(setup.input!=="midi"||setup.wait||!midiSelection.device||midiSelection.channel===null)){setPracticeError("Hold/release assessment requires timed practice on one selected MIDI device and channel.");return;}
-    try { eng.startGrading(setup.wait, range, setup.articulation?setup.articulationToleranceMs??150:undefined); }
+    try {
+      const practiceSettings = startPracticeWithPulse(eng, settings, initial.song.id, engineSongTiming, setup, range);
+      setSettings(practiceSettings);
+      setPracticePulseNotice("");
+    }
     catch (error) { setPracticeError(error instanceof Error ? error.message : "Unable to start practice"); return; }
     gradedTimingRef.current = { bpm: activeData.tempoBpm, speed: settings.speed };
     const tempoPassage = loadPracticeState().passages.find(p => p.id === activeTempoPlanRef.current?.passageId);
@@ -2713,6 +2734,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         <RhythmCoach data={guidanceData} startBeat={rhythmRange.startSec/secPerBeat(activeData.tempoBpm,settings.speed)}
           endBeat={rhythmRange.endSec/secPerBeat(activeData.tempoBpm,settings.speed)} speed={settings.speed} disabled={grading||showPracticeSetup||chordPracticeActive||playing||auxiliary==="take"} onPrepare={()=>prepareAuxiliary("rhythm")} onDone={()=>releaseAuxiliary("rhythm")}/>
         {practiceSaveNotice && <p role="status" className="px-4 text-xs">{practiceSaveNotice}</p>}
+        {practicePulseNotice && <p role="status" className="px-4 text-xs">{practicePulseNotice}</p>}
       </div>
 
       {displayVariants.length > 1 && (
@@ -2734,6 +2756,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       )}
 
       {showPracticeSetup && <PracticeSetupDialog articulationEligible={!!midiSelection.device&&midiSelection.channel!==null} keyboardTarget={practiceKeyboardTarget} describeSetup={describePracticeSetup} onChordPractice={chordPracticeTargets.length ? () => { showPracticeSetupRef.current = false; setShowPracticeSetup(false); startChordPractice(); } : undefined} initialSetup={practiceSetup} hasLoop={!!loop && loop.endSec > loop.startSec}
+        practiceTiming={engineSongTiming}
         midiConnected={midiConnected} micReady={micReady} micPending={micPending} micError={micError} error={practiceError} micSignal={micSignal}
         microphoneTarget={setup => { const range = resolvePracticeRange(setup.scope, navigationMeasures, currentMeasure, engineRef.current?.time ?? time, duration, activeData.tempoBpm, settings.speed, loop); return range ? microphoneEligibility(guidanceNotes, range) : { eligible: false, reason: "Choose a measured passage." }; }}
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}

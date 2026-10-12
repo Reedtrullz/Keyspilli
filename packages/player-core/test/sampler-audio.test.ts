@@ -341,4 +341,14 @@ describe("SamplerAudioEngine", () => {
     engine.dispose();
   });
 
+  it("keeps sampled bar/pulse clicks unchanged and adds the optional group accent", async () => {
+    pianoFactory.mockReturnValue({ ready: new Promise(() => {}), setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn() });
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine();
+    engine.metronomeClick(0, .1); engine.metronomeClick(1, .2); engine.metronomeClick(1, .3, "group");
+    expect(FakeAudioContext.last.oscillators.map(osc => (osc as unknown as OscillatorNode).frequency.value)).toEqual([1760, 1174, 1479]);
+    expect(FakeAudioContext.last.gains.at(-1)!.gain.setValueAtTime).toHaveBeenCalledWith(.04, .3);
+    engine.dispose();
+  });
+
 });

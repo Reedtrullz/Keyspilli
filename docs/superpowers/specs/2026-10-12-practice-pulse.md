@@ -1,6 +1,6 @@
 # Explicit practice pulse and metrical grouping
 
-Scope: KS-18, authorized by the Recovery Report implementation and the user's
+Scope: KS-18 / [#271](https://github.com/Reedtrullz/Keyspilli/issues/271), authorized by the Recovery Report implementation and the user's
 subsequent Continue instruction. The integration owner approved this design
 before product edits. Baseline: `238fd827d30e34aa84b1016fbe5254a7b2672a9a`.
 
@@ -19,7 +19,10 @@ before product edits. Baseline: `238fd827d30e34aa84b1016fbe5254a7b2672a9a`.
    visible message in the Player.
 3. The engine receives descriptive meter events and, when available, the
    already-validated initial measure phase from the Player. A metadata update
-   keeps an existing engine aligned with its current source/navigation map.
+   keeps explicit clicks aligned with the current source/navigation map. The
+   original constructor metadata remains unchanged for legacy playback. The
+   timing contract also carries the actual arrangement end so transport padding
+   cannot create extra explicit click measures.
    Existing source-validation and navigation policies do not change. An
    unsupported alignment blocks explicit practice pulses with an actionable
    setup message instead of inventing source phase.
@@ -58,3 +61,52 @@ and canonical Issue/PR publication belong to the integration owner.
 
 No merge, deployment, provider calls, production data changes, music acceptance
 or installed plugin release is part of this work.
+
+## Implementation decisions and limits
+
+- `practice-pulse.ts` validates supported meter fractions, at most 32 distinct
+  grouping choices, at most 32 positive integer groups per choice, 512 ordered
+  meter events, 2048 displayed bar starts, 4096 quarter-note beats and a bounded
+  click allocation. Sparse/missing group values are invalid. The engine builds
+  a plan at settings/timing boundaries and uses binary search in its actual
+  half-open scheduling windows; notes and grading remain on their original
+  paths.
+- `Player` supplies its existing displayed measure map and validated source
+  pickup phase. Meter events must align with that map; an unverified or
+  unsupported partial bar offers default clicks with an actionable message.
+  Full bars must match the declared meter, except a validated opening pickup
+  and a clipped final bar. This change does not broaden source timing authority
+  or repair the existing navigation policy. An internally consistent displayed
+  arithmetic grid remains an explicit practice option; the UI states that its
+  source downbeat phase is unverified. Source-verified phase is labeled
+  separately. No blanket source-verification requirement is introduced.
+- `setSettings` accepts incoming optional click timing and timeline duration
+  together, so a speed/source update cannot validate against half of the old
+  clock. The source tempo still follows the existing engine lifecycle. A failed
+  setting/timing update leaves the previous valid engine state intact.
+- The optional audio accent is a middle click pitch (1479 Hz); existing bar and
+  pulse pitches (1760/1174 Hz), gains and envelopes remain unchanged in all three
+  instruments. Bar accents take precedence at coincident events.
+- Grouping applies to every occurrence of a chosen meter in that song. This
+  bounded UI does not support different patterns for separate passages sharing
+  the same meter. No swing, tempo-unit inference or automatic compound-meter
+  grouping is introduced.
+- The four-quarter-note count-in is unchanged. Real browser audio or teacher
+  acceptance is not asserted by the deterministic scheduler and rendered UI
+  checks. UI interaction and audio device qualification remain separate from
+  this implementation's source/scheduler tests.
+
+## Implementation verification — 2026-10-12
+
+Supported runtime: Node 22.22.3. The complete player-core suite passed 427 tests
+in 37 files, including the focused late-metadata default-scheduler regression.
+The targeted Player, setup, source-navigation and active-export suite passed 52
+tests in eight files. Both player-core and web typechecks passed; the web check
+also includes its song-tools TypeScript project. `git diff --check` passed.
+
+The evidence directory retains the original scheduler, audio, persistence and
+UI RED receipts. Additional failing controls found during implementation cover
+sparse groups, default timing updates and damaged preference containers; each
+was corrected before the final GREEN run. No test invokes a live audio device,
+provider, production service or browser session. The integration owner still
+performs independent diff review and the final combined-workspace gates.

@@ -246,14 +246,14 @@ export class SamplerAudioEngine implements AudioLike {
     this.fallbackEngine?.noteOff(midi);
   }
 
-  metronomeClick(beat: number, when = 0): void {
+  metronomeClick(beat: number, when = 0, accent?: "group"): void {
     const ctx = this.ensure();
     if (!this.master) return;
     const t = ctx.currentTime + when;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "square";
-    osc.frequency.value = beat === 0 ? 1760 : 1174;
+    osc.frequency.value = beat === 0 ? 1760 : accent === "group" ? 1479 : 1174;
     gain.gain.setValueAtTime(0.04, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
     osc.connect(gain);

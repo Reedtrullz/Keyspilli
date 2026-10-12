@@ -42,6 +42,18 @@ class Context {
 
 afterEach(() => vi.unstubAllGlobals());
 
+it("preserves default click pitches and adds a distinct optional group accent", () => {
+  vi.stubGlobal("AudioContext", Context);
+  const engine = new AudioEngine();
+  engine.metronomeClick(0, .1);
+  engine.metronomeClick(1, .2);
+  engine.metronomeClick(1, .3, "group");
+  engine.metronomeClick(0, .4, "group");
+  expect(Context.last.oscillators.map(osc => osc.frequency.value)).toEqual([1760, 1174, 1479, 1760]);
+  expect(Context.last.oscillators.map(osc => osc.stops[0])).toEqual([.16, .26, .36, .46]);
+  engine.dispose();
+});
+
 it.each([true, false])("holds physical input until release with sustain=%s, while scheduled notes remain bounded", pedal => {
   vi.stubGlobal("AudioContext", Context);
   const engine = new AudioEngine();
