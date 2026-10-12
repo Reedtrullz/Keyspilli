@@ -86,7 +86,7 @@ describe("active export hand semantics through the download response", () => {
     expect(shape(variant.notes)).toEqual(shape(expected));
     expect(variant.notes.every(note => note.vel === 100)).toBe(true);
     expect(parsed.tempoBpm).toBeCloseTo(60, 4);
-    if (type === "midi") expect(parsed.notes.map(note => note.vel)).toEqual(expected.map(note => note.vel));
+    expect(parsed.notes.map(note => note.vel)).toEqual(expected.map(note => note.vel));
     expect(JSON.stringify(data)).toBe(before);
   });
 
@@ -98,6 +98,19 @@ describe("active export hand semantics through the download response", () => {
     expect(shape(parsed.notes)).toEqual(shape(expected));
     expect(shape(variant.notes)).toEqual(shape(expected));
     expect(variant.notes.map(note => note.vel)).toEqual(expected.map(note => note.vel));
-    if (type === "midi") expect(parsed.notes.map(note => note.vel)).toEqual(expected.map(note => note.vel));
+    expect(parsed.notes.map(note => note.vel)).toEqual(expected.map(note => note.vel));
   });
+  it.each((["midi","musicxml"] as const).flatMap(type=> (["source","meter-accents"] as const).map(renderedExpression=>({type,renderedExpression}))))
+  ("preserves selected $renderedExpression velocities in the actual $type download",async({type,renderedExpression})=>{
+    const data:SongData={...authored,notes:[{midi:60,start:0,dur:6,vel:20,hand:"R",sourceMidiChannel:2},{midi:64,start:0,dur:2,vel:100,hand:"R",sourceMidiChannel:2},{midi:48,start:2,dur:1,vel:71,hand:"L",sourceMidiChannel:3}],measures:[{index:0,startBeat:0,endBeat:4},{index:1,startBeat:4,endBeat:8}],sourcePedal:{version:1,endBeat:8,provenance:"midi-file",changes:[{beat:0,channel:2,value:127,source:"midi:0"},{beat:7,channel:2,value:0,source:"midi:0"}]}};
+    data.sourceTiming={timeSig:[4,4],measureStartBeat:0,provenance:"source-measure-boundary",sourceFingerprint:data.sourceFingerprint!};
+    if(renderedExpression==="meter-accents")data.notes=data.notes.map(n=>({...n,vel:80}));
+    const before=structuredClone(data),selection={...defaults,backgroundMode:"piano" as const,hand:"R" as const,audibleSupport:true,speed:.5,transpose:2,renderedExpression};
+    const {variant,parsed}=await exported(data,selection,type);
+    expect(parsed.notes.map(n=>[n.midi,n.start,n.dur,n.vel,n.sourceMidiChannel])).toEqual(variant.notes.map(n=>[n.midi,n.start,n.dur,n.vel,n.sourceMidiChannel]));
+    expect(parsed.tempoBpm).toBeCloseTo(60,4);expect(parsed.sourcePedal?.endBeat).toBe(data.sourcePedal!.endBeat);expect(parsed.sourcePedal?.changes.map(e=>[e.beat,e.channel,e.value])).toEqual(data.sourcePedal!.changes.map(e=>[e.beat,e.channel,e.value]));expect(data).toEqual(before);
+    if(renderedExpression==="source")expect(parsed.notes.map(n=>n.vel)).toEqual([20,100,71]);
+    else expect(parsed.notes.map(n=>n.vel)).toEqual([92,92,76]);
+  });
+
 });

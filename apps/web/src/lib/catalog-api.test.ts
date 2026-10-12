@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import filesystem from "node:fs";
 import { syncBuiltinESMExports } from "node:module";
 import { mkdtempSync } from "node:fs";
@@ -803,6 +803,19 @@ describe("catalog artifact export validation", () => {
     expect(second?.[0]).toBe(original);
   });
 
+  it.each([undefined,{schemaVersion:1,validationScope:"symbolic-events",expressivePreservation:"not-established",midi:{noteVelocities:"encoded"},musicxml:{noteVelocities:"omitted",dynamics:"omitted"}}])("serves unchanged historical MusicXML velocity omission with fidelity %j",async(artifactFidelity)=>{
+    await writeExportFixture();
+    const dir=join(dataRoot,"artifacts","catalog-api-song","a"), path=join(dir,"notes.json");
+    const stored=JSON.parse(await readFile(path,"utf8"));await writeFile(path,JSON.stringify({...stored,artifactFidelity}));
+    const xmlPath=join(dir,"variant.xml"),xml=(await readFile(xmlPath,"utf8")).replace(/ dynamics="[^"]*"/g,"");await writeFile(xmlPath,xml);
+    await expect(getArtifactFile(song().id,"variant.xml")).resolves.toEqual(Buffer.from(xml));
+  });
+  it.each([{schemaVersion:2,validationScope:"symbolic-events-and-attack-velocities",expressivePreservation:"not-established",midi:{noteVelocities:"encoded"},musicxml:{noteVelocities:"encoded",dynamics:"omitted"}},{schemaVersion:3},null])("refuses lost or invalid current velocity fidelity %j",async(artifactFidelity)=>{
+    await writeExportFixture();
+    const dir=join(dataRoot,"artifacts","catalog-api-song","a"),path=join(dir,"notes.json"),stored=JSON.parse(await readFile(path,"utf8"));await writeFile(path,JSON.stringify({...stored,artifactFidelity}));
+    if(artifactFidelity && artifactFidelity.schemaVersion===2){const xmlPath=join(dir,"variant.xml");await writeFile(xmlPath,(await readFile(xmlPath,"utf8")).replace(/ dynamics="[^"]*"/g,""));}
+    await expect(getArtifactFile(song().id,"variant.xml")).resolves.toBeNull();
+  });
   it("fails closed for a stale MIDI note or tempo export", async () => {
     await writeExportFixture({
       midiNotes: [{ midi: 62, start: 1, dur: 2, vel: 90, hand: "R" }],

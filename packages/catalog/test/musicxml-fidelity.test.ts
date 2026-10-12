@@ -53,6 +53,28 @@ describe("MusicXML source and review adapter fidelity", () => {
     expect(adaptNativeSymbolicBytes(zero, "musicxml").status).toBe("parsed");
     expect(parseSymbolicUploadSource(zero).parsed.notes[0]).toMatchObject({ start: 0, dur: 4 });
   });
+  it.each(["musicxml", "mxl"] as const)("validates note dynamics but discloses native note-model omission in %s", format=>{
+    const xml=score("").replace("<note>",'<note dynamics="30">'), bytes=bytesFor(xml,format);
+    expect(parseSymbolicUploadSource(bytes).parsed.notes[0]?.vel).toBe(27);
+    const native=adaptNativeSymbolicBytes(bytes,format);
+    expect(native.status).toBe("parsed");
+    expect(native.warnings.join(" ")).toMatch(/note.*velocit.*not represented.*notation/i);
+    if(native.status==="parsed") expect(native.score.parts[0]?.measures[0]?.events?.[0]).not.toHaveProperty("vel");
+    for(const attrs of ['dynamics="0"','dynamics="bogus" xmlns:meta="urn:meta" meta:dynamics="100"','dynamics="30" dynamics="100"']){
+      const invalid=bytesFor(score("").replace("<note>",`<note ${attrs}>`),format);
+      expect(adaptNativeSymbolicBytes(invalid,format).status).not.toBe("parsed");
+      expect(()=>parseSymbolicUploadSource(invalid)).toThrow(/dynamics|duplicate/i);
+    }
+  });
+  it("uses exact dynamics keys in the namespaced native model",()=>{
+    for(const attrs of ['dynamics="30" xmlns:meta="urn:meta" meta:dynamics="0"','xmlns:meta="urn:meta" meta:dynamics="0" dynamics="30"']){
+      const xml=score("").replace("<note>",`<note ${attrs}>`).replace(/<(\/?)([\w-]+)/g,"<$1m:$2").replace("<m:score-partwise>",'<m:score-partwise xmlns:m="http://www.musicxml.org/ns/musicxml">');
+      const native=adaptNativeSymbolicBytes(strToU8(xml),"musicxml");
+      expect(native.status).toBe("parsed"); expect(native.warnings.join(" ")).toMatch(/note.*velocit.*notation/i);
+    }
+    expect(adaptNativeSymbolicBytes(strToU8(score("").replace("<note>",'<note xmlns:meta="urn:meta" meta:dynamics="0">')),"musicxml")).toMatchObject({status:"parsed",warnings:[]});
+  });
+
 });
 
 describe("MXL declared source identity", () => {

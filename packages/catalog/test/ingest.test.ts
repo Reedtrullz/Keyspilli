@@ -173,7 +173,7 @@ describe("ingestSource .mxl", () => {
       const stored = JSON.parse(readFileSync(join(artifactsDir(result.baseId, code), "notes.json"), "utf8"));
       expect(stored.warnings.join(" ")).toMatch(/dynamics.*note velocities/i);
       expect(stored.warnings.join(" ")).toMatch(/wedge.*velocity/i);
-      expect(stored.artifactFidelity).toMatchObject({ schemaVersion: 1, expressivePreservation: "not-established", musicxml: { noteVelocities: "omitted", dynamics: "omitted" } });
+      expect(stored.artifactFidelity).toMatchObject({ schemaVersion: 2, validationScope: "symbolic-events-and-attack-velocities", expressivePreservation: "not-established", musicxml: { noteVelocities: "encoded", dynamics: "omitted" } });
     }
   });
 

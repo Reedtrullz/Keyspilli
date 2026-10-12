@@ -5,7 +5,7 @@
  */
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { BEGINNER_OFFGRID_CANDIDATE, LEVEL_ORDER, validateArtifactFiles, validateVariants, Variant } from "@keyspilli/midi";
+import { artifactFidelityForRead, BEGINNER_OFFGRID_CANDIDATE, LEVEL_ORDER, validateArtifactFiles, validateVariants, Variant } from "@keyspilli/midi";
 import { getDb } from "../src/db.js";
 import { MAX_YOUTUBE_IMPORT_DUR_BEATS } from "../src/ingest.js";
 import { disabledManifestBases } from "../src/manifest.js";
@@ -286,7 +286,7 @@ for (const song of linkedBases) {
       try {
         const midi = new Uint8Array(await readFile(join(artifactsRoot, song, code, "variant.mid")));
         const xml = await readFile(join(artifactsRoot, song, code, "variant.xml"), "utf8");
-        for (const issue of validateArtifactFiles(v, { midi, xml })) issues.push(`${v.level}: ${issue}`);
+        for (const issue of validateArtifactFiles(v, { midi, xml, fidelity: artifactFidelityForRead((v as Variant & {artifactFidelity?: unknown}).artifactFidelity) })) issues.push(`${v.level}: ${issue}`);
       } catch (e) {
         issues.push(`${v.level}: artifact missing or invalid: ${(e as Error).message}`);
       }

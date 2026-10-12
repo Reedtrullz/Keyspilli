@@ -78,7 +78,7 @@ export { parseMusicXmlNotes } from "./parseXml.js";
 export { musicXmlElementFidelity, UnsupportedMusicXmlSemanticsError } from "./musicxml-fidelity.js";
 export { selectSourceParts } from "./source-selection.js";
 export { matchingSourcePitch } from "./source-pitch.js";
-export { ARTIFACT_TEMPO_TOLERANCE, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
+export { ARTIFACT_TEMPO_TOLERANCE, CURRENT_ARTIFACT_FIDELITY, LEGACY_ARTIFACT_FIDELITY, artifactFidelityForRead, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
 export {
   parseChordSymbol,
   tryParseChordSymbol,

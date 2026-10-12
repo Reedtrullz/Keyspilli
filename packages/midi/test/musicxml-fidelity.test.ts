@@ -48,7 +48,6 @@ describe("MusicXML semantic fidelity boundary", () => {
   it.each([
     ['<direction><direction-type><dynamics><p/></dynamics></direction-type></direction>', "", "", /dynamics.*note velocities/i],
     ['<direction><sound dynamics="30"/></direction>', "", "", /dynamics.*note velocities/i],
-    ["", 'dynamics="30"', "", /dynamics.*note velocities/i],
     ['<direction><direction-type><wedge type="crescendo"/></direction-type></direction>', "", "", /wedge.*velocity/i],
     ["", "", "<notations><articulations><staccato/></articulations></notations>", /articulations.*playback/i],
     ["", "", "<notations><ornaments><trill-mark/></ornaments></notations>", /ornaments.*playback/i],
@@ -70,18 +69,18 @@ describe("MusicXML semantic fidelity boundary", () => {
     expect(parsed.unsupportedControls?.join(" ")).toMatch(/dynamics.*note velocities/i);
   });
 
-  it("reports the actual MusicXML export limit independently from symbolic roundtrip success", () => {
+  it("declares encoded attack velocity independently from expressive preservation", () => {
     const variant: Variant = { level: "advanced", key: "C", tempoBpm: 120, timeSig: [4, 4], difficultyScore: 30, bassPattern: "none", chords: [], measures: [{ index: 0, startBeat: 0, endBeat: 4 }], notes: [
       { midi: 60, start: 0, dur: 1, vel: 20, hand: "R" },
       { midi: 64, start: 2, dur: 1, vel: 100, hand: "R" },
     ] };
     const artifacts = writeVariantArtifacts(variant, "Dynamic contrast", "Synthetic");
     expect(parseMidi(artifacts.midi).notes.map(n => n.vel)).toEqual([20, 100]);
-    expect(parseMusicXmlNotes(artifacts.xml).notes.map(n => n.vel)).toEqual([80, 80]);
+    expect(parseMusicXmlNotes(artifacts.xml).notes.map(n => n.vel)).toEqual([20, 100]);
     expect(validateArtifactFiles(variant, artifacts)).toEqual([]);
     expect(artifacts).toHaveProperty("fidelity", {
-      schemaVersion: 1, validationScope: "symbolic-events", expressivePreservation: "not-established",
-      midi: { noteVelocities: "encoded" }, musicxml: { noteVelocities: "omitted", dynamics: "omitted" },
+      schemaVersion: 2, validationScope: "symbolic-events-and-attack-velocities", expressivePreservation: "not-established",
+      midi: { noteVelocities: "encoded" }, musicxml: { noteVelocities: "encoded", dynamics: "omitted" },
     });
   });
 });
