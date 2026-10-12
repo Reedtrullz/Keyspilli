@@ -7,13 +7,13 @@
  * No provider calls, catalog connection, artifact write or default-policy change.
  */
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { validatePlaybackData, type SongData } from "@keyspilli/player-core";
 import {
   evaluateHarmonyPilotCase, replayHarmonyPolicy, summarizeHarmonyPilot,
-  type HarmonyPilotCase, type HarmonyPilotPolicy,
+  type HarmonyPilotPolicy,
 } from "../src/lib/harmony-pilot-evaluation";
+import { HARMONY_PILOT_LIMITS, validateHarmonyPilotCorpus, validateHarmonyPilotSource } from "../src/lib/harmony-pilot-validation";
 
 const { values } = parseArgs({ options: {
   source: { type: "string" }, corpus: { type: "string" },
@@ -26,30 +26,31 @@ const policies: HarmonyPilotPolicy[] = values.policy === "compare" ? ["legacy-ba
 if (!["development", "holdout", "all"].includes(values.split)) throw new Error("--split must be development, holdout or all");
 if (values.source && values.corpus) throw new Error("Choose --source or --corpus");
 const sourcePath = values.source ?? values.corpus ?? new URL("../../../packages/midi/test/fixtures/ks09-harmony-pilot-v1.json", import.meta.url);
-const bytes = readFileSync(sourcePath);
+const file = openSync(sourcePath, constants.O_RDONLY | constants.O_NONBLOCK);
+let bytes: Buffer;
+try {
+  const before = fstatSync(file);
+  if (!before.isFile() || before.size > HARMONY_PILOT_LIMITS.bytes) throw new Error("Pilot input must be a regular JSON file of at most 8 MiB");
+  const buffer = Buffer.alloc(before.size + 1); let length = 0;
+  while (length < buffer.length) { const count = readSync(file, buffer, length, buffer.length - length, length); if (!count) break; length += count; }
+  const after = fstatSync(file);
+  if (length !== before.size || after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs) throw new Error("Pilot input changed while reading");
+  bytes = buffer.subarray(0, length);
+} finally { closeSync(file); }
 const input: unknown = JSON.parse(bytes.toString("utf8"));
 const inputSha256 = createHash("sha256").update(bytes).digest("hex");
 
 if (values.source) {
-  // Playback validation is shared with the Player. This command computes an
-  // alternative generated projection, not a replacement for authored charts.
-  const source = input as SongData;
-  const errors = validatePlaybackData(source);
-  if (errors.length) throw new Error(`Invalid source playback data: ${errors.join("; ")}`);
+  validateHarmonyPilotSource(input);
+  const source = input;
   console.log(JSON.stringify({
     schemaVersion: 1, purpose: "source-supported-backing-pilot", inputSha256,
     referenceMetrics: null, note: "No reference annotation supplied; pitch classes are observations, not accuracy evidence.",
     policies: policies.map(policy => ({ policy, replay: replayHarmonyPolicy(source, policy) })),
   }, null, 2));
 } else {
-  const corpus = input as { schemaVersion: number; corpusId: string; cases: HarmonyPilotCase[] };
-  if (corpus.schemaVersion !== 1 || !corpus.corpusId || !Array.isArray(corpus.cases) || !corpus.cases.length) throw new Error("Invalid pilot corpus");
-  const ids = new Set<string>(), compositions = new Set<string>();
-  for (const item of corpus.cases) {
-    if (!item.id || !item.compositionId || ids.has(item.id) || compositions.has(item.compositionId)
-      || !["development", "holdout"].includes(item.split)) throw new Error("Corpus cases require unique composition IDs and explicit splits");
-    ids.add(item.id); compositions.add(item.compositionId);
-  }
+  validateHarmonyPilotCorpus(input);
+  const corpus = input;
   const cases = corpus.cases.filter(item => values.split === "all" || item.split === values.split);
   if (!cases.length) throw new Error("No cases in selected split");
   console.log(JSON.stringify({

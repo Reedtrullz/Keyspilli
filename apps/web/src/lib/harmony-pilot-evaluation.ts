@@ -1,6 +1,7 @@
 import { inferHarmonyTimeline, type ChordLabel, type Note } from "@keyspilli/midi";
 import { arithmeticMeasures, type AccompanimentResolution, type SongData } from "@keyspilli/player-core";
 import { replayChordsBacking } from "../components/player/chords-backing";
+import { HARMONY_PILOT_LIMITS, validateHarmonyPilotCase, validateHarmonyPilotNotes, validateHarmonyPilotReference, validateHarmonyPilotSource } from "./harmony-pilot-validation";
 
 /** A comparison profile, not a source-authority or confidence claim. */
 export type HarmonyPilotPolicy = "legacy-backing" | "conservative-backing-v1";
@@ -55,29 +56,9 @@ export interface HarmonyPilotResult {
   metrics: HarmonyPilotMetrics;
 }
 
-const EPS = 1e-7;
 const ratio = (numerator: number, denominator: number) => denominator > 0 ? numerator / denominator : null;
 const pitchClasses = (notes: readonly number[]) => [...new Set(notes.map(midi => midi % 12))].sort((a, b) => a - b);
 const silentLabel = (label: ChordLabel | undefined) => !label || label.notes.length === 0 || label.name === "N.C.";
-
-function validateReference(reference: readonly HarmonyReferenceSpan[], durationBeats: number): void {
-  let end = 0;
-  for (const span of reference) {
-    if (!Number.isFinite(span.startBeat) || !Number.isFinite(span.endBeat) || span.endBeat <= span.startBeat
-      || Math.abs(span.startBeat - end) > EPS || span.endBeat > durationBeats + EPS
-      || !["supported", "unknown", "rest"].includes(span.kind)
-      || !Array.isArray(span.allowedPitchClasses)
-      || span.allowedPitchClasses.some(pc => !Number.isInteger(pc) || pc < 0 || pc > 11)
-      || (span.kind === "supported" ? !span.allowedPitchClasses.length || span.bassPc === undefined || !span.allowedPitchClasses.includes(span.bassPc)
-        : span.allowedPitchClasses.length !== 0)) {
-      throw new Error("Reference must partition the full duration with valid supported, unknown or rest spans.");
-    }
-    end = span.endBeat;
-  }
-  if (!(durationBeats > 0) || !Number.isFinite(durationBeats) || Math.abs(end - durationBeats) > EPS) {
-    throw new Error("Reference must partition the full duration.");
-  }
-}
 
 /** Exact event-boundary accounting; no frame count or repeated-note double counting. */
 export function measureHarmonyRealization(
@@ -86,7 +67,13 @@ export function measureHarmonyRealization(
   realizedNotes: readonly Note[],
   durationBeats: number,
 ): HarmonyPilotMetrics {
-  validateReference(reference, durationBeats);
+  validateHarmonyPilotReference(reference, durationBeats);
+  validateHarmonyPilotNotes(realizedNotes, durationBeats, HARMONY_PILOT_LIMITS.notes * 4);
+  if (!Array.isArray(labels) || labels.length > HARMONY_PILOT_LIMITS.notes * 2 + HARMONY_PILOT_LIMITS.measures * 2
+    || labels.some(label => !label || typeof label.beat !== "number" || !Number.isFinite(label.beat) || label.beat < 0
+      || typeof label.durationBeats !== "number" || !Number.isFinite(label.durationBeats) || label.durationBeats <= 0 || label.beat + label.durationBeats > durationBeats + 1e-7
+      || typeof label.name !== "string" || !Array.isArray(label.notes) || label.notes.length > 128
+      || label.notes.some((midi: unknown) => typeof midi !== "number" || !Number.isInteger(midi) || midi < 0 || midi > 127))) throw new Error("Labels must contain valid bounded pitches and duration timing");
   const boundaries = new Set([0, durationBeats]);
   for (const span of reference) { boundaries.add(span.startBeat); boundaries.add(span.endBeat); }
   for (const chord of labels) { boundaries.add(chord.beat); boundaries.add(chord.beat + (chord.durationBeats ?? 0)); }
@@ -130,6 +117,8 @@ export function replayHarmonyPolicy(
   source: Pick<SongData, "notes" | "measures" | "key" | "timeSig" | "tempoBpm">,
   policy: HarmonyPilotPolicy,
 ) {
+  validateHarmonyPilotSource(source);
+  if (policy !== "legacy-backing" && policy !== "conservative-backing-v1") throw new Error("Unknown harmony pilot policy");
   const labels = inferHarmonyTimeline(source.notes, source.measures, {
     key: source.key, backingOnly: true,
     ...(policy === "conservative-backing-v1" ? { policy } : {}),
@@ -141,6 +130,7 @@ export function replayHarmonyPolicy(
 }
 
 export function evaluateHarmonyPilotCase(item: HarmonyPilotCase, policy: HarmonyPilotPolicy): HarmonyPilotResult {
+  validateHarmonyPilotCase(item);
   const measures = arithmeticMeasures(item.durationBeats, [4, 4]).map(measure => ({ ...measure, endBeat: Math.min(measure.endBeat, item.durationBeats) }));
   const replay = replayHarmonyPolicy({ notes: item.notes, measures, key: item.key, timeSig: [4, 4], tempoBpm: 60 }, policy);
   return {

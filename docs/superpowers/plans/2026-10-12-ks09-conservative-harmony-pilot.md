@@ -62,3 +62,23 @@ The seven expected algorithm regressions failed first, then all 39 MIDI tests an
 Actual Player replay revealed a stronger arpeggio limitation than the initial test expected: the first supported label starts after the source root attack, and the existing resolver has no supported attack inside it. It emits no chord. The test expectation was corrected to the existing source-rhythm contract; the algorithm and frozen reference were not changed to conceal this loss. The 3-beat arpeggio remains entirely in the coverage denominator. A released third similarly leaves a 2.5-beat silent fifth-only tail because there is no fresh source attack.
 
 Development results before holdout: legacy 18.25 wrong-harmony beats and 32.75/35.25 supported audible beats (92.91%); conservative 0 wrong-harmony beats and 29.75/35.25 supported audible beats (84.40%). Both have zero notes in reference rests. These small synthetic results justify inspection, not default admission.
+
+## Independent review revisions after holdout
+
+The integration owner authorized two bounded corrections on 2026-10-12. The
+original corpus, pre-holdout fingerprint and first evaluation receipts remain
+immutable history; no later revision is described as an untouched holdout run.
+
+1. Validate the local JSON source/corpus boundary before inference: exact numeric
+   pitches and velocities, explicit valid clock, complete ordered measure extent,
+   string composition identities, complete reference partitions, and smaller
+   finite pilot resource limits. Empty note arrays with valid explicit clocks
+   remain legitimate silent inputs. Reject invalid input without a musical
+   receipt. Add failing real-CLI and direct-call controls, then verify byte-for-byte
+   equality of both original split receipts before changing the algorithm.
+2. Correct opt-in timing support exposed by a transitive attack cluster: a future
+   third or bass must not sound at an earlier cluster onset. Add independently
+   supplied early-third/bass controls through inference and actual Player replay,
+   keep ordinary/custom-tuning non-policy calls unchanged, and record a separate
+   implementation revision 2 regression report over the already exposed corpus.
+   This correction does not establish new real-song or default admission evidence.
