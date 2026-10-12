@@ -174,6 +174,37 @@ describe("loadSongPrefs", () => {
   });
 });
 
+describe("per-song explicit practice pulse", () => {
+  const pulse = { pulse: "eighth" as const, beatGroups: [{ timeSig: [7, 8] as [number, number], groups: [2, 2, 3] }] };
+
+  it("round-trips an explicit song choice without carrying grouping through global preferences", async () => {
+    const { saveSongPrefs } = await import("../src/prefs.js");
+    saveSongPrefs("meter-song", { practicePulse: pulse });
+    saveSettings({ ...DEFAULT_SETTINGS, metronome: true, practicePulse: pulse });
+    expect(loadSongPrefs("meter-song").practicePulse).toEqual(pulse);
+    expect(loadSongPrefs("other-song")).toEqual({});
+    expect(loadSettings().practicePulse).toBeUndefined();
+    expect(JSON.parse(store.get(KEY)!).practicePulse).toBeUndefined();
+    saveSongPrefs("meter-song", { practicePulse: undefined });
+    expect(loadSongPrefs("meter-song").practicePulse).toBeUndefined();
+  });
+
+  it("reports malformed saved grouping while keeping ordinary settings available", async () => {
+    const { loadSongPracticePulse } = await import("../src/prefs.js");
+    store.set("keyspilli.song-prefs.v1:broken", JSON.stringify({ speed: .75, practicePulse: { ...pulse, beatGroups: [{ timeSig: [7, 8], groups: [2, 3] }] } }));
+    expect(loadSongPrefs("broken")).toEqual({ speed: .75 });
+    expect(loadSongPracticePulse("broken")).toEqual({ settings: undefined, notice: expect.stringMatching(/saved.*invalid.*default.*practice/i) });
+    expect(loadSongPracticePulse("missing")).toEqual({ settings: undefined, notice: null });
+  });
+
+  it.each(['{"practicePulse":', 'null', '[]'])("recovers visibly when the saved preference container is damaged: %s", async raw => {
+    const { loadSongPracticePulse } = await import("../src/prefs.js");
+    store.set("keyspilli.song-prefs.v1:damaged", raw);
+    expect(loadSongPracticePulse("damaged")).toEqual({ settings: undefined, notice: expect.stringMatching(/saved.*invalid.*default.*practice/i) });
+    expect(loadSongPrefs("damaged")).toEqual({});
+  });
+});
+
 it("preserves old preferences and validates piano display options", () => {
   store.set(KEY, JSON.stringify({ speed: 0.75, stageTheme: "invalid", keyboardLabels: null, showKeyBindings: "yes" }));
   expect(loadSettings()).toMatchObject({ speed: 0.75, stageTheme: "light", keyboardLabels: "notes", showKeyBindings: false });

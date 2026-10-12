@@ -5,6 +5,7 @@ import { Grader, type GradeResult } from "./grading.js";
 import { beatToSec, beatsPerMeasure, completeChordDurations, firstNoteAtOrAfter, secPerBeat, type LoopRegion, type TimedNote } from "./timeline.js";
 import type { ChordLabel } from "@keyspilli/midi";
 import type { PlayerSettings } from "./types.js";
+import { firstPracticePulseAtOrAfter, preparePracticePulsePlan, type PracticePulsePlan, type PracticePulseTiming } from "./practice-pulse.js";
 
 /** How far ahead of the playhead notes are scheduled. */
 const SCHEDULE_LOOKAHEAD = 0.12;
@@ -19,7 +20,7 @@ export interface AudioLike {
   prepareTimbre?(): boolean | void;
   noteOn(n: TimedNote, when?: number): void;
   noteOff(midi: number): void;
-  metronomeClick(beat: number, when?: number): void;
+  metronomeClick(beat: number, when?: number, accent?: "group"): void;
   /** Optional so light-weight test doubles and non-audio consumers can keep working. */
   /**
    * Play the supplied absolute MIDI voicing at a scheduled offset.
@@ -40,7 +41,7 @@ export interface EngineSnapshot {
   playing: boolean;
 }
 
-export interface EngineSongMeta {
+export interface EngineSongMeta extends PracticePulseTiming {
   tempoBpm: number;
   timeSig: [number, number];
   /** Stored measure starts align metronome clicks; they do not validate source phase. */
@@ -84,6 +85,8 @@ export class PlaybackEngine {
   private lastScheduled = 0;
   private sourceCarryPending = true;
   private lastChordScheduled = -1;
+  private practicePulsePlan: PracticePulsePlan | null = null;
+  private practiceTiming: PracticePulseTiming;
 
   constructor(
     public readonly audio: AudioLike,
@@ -95,6 +98,8 @@ export class PlaybackEngine {
     gradingNotes: TimedNote[] = notes,
     private monotonicNow: () => number = () => performance.now(),
   ) {
+    this.practiceTiming = song;
+    this.practicePulsePlan = this.preparePulse(settings, duration, settings.speed, song);
     this.settings = settings;
     this.audio.sustainPedal=settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
     this.audio.setGains(settings.voiceGain, settings.pianoGain);
@@ -179,11 +184,13 @@ export class PlaybackEngine {
 
   setNotes(notes: TimedNote[], duration: number): void {
     if (this.notes === notes) return;
+    const pulsePlan = this.preparePulse(this.settings, duration);
     this.resetInputClock();
     this.notes = notes;
     this.audio.sustainPedal=this.settings.sustainPedal && !notes.some(n=>n.soundingDurSec!==undefined);
     this.gradingNotes = notes;
     this.duration = duration;
+    this.practicePulsePlan = pulsePlan;
     this.chords = this.normalizeChordTimeline(this.chords);
     // Mid-playback note changes (speed/transpose/hand) reschedule from now.
     if (this.playing) {
@@ -201,6 +208,7 @@ export class PlaybackEngine {
     const chordsChanged = this.chords !== chords;
     const gradingNotesChanged = this.gradingNotes !== gradingNotes;
     if (!notesChanged && !chordsChanged && !gradingNotesChanged) return;
+    const pulsePlan = this.preparePulse(this.settings, notesChanged ? duration : this.duration);
     if (notesChanged) {
       this.resetInputClock();
       this.notes = notes;
@@ -208,6 +216,7 @@ export class PlaybackEngine {
       this.duration = duration;
     }
     if (gradingNotesChanged) this.gradingNotes = gradingNotes;
+    this.practicePulsePlan = pulsePlan;
     if (chordsChanged) {
       this.chords = this.normalizeChordTimeline(chords);
     }
@@ -238,12 +247,20 @@ export class PlaybackEngine {
    * the current playhead. Direct assignment remains supported for callers that
    * only need the old behaviour.
    */
-  setSettings(settings: PlayerSettings): void {
+  setSettings(settings: PlayerSettings, timing = this.practiceTiming, timelineDuration?: number): void {
+    // Player installs settings before its recalculated notes. Validate against
+    // that incoming clock atomically when it supplies timing and duration.
+    const pulsePlan = this.preparePulse(settings, timelineDuration ?? this.duration,
+      timelineDuration === undefined ? this.settings.speed : settings.speed, timing);
     const backgroundChanged = this.settings.backgroundMode !== settings.backgroundMode;
     const chordTimingChanged = this.settings.speed !== settings.speed || this.settings.transpose !== settings.transpose;
-    const metronomeChanged = this.settings.metronome !== settings.metronome;
+    const metronomeChanged = this.settings.metronome !== settings.metronome
+      || JSON.stringify(this.settings.practicePulse) !== JSON.stringify(settings.practicePulse)
+      || !!pulsePlan && this.practiceTiming !== timing;
     const sustainChanged = this.settings.sustainPedal !== settings.sustainPedal;
     this.settings = settings;
+    this.practiceTiming = timing;
+    this.practicePulsePlan = pulsePlan;
     this.audio.setGains(settings.voiceGain, settings.pianoGain);
     this.audio.sustainPedal = settings.sustainPedal && !this.notes.some(n=>n.soundingDurSec!==undefined);
     this.audio.setOrganControls?.(settings.organRotary, settings.organDrive, settings.organSpace);
@@ -267,6 +284,18 @@ export class PlaybackEngine {
     if (this.grader && chordTimingChanged) {
       this.grader.updateTempo(this.song.tempoBpm, settings.speed);
     }
+  }
+
+  /** Keep explicit click timing in sync with the currently displayed source map. */
+  setSongTiming(timing: PracticePulseTiming): void {
+    if (this.practiceTiming === timing) return;
+    this.setSettings(this.settings, timing);
+  }
+
+  private preparePulse(settings: PlayerSettings, duration: number, durationSpeed = settings.speed, timing = this.practiceTiming): PracticePulsePlan | null {
+    if (settings.practicePulse === undefined) return null;
+    if (!Number.isFinite(this.song.tempoBpm) || this.song.tempoBpm <= 0 || !Number.isFinite(settings.speed) || settings.speed < .25 || settings.speed > 4) throw new RangeError("Practice pulse timing needs a supported tempo and speed.");
+    return preparePracticePulsePlan(timing, settings.practicePulse, duration / secPerBeat(this.song.tempoBpm, durationSpeed));
   }
 
   setLoop(region: LoopRegion | null): void {
@@ -479,7 +508,16 @@ export class PlaybackEngine {
       if (durSec > 0) this.audio.noteOn(durSec === n.durSec ? n : { ...n, durSec }, Math.max(0, n.startSec - this.time));
     }
     // The metronome follows the song timeline in either background mode.
-    if (this.settings.metronome) {
+    if (this.settings.metronome && this.practicePulsePlan) {
+      const beat = secPerBeat(this.song.tempoBpm, this.settings.speed);
+      const events = this.practicePulsePlan.events;
+      for (let index = firstPracticePulseAtOrAfter(events, from / beat); index < events.length; index++) {
+        const event = events[index]!, at = event.beat * beat;
+        if (at >= to) break;
+        if (at < from) continue;
+        this.audio.metronomeClick(event.accent === "bar" ? 0 : 1, Math.max(0, at - this.time), event.accent === "group" ? "group" : undefined);
+      }
+    } else if (this.settings.metronome) {
       const beat = 60 / this.song.tempoBpm / this.settings.speed;
       const perMeasure = beatsPerMeasure(this.song.timeSig);
       const clickBeats = new Set<number>();

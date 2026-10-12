@@ -417,6 +417,15 @@ describe("OrganAudioEngine", () => {
     expect(click.stops).toEqual([10.06]);
   });
 
+  it("preserves native organ bar/pulse clicks and forwards the optional group accent", () => {
+    const engine = new OrganAudioEngine();
+    engine.metronomeClick(0, .1); engine.metronomeClick(1, .2); engine.metronomeClick(1, .3, "group");
+    const clicks = FakeAudioContext.instances[0]!.oscillators.slice(2);
+    expect(clicks.map(click => click.frequency.value)).toEqual([1760, 1174, 1479]);
+    expect(clicks.map(click => click.starts[0])).toEqual([10.1, 10.2, 10.3]);
+    engine.dispose();
+  });
+
   it("falls back to the existing synth when native rotary graph creation fails", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     class BrokenRotaryContext extends FakeAudioContext {

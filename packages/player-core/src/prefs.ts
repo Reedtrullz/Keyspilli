@@ -1,6 +1,7 @@
 import { validKeyboardRange } from "./keyboard-range.js";
 import type { PlayerSettings } from "./types.js";
 import type { AccompanimentStyle } from "./accompaniment.js";
+import { readPracticePulseSettings, type PracticePulseSettings } from "./practice-pulse.js";
 
 const KEY = "keyspilli.prefs.v1";
 const ACCOMPANIMENT_STYLE_INTENT_KEY = "keyspilli.accompaniment-style-intent.v1";
@@ -126,7 +127,9 @@ export function loadSettings(): PlayerSettings {
 
 export function saveSettings(p: PlayerSettings): void {
   try {
-    storage()?.setItem(KEY, JSON.stringify(p));
+    // A metrical grouping is a choice for this song, never a global default.
+    const { practicePulse: _practicePulse, ...globalSettings } = p;
+    storage()?.setItem(KEY, JSON.stringify(globalSettings));
   } catch {
     // Quota or serialization failures must not break playback.
   }
@@ -163,6 +166,7 @@ export interface SongPrefs {
   transpose?: number;
   mode?: PlayerSettings["mode"];
   hand?: "L" | "R" | "both";
+  practicePulse?: PracticePulseSettings;
 }
 
 export function loadSongPrefs(songId: string): SongPrefs {
@@ -181,10 +185,24 @@ export function loadSongPrefs(songId: string): SongPrefs {
     }
     if (VIEW_MODES.includes(raw.mode as (typeof VIEW_MODES)[number])) out.mode = raw.mode as PlayerSettings["mode"];
     if (HANDS.includes(raw.hand as (typeof HANDS)[number])) out.hand = raw.hand as SongPrefs["hand"];
+    const practicePulse = readPracticePulseSettings(raw.practicePulse);
+    if (practicePulse) out.practicePulse = practicePulse;
     return out;
   } catch {
     return {};
   }
+}
+
+/** A visible recovery message accompanies rejected optional pulse preferences. */
+export function loadSongPracticePulse(songId: string): { settings: PracticePulseSettings | undefined; notice: string | null } {
+  const invalid = { settings: undefined, notice: "Saved practice pulse was invalid. Default quarter-note clicks are selected. Choose a pulse in Set up practice." };
+  try {
+    const raw: unknown = JSON.parse(storage()?.getItem(SONG_KEY_PREFIX + songId) ?? "{}");
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return invalid;
+    const value = (raw as Record<string, unknown>).practicePulse;
+    const settings = readPracticePulseSettings(value);
+    return value !== undefined && !settings ? invalid : { settings, notice: null };
+  } catch { return invalid; }
 }
 
 export function saveSongPrefs(songId: string, prefs: Partial<SongPrefs>): void {
