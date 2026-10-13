@@ -48,13 +48,30 @@ class UiReleaseWorkflowTests(unittest.TestCase):
                 self.assertIn("github.event_name == 'workflow_dispatch'", condition)
                 self.assertIn("github.ref == 'refs/heads/main'", condition)
                 self.assertIn("inputs.operation == 'deploy_only'", condition)
-                music, ui = condition.split('||')
+                music, ui = condition.rsplit('||', 1)
                 for part in ('inputs.promote_reviewed == true', 'inputs.ui_only_release == false', "needs.checks.result == 'skipped'", "needs.release-readiness.result == 'success'"):
                     self.assertIn(part, music)
                 for part in ('inputs.ui_only_release == true', 'inputs.promote_reviewed == false', "needs.checks.result == 'success'", "needs.ui-release-readiness.result == 'success'"):
                     self.assertIn(part, ui)
                 self.assertNotIn('release-readiness.result', ui.replace('ui-release-readiness.result', ''))
         self.assertIn('inputs.ui_only_release == false', self.jobs['release-readiness']['if'])
+
+    def test_release_refs_are_allowed_only_for_the_ui_only_gate(self):
+        clause = "startsWith(github.ref, 'refs/heads/release/') && inputs.ui_only_release == true && inputs.promote_reviewed == false"
+        for name in ('ui-release-readiness', 'build-and-push', 'deploy'):
+            with self.subTest(job=name):
+                self.assertIn(clause, ' '.join(self.jobs[name]['if'].split()))
+        for name, job in self.jobs.items():
+            if name not in ('ui-release-readiness', 'build-and-push', 'deploy'):
+                with self.subTest(job=name):
+                    self.assertNotIn('release/', str(job.get('if', '')))
+        self.assertIn("github.ref == 'refs/heads/main'", self.jobs['release-readiness']['if'])
+
+    def test_release_refs_must_ship_main_tooling(self):
+        command = chr(10).join(step.get('run', '') for step in self.jobs['ui-release-readiness']['steps'])
+        self.assertIn('--tooling-ref origin/main', command)
+        main_line = [line for line in command.split(chr(10)) if '--target' in line and '--tooling-ref' not in line]
+        self.assertEqual(len(main_line), 1)
 
     def test_both_jobs_depend_on_the_new_gate(self):
         self.assertIn('ui-release-readiness', self.jobs['build-and-push']['needs'])
