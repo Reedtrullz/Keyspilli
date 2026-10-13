@@ -1,0 +1,42 @@
+name: Delivery integration probe
+on:
+  push:
+    branches: [codex/complete-delivery-probe]
+permissions:
+  contents: read
+jobs:
+  combined-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22.22.3'
+          cache: npm
+      - name: Install exact workspace dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Retain public source and supported offline runtime for local verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/delivery-probe"
+          git archive --format=tar HEAD | gzip > "$RUNNER_TEMP/delivery-probe/source.tar.gz"
+          git ls-tree -rz HEAD > "$RUNNER_TEMP/delivery-probe/source-tree.bin"
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/delivery-probe/source-identity.txt"
+          tar -czf "$RUNNER_TEMP/delivery-probe/dependencies.tar.gz" node_modules
+          cp "$(command -v node)" "$RUNNER_TEMP/delivery-probe/node"
+          (cd "$RUNNER_TEMP/delivery-probe" && sha256sum source.tar.gz source-tree.bin source-identity.txt dependencies.tar.gz node > SHA256SUMS)
+      - name: Combined workspace baseline
+        run: npm test 2>&1 | tee "$RUNNER_TEMP/delivery-probe/baseline-tests.log"
+      - name: Combined Python baseline
+        run: python3 -B -m unittest discover -s scripts -p 'test_*keyspilli*.py' 2>&1 | tee "$RUNNER_TEMP/delivery-probe/baseline-python.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: delivery-probe-${{ github.sha }}
+          path: ${{ runner.temp }}/delivery-probe/
+          retention-days: 3
+          if-no-files-found: error
