@@ -131,6 +131,15 @@ export function SongBrowser() {
   const activeFilterCount = [importMethod, key, bass, difficulty, query.artist, query.style, query.mood, query.category, favoritesOnly ? "favorites" : ""].filter(Boolean).length;
   const narrowed = Boolean(activeFilterCount || query.q);
   function reset() { setInput(""); navigate({ ...DEFAULT_QUERY }); }
+  const IMPORT_LABEL: Record<string, string> = { midi: "MIDI", "sheet-music": "Sheet music", youtube: "YouTube", other: "Other / unknown" };
+  const chips = [
+    query.q && { label: `Search: ${query.q}`, clear: () => { setInput(""); filter({ q: "" }); } },
+    importMethod && { label: IMPORT_LABEL[importMethod] ?? importMethod, clear: () => filter({ importMethod: "" }) },
+    key && { label: `Key: ${key}`, clear: () => filter({ key: "" }) },
+    bass && { label: `Left hand: ${bass}`, clear: () => filter({ bass: "" }) },
+    difficulty && { label: LEVEL_LABEL[difficulty] ?? difficulty, clear: () => filter({ difficulty: "" }) },
+    favoritesOnly && { label: "Favorites", clear: () => filter({ favorites: false }) },
+  ].filter((chip): chip is { label: string; clear: () => void } => Boolean(chip));
 
   return (
     <div aria-busy={loading}>
@@ -164,10 +173,10 @@ export function SongBrowser() {
             <optgroup label="Major">{KEY_ROOTS.map(k => <option key={k} value={k}>{k}</option>)}</optgroup>
             <optgroup label="Minor">{KEY_ROOTS.map(k => <option key={k} value={`${k}m`}>{k}m</option>)}</optgroup>
           </select>
-          <select value={bass} onChange={(e) => filter({ bass: e.target.value })} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Bass pattern">
-            <option value="">All bass patterns</option>
+          <select value={bass} onChange={(e) => filter({ bass: e.target.value })} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Left-hand style">
+            <option value="">Any left-hand style</option>
             {BASS.map((b) => (
-              <option key={b} value={b}>{b}</option>
+              <option key={b} value={b}>{b[0]?.toUpperCase()}{b.slice(1)}</option>
             ))}
           </select>
           <select value={difficulty} onChange={e => filter({ difficulty: e.target.value })} aria-label="Difficulty" className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm">
@@ -188,6 +197,21 @@ export function SongBrowser() {
         </div>
         {(narrowed || sort !== "popular") && <button type="button" onClick={reset} className="pressable min-h-11 px-3 underline">Reset filters</button>}
         <span className="library-count text-xs text-zinc-600" role="status" aria-live="polite">{loading ? "Loading…" : `${visible.length} of ${total} songs`}</span>
+        {chips.length > 0 && (
+          <div className="flex basis-full flex-wrap items-center gap-2" role="group" aria-label="Active filters">
+            {chips.map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={chip.clear}
+                aria-label={`Remove filter: ${chip.label}`}
+                className="pressable min-h-9 px-3 rounded-full bg-zinc-100 text-sm text-zinc-800 hover:bg-zinc-200"
+              >
+                {chip.label} <span aria-hidden="true">×</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {(query.style || query.mood || query.category) && <p className="text-xs text-zinc-600 mb-3">{[["Style",query.style],["Mood",query.mood],["Category",query.category]].filter(([,value])=>value).map(([label,value])=>`${label}: ${value}`).join(" · ")}</p>}
       {error && <div role="alert" className="text-red-600 text-sm mb-3">{error} <button type="button" onClick={() => setRetry(value => value + 1)} className="pressable min-h-11 px-3 underline">Retry</button></div>}
