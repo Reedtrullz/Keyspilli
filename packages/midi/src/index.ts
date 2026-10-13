@@ -1,4 +1,6 @@
 export * from "./types.js";
+export { analyzeTechnique, TECHNIQUE_DIAGNOSTIC_LIMITS } from "./technique-diagnostics.js";
+export type { TechniqueInput, TechniqueResult, TechniqueReport, TechniqueEvent, TechniqueHeldAttack, TechniqueRegisterTransition, TechniqueSameKeyRecurrence, TechniqueInstant, TechniqueInterval } from "./technique-diagnostics.js";
 export { sourcePhraseClock, canonicalPhrasePlan, compilePhrasePlan, applyPhrasePlan, suggestPhrasePlan } from "./phrase-plan.js";
 export type { PhrasePlanV1, SourcePhrase, PhraseEvent, PhraseRole, PhraseAuthority, PhraseTransformation, PhraseProtectionReport } from "./phrase-plan.js";
 export { inferHarmonyTimeline, harmonySegments, type HarmonySegment } from "./harmony.js";
