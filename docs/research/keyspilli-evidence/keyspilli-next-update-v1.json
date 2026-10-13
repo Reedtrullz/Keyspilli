@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "benchmarkId": "keyspilli-next-update-v1",
+  "purpose": "Fresh Batch 1 source inventory and prospective reference obligations; not a musical approval manifest",
+  "frozenBeforeBaselines": "2026-10-13",
+  "engineeringCandidate": "d9c8a2c4190288a96780405950b1236a0a771233",
+  "engineeringTree": "55838456a6e7aaa0a43dfdaebe411e3ce1e0ae6b",
+  "designatedOriginalTier": "a",
+  "chordsScope": "shared-advanced-derived-backing-only",
+  "musicalAcceptance": "not-established",
+  "referenceReview": "independent-review-pending",
+  "developmentDenominator": 3,
+  "holdoutDenominator": 3,
+  "development": [
+    {
+      "id": "D1",
+      "slot": "melody-led with simple backing",
+      "status": "source-qualified-reference-review-pending",
+      "composition": "Burgmuller Op. 100 No. 1, La Candeur",
+      "performance": "Mutopia 2013/01/12-202 LilyPond synthesized MIDI; not a human performance",
+      "source": {
+        "file": "j-f-f-burgmuller-la-candeur.mid",
+        "bytes": 2564,
+        "sha256": "ad185dbf3cb7e3e187cbe6e38c5ead706cf375b9d441f7191429027436b2a8e4",
+        "url": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-01/25EF-01.mid",
+        "localBytesMatchOfficial": true,
+        "permission": "Public Domain, explicitly declared by typesetter Bas Wassink in the source header and distribution notice",
+        "referenceUrl": "https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-01/25EF-01.ly",
+        "referenceSha256": "d1720877ca1b813148cb3c09cc0f26ca5e88c63aab321d2765efde0dd91ec6d6"
+      },
+      "nativeClock": {"division":384,"quarterMicroseconds":394736,"meter":[4,4],"endBeat":92,"seconds":36.315712},
+      "referenceObligations": {
+        "openingMelody": {"authority":"source vOne, upper staff; confirmed against native MIDI track 1", "pitches":[79,76,74,72,79,76,74,72],"attacks":[0,0.5,1,1.5,2,2.5,3,3.5],"durations":[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],"sourceOriginIds":["midi:1:0","midi:1:1","midi:1:2","midi:1:3","midi:1:4","midi:1:5","midi:1:6","midi:1:7"]},
+        "openingBass": {"authority":"source vThree, lower staff", "pitches":[48,52,55],"attack":0,"release":4,"sourceOriginIds":["midi:2:0","midi:2:1","midi:2:2"]},
+        "allRoleRestsBeats":[[31,32],[63,64],[81,82]],
+        "ending": {"pitches":[48,64,72],"attack":88,"release":92},
+        "chords": "Exclude the upper melody as accompaniment; retain source-supported C bass/harmony at the opening and meaningful rests; inspect actual exported notes",
+        "permittedTransformations": ["Remove unselected inner accompaniment for lower tiers", "Declare each octave displacement and hand reassignment", "Do not silently alter designated anchor pitches, attacks, releases or rests"],
+        "uncertainty": ["Independent source-role, full-form and keyboard review pending", "Symbolic MIDI does not prove expressive/audio fidelity", "Do not infer all lower-tier anchors are feasible; report deficits or refusal"]
+      },
+      "exposure": {"implementer":"source, reference and candidate baseline exposed", "holdout":false},
+      "baseline": {"location":"output/batch1-resume/baseline-D1/delivery", "admission":"structural result only; see retained baseline receipt"}
+    },
+    {
+      "id":"D2", "slot":"riff-led rock/metal", "status":"blocked-source-and-reference-qualification",
+      "composition":null,"performance":null,"source":null,"nativeClock":null,"referenceObligations":null,"baseline":null,
+      "missing":["Actual authorized pitched symbolic bytes for a named composition/performance", "Verifiable permission/attribution evidence; a free-download or private-use label is insufficient", "Source-backed riff and bass anchors with attacks/releases, rests and clock", "Reference obligations frozen before candidate examination"],
+      "availableEvidenceBoundary":"Existing HiMMP evidence covers kick timing and partial orchestration, not a qualified complete pitched rock/metal piano source; authored dense-metal controls remain software controls"
+    },
+    {
+      "id":"D3", "slot":"compound meter",
+      "status":"source-qualified-reference-review-pending",
+      "composition":"Burgmuller Op. 100 No. 3, La Pastorale",
+      "performance":"Mutopia 2013/01/12-218 LilyPond synthesized MIDI; not a human performance",
+      "source": {
+        "file":"j-f-f-burgmuller-la-pastorale.mid","bytes":3416,
+        "sha256":"192500ee12358537bf92811064ee4ad0b680c78302d5762175a3c32fe573a577",
+        "url":"https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-03/25EF-03.mid",
+        "localBytesMatchOfficial":true,
+        "permission":"Public Domain, explicitly declared by typesetter Bas Wassink in the source header and distribution notice",
+        "referenceUrl":"https://www.mutopiaproject.org/ftp/BurgmullerJFF/O100/25EF-03/25EF-03.ly",
+        "referenceSha256":"be3b90be0fcfe7d92e34ef189cb633f7007e38ea8d5f290e4c3e5a988f097c81"
+      },
+      "nativeClock":{"division":384,"quarterMicroseconds":600000,"meter":[6,8],"endBeat":85,"seconds":51},
+      "referenceObligations": {
+        "openingMelody":{"authority":"source MD, upper staff; confirmed against native MIDI track 1","pitches":[67,71,72,74,71,76],"attacks":[0,0.5,1,1.5,2,2.5],"durations":[0.5,0.5,0.5,0.5,0.5,0.5],"sourceOriginIds":["midi:1:0","midi:1:1","midi:1:2","midi:1:3","midi:1:4","midi:1:5"]},
+        "openingBass":{"authority":"source MSI/MSII lower staff; melody alone precedes it","pitches":[55,59,62],"attack":6,"release":6.5,"sourceOriginIds":["midi:2:0","midi:2:1","midi:2:2"]},
+        "allRoleRestsBeats":[[29.5,30]],
+        "bassRestBeats":[[0,6]],
+        "ending":{"nativeMidiPitches":[43,91],"attack":84,"release":85,"status":"MIDI-bound observation; notation/octave interpretation requires independent review"},
+        "chords":"Leave room for upper melody; preserve the source lower-staff opening silence and supported G harmony when backing enters; do not fill rests merely to increase coverage",
+        "permittedTransformations":["Remove unselected inner accompaniment for lower tiers", "Declare each octave displacement and hand reassignment", "Preserve compound pulse, designated anchors, releases and rests"],
+        "uncertainty":["Grace-note/repeat and final-register interpretation needs independent full-score review", "6/8 alone does not prove source accents survive reduction", "MIDI clock and symbolic key releases are distinct from acoustic tails"]
+      },
+      "exposure":{"implementer":"source, reference and candidate baseline exposed","holdout":false},
+      "baseline":{"location":"output/batch1-resume/baseline-D3/delivery","admission":"structural result only; see retained baseline receipt"}
+    }
+  ],
+  "holdouts":[
+    {"id":"H1","status":"not-independently-reserved","composition":null,"source":null,"referenceObligations":null,"exposure":"No content opened for this slot; untouched status cannot be established without a reservation receipt"},
+    {"id":"H2","status":"not-independently-reserved","composition":null,"source":null,"referenceObligations":null,"exposure":"No content opened for this slot; untouched status cannot be established without a reservation receipt"},
+    {"id":"H3","status":"not-independently-reserved","composition":null,"source":null,"referenceObligations":null,"exposure":"No content opened for this slot; untouched status cannot be established without a reservation receipt"}
+  ],
+  "holdoutReservationProtocol": {
+    "custodian":null,"qualifiedMusicKeyboardReviewer":null,"status":"independent-custodian-and-reviewer-unavailable",
+    "steps":["Independent evaluator chooses three different compositions, disjoint from D1-D3 and authored controls", "Keep raw source/reference bytes outside tracked/public paths and the implementing context", "Record exact hashes, permissions, performance identity, clocks, anchors/rests, permitted transformations and uncertainty before viewing outputs", "Publish only an identity/hash/reservation receipt to the implementer; keep full labels with the evaluator", "Freeze code, skill, bank and settings before paired baseline/candidate generation", "Record every content exposure or tuning access; replace exposed cases before an untouched-generalization claim"],
+    "missing":["Named independent evaluator/custodian", "Three actual different compositions with qualified exact sources and prospective reference receipts", "Finite independently qualified music/keyboard review scope"]
+  },
+  "softwareControls": {
+    "historicalThreeAuthoredStudies":"Retained as exposed software controls in PR #298; their complete original study archive was not included in this handoff input",
+    "reusedAvailableControls":["Attached preview-fix tempo-change-control.mid", "Recovered stock-browser 28-note symbolic control and matching exports"],
+    "additionalFormatControl":"Existing pickupFixture compound shape with explicit bass; initial undersized XML/MXL refusal retained",
+    "externalSongValidation":false,"untouchedMusicalGold":false
+  },
+  "baselinePolicy":"Generate D1/D3 before KU-04/KU-05 changes. Reparse all six Original exports and shared Chords, retain both full designated previews and source/reference hashes. Report source-anchor deficits without tuning or repinning. D2 and H1-H3 remain in the denominator.",
+  "boundaries":["No historical golden pins replaced", "No backup hunt", "No paid inference or reviewer recruitment", "No musical tuning", "No publication, installation or production deployment"]
+}

@@ -41,6 +41,28 @@ environment qualification, not a change to the preparation host. Keep test
 concurrency, runtime and individual deadlines explicit; one-worker evidence is
 not a claim that a default-concurrency timeout was repaired.
 
+## Local macOS qualification
+
+Select the absolute compatible Node returned by the packaged checkout preflight
+and put its directory first on PATH before `npm ci` or Python helper tests.
+The shell can select a different Node after entering another worktree; a
+successful install with an engine warning does not qualify the native SQLite
+runtime.
+
+For tests that create external source/reference fixtures, use one bounded
+temporary directory outside the checkout and resolve its physical path before
+exporting TMPDIR. macOS's default `/var` alias is deliberately rejected by the
+deterministic host's no-symlink input policy. A temporary directory inside the
+checkout also changes the meaning of negative tests requiring external paths.
+Neither condition is a reason to weaken the policy. Retain the original failed
+receipts and remove the owned temporary directory after the run.
+
+The Batch 1 macOS qualification passed the full suite at default repository
+concurrency with Node 22.22.3 and an external physical temporary path. A separate
+matched base/candidate focused comparison still observed intermittent finite
+descendant-drain failure on unchanged base source. Preserve that observation;
+the supported passing run does not establish a universal process-reaping fix.
+
 ## Acceptance scope
 
 Keep code review, stock-renderer operation, actual browser handoff, independent
