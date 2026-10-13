@@ -57,11 +57,29 @@ checkout also changes the meaning of negative tests requiring external paths.
 Neither condition is a reason to weaken the policy. Retain the original failed
 receipts and remove the owned temporary directory after the run.
 
-The Batch 1 macOS qualification passed the full suite at default repository
-concurrency with Node 22.22.3 and an external physical temporary path. A separate
-matched base/candidate focused comparison still observed intermittent finite
-descendant-drain failure on unchanged base source. Preserve that observation;
-the supported passing run does not establish a universal process-reaping fix.
+The Batch 1 macOS qualification has both a passing full run and a later full run
+with one finite-helper ownership failure, using Node 22.22.3, default repository
+concurrency and an external physical temporary path. A matched base/candidate
+comparison also observed this intermittent failure on unchanged base source.
+
+The continuation traced the failed finite helper's actual group probes: after
+natural completion they returned `EPERM`, including the attempted TERM, and the
+receipt correctly remained `descendants` with `groupClosed=false`. On macOS
+27.2 arm64, a controlled same-UID kernel experiment held a known exited group
+member unreaped: `kill(-group, 0)` returned `EPERM`; reaping that member changed
+the identical probe to `ESRCH`. The experiment reproduced twice. Apple's public
+[XNU group-signalling code](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/kern_sig.c#L1612)
+excludes zombies and permits this error when the group still exists but has no
+eligible member. Natural completion alone therefore does not establish absence.
+
+The captured failure is an OS reaping/probe limitation, not evidence that the
+helper ignored its natural-exit timer. Do not translate `EPERM` into success:
+the same error can represent a real permission failure. All unknown-probe and
+signal-error refusals, the 250 ms passive window, and ownership assertions remain
+unchanged. Seven of eight bounded diagnostic finite-helper runs passed and one
+reproduced the exact failure; these overlapping runs do not replace the latest
+full-suite result or qualify every macOS process environment. Linux CI and stock
+tini qualification remain separate applicable receipts.
 
 ## Acceptance scope
 
