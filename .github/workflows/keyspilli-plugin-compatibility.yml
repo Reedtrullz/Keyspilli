@@ -51,6 +51,16 @@ jobs:
         run: python -B -m unittest discover -s scripts -p 'test_*keyspilli*.py'
       - name: Exercise extracted helpers and ordinary preparation
         run: python -B scripts/check-keyspilli-plugin.py --source plugins/keyspilli --checkout "$GITHUB_WORKSPACE" --node "$(command -v node)" --report "$RUNNER_TEMP/keyspilli-plugin-compatibility.json"
+      - name: Rebuild the exact tested plugin candidate
+        run: python -B scripts/retain-keyspilli-plugin.py --source plugins/keyspilli --report "$RUNNER_TEMP/keyspilli-plugin-compatibility.json" --destination "$RUNNER_TEMP/keyspilli-plugin-candidate"
+      - name: Retain verified plugin candidate
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: keyspilli-plugin-candidate-${{ github.sha }}
+          path: ${{ runner.temp }}/keyspilli-plugin-candidate/
+          if-no-files-found: error
+          retention-days: 14
       - name: Retain offline compatibility report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

@@ -45,7 +45,18 @@ def collect_members(source,check_hashes=True):
 
 def package(source,output,manifest):
     source,output,manifest=map(Path,(source,output,manifest))
-    if output.exists() or manifest.exists():raise FileExistsError('exclusive new outputs required')
+    # Validate both destinations before creating either file. Path aliases must
+    # not write a candidate into its own canonical source or reuse one output.
+    if output.exists() or manifest.exists() or output.is_symlink() or manifest.is_symlink():
+        raise FileExistsError('exclusive new outputs required')
+    output, manifest = output.resolve(), manifest.resolve()
+    if output == manifest:
+        raise ValueError('archive and manifest destinations must be distinct')
+    for destination in (output, manifest):
+        if destination.is_relative_to(source.resolve()):
+            raise ValueError('package outputs must be outside the plugin source')
+        if not destination.parent.is_dir():
+            raise FileNotFoundError(f'output parent must already exist: {destination.parent}')
     rows,payload=collect_members(source)
     references=validate_references(source)
     # Inputs are all validated before either output is created.

@@ -25,4 +25,36 @@ class PackageTests(unittest.TestCase):
         self.assertRaisesRegex(ValueError,'fragment',module.validate_references,self.source)
         (self.source/'README.md').write_text(text.replace('[Missing](#imaginary-command)', '[Here](#intake-and-preparation)'))
         self.assertEqual(len(module.validate_references(self.source)),2)
+    def test_archive_destination_cannot_contaminate_plugin_source(self):
+        before = {p.relative_to(self.source).as_posix(): p.read_bytes() for p in self.source.rglob('*') if p.is_file()}
+        with self.assertRaisesRegex(ValueError, 'outside.*source'):
+            module.package(self.source, self.source / 'candidate.zip', self.root / 'candidate.json')
+        self.assertEqual(before, {p.relative_to(self.source).as_posix(): p.read_bytes() for p in self.source.rglob('*') if p.is_file()})
+        self.assertFalse((self.root / 'candidate.json').exists())
+
+    def test_manifest_destination_cannot_contaminate_plugin_source(self):
+        with self.assertRaisesRegex(ValueError, 'outside.*source'):
+            module.package(self.source, self.root / 'candidate.zip', self.source / 'candidate.json')
+        self.assertFalse((self.root / 'candidate.zip').exists())
+        self.assertFalse((self.source / 'candidate.json').exists())
+
+    def test_outputs_must_not_alias_each_other(self):
+        output = self.root / 'candidate.zip'
+        with self.assertRaises((ValueError, OSError)):
+            module.package(self.source, output, self.root / '.' / 'candidate.zip')
+        self.assertFalse(output.exists())
+
+    def test_missing_manifest_parent_does_not_leave_archive(self):
+        output = self.root / 'candidate.zip'
+        with self.assertRaises((OSError, ValueError)):
+            module.package(self.source, output, self.root / 'missing' / 'candidate.json')
+        self.assertFalse(output.exists())
+
+    def test_destination_alias_into_source_is_rejected(self):
+        alias = self.root / 'alias'
+        alias.symlink_to(self.source, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'outside.*source'):
+            module.package(self.source, alias / 'candidate.zip', self.root / 'candidate.json')
+        self.assertFalse((self.source / 'candidate.zip').exists())
+
 if __name__=='__main__':unittest.main()
