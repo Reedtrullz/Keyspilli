@@ -448,6 +448,9 @@ export function createFluidSynthRenderer(options: MidiRendererOptions = {}): Mid
         await execFile(config.executable, args, {
           shell: false,
           timeout: config.timeoutMs,
+          // A configured timeout must not wait indefinitely for a backend that
+          // handles TERM without exiting. This bounds the direct renderer process.
+          killSignal: "SIGKILL",
           maxBuffer: MAX_EXEC_OUTPUT,
           windowsHide: true,
         });

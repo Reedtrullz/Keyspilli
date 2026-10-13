@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -45,6 +45,35 @@ async function fixture(): Promise<{ dir: string; midiPath: string; soundfontPath
 }
 
 describe("FluidSynth MIDI renderer", () => {
+
+  it("enforces its timeout even when the actual backend ignores TERM", async () => {
+    const f = await fixture();
+    const backend = join(f.dir, "stalled-backend.cjs"), ready = join(f.dir, "ready.json");
+    await writeFile(backend, `#!${process.execPath}\nconst fs=require('node:fs');
+process.on('SIGTERM',()=>{});fs.writeFileSync(${JSON.stringify(ready)},JSON.stringify({pid:process.pid}));setInterval(()=>{},1000);\n`);
+    await chmod(backend, 0o700);
+    let outer: ReturnType<typeof setTimeout> | undefined;
+    const pending = createFluidSynthRenderer({ executable: backend, timeoutMs: 1000 }).render({
+      midiPath: f.midiPath, soundfontPath: f.soundfontPath, outputPath: join(f.dir, "stalled.wav"),
+    }).then(() => ({ code: "UNEXPECTED_SUCCESS" }), (error: unknown) => ({ code: (error as MidiRendererError).code }));
+    try {
+      const result = await Promise.race([pending,
+        new Promise<{code: string}>(resolve => { outer = setTimeout(() => resolve({code: "OUTER_LIMIT_EXCEEDED"}), 3000); }),
+      ]);
+      // This proves the TERM-ignoring handler was actually installed, not just
+      // that startup was killed before the scenario could execute.
+      expect(JSON.parse(await readFile(ready, "utf8")).pid).toBeGreaterThan(0);
+      expect(result.code).toBe("RENDER_FAILED");
+    } finally {
+      if (outer) clearTimeout(outer);
+      // Only the PID emitted by this owned fixture is eligible for cleanup.
+      try { process.kill(JSON.parse(await readFile(ready, "utf8")).pid, "SIGKILL"); }
+      catch (error) { if (!["ENOENT", "ESRCH"].includes((error as NodeJS.ErrnoException).code!)) throw error; }
+      await pending;
+      await rm(f.dir, { recursive: true, force: true });
+    }
+  }, 10000);
+
   it("retains raw clipping evidence after normalized output is no longer clipped", async () => {
     const f = await fixture();
     try {

@@ -30,7 +30,9 @@ accompaniment difficulty levels. No renderer flag is silently ignored without
 
 Select a licensed sampled acoustic piano bank and verify the selected MIDI
 program. The new route has a fixed gain of 0.2 and a 22050 Hz render, a two-minute
-backend timeout per mode and a 256 MiB WAV/bank read limit. A clipping or capacity
+backend timeout per mode and a 256 MiB WAV/bank read limit.
+The direct renderer process is forcibly terminated at that timeout; arbitrary
+wrapper programs that spawn independent descendants are not a qualified backend. A clipping or capacity
 failure is an explicit blocker, not permission to relax the checks. The runtime
 and bank are supplied locally; neither is downloaded or distributed by delivery.
 These renders come from exported MIDI, not a capture of the app's sampler.
