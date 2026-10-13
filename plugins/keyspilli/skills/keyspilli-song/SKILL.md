@@ -28,10 +28,13 @@ Preserve accepted Original/backing when improving an existing catalog entry.
    `prepare-song.mts INPUT NEW_RUN_DIR TITLE ARTIST`, invoked with the returned
    Node and `--import tsx`. Use a fresh local run and isolated catalogs. Inspect
    all six variants, the second import and actual resolved Original/Chords
-   events. The command returns provisional artifacts, not musical approval.
+   events. For a full song delivery, use the [complete delivery procedure](references/complete-delivery.md)
+   and the implemented `--previews` option when available. The command returns
+   provisional artifacts, not musical approval.
    For a local MIDI task that needs a resumable checkpoint, use the
    [deterministic preparation workflow](references/deterministic-preparation.md)
    only when `deterministic_workflow.status: compatible`.
+   Use its packaged request-pinning helper instead of hand-writing hashes or JSON.
 4. **Diagnose and correct.** When `score_review.status: compatible`, use the
    [offline score review](references/score-review-workflow.md). Repair only an
    exact authorized event with unchanged evidence pins. Preserve protected
@@ -40,6 +43,8 @@ Preserve accepted Original/backing when improving an existing catalog entry.
 5. **Render and verify delivery.** Follow [delivery requirements](references/evaluation-and-repair.md#deliver-a-usable-package)
    and the [musical gate](references/musical-quality-gate.md). Verify actual
    exports, hands, timing, full-duration sampled-piano previews and hashes.
+   Reuse an existing prepared run with `deliver-song.mts`; a render failure must
+   not trigger another acquisition/preparation or a MIDI-only completion claim.
    Surface two labeled players for a song, or a verified playback index for a
    batch. State each mode's readiness and exact remaining blockers. Do not
    assign the owner another listening pass or invent independent approval.
@@ -51,6 +56,7 @@ Preserve accepted Original/backing when improving an existing catalog entry.
 
 | Task | Reference |
 | --- | --- |
+| Both preview modes and a relocatable package, when the CLI is present | [Complete delivery](references/complete-delivery.md) |
 | Explicit source-bound note/phrase protections, when the inspector is present | [Phrase protection pilot](references/phrase-protection.md) |
 | Resumable deterministic local MIDI preparation, when compatible | [Deterministic preparation](references/deterministic-preparation.md) |
 | Optional bounded driver/arranger, only when compatible | [Experimental workflow](references/experimental-host-workflow.md), [phrase recipe](references/constrained-arrangement.md) |

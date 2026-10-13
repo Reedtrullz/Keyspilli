@@ -17,6 +17,10 @@ and a fresh isolated installation. NEW_RUN_DIR must be new and inside this check
 
   --phrase-plan FILE   Optional source-bound protection plan, at most 2 MiB.
                        Requires exact source bytes/clock and at least one explicitly required event.
+  --previews           Also build a checked portable delivery in NEW_RUN_DIR/delivery.
+  --soundfont FILE     Explicit local piano bank for --previews.
+  --executable FILE    Explicit FluidSynth executable for --previews.
+  --level LEVEL        Original preview tier for --previews (default a).
   --help, -h           Show this help.
 
 Inspect source origins with phrase-plan.mts inspect before selecting protections. Role proposals
@@ -25,10 +29,15 @@ const hash = (bytes: string | Uint8Array) => createHash("sha256").update(bytes).
 
 async function main() {
   const { values, positionals, tokens } = parseArgs({ allowPositionals: true, tokens: true, options: {
-    "phrase-plan": { type: "string" }, help: { type: "boolean", short: "h" },
+    "phrase-plan": { type: "string" }, previews: {type: "boolean"}, soundfont: {type: "string"}, executable: {type: "string"}, level: {type: "string"}, help: { type: "boolean", short: "h" },
   } });
   if (values.help) { console.log(usage); return; }
   assert(tokens.filter(token => token.kind === "option" && token.name === "phrase-plan").length <= 1, "--phrase-plan may be supplied only once");
+  for (const name of ["previews", "soundfont", "executable", "level"])
+    assert(tokens.filter(t => t.kind === "option" && t.name === name).length <= 1, `--${name} may be supplied only once`);
+  assert(values.previews || (values.soundfont === undefined && values.executable === undefined && values.level === undefined), "renderer options require --previews");
+  for (const value of [values.soundfont, values.executable]) assert(value === undefined || value.trim(), "renderer path must not be empty");
+  assert(values.level === undefined || ["a", "m", "e", "ve", "b", "vb"].includes(values.level), "invalid Original preview tier");
   assert(positionals.length === 4 && positionals.every(value => value.trim()), usage);
   const [inputArg, runArg, title, artist] = positionals as [string, string, string, string];
   const run = resolve(runArg), rel = relative(process.cwd(), run);
@@ -88,6 +97,12 @@ async function main() {
     ...(phrasePlanPin ? { phrasePlan: phrasePlanPin } : {}),
     checks: { freshImport: true, musicalIdempotence: true }, status: "provisional", remaining: "reference/audio assessment; not automatically musically approved" }, null, 2), { flag: "wx" });
   console.log(`Prepared both modes for ${title}: ${bundle}`);
+  if (values.previews) {
+    const { deliverSong } = await import("../src/lib/song-delivery.js");
+    const delivery = await deliverSong(run, join(run, "delivery"), values);
+    console.log(`Preview delivery ${delivery.status}: ${join(run, "delivery/index.html")}`);
+    if (delivery.status !== "complete-provisional") process.exitCode = 1;
+  }
 }
 
 try { await main(); }

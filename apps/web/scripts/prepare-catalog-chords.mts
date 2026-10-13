@@ -117,7 +117,7 @@ for (const { representative: song } of inventory) {
     for (let step = 0; engine.playing && step < 1_000_000; step++) engine.tick(0.05);
     assert(!engine.playing && noteEvents === notes.length && chordEvents === engine.chords.length, "transport dropped events");
     assert(captured.length > 0, "silent backing");
-    const midi = writeMidi(captured, { tempoBpm: playerData.tempoBpm, timeSig: playerData.timeSig, timeSigEvents: playerData.timeSigEvents,
+    const midi = writeMidi(captured, { measures: playerData.measures, tempoBpm: playerData.tempoBpm, timeSig: playerData.timeSig, timeSigEvents: playerData.timeSigEvents,
       tracks: [{ name: "Left hand", notes: captured.filter(n => n.hand === "L") }, { name: "Right hand", notes: captured.filter(n => n.hand !== "L") }] });
     assert.deepEqual(canonical(parseMidi(midi).notes, 480), canonical(captured, 480), "MIDI round trip changed notes");
     const xml = writeMusicXml({ ...playerData, notes: captured, chords: replay.chords, level: "advanced", difficultyScore: 0, bassPattern: "block" }, `${song.title} — Chords`, song.artist);

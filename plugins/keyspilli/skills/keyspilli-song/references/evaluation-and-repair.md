@@ -31,6 +31,12 @@ Prepared `inferred/learner-harmonization` events use the existing bass/voicing e
 
 ## Audio verification
 
+For a new ordinary preparation, prefer the [complete delivery command](complete-delivery.md)
+when the checkout advertises it. It connects both exports, their full previews,
+the intact six-tier bundle and a portable playback index, and honors the shared
+renderer duration/PCM diagnostics. The commands below remain the separate
+catalog-batch and individual-render procedures; neither alone completes both modes.
+
 ```sh
 KEYSPILLI_SOUNDFONT=/installed/piano.sf2 "$KEYSPILLI_NODE" --import tsx \
   apps/web/scripts/render-prepared-chords.mts output/RUN/prepared
