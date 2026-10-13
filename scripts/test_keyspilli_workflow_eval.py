@@ -1,4 +1,8 @@
 import importlib.util
+import hashlib
+import json
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from types import ModuleType
@@ -22,7 +26,12 @@ class WorkflowEvaluationTests(unittest.TestCase):
             for skill in ["old", "new"]:
                 for repetition in [1, 2]:
                     arm = [c for c in cells if c["model"] == model and c["skill"] == skill and c["repetition"] == repetition]
-                    self.assertEqual({c["task"] for c in arm}, set(self.module.TASKS))
+                    expected = {"simple-midi", "supported-xml", "supported-mxl", "existing-preparation", "requested-tier", "unavailable-reviewer",
+                                "missing-renderer", "truncated-preview", "silent-clipped-preview", "stale-phrase-pin", "unsupported-score", "unqualified-url"}
+                    self.assertEqual({c["task"] for c in arm}, expected)
+                    for cell in arm:
+                        outcome = "complete-provisional" if cell["task"] in {"simple-midi", "supported-xml", "supported-mxl", "existing-preparation", "requested-tier", "unavailable-reviewer"} else "refused-or-incomplete"
+                        self.assertEqual(cell["expected"], outcome)
                     self.assertEqual(sum(c["expected"] == "complete-provisional" for c in arm), 6)
                     self.assertEqual(sum(c["expected"] == "refused-or-incomplete" for c in arm), 6)
 
@@ -61,12 +70,58 @@ class WorkflowEvaluationTests(unittest.TestCase):
             budget.settle(reserve, {"prompt_tokens": 10, "completion_tokens": 10}, "B.AI/mimo-v2.6-flash")
         self.assertEqual(budget.spent, spent)
 
+    def test_bound_breach_permanently_stops_later_admission(self):
+        budget = self.module.Budget(5)
+        reserve = budget.reserve("B.AI/mimo-v2.6-flash", 0, 0)
+        with self.assertRaises(ValueError):
+            budget.settle(reserve, {"prompt_tokens": 1, "completion_tokens": 0}, "B.AI/mimo-v2.6-flash")
+        with self.assertRaises(ValueError):
+            budget.reserve("B.AI/mimo-v2.6-flash", 1000, 1000)
+
     def test_unexecuted_cells_never_become_completions(self):
         summary = self.module.summarize([{"status": "not-run", "attempted_calls": 0}, {"status": "unavailable", "attempted_calls": 0},
                                          {"status": "failed", "attempted_calls": 1}, {"status": "complete-provisional", "verified": False, "attempted_calls": 1}])
         self.assertEqual(summary["verifiedDeliveries"], 0)
         self.assertEqual(summary["executed"], 2)
         self.assertEqual(summary["notRunOrUnavailable"], 2)
+
+    def test_freeze_rejects_undeclared_members_and_snapshot_destinations_before_writing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            checkout = root / "checkout"
+            checkout.mkdir()
+            subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+            subprocess.run(["git", "-C", str(checkout), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                            "commit", "-q", "--allow-empty", "-m", "Fixture"], check=True)
+            old, new = root / "old", root / "new"
+            for source in (old, new):
+                skill = source / "skills/keyspilli-song/SKILL.md"
+                skill.parent.mkdir(parents=True)
+                skill.write_text("# Fixture\n")
+                (source / "source-members.json").write_text(json.dumps({"members": ["skills/keyspilli-song/SKILL.md", "source-members.json"],
+                    "sha256": {"skills/keyspilli-song/SKILL.md": hashlib.sha256(skill.read_bytes()).hexdigest()}}))
+            rogue = new / "unlisted.md"
+            rogue.write_text("Unlisted executable instruction")
+            outside = root / "experiment.json"
+            with self.assertRaises(ValueError):
+                self.module.freeze(checkout, old, new, outside)
+            self.assertFalse(outside.exists())
+            rogue.unlink()
+            for source in (old, new):
+                inventory = (source / "source-members.json").read_bytes()
+                with self.assertRaises(ValueError):
+                    self.module.freeze(checkout, old, new, source / "experiment.json")
+                self.assertFalse((source / "experiment.json").exists())
+                self.assertEqual((source / "source-members.json").read_bytes(), inventory)
+            alias = root / "alias"
+            alias.symlink_to(new, target_is_directory=True)
+            with self.assertRaises(ValueError):
+                self.module.freeze(checkout, old, alias, outside)
+            with self.assertRaises(ValueError):
+                self.module.freeze(checkout, old, new, alias / "experiment.json")
+            self.assertFalse(outside.exists())
+            self.module.freeze(checkout, old, new, outside)
+            self.assertEqual(json.loads(outside.read_text())["state"], "frozen-not-executed")
 
 
 if __name__ == "__main__":

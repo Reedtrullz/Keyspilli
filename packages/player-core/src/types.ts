@@ -1,4 +1,4 @@
-import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation, MidiTimeSignatureEvent, SourcePedalTimeline } from "@keyspilli/midi";
+import type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation, MidiTimeSignatureEvent, SourcePedalTimeline, PhraseProtectionReport } from "@keyspilli/midi";
 import type { AccompanimentStyle, SparseBackingTiming } from "./accompaniment.js";
 
 export type { Note, ChordLabel, MeasureInfo, Section, PracticeAnnotation };
@@ -41,6 +41,7 @@ export interface ChordSourceBundle {
 }
 
 export interface SongData {
+  phraseProtection?: PhraseProtectionReport;
   sourcePedal?: SourcePedalTimeline;
   notes: Note[];
   chords: ChordLabel[];

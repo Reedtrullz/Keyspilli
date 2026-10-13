@@ -90,8 +90,8 @@ for (const { representative: song } of inventory) {
       timeline = parseChordTimeline({ schemaVersion: 1, baseId: song.baseId, title: song.title, artist: song.artist,
         key: input.key, tempoBpm: input.tempoBpm, timeSig: input.timeSig,
         durationBeats: Math.max(...input.measures.map(m => m.endBeat), ...input.notes.map(n => n.start + n.dur)), coverage: "full-song",
-        chords: labels.map(c => ({ ...c, sourceKind: "inferred", inferred: true, inferenceType: sourceBacked ? "harmony-window" : "learner-harmonization" })),
-        provenance: { sourceId: "prepared", provider: "keyspilli", kind: "midi-derived", sourceRef: `prepared:${input.sourceFingerprint}`, confidence: "inferred arrangement" } });
+        chords: labels.map(c => ({ ...c, sourceKind: sourceBacked ? "generated" : "inferred", inferred: true, inferenceType: sourceBacked ? "harmony-window" : "learner-harmonization" })),
+        provenance: { sourceId: sourceBacked ? "prepared-source-backed" : "prepared", provider: "keyspilli", kind: "midi-derived", sourceRef: `prepared:${input.sourceFingerprint}`, confidence: "inferred arrangement" } });
       if (process.argv.includes("--repair") && !overrides[song.baseId]) {
         const repair = repairPreparedHarmony(input, timeline);
         timeline = repair.timeline;
@@ -99,7 +99,7 @@ for (const { representative: song } of inventory) {
       }
       json(join(dir, "timeline.json"), timeline);
       mapping = { baseId: song.baseId, canonicalTitle: song.title, canonicalArtist: song.artist,
-        sources: [{ id: "prepared", provider: "keyspilli", kind: "midi-derived" as const,
+        sources: [{ id: timeline.provenance.sourceId, provider: "keyspilli", kind: "midi-derived" as const,
           sourceRef: timeline.provenance.sourceRef, artifactPath: relative(root, join(dir, "timeline.json")), priority: 0 }] };
       map.entries = [...map.entries.filter(e => e.baseId !== song.baseId), mapping];
       playerData = projectChordSources(input, timeline);

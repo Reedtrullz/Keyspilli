@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import subprocess
@@ -23,12 +24,13 @@ TASKS = {
 }
 MODELS = ("gpt-6-luna", "B.AI/mimo-v2.6-flash")
 RATES = {"gpt-6-luna": (0.0, 0.0), "B.AI/mimo-v2.6-flash": (.14, .28)}
+POSITIVE_TASKS = frozenset(("simple-midi", "supported-xml", "supported-mxl", "existing-preparation", "requested-tier", "unavailable-reviewer"))
 
 
 def matrix() -> list[dict[str, str | int]]:
     return [{"id": f"{task}-{model.replace('/', '_')}-{skill}-{repetition}", "task": task,
              "model": model, "skill": skill, "repetition": repetition,
-             "expected": "complete-provisional" if task in list(TASKS)[:6] else "refused-or-incomplete"}
+             "expected": "complete-provisional" if task in POSITIVE_TASKS else "refused-or-incomplete"}
             for repetition in (1, 2) for task in TASKS for model in MODELS for skill in ("old", "new")]
 
 
@@ -47,8 +49,11 @@ class Budget:
         self.unknown_usage_calls = 0
         self.serial = 0
         self.pending: dict[int, Reservation] = {}
+        self.stopped = False
 
     def reserve(self, model: str, input_tokens_bound: int, output_tokens_bound: int) -> Reservation:
+        if self.stopped:
+            raise ValueError("workflow budget stopped after usage bound breach")
         if model not in RATES or any(type(v) is not int or v < 0 for v in (input_tokens_bound, output_tokens_bound)):
             raise ValueError("unknown model price or invalid token bound")
         incoming, outgoing = RATES[model]
@@ -76,6 +81,7 @@ class Budget:
         cost = (usage["prompt_tokens"] * incoming + usage["completion_tokens"] * outgoing) / 1e6
         self.spent += cost - reservation.cost
         if cost > reservation.cost + 1e-12 or self.spent > self.cap:
+            self.stopped = True
             raise ValueError("reported usage exceeded the admitted budget bound; stop calls")
 
 
@@ -92,6 +98,19 @@ def digest(path: Path) -> str:
 
 
 def freeze(checkout: Path, old: Path, new: Path, output: Path) -> tuple[dict[str, object], list[dict[str, object]]]:
+    for path in (old, new, output):
+        if path.absolute() != path.resolve():
+            raise ValueError("snapshot and experiment paths must not contain aliases")
+    if old.resolve() == new.resolve() or old.resolve().is_relative_to(new.resolve()) or new.resolve().is_relative_to(old.resolve()):
+        raise ValueError("skill snapshots must be distinct independent directories")
+    if any(output.resolve().is_relative_to(source.resolve()) for source in (old, new)):
+        raise ValueError("experiment output must be outside both frozen snapshots")
+    if not output.parent.is_dir():
+        raise FileNotFoundError("experiment output parent must already exist")
+    spec = importlib.util.spec_from_file_location("keyspilli_packager", Path(__file__).with_name("package-keyspilli-plugin.py"))
+    assert spec is not None and spec.loader is not None
+    packager = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(packager)
     def git(*args: str) -> str:
         return subprocess.check_output(["git", "-C", str(checkout), *args], text=True).strip()
     if git("status", "--porcelain", "--untracked-files=no"):
@@ -100,13 +119,10 @@ def freeze(checkout: Path, old: Path, new: Path, output: Path) -> tuple[dict[str
         raise FileExistsError("exclusive new experiment manifest required")
     snapshots = {}
     for label, source in (("old", old), ("new", new)):
-        inventory = json.loads((source / "source-members.json").read_text())
-        for name, expected in inventory["sha256"].items():
-            path = source / name
-            if path.is_symlink() or digest(path) != expected:
-                raise ValueError(f"{label}: altered plugin snapshot {name}")
+        rows, _payload = packager.collect_members(source)
         snapshots[label] = {"path": str(source.resolve()), "skillSha256": digest(source / "skills/keyspilli-song/SKILL.md"),
-                            "inventorySha256": digest(source / "source-members.json")}
+                            "inventorySha256": digest(source / "source-members.json"),
+                            "sourceTreeSha256": hashlib.sha256(json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()).hexdigest()}
     cells: list[dict[str, object]] = [{**c, "status": "not-run", "attempted_calls": 0, "verified": False} for c in matrix()]
     result: dict[str, object] = {"schemaVersion": 1, "kind": "keyspilli-workflow-evaluation", "benchmarkId": "keyspilli-next-update-v1",
         "applicationHead": git("rev-parse", "HEAD"), "applicationTree": git("rev-parse", "HEAD^{tree}"),

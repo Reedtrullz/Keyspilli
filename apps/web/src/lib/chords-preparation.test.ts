@@ -40,10 +40,38 @@ it("uses explicitly selected source roles to leave a melody-only opening and bac
     expect(actual.some(n => n.start < 12 && n.start + n.dur > 11.01)).toBe(false);
     expect(actual.some(n => n.midi % 12 === 2)).toBe(false);
     const timeline = JSON.parse(readFileSync(join(run, "bundle", "timeline.json"), "utf8"));
-    expect(timeline.chords.every((c: { inferred: boolean; sourceKind: string }) => c.inferred && c.sourceKind === "inferred")).toBe(true);
+    expect(timeline.chords.every((c: { inferred: boolean; sourceKind: string }) => c.inferred && c.sourceKind === "generated")).toBe(true);
+    expect(timeline.provenance.sourceId).toBe("prepared-source-backed");
     expect(readFileSync(input)).toEqual(Buffer.from(bytes));
     expect(() => call([input, join(scratch, "missing-plan"), "Test", "Tests", "--source-backed-chords"])).toThrow();
     expect(existsSync(join(scratch, "missing-plan"))).toBe(false);
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+}, 60000);
+it.each([false, true])("realizes only selected backing attacks and releases with crossing hands=%s", crossing => {
+  const root = new URL("../../../../", import.meta.url).pathname;
+  const scratch = mkdtempSync(join(root, "output", "selected-rest-realization-"));
+  const input = join(scratch, "source.mid"), planPath = join(scratch, "plan.json"), run = join(scratch, "run");
+  const starts = Array.from({ length: 8 }, (_, i) => i * 2);
+  const melody = starts.flatMap(start => [start + .5, start + 1.5].map(beat => ({ midi: 62, start: beat, dur: .25, vel: 80, hand: crossing ? "L" as const : "R" as const })));
+  const backing = starts.flatMap(start => [72, 76, 79].map(midi => ({ midi, start, dur: 1.75, vel: 70, hand: crossing ? "R" as const : "L" as const })));
+  const bytes = writeMidi([...melody, ...backing], { tempoBpm: 120, measures: Array.from({ length: 4 }, (_, index) => ({ index, startBeat: index * 4, endBeat: index * 4 + 4 })),
+    tracks: [{ name: crossing ? "Left hand" : "Right hand", notes: melody }, { name: crossing ? "Right hand" : "Left hand", notes: backing }] });
+  const hash = createHash("sha256").update(bytes).digest("hex"), source = parseMidi(bytes);
+  const plan = suggestPhrasePlan(source, { sha256: hash, compositionId: "authored-role-rest-realization", performanceId: "test-v1" });
+  for (const event of plan.phrases[0]!.events) {
+    event.role = event.expected.midi === 62 ? "melody" : "harmony";
+    event.required = true; event.allowedTransformations = [];
+  }
+  plan.phrases[0]!.rests = starts.map((start, i) => ({ id: `breath-${i}`, startBeat: start + 1.75, endBeat: start + 2, scope: "all" }));
+  try {
+    writeFileSync(input, bytes); writeFileSync(planPath, JSON.stringify(plan));
+    execFileSync(process.execPath, ["--import", "tsx", join(root, "apps/web/scripts/prepare-song.mts"), input, run, "Authored role/rest control", "Tests", "--phrase-plan", planPath, "--source-backed-chords"],
+      { cwd: root, encoding: "utf8", timeout: 60000 });
+    const actual = parseMidi(readFileSync(join(run, "bundle", "chords.mid"))).notes;
+    expect([...new Set(actual.map(n => n.start))]).toEqual(starts);
+    for (const note of actual) expect(note.dur).toBeCloseTo(1.75, 8);
+    expect(actual.some(n => n.midi % 12 === 2)).toBe(false);
+    expect(readFileSync(input)).toEqual(Buffer.from(bytes));
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 }, 60000);
 it("counts uncovered LH duration and overlapping octave doublings only once", () => {

@@ -57,6 +57,20 @@ export interface PhraseProtectionReport {
   plan: PhrasePlanV1;
 }
 
+export function phraseBackingNotes(notes: readonly Note[], report: PhraseProtectionReport | undefined): Note[] {
+  if (!report || report.status !== "preserved") throw new Error("source-backed Chords requires preserved phrase selections");
+  const roles = new Map(report.plan.phrases.flatMap(p => p.events.map(e => [
+    JSON.stringify([e.sourceOriginId, e.sourceOccurrence ?? null]), e.role,
+  ] as const)));
+  const backing = notes.filter(note => note.sourceOrigins?.length && note.sourceOrigins.every(origin => {
+    const role = roles.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
+      ?? roles.get(JSON.stringify([origin.id, null]));
+    return role === "bass" || role === "harmony" || role === "accompaniment";
+  }));
+  if (!backing.length) throw new Error("source-backed Chords has no explicitly selected backing events");
+  return backing;
+}
+
 const ROLES: readonly string[] = ["melody", "hook", "bass", "harmony", "accompaniment", "unknown"];
 const AUTHORITIES: readonly string[] = ["unknown", "model-estimate", "self-authored", "human-validated"];
 const TRANSFORMS: readonly string[] = ["omit", "octave-displacement", "onset-change", "release-change", "hand-reassignment", "velocity-change"];
