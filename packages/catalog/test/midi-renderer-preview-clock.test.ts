@@ -101,4 +101,16 @@ describe("preview duration follows the complete native MIDI clock", () => {
     const result = await render([[0, 500000]], 2, 1.5);
     expect(result.duration.status).toBe("pass");
   });
+
+  it.each([
+    { rendered: 0.99, status: "pass", tolerance: 0.01 },
+    { rendered: 0.989, status: "fail", tolerance: 0.01 },
+    { rendered: 3, status: "pass", tolerance: 2 },
+    { rendered: 4, status: "warning", tolerance: 2 },
+    { rendered: 6, status: "fail", tolerance: 2 },
+  ])("reports the applicable tolerance for $rendered seconds of output", async ({ rendered, status, tolerance }) => {
+    const result = await render([[0, 500000]], 2, rendered);
+    expect(result.duration).toMatchObject({ status, toleranceSeconds: tolerance });
+  });
+
 });
