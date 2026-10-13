@@ -21,7 +21,7 @@ import zipfile
 
 
 HELPERS = ('check_checkout.py', 'check_tutorial_delivery.py', 'normalize_ug_score.py',
-           'prepare_syntheory.py', 'recover_vocal.py')
+           'pin_preparation_request.py', 'prepare_syntheory.py', 'recover_vocal.py')
 LEVELS = ('a', 'b', 'e', 'm', 'vb', 've')
 ARTIFACTS = ('manifest.json', *[f'{level}/{name}' for level in LEVELS for name in ('notes.json', 'variant.mid', 'variant.xml')])
 BUNDLE_FILES = (*['artifacts/' + name for name in ARTIFACTS], 'rows.json', 'timeline.json', 'playback.json', 'chords.mid', 'chords.musicxml')
@@ -76,7 +76,7 @@ def validate_metadata(root):
         raise ValueError('invalid skill agent interface metadata')
     helpers = sorted(path.name for path in (skill / 'scripts').glob('*.py'))
     if helpers != list(HELPERS):
-        raise ValueError('packaged helper inventory differs from the five reviewed offline entries')
+        raise ValueError('packaged helper inventory differs from the declared offline entries')
     return {'pluginName': plugin['name'], 'pluginVersion': plugin['version'], 'skillName': 'keyspilli-song',
             'helpers': helpers, 'references': packager().validate_references(root)}
 
@@ -284,6 +284,38 @@ def check(source, checkout, node, report):
                     source_bytes = synthetic_midi()
                     input_path = smoke / 'synthetic.mid'
                     input_path.write_bytes(source_bytes)
+                    if preflight.get('deterministic_workflow', {}).get('status') == 'compatible':
+                        request_path = smoke / 'request.json'
+                        instructions = scripts.parent / 'SKILL.md'
+                        pinning = json.loads(run_command([
+                            sys.executable, '-B', str(scripts / 'pin_preparation_request.py'),
+                            '--source', str(input_path), '--instruction', str(instructions),
+                            '--title', 'Synthetic plugin compatibility', '--artist', 'Software control',
+                            '--expected-source-sha256', sha256(source_bytes), '--output', str(request_path),
+                        ], checkout, env, value['commands']))
+                        if (pinning.get('status') != 'pinned' or pinning.get('requestPath') != str(request_path)
+                                or pinning.get('requestSha256') != sha256(request_path.read_bytes())
+                                or pinning.get('semanticAdmission') != 'not-run'):
+                            raise ValueError('extracted helper did not retain the exact provisional request')
+                        # Import the maintained host admission, not a mirrored Python schema.
+                        admission = json.loads(run_command([
+                            executable, '--import', 'tsx', '--input-type=module', '-e',
+                            "import {admitRequest} from './apps/web/src/lib/prepare-workflow-pins.ts'; "
+                            "const a = admitRequest(process.cwd(), process.argv[1]); "
+                            "console.log(JSON.stringify({kind:a.request.kind, sourceSha256:a.sourceSha256, "
+                            "instructions:a.request.instructions, files:a.files.length}));",
+                            '--', str(request_path),
+                        ], checkout, env, value['commands']))
+                        if admission != {'kind': 'keyspilli-deterministic-preparation',
+                                         'sourceSha256': sha256(source_bytes), 'files': 3,
+                                         'instructions': [{'path': str(instructions),
+                                                           'sha256': sha256(instructions.read_bytes())}]}:
+                            raise ValueError('actual host admission differs from the selected input bytes')
+                        value['requestPinning'] = {'status': 'passed', 'pinning': pinning, 'admission': admission,
+                                                   'scope': 'Extracted request helper and actual host admission; no musical approval.'}
+                    else:
+                        value['requestPinning'] = {'status': 'unavailable',
+                                                   'reason': 'No compatible deterministic host; ordinary preparation remains independent.'}
                     run = smoke / 'ordinary-run'
                     run_command([*preparation, str(input_path), str(run), 'Synthetic plugin compatibility', 'Software control'], checkout, env, value['commands'], timeout=180)
                     value['preparation'] = inspect_preparation(run, sha256(source_bytes))

@@ -32,6 +32,7 @@ Preserve accepted Original/backing when improving an existing catalog entry.
    For a local MIDI task that needs a resumable checkpoint, use the
    [deterministic preparation workflow](references/deterministic-preparation.md)
    only when `deterministic_workflow.status: compatible`.
+   Use its packaged request-pinning helper instead of hand-writing hashes or JSON.
 4. **Diagnose and correct.** When `score_review.status: compatible`, use the
    [offline score review](references/score-review-workflow.md). Repair only an
    exact authorized event with unchanged evidence pins. Preserve protected

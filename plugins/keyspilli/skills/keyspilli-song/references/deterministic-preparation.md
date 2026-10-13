@@ -14,36 +14,38 @@ to a separate protocol; compatibility with one does not imply the other.
 
 ## Pin the actual request
 
-Create a version-1 request using absolute paths and SHA-256 hashes computed from
-the actual supplied bytes. Replace every example value below. Keep the source
-and instruction files available for later resume and verification.
+From the skill directory, use the packaged helper to create the existing
+version-1 request directly from the selected files. Keep those files available
+for later host admission, resume and verification.
 
-```json
-{
-  "schemaVersion": 1,
-  "kind": "keyspilli-deterministic-preparation",
-  "sourceMidi": {
-    "path": "/absolute/source.mid",
-    "sha256": "ACTUAL_SOURCE_SHA256"
-  },
-  "instructions": [
-    {
-      "path": "/absolute/instructions.md",
-      "sha256": "ACTUAL_INSTRUCTION_SHA256"
-    }
-  ],
-  "title": "Title",
-  "artist": "Artist"
-}
+```sh
+python3 scripts/pin_preparation_request.py \
+  --source /absolute/source.mid \
+  --instruction /absolute/instructions.md \
+  --title "Title" --artist "Artist" \
+  --output /absolute/new-request.json
 ```
 
-Use one to eight instruction files that were actually supplied for the task.
-Their hashes record those files; they do not attest the assistant's complete
-active instructions. To preserve explicitly selected source events, add
-`phrasePlan: {"path": "/absolute/phrase-plan.json", "sha256": "ACTUAL_FILE_SHA256"}`
-and follow [phrase protection](phrase-protection.md). The supplied hash binds
-the raw file; the host also retains the existing canonical plan/source binding.
-An unselected inspection proposal is not a valid protection plan.
+Use the returned `requestPath` as the host input, not the helper's stdout JSON.
+The helper computes actual SHA-256 values, normalizes relative paths without a
+shell, preserves instruction order and writes a new private request file. It
+never overwrites an output, follows symlinks, writes inside its own package,
+creates missing parents, or accepts parent traversal. Its `--help` and
+`--self-test` require no checkout, provider or network access.
+
+Repeat `--instruction` for one to eight real task instruction files. Their hashes
+record those files, not the assistant's complete active instructions. When a
+source hash is already frozen, pass `--expected-source-sha256` with that exact
+value; a mismatch refuses the request instead of silently selecting new bytes.
+A computed hash alone does not identify the composition, performance or rights.
+
+For explicitly selected protected events, add `--phrase-plan /absolute/plan.json`
+and follow [phrase protection](phrase-protection.md). This pins the raw plan;
+it neither selects notes nor validates musical roles. An unselected inspector
+proposal is not an approved protection plan. The maintained host still performs
+MIDI/workload parsing, canonical source/plan binding and catalog collision checks.
+A `pinned` result explicitly says `semanticAdmission: not-run`: it is request
+construction, not preparation, musical acceptance or publication.
 
 Admission bounds the request to 64 KiB, MIDI to 16 MiB, PhrasePlan to 2 MiB and
 each instruction file to 1 MiB. Unsupported formats or fields, stale pins and
