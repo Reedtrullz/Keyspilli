@@ -151,6 +151,24 @@ describe("verify-catalog read-model integrity gate", () => {
     });
   });
 
+  it("reports failures of learner-blocked bases as warnings without hiding unblocked failures", async () => {
+    const policy = join(dataDir, "learner-review.json");
+    const run = () =>
+      execFile(process.execPath, ["--import", "tsx", "packages/catalog/scripts/verify-catalog.ts", baseId], {
+        cwd: root,
+        env: { ...process.env, KEYSPILLI_DATA_DIR: dataDir },
+        maxBuffer: 2 * 1024 * 1024,
+      });
+    writeFileSync(policy, JSON.stringify({ verdicts: { [baseId]: { blocked: true } } }));
+    const blocked = await run();
+    expect(blocked.stdout).toContain(`WARN ${baseId} (blocked from learners; failures not gated)`);
+    expect(blocked.stdout).toContain("database missing levels: m");
+    expect(blocked.stdout).toContain(`blocked-from-learners, not gated: ${baseId}`);
+    writeFileSync(policy, JSON.stringify({ verdicts: { [baseId]: { blocked: false } } }));
+    await expect(run()).rejects.toMatchObject({ code: 1, stdout: expect.stringContaining(`FAIL ${baseId}`) });
+    rmSync(policy);
+  });
+
   it("requires an explicit base id for repair mode", async () => {
     await expect(
       execFile(process.execPath, ["--import", "tsx", "packages/catalog/scripts/verify-catalog.ts", "--repair"], {

@@ -9,6 +9,7 @@ import { artifactFidelityForRead, BEGINNER_OFFGRID_CANDIDATE, LEVEL_ORDER, valid
 import { getDb } from "../src/db.js";
 import { MAX_YOUTUBE_IMPORT_DUR_BEATS } from "../src/ingest.js";
 import { disabledManifestBases } from "../src/manifest.js";
+import { blockedLearnerBases } from "../src/learner-review.js";
 import { dataDir } from "../src/paths.js";
 import { compareProvenanceSnapshots, type ProvenanceSnapshot } from "../src/provenance.js";
 import {
@@ -79,6 +80,8 @@ type ArtifactProvenance = {
 const artifactsRoot = join(dataDir(), "artifacts");
 const db = getDb();
 const disabledBases = disabledManifestBases();
+const blockedBases = blockedLearnerBases();
+const blockedNotGated: string[] = [];
 // A targeted rebuild can verify only the base it touched; the default remains
 // the fail-closed full-catalog gate used by CI and release checks.
 const linkedRows = db
@@ -371,7 +374,12 @@ for (const song of linkedBases) {
       }
     }
   }
-  if (issues.length) {
+  if (issues.length && blockedBases.has(song) && !disabledBases.has(song)) {
+    blockedNotGated.push(song);
+    warnings += issues.length;
+    console.log(`WARN ${song} (blocked from learners; failures not gated)`);
+    for (const issue of issues) console.log(`  - ${issue}`);
+  } else if (issues.length) {
     failed++;
     console.log(`FAIL ${song}`);
     for (const issue of issues) console.log(`  - ${issue}`);
@@ -389,5 +397,6 @@ const manifestSummary = Object.entries(manifestCounts)
   .map(([status, count]) => `${status}=${count}`)
   .join(", ");
 console.log(`verify-catalog: ${failed} of ${linkedBases.length} songs failed, ${warnings} data warnings, ${repaired} tempo mirror sets repaired${orphanSuffix}`);
+if (blockedNotGated.length) console.log(`verify-catalog blocked-from-learners, not gated: ${blockedNotGated.join(", ")}`);
 console.log(`verify-catalog manifests: ${manifestSummary || "none"}`);
 if (failed) process.exitCode = 1;

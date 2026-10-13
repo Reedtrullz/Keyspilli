@@ -163,6 +163,31 @@
       "blocked": false,
       "feedback": "Earlier version was recognizable but rough; strict-source rebuild is now published for a fresh listening check.",
       "action": "retain as a polish item until automated source and playability gates pass"
+    },
+    "preview-job-a1441280-05de-46b2-88bc-7acbc5bc29fb": {
+      "blocked": true,
+      "feedback": "Tutorial preview job output (Come As You Are), not a curated arrangement; fails the long-note playability check.",
+      "action": "hidden from learners; artifacts and rows retained as evidence, not deleted"
+    },
+    "preview-job-a30f9c99-bc15-4432-8f3c-030e7eb0584a": {
+      "blocked": true,
+      "feedback": "Tutorial preview job output (Take What You Want), not a curated arrangement; fails the long-note playability check.",
+      "action": "hidden from learners; artifacts and rows retained as evidence, not deleted"
+    },
+    "preview-job-db7fc4ea-1bfe-40b9-b9cb-df5c33754539": {
+      "blocked": true,
+      "feedback": "Tutorial preview job output (Prayer Of The Refugee), not a curated arrangement; fails the long-note playability check.",
+      "action": "hidden from learners; artifacts and rows retained as evidence, not deleted"
+    },
+    "your-song-review-b-20261011": {
+      "blocked": true,
+      "feedback": "Owner listening-review candidate (Your Song B, dynamics); single level, not a learner song.",
+      "action": "hidden from learners; artifacts and rows retained as evidence, not deleted"
+    },
+    "your-song-review-c-20261011": {
+      "blocked": true,
+      "feedback": "Owner listening-review candidate (Your Song C, timing and durations); single level, not a learner song.",
+      "action": "hidden from learners; artifacts and rows retained as evidence, not deleted"
     }
   }
 }
