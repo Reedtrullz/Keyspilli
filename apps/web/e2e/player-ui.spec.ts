@@ -63,6 +63,7 @@ test("full width mode expands the player and persists across reload", async ({ p
   const defaultClass = await root.getAttribute("class");
   expect(defaultClass).toContain("max-w-6xl");
 
+  await page.getByRole("button", { name: "Display & loop", exact: true }).click();
   await page.getByRole("button", { name: "Full width" }).click();
   const expandedClass = await root.getAttribute("class");
   expect(expandedClass).toContain("w-full");
@@ -81,7 +82,7 @@ test("full width player fits the 390px mobile viewport without horizontal scroll
   await page.goto(`/player/${SONG}`);
   await expect(page.locator("canvas").first()).toBeVisible();
 
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await page.getByRole("button", { name: "Display & loop", exact: true }).click();
   await page.getByRole("button", { name: "Full width" }).click();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

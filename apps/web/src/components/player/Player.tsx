@@ -44,6 +44,7 @@ import { DownloadDialog } from "./DownloadDialog";
 import { GradingPanel } from "./GradingPanel";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
+import { displaySong } from "../song-display";
 import {
   resolveChordSources,
   selectChordSource,
@@ -90,7 +91,6 @@ function playerVariantsForDisplay(song: Pick<SongRow, "difficulty">, variants: r
 
 /** Pressed keys drop if their noteOff was lost (common with USB-MIDI). */
 const GHOST_KEY_TIMEOUT_MS = 5000;
-const TEMPO_SEMANTICS_NOTICE_KEY = "keyspilli.tempo-semantics.v1";
 
 function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mode: ViewMode | null; focusTarget?: "practice" }) {
   const [settings, setSettings] = useState<PlayerSettings>(() => {
@@ -153,14 +153,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   showDownloadRef.current = showDownload;
   showModeMenuRef.current = showModeMenu;
   showAdjustRef.current = showAdjust;
-  const [isNarrowViewport, setIsNarrowViewport] = useState(false);
   const modeMenuPresence = usePresence(showModeMenu);
   const adjustPresence = usePresence(showAdjust);
   const modeSwitch = useAnimatedSwitch(settings.mode);
   const sectionsSwitch = useAnimatedSwitch(sectionsCollapsed);
   const playingNoticePresence = usePresence(playing);
-  const [showTempoSemanticsNotice, setShowTempoSemanticsNotice] = useState(false);
-  const tempoNoticePresence = usePresence(showTempoSemanticsNotice);
   const [grading, setGrading] = useState(false);
   const gradingPresence = usePresence(grading);
   const [chordPracticeActive, setChordPracticeActive] = useState(false);
@@ -180,19 +177,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   });
 
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 640px)");
-    const update = () => setIsNarrowViewport(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
-  useEffect(() => {
     const panel = adjustPanelRef.current;
     if (!panel) return;
-    if (isNarrowViewport && !showAdjust) panel.setAttribute("inert", "");
+    if (!showAdjust) panel.setAttribute("inert", "");
     else panel.removeAttribute("inert");
-  }, [isNarrowViewport, showAdjust, adjustPresence.mounted]);
+  }, [showAdjust, adjustPresence.mounted]);
 
   useEffect(() => {
     const layer = sectionsExitRef.current;
@@ -205,19 +194,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (!showModeMenu) menu.setAttribute("inert", "");
     else menu.removeAttribute("inert");
   }, [modeMenuPresence.mounted, showModeMenu]);
-
-  // Tempo semantics changed from rewriting beat coordinates to controlling
-  // playback speed. Keep acknowledgement in versioned UI state so a future
-  // semantics change can show a new notice without touching artifact data.
-  useEffect(() => {
-    setShowTempoSemanticsNotice(loadJson<boolean>(TEMPO_SEMANTICS_NOTICE_KEY, false) !== true);
-  }, []);
-
-  function dismissTempoSemanticsNotice() {
-    saveJson(TEMPO_SEMANTICS_NOTICE_KEY, true);
-    setShowTempoSemanticsNotice(false);
-    window.requestAnimationFrame(() => modeMenuTriggerRef.current?.focus());
-  }
 
   const engineRef = useRef<PlaybackEngine | null>(null);
   const audioSwapStateRef = useRef<{ time: number; playing: boolean } | null>(null);
@@ -822,8 +798,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     <div className={`${fullWidth ? "w-full px-4 py-6" : "max-w-6xl mx-auto px-4 py-6"} page-shell player-page`}>
       <div className="mb-3 flex items-center gap-2 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
-          <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{displaySong(initial.song.title, initial.song.artist).title}</h1>
+          {displaySong(initial.song.title, initial.song.artist).artist && <div className="text-sm text-zinc-500">by {displaySong(initial.song.title, initial.song.artist).artist}</div>}
         </div>
         <div className="ml-auto flex gap-2 text-xs">
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>
@@ -841,29 +817,37 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           )}
           {midiConnected && <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">MIDI connected</span>}
         </div>
-      </div>
-
-      {tempoNoticePresence.mounted && (
-        <div
-          className="motion-presence mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900"
-          data-state={tempoNoticePresence.visible ? "open" : "closed"}
-          // Keep the closing notice in the accessibility tree until the
-          // presence hook unmounts it; hiding a focused button mid-exit leaves
-          // keyboard and screen-reader focus in an aria-hidden subtree.
-          aria-hidden={false}
-          role="status"
-        >
-          <div className="flex items-start gap-3">
-            <p className="flex-1">
-              Practice tempo changes playback speed only and preserve the arrangement&apos;s beat coordinates. Source tempo
-              corrections are a separate maintainer calibration/rebuild action.
-            </p>
-            <button onClick={dismissTempoSemanticsNotice} className="shrink-0 rounded-lg border border-indigo-300 px-2 py-1 text-xs font-medium hover:bg-indigo-100">
-              Got it
-            </button>
-          </div>
+        <div className="player-song-actions flex gap-1" role="group" aria-label="Song actions">
+          <button
+            onClick={toggleFavorite}
+            aria-pressed={favorites.includes(initial.song.id)}
+            aria-label="Favorite"
+            title={favorites.includes(initial.song.id) ? "Remove from favorites" : "Add to favorites"}
+            className={"pressable min-w-11 min-h-11 rounded-full border text-base " + (favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300 text-rose-600" : "border-zinc-300 hover:bg-zinc-100")}
+          >
+            {favorites.includes(initial.song.id) ? "♥" : "♡"}
+          </button>
+          <button
+            onClick={toggleLearned}
+            aria-pressed={learned.includes(initial.song.id)}
+            aria-label="Learned"
+            title={learned.includes(initial.song.id) ? "Marked as learned" : "Mark as learned"}
+            className={"pressable min-w-11 min-h-11 rounded-full border text-base " + (learned.includes(initial.song.id) ? "bg-green-100 border-green-300 text-green-700" : "border-zinc-300 hover:bg-zinc-100")}
+          >
+            ✓
+          </button>
+          <button
+            ref={downloadTriggerRef}
+            onClick={() => setShowDownload(true)}
+            className="pressable min-w-11 min-h-11 rounded-full border border-zinc-300 text-base hover:bg-zinc-100"
+            aria-label="Download sheet music and MIDI"
+            title="Download sheet music and MIDI"
+          >
+            ↓
+          </button>
         </div>
-      )}
+
+      </div>
 
       <div className="player-options flex flex-wrap items-center gap-2 mb-4">
         <div className="player-primary-controls flex flex-wrap items-center gap-2">
@@ -929,6 +913,17 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           </div>
 
           <button
+            onClick={() => chordPracticeActive ? exitChordPractice() : startChordPractice()}
+            ref={chordPracticeTriggerRef}
+            className={"pressable min-h-11 px-4 py-2 rounded-full border text-sm font-medium " + (chordPracticeActive ? "bg-indigo-100 border-indigo-300 text-indigo-900" : "border-indigo-300 text-indigo-800 hover:bg-indigo-50")}
+            aria-pressed={chordPracticeActive}
+          >
+            {chordPracticeActive ? "Exit chord practice" : "Chord practice"}
+          </button>
+          <button ref={settingsTriggerRef} onClick={() => setShowSettings(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 text-sm font-medium hover:bg-zinc-100" aria-label="Open settings">
+            Settings
+          </button>
+          <button
             type="button"
             ref={adjustTriggerRef}
             onClick={() => setShowAdjust((visible) => !visible)}
@@ -936,7 +931,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             aria-controls="player-adjust-panel"
             className="player-adjust-toggle pressable min-h-11 px-3 py-2 rounded-full border border-zinc-300 text-sm"
           >
-            {showAdjust ? "Done" : "Adjust"}
+            {showAdjust ? "Done" : "Display & loop"}
           </button>
         </div>
 
@@ -949,7 +944,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           data-state={adjustPresence.visible ? "open" : "closed"}
           role="group"
           aria-label="Player adjustments"
-          aria-hidden={isNarrowViewport && !showAdjust ? true : undefined}
+          aria-hidden={!showAdjust ? true : undefined}
         >
           <button
             onClick={() => updateSettings({ chordKeys: !settings.chordKeys })}
@@ -1000,38 +995,6 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
             LOOP {loop ? "ON" : "OFF"}
           </button>
 
-          <div className="player-secondary-actions ml-auto flex flex-wrap justify-end gap-2 text-sm">
-            <button ref={downloadTriggerRef} onClick={() => setShowDownload(true)} className="pressable min-h-11 px-4 py-2 rounded-full bg-zinc-900 text-white font-medium hover:bg-zinc-700" aria-label="Download sheet music and MIDI">
-              Download Sheet &amp; MIDI
-            </button>
-            <button ref={settingsTriggerRef} onClick={() => setShowSettings(true)} className="pressable min-h-11 px-4 py-2 rounded-full border border-zinc-300 font-medium hover:bg-zinc-100" aria-label="Open settings">
-              Settings
-            </button>
-            <button
-              onClick={() => chordPracticeActive ? exitChordPractice() : startChordPractice()}
-              ref={chordPracticeTriggerRef}
-              className={`pressable min-h-11 px-4 py-2 rounded-full border font-medium ${chordPracticeActive ? "bg-indigo-100 border-indigo-300 text-indigo-900" : "border-indigo-300 text-indigo-800 hover:bg-indigo-50"}`}
-              aria-pressed={chordPracticeActive}
-            >
-              {chordPracticeActive ? "Exit chord practice" : "Chord practice"}
-            </button>
-            <button
-              onClick={toggleFavorite}
-              aria-pressed={favorites.includes(initial.song.id)}
-              className={`pressable min-h-11 px-3 py-2 rounded-full border text-sm ${favorites.includes(initial.song.id) ? "bg-rose-100 border-rose-300" : "border-zinc-300 hover:bg-zinc-100"}`}
-              title="Add to favorites"
-            >
-              {favorites.includes(initial.song.id) ? "♥ Favorited" : "♡ Favorite"}
-            </button>
-            <button
-              onClick={toggleLearned}
-              aria-pressed={learned.includes(initial.song.id)}
-              className={`pressable min-h-11 px-3 py-2 rounded-full border text-sm ${learned.includes(initial.song.id) ? "bg-green-100 border-green-300" : "border-zinc-300 hover:bg-zinc-100"}`}
-              title="Mark as learned"
-            >
-              {learned.includes(initial.song.id) ? "✓ Learned" : "Learned?"}
-            </button>
-          </div>
         </div>
       </div>
 
@@ -1056,8 +1019,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           </div>
           <div className="player-speed-controls flex items-center gap-1" aria-label="Practice speed">
             <button onClick={() => updateSettings({ speed: Math.max(0.25, +(settings.speed - 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Decrease speed">−</button>
-            <span className="px-2 text-xs font-medium" title="Practice speed">{Math.round(settings.speed * 100)}%</span>
+            <span className="px-2 text-xs font-medium">{Math.round(settings.speed * 100)}%</span>
             <button onClick={() => updateSettings({ speed: Math.min(2, +(settings.speed + 0.1).toFixed(2)) })} className="min-w-11 min-h-11 px-2 py-1.5 rounded-lg border border-zinc-300 text-xs" aria-label="Increase speed">+</button>
+            <span className="group relative">
+              <button type="button" className="pressable min-w-8 min-h-11 text-xs text-zinc-500" aria-label="About practice speed" aria-describedby="speed-tip">ⓘ</button>
+              <span id="speed-tip" role="tooltip" className="pointer-events-none absolute right-0 top-full z-30 mt-1 hidden w-56 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-normal text-white shadow-lg group-hover:block group-focus-within:block">
+                Speed changes playback only. The notes and beats stay as arranged.
+              </span>
+            </span>
           </div>
           <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
             <span>{fmtTime(time)}</span>
@@ -1404,8 +1373,8 @@ function PlayerShellView({ initial, mode }: { initial: PlayerShell; mode: ViewMo
     <div className="page-shell player-page max-w-6xl mx-auto px-4 py-6">
       <div className="mb-3 flex items-center gap-2 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
-          <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{displaySong(initial.song.title, initial.song.artist).title}</h1>
+          {displaySong(initial.song.title, initial.song.artist).artist && <div className="text-sm text-zinc-500">by {displaySong(initial.song.title, initial.song.artist).artist}</div>}
         </div>
         <div className="ml-auto flex gap-2 text-xs">
           <span className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 font-medium">{initial.song.key}</span>

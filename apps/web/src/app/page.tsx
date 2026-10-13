@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listSongsGrouped, countSongs, getDb, projectPublicGroupedSongs, type GroupedSong } from "@keyspilli/catalog";
-import { LEVEL_LABEL, LEVEL_SHORT } from "../components/level-labels";
+import { LEVEL_LABEL } from "../components/level-labels";
+import { displaySong } from "../components/song-display";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,9 @@ export default function HomePage() {
 function SongGrid({ songs }: { songs: GroupedSong[] }) {
   return (
     <ul className="motion-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {songs.map((s) => (
+      {songs.map((s) => {
+        const shown = displaySong(s.representative.title, s.representative.artist);
+        return (
         <li key={s.representative.id}>
           <div className="interactive-card rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400 transition-colors h-full">
             <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
@@ -54,12 +57,12 @@ function SongGrid({ songs }: { songs: GroupedSong[] }) {
               <span>{s.representative.tempo} BPM</span>
               <span className="ml-auto">{s.totalPlays > 0 ? `${s.totalPlays} plays` : ""}</span>
             </div>
-            <Link href={`/player/${s.representative.id}`} className="font-semibold leading-tight hover:underline">
-              {s.representative.title}
+            <Link href={`/player/${s.representative.id}`} className="font-semibold leading-tight hover:underline" title={s.representative.title}>
+              {shown.title}
             </Link>
-            <div className="text-sm text-zinc-500">{s.representative.artist}</div>
-            <div className="mt-3" role="group" aria-label={`Difficulty levels for ${s.representative.title}`}>
-              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Levels</span>
+            <div className="text-sm text-zinc-500">{shown.artist}</div>
+            <div className="mt-3" role="group" aria-label={`Difficulty levels for ${shown.title}`}>
+              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">Choose a level</span>
               <div className="flex flex-wrap gap-1">
                 {s.levels.map((l) => (
                   <Link
@@ -67,16 +70,17 @@ function SongGrid({ songs }: { songs: GroupedSong[] }) {
                     href={`/player/${l.id}`}
                     title={`${LEVEL_LABEL[l.difficulty] ?? l.difficulty} arrangement`}
                     aria-label={`Open ${LEVEL_LABEL[l.difficulty] ?? l.difficulty} level`}
-                    className="pressable px-2 py-0.5 rounded-full border border-zinc-300 text-[11px] text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-900"
+                    className="pressable px-2.5 py-1 rounded-full border border-zinc-300 text-xs text-zinc-700 hover:bg-zinc-900 hover:text-white hover:border-zinc-900"
                   >
-                    {LEVEL_SHORT[l.difficulty] ?? l.difficulty}
+                    {LEVEL_LABEL[l.difficulty] ?? l.difficulty}
                   </Link>
                 ))}
               </div>
             </div>
           </div>
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }

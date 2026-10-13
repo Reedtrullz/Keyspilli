@@ -510,32 +510,41 @@ body {
   align-items: flex-start;
 }
 
-.player-primary-controls {
-  min-width: max-content;
-}
-
-.player-adjust-toggle {
-  display: none;
-}
-
 .player-advanced-panel {
-  flex: 1 1 auto;
+  display: none;
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #e4e4e7;
+  border-radius: 1rem;
+  background: rgb(244 244 245 / 0.58);
+}
+
+.player-advanced-panel[data-mounted="true"] {
+  display: flex;
+}
+
+.player-advanced-panel[data-state="open"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  animation: motion-rise-in var(--motion-duration-base) var(--motion-ease-standard) both;
+  transition: opacity var(--motion-duration-base) var(--motion-ease-standard),
+    transform var(--motion-duration-base) var(--motion-ease-standard),
+    visibility 0s linear 0s;
+}
+
+.player-advanced-panel[data-state="closed"] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 6px, 0);
+  visibility: hidden;
+  transition: opacity var(--motion-duration-base) var(--motion-ease-exit),
+    transform var(--motion-duration-base) var(--motion-ease-exit),
+    visibility 0s linear var(--motion-duration-base);
 }
 
 .player-practice-button {
   order: 1;
-}
-
-@media (min-width: 641px) {
-  .player-primary-controls {
-    padding-right: 0.75rem;
-    border-right: 1px solid #e4e4e7;
-  }
-
-  .player-secondary-actions {
-    padding-left: 0.75rem;
-    border-left: 1px solid #e4e4e7;
-  }
 }
 
 @media (max-width: 640px) {
@@ -618,49 +627,6 @@ body {
   .player-primary-controls {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .player-adjust-toggle {
-    display: inline-flex;
-  }
-
-  .player-advanced-panel {
-    display: none;
-    width: 100%;
-    padding: 0.65rem;
-    border: 1px solid #e4e4e7;
-    border-radius: 1rem;
-    background: rgb(244 244 245 / 0.58);
-  }
-
-  .player-advanced-panel[data-mounted="true"] {
-    display: flex;
-  }
-
-  .player-advanced-panel[data-state="open"] {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-    visibility: visible;
-    animation: motion-rise-in var(--motion-duration-base) var(--motion-ease-standard) both;
-    transition: opacity var(--motion-duration-base) var(--motion-ease-standard),
-      transform var(--motion-duration-base) var(--motion-ease-standard),
-      visibility 0s linear 0s;
-  }
-
-  .player-advanced-panel[data-state="closed"] {
-    opacity: 0;
-    pointer-events: none;
-    transform: translate3d(0, 6px, 0);
-    visibility: hidden;
-    transition: opacity var(--motion-duration-base) var(--motion-ease-exit),
-      transform var(--motion-duration-base) var(--motion-ease-exit),
-      visibility 0s linear var(--motion-duration-base);
-  }
-
-  .player-secondary-actions {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
   }
 
   .player-control-strip {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listSongs, projectPublicSongRows, PUBLIC_DIFFICULTY_ORDER } from "@keyspilli/catalog";
 import { notFound } from "next/navigation";
 import { levelLabel } from "../../../components/level-labels";
+import { displaySong } from "../../../components/song-display";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
                 <span>{levelLabel(s.difficulty)}</span>
                 <span>{s.tempo} BPM</span>
               </div>
-              <div className="font-semibold leading-tight">{s.title}</div>
+              <div className="font-semibold leading-tight" title={s.title}>{displaySong(s.title, s.artist).title}</div>
             </Link>
           </li>
         ))}
