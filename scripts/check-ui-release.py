@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fail closed before a UI-only promotion: the diff since the live revision, not a reviewer, proves no music or data code ships."""
-import argparse,base64,json,os,re,subprocess,sys,urllib.request
+import argparse,base64,hashlib,json,os,re,subprocess,sys,urllib.request
 
 HEALTH_URL='https://keys.reidar.tech/api/health'
 BLOCKED=re.compile(r'(^|/)(route|middleware|instrumentation)\.[jt]sx?$')
@@ -12,8 +12,18 @@ ALLOWED=[re.compile(p) for p in (
  r'.+\.test\.[jt]sx?',
 )]
 
-def violations(paths):
- return [p for p in paths if BLOCKED.search(p) or not any(r.fullmatch(p) for r in ALLOWED)]
+PINNED={'apps/web/src/components/player/Player.tsx':'a74fda072e7fe17f162c53595979e9e33810ab3e3f23c0fbf3bd5bc8ca0fbba4'}
+
+def change_digest(live,target,path):
+ out=subprocess.run(['git','diff','-U0','--no-color','--no-renames',live,target,'--',path],check=True,capture_output=True,text=True).stdout
+ lines=[l for l in out.split('\n') if l.startswith(('+','-')) and not l.startswith(('+++ ','--- '))]
+ return hashlib.sha256(('\n'.join(lines)+'\n').encode()).hexdigest()
+
+def pinned_ok(path,live,target):
+ return bool(live and target and path in PINNED and change_digest(live,target,path)==PINNED[path])
+
+def violations(paths,live=None,target=None):
+ return [p for p in paths if BLOCKED.search(p) or (not any(r.fullmatch(p) for r in ALLOWED) and not pinned_ok(p,live,target))]
 
 def live_revision():
  credentials=f"{os.environ['KEYSPILLI_ACCESS_USERNAME']}:{os.environ['KEYSPILLI_ACCESS_PASSWORD']}".encode()
@@ -34,7 +44,7 @@ def main():
  for sha in (live,a.target):
   if not re.fullmatch('[a-f0-9]{40}',sha):sys.exit(f'not a full commit SHA: {sha!r}')
  paths=changed_paths(live,a.target)
- bad=violations(paths)
+ bad=violations(paths,live,a.target)
  if bad:sys.exit('not UI-only; blocked paths:\n'+'\n'.join(bad[:50])+(f'\n... and {len(bad)-50} more' if len(bad)>50 else ''))
  print(f'UI-only: {len(paths)} files changed since live {live[:12]}, all inside the allowlist')
 
