@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/keyspilli-listening-review
   push:
     branches:
       - main
@@ -18,6 +19,16 @@ on:
           - deploy_only
           - rebuild_target
           - rebuild_all
+      promote_reviewed:
+        description: "Skip automatic checks only after the exact reviewed main check and manifest are pinned"
+        required: false
+        default: false
+        type: boolean
+      ui_only_release:
+        description: "Deploy a UI-only change without the music manifest: full automatic checks run, and the diff since the live revision must stay inside the UI allowlist"
+        required: false
+        default: false
+        type: boolean
       rebuild_confirmation:
         description: "Only for rebuild_all: type REBUILD_ALL_CATALOG"
         required: false
@@ -52,7 +63,8 @@ concurrency:
 
 jobs:
   checks:
-    name: Automatic checks
+    name: ${{ github.event.inputs.promote_reviewed == 'true' && 'Promotion prerequisites' || 'Automatic checks' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.promote_reviewed == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -129,6 +141,9 @@ jobs:
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
           python3 deploy/test/test-release-operation.py
+          python3 scripts/test_check_music_release.py
+          python3 scripts/test_check_ui_release.py
+          python3 scripts/test_ui_release_workflow.py
           python3 deploy/test/test-worker-queue.py
           python3 -m unittest \
             deploy.test_worker_resources.WorkerResourceBoundary.test_native_limits_are_bounded_without_shell_commands \
@@ -159,6 +174,15 @@ jobs:
           RESTORE_REVISION: ${{ github.sha }}
         run: |
           test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
+          pull_ok=0
+          for attempt in 1 2 3 4 5; do
+            if docker pull public.ecr.aws/docker/library/node:22.22.3-bookworm-slim; then
+              pull_ok=1
+              break
+            fi
+            sleep $((attempt * 15))
+          done
+          test "$pull_ok" = 1
           docker build -f apps/web/Dockerfile --build-arg VERSION="$RESTORE_REVISION" -t keyspilli-restore:ci .
           export KEYSPILLI_BACKUP_WEB_IMAGE_ID="$(docker image inspect keyspilli-restore:ci --format '{{.Id}}')"
           export KEYSPILLI_BACKUP_WEB_REVISION="$RESTORE_REVISION"
@@ -193,15 +217,97 @@ jobs:
           print("Current web image restored the public seed pair; policy bytes and owned-container cleanup verified")
           PY
 
+  release-readiness:
+    name: Reviewed music release readiness
+    runs-on: ubuntu-24.04
+    needs: checks
+    timeout-minutes: 5
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.promote_reviewed == true &&
+      inputs.ui_only_release == false &&
+      inputs.operation == 'deploy_only' &&
+      needs.checks.result == 'skipped'
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - name: Check out reviewed revision
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Read exact-head check results from GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" --jq '.check_runs[]' > "$RUNNER_TEMP/check-runs.jsonl"
+          jq -s '{check_runs:.}' "$RUNNER_TEMP/check-runs.jsonl" > "$RUNNER_TEMP/music-checks.json"
+      - name: Require reviewed four-gate manifest before publication or deployment
+        env:
+          KEYSPILLI_MUSIC_RELEASE_MANIFEST_JSON: ${{ vars.KEYSPILLI_MUSIC_RELEASE_MANIFEST_JSON }}
+          RELEASE_OPERATION: ${{ inputs.operation || 'deploy_only' }}
+        run: |
+          test "$RELEASE_OPERATION" = deploy_only
+          python3 scripts/check-music-release.py --commit "$GITHUB_SHA" --checks "$RUNNER_TEMP/music-checks.json"
+
+  ui-release-readiness:
+    name: UI-only release readiness
+    runs-on: ubuntu-24.04
+    needs: checks
+    timeout-minutes: 5
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false)) &&
+      inputs.ui_only_release == true &&
+      inputs.promote_reviewed == false &&
+      inputs.operation == 'deploy_only' &&
+      needs.checks.result == 'success'
+    permissions:
+      contents: read
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          fetch-depth: 0
+      - name: Require a UI-only change since the revision production reports
+        env:
+          KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
+          KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            python3 scripts/check-ui-release.py --target "$GITHUB_SHA"
+          else
+            python3 scripts/check-ui-release.py --target "$GITHUB_SHA" --tooling-ref origin/main
+          fi
+
   build-and-push:
     name: Build and push images to GHCR
     permissions:
       contents: read
       packages: write
     runs-on: ubuntu-24.04
-    needs: checks
+    needs: [checks, release-readiness, ui-release-readiness]
     timeout-minutes: 30
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false)) &&
+      inputs.operation == 'deploy_only' &&
+      ((inputs.promote_reviewed == true &&
+        inputs.ui_only_release == false &&
+        needs.checks.result == 'skipped' &&
+        needs.release-readiness.result == 'success') ||
+       (inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false &&
+        needs.checks.result == 'success' &&
+        needs.ui-release-readiness.result == 'success'))
 
     outputs:
       image: ${{ steps.image.outputs.image }}
@@ -219,7 +325,7 @@ jobs:
         id: image
         run: |
           echo "image=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
@@ -311,8 +417,26 @@ jobs:
     needs:
       - checks
       - build-and-push
+      - release-readiness
+      - ui-release-readiness
     timeout-minutes: 20
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false)) &&
+      inputs.operation == 'deploy_only' &&
+      needs.build-and-push.result == 'success' &&
+      ((inputs.promote_reviewed == true &&
+        inputs.ui_only_release == false &&
+        needs.checks.result == 'skipped' &&
+        needs.release-readiness.result == 'success') ||
+       (inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false &&
+        needs.checks.result == 'success' &&
+        needs.ui-release-readiness.result == 'success'))
     environment:
       name: production
       url: https://keys.reidar.tech
