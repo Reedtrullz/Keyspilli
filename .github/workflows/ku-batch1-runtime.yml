@@ -1,0 +1,48 @@
+name: KU Batch 1 isolated runtime
+on:
+  push:
+    branches: ['codex/ku-batch1-runtime']
+permissions:
+  contents: read
+jobs:
+  bootstrap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22.22.3'
+      - name: Export exact public source and pinned runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ku-runtime"
+          git fetch --no-tags origin bc0c027b4823f77980dcfd61c828c49df82df70f 6e674076b205811fb0868843a6783d2b71d2c3fa
+          git branch ku-candidate bc0c027b4823f77980dcfd61c828c49df82df70f
+          git branch ku-main 6e674076b205811fb0868843a6783d2b71d2c3fa
+          git bundle create "$RUNNER_TEMP/ku-runtime/source.bundle" ku-candidate ku-main
+          git checkout --detach ku-candidate
+          npm ci --no-audit --no-fund
+          tar -czf "$RUNNER_TEMP/ku-runtime/dependencies.tar.gz" $(find . -type d -name node_modules -prune -print)
+          tar -czf "$RUNNER_TEMP/ku-runtime/node.tar.gz" -C "$(dirname "$(dirname "$(command -v node)")")" bin include lib share
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fluidsynth
+          mkdir -p "$RUNNER_TEMP/ku-runtime/fluidsynth"
+          cp /usr/bin/fluidsynth "$RUNNER_TEMP/ku-runtime/fluidsynth/"
+          cp /usr/share/doc/fluidsynth/copyright "$RUNNER_TEMP/ku-runtime/fluidsynth/COPYRIGHT"
+          fluidsynth --version > "$RUNNER_TEMP/ku-runtime/fluidsynth/version.txt"
+          ldd /usr/bin/fluidsynth > "$RUNNER_TEMP/ku-runtime/fluidsynth/ldd.txt"
+          { node --version; npm --version; python3 --version; uname -a; git rev-parse HEAD; } > "$RUNNER_TEMP/ku-runtime/environment.txt"
+          cd "$RUNNER_TEMP/ku-runtime"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ku-batch1-runtime
+          path: ${{ runner.temp }}/ku-runtime/
+          retention-days: 3
+          compression-level: 0
+          if-no-files-found: error
