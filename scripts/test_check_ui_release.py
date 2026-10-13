@@ -11,6 +11,20 @@ class PathTests(unittest.TestCase):
   paths=['apps/web/src/components/player/Player.tsx','apps/web/src/components/player/chord-practice.ts','.github/workflows/ci.yml','packages/midi/src/validate.ts','packages/catalog/src/db.ts','packages/player-core/src/engine.ts','apps/web/src/lib/catalog-api.ts','apps/web/src/app/api/songs/route.ts','services/transcribe/src/x.py','deploy/playbook.yml','package-lock.json','apps/web/Dockerfile','catalog/manifest.json','apps/web/src/app/export/route.ts','apps/web/src/components/hidden/middleware.ts']
   self.assertEqual(ui.violations(paths),paths)
 
+class LiveRevisionTests(unittest.TestCase):
+ def test_health_request_identifies_itself_and_never_uses_the_python_default_agent(self):
+  import io,json
+  from unittest import mock
+  seen=[]
+  def fake(request,timeout):
+   seen.append(request);return io.BytesIO(json.dumps({'status':'healthy','version':'a'*40}).encode())
+  with mock.patch.dict(os.environ,{'KEYSPILLI_ACCESS_USERNAME':'u','KEYSPILLI_ACCESS_PASSWORD':'p'}),mock.patch.object(ui.urllib.request,'urlopen',fake):
+   self.assertEqual(ui.live_revision(),'a'*40)
+  headers={k.lower():v for k,v in seen[0].header_items()}
+  self.assertEqual(headers['user-agent'],ui.USER_AGENT)
+  self.assertNotIn('python',headers['user-agent'].lower())
+  self.assertTrue(headers['authorization'].startswith('Basic '))
+
 class GitTests(unittest.TestCase):
  def setUp(self):
   self.dir=tempfile.TemporaryDirectory();self.old=os.getcwd();os.chdir(self.dir.name)
