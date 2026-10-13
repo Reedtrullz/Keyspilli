@@ -1,0 +1,42 @@
+name: Delivery integration workspace
+on:
+  push:
+    branches: [codex/delivery-workspace-bootstrap]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22.22.3'
+      - name: Assemble unchanged candidate in an isolated local branch
+        run: |
+          git config user.name 'Keyspilli integration verification'
+          git config user.email 'integration@localhost'
+          git checkout -b delivery-local e94014e2bd4c8cf31242820c9676e3d70e0d2c7e
+          git merge --no-ff --no-edit 5ff8cec630e20606d02fc34ff5e63efd895a904a
+          git merge --no-ff --no-edit 0b80bc480e2a53c25b18c2fa52ab7081bc83d8a3
+          mkdir -p "$RUNNER_TEMP/delivery-workspace"
+          git log -3 --format='%H %T %P %s' > "$RUNNER_TEMP/delivery-workspace/revisions.txt"
+          git bundle create "$RUNNER_TEMP/delivery-workspace/source.bundle" delivery-local
+          git status --porcelain > "$RUNNER_TEMP/delivery-workspace/status.txt"
+      - name: Install pinned dependencies for offline local testing
+        run: |
+          npm ci --no-audit --no-fund
+          tar -czf "$RUNNER_TEMP/delivery-workspace/dependencies.tar.gz" node_modules
+          cp "$(command -v node)" "$RUNNER_TEMP/delivery-workspace/node"
+          cd "$RUNNER_TEMP/delivery-workspace"
+          sha256sum source.bundle dependencies.tar.gz node revisions.txt status.txt > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: keyspilli-delivery-workspace
+          path: ${{ runner.temp }}/delivery-workspace/
+          if-no-files-found: error
+          retention-days: 7
