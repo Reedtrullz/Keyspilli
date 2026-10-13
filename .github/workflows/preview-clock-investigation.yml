@@ -1,0 +1,38 @@
+name: Preview clock investigation
+# Temporary isolated diagnostic branch; removed before opening the implementation PR.
+on:
+  push:
+    branches: [codex/preview-native-clock]
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22.22.3'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Retain exact scoped renderer for offline reproduction
+        run: |
+          mkdir -p "$RUNNER_TEMP/preview-clock"
+          cp packages/catalog/src/midi-renderer.ts "$RUNNER_TEMP/preview-clock/"
+          cp packages/catalog/test/midi-renderer.test.ts "$RUNNER_TEMP/preview-clock/"
+          cp packages/midi/src/parse.ts "$RUNNER_TEMP/preview-clock/"
+          ./node_modules/.bin/esbuild packages/catalog/src/midi-renderer.ts --bundle --platform=node --format=esm --outfile="$RUNNER_TEMP/preview-clock/renderer.mjs"
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/preview-clock/revision.txt"
+          sha256sum "$RUNNER_TEMP/preview-clock/"* > "$RUNNER_TEMP/preview-clock/SHA256SUMS"
+      - name: Reproduce regression through actual renderer
+        run: npm test --workspace @keyspilli/catalog -- test/midi-renderer-preview-clock.test.ts --reporter=json --outputFile="$RUNNER_TEMP/preview-clock/tests.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: preview-clock-${{ github.sha }}
+          path: ${{ runner.temp }}/preview-clock/
+          if-no-files-found: error
+          retention-days: 7
