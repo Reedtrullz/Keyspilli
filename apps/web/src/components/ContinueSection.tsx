@@ -29,13 +29,14 @@ export function ContinueSection() {
           const shown = displaySong(r.title, r.artist);
           return (
             <li key={r.baseId}>
-              <Link href={`/player/${r.id}`} className="interactive-card block h-full rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400">
+              <Link href={r.measure > 0 ? `/player/${r.id}?m=${r.measure}` : `/player/${r.id}`} className="interactive-card block h-full rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-400">
                 <div className="flex gap-2 text-xs text-zinc-500 mb-1">
                   <span>{levelLabel(r.difficulty)}</span>
                   <span className="ml-auto">{ago(r.at)}</span>
                 </div>
                 <div className="font-semibold leading-tight">{shown.title}</div>
                 {shown.artist && <div className="text-sm text-zinc-500">{shown.artist}</div>}
+                {r.measure > 0 && <div className="mt-2 text-xs font-medium text-zinc-700">Resume at measure {r.measure + 1}</div>}
               </Link>
             </li>
           );

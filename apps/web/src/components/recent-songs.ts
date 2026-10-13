@@ -6,6 +6,7 @@ export interface RecentSong {
   title: string;
   artist: string;
   difficulty: string;
+  measure: number;
   at: number;
 }
 

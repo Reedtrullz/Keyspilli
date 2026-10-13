@@ -108,6 +108,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const timeRef = useRef(time);
+  const hasPlayedRef = useRef(false);
+  const savePositionRef = useRef(() => {});
   const playingRef = useRef(playing);
   // Client-only preferences: initialize false for SSR, then sync from
   // localStorage after mount. Avoids hydration mismatch on class names.
@@ -350,6 +352,52 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     engineRef.current?.setSettings(settings);
   }, [settings]);
 
+  // Remember the measure for "Continue where you left off". A song that ran
+  // to the end restarts from measure 0.
+  savePositionRef.current = () => {
+    if (!hasPlayedRef.current) return;
+    const t = engineRef.current?.time ?? timeRef.current;
+    const finished = t >= duration - 0.5;
+    recordRecent({
+      id: initial.song.id,
+      baseId: initial.song.baseId,
+      title: initial.song.title,
+      artist: initial.song.artist,
+      difficulty: initial.song.difficulty,
+      measure: finished ? 0 : measureIndex(t, initial.data.tempoBpm, settings.speed, initial.data.timeSig, initial.data.measures.length),
+    });
+  };
+
+  useEffect(() => {
+    if (!playing) savePositionRef.current();
+  }, [playing]);
+
+  useEffect(() => {
+    const save = () => {
+      if (document.visibilityState !== "hidden") return;
+      savePositionRef.current();
+    };
+    document.addEventListener("visibilitychange", save);
+    window.addEventListener("pagehide", save);
+    return () => {
+      document.removeEventListener("visibilitychange", save);
+      window.removeEventListener("pagehide", save);
+      savePositionRef.current();
+    };
+  }, []);
+
+  // Arriving from a Continue card: ?m=<measure> seeks there, then drops the param.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const m = Number(params.get("m"));
+    if (!params.has("m") || !Number.isInteger(m)) return;
+    seekToMeasure(m);
+    params.delete("m");
+    const query = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Discrete events (play/pause/seek) still update React state so buttons
   // and progress bar re-render; per-frame engine ticks only touch refs.
   function syncTransportState() {
@@ -410,13 +458,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     engineRef.current?.start();
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
-    recordRecent({
-      id: initial.song.id,
-      baseId: initial.song.baseId,
-      title: initial.song.title,
-      artist: initial.song.artist,
-      difficulty: initial.song.difficulty,
-    });
+    hasPlayedRef.current = true;
+    savePositionRef.current();
   }, [chordPracticeActive, initial.song]);
 
   const stopPlayback = useCallback(() => {
