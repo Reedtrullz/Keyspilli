@@ -130,7 +130,8 @@ describe("FluidSynth MIDI renderer", () => {
       expect(a.wav).toMatchObject({ sampleRate: 44_100, channels: 1, bitsPerSample: 16, frameCount: 4 });
       expect(a.wav.peak).toBeCloseTo(0.95, 3);
       expect(a.wav.clippingCount).toBe(0);
-      expect(a.duration.status).toBe("pass");
+      // Normalization cannot make four PCM frames cover a half-second source.
+      expect(a.duration.status).toBe("fail");
       expect(a.duration.expectedSeconds).toBeCloseTo(0.5, 6);
       expect(a.duration.renderedSeconds).toBeCloseTo(4 / 44_100, 6);
       expect(a.wav.sha256).toBe(b.wav.sha256);
