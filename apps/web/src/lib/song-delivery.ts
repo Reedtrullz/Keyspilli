@@ -41,6 +41,7 @@ function validateRenderReceipt(value: unknown): asserts value is MidiRenderResul
   const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
   const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
   const positive = (n: unknown) => finite(n) && n > 0;
+  const nonnegative = (n: unknown) => finite(n) && n >= 0;
   const integer = (n: unknown): n is number => finite(n) && Number.isSafeInteger(n) && n >= 0;
   const ratio = (n: unknown) => finite(n) && n >= 0 && n <= 1;
   assert(record(value) && record(value.renderer) && record(value.midi) && record(value.soundfont)
@@ -53,10 +54,10 @@ function validateRenderReceipt(value: unknown): asserts value is MidiRenderResul
   assert([m.tempoBpm, m.durationBeats, m.expectedSeconds].every(positive), "invalid MIDI receipt clock");
   assert(integer(s.bytes) && positive(s.bytes) && s.bytes <= MAX_WAV, "invalid SoundFont receipt size");
   assert(integer(w.bytes) && positive(w.bytes) && w.bitsPerSample === 16, "invalid WAV receipt size or format");
-  assert([w.sampleRate, w.channels, w.frameCount, w.sampleCount].every(n => integer(n) && positive(n))
-    && positive(w.durationSeconds) && [w.peak, w.rms, w.silenceRatio].every(ratio) && integer(w.clippingCount), "invalid WAV receipt metrics");
-  assert((w.rawPeak === undefined || ratio(w.rawPeak)) && (w.rawClippingCount === undefined || integer(w.rawClippingCount)), "invalid raw PCM receipt metrics");
-  assert(positive(d.expectedSeconds) && positive(d.renderedSeconds) && finite(d.deltaSeconds)
+  assert([w.sampleRate, w.channels].every(n => integer(n) && positive(n)) && [w.frameCount, w.sampleCount].every(integer)
+    && nonnegative(w.durationSeconds) && [w.peak, w.rms, w.silenceRatio].every(ratio) && integer(w.clippingCount), "invalid WAV receipt metrics");
+  assert((w.rawPeak === undefined || nonnegative(w.rawPeak)) && (w.rawClippingCount === undefined || integer(w.rawClippingCount)), "invalid raw PCM receipt metrics");
+  assert(positive(d.expectedSeconds) && nonnegative(d.renderedSeconds) && finite(d.deltaSeconds)
     && finite(d.toleranceSeconds) && d.toleranceSeconds >= 0 && (d.status === "pass" || d.status === "warning" || d.status === "fail"), "invalid duration receipt");
 }
 function regularRoot(path: string): string {
@@ -117,7 +118,7 @@ export function verifyDelivery(directory: string): DeliveryManifest {
   assert(m.schemaVersion === 1 && m.kind === "keyspilli-song-delivery" && DELIVERY_LEVELS.includes(m.originalLevel), "unsupported delivery manifest");
   assert(m.musicalAcceptance === "not-established" && m.productionAdmission === false, "unexpected approval claim");
   assert(typeof m.title === "string" && typeof m.artist === "string", "invalid delivery labels");
-  assert(/^[a-f0-9]{64}$/.test(m.sourceSha256) && m.baseId === `upload-${m.sourceSha256}`, "source identity mismatch");
+  assert(typeof m.sourceSha256 === "string" && /^[a-f0-9]{64}$/.test(m.sourceSha256) && m.baseId === `upload-${m.sourceSha256}`, "source identity mismatch");
   const names = Object.keys(m.files).sort();
   assert.deepEqual(Object.keys(m.modes).sort(), ["chords", "original"], "unexpected delivery modes");
   const requiredFiles = ["README.md", "index.html", "original.mid", "original.musicxml", "chords.mid", "chords.musicxml",

@@ -17,18 +17,23 @@ function command(script: string, args: string[]) {
     cwd: root, encoding: "utf8", timeout: 90_000, env: { ...process.env, NODE_ENV: "test" }, maxBuffer: 2 * 1024 * 1024,
   });
 }
-function backend(name: string, seconds: number, amplitude = 5000, breakChords: boolean | "oversized" = false): string {
+function backend(name: string, seconds: number, amplitude = 5000, breakChords: boolean | "oversized" | "empty" | "float-clipped" = false): string {
   const path = join(scratch, name);
   // The real renderer invokes this process with its real MIDI/output/SoundFont args.
   writeFileSync(path, `#!${process.execPath}\nconst fs=require('node:fs');
 const args=process.argv.slice(2),out=args[args.indexOf('-F')+1], input=args.at(-1);
 const rate=Number(args[args.indexOf('-r')+1]);
 const seconds=${breakChords === true ? `(input.endsWith('chords.mid') ? 0.1 : ${seconds})` : seconds};
-const frames=Math.round(rate*seconds), b=Buffer.alloc(44+frames*2);
+const empty=${breakChords === "empty"} && input.endsWith('chords.mid');
+const floating=${breakChords === "float-clipped"} && input.endsWith('chords.mid'), width=floating?4:2;
+const frames=empty?0:Math.round(rate*seconds), b=Buffer.alloc(44+frames*width);
 b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);
-b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);
-b.write('data',36);b.writeUInt32LE(frames*2,40);
-for(let i=0;i<frames;i++)b.writeInt16LE(${amplitude}*(i%2?1:-1),44+i*2);
+b.writeUInt16LE(floating?3:1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*width,28);b.writeUInt16LE(width,32);b.writeUInt16LE(width*8,34);
+b.write('data',36);b.writeUInt32LE(frames*width,40);
+for(let i=0;i<frames;i++) {
+  if(floating)b.writeFloatLE(2*(i%2?1:-1),44+i*width);
+  else b.writeInt16LE(${amplitude}*(i%2?1:-1),44+i*width);
+}
 fs.writeFileSync(out,b);
 if (${breakChords === "oversized"} && input.endsWith('chords.mid')) {
   fs.truncateSync(out,0); fs.truncateSync(out,256*1024*1024+1);
@@ -114,9 +119,10 @@ describe("complete song delivery", () => {
   it("read-only verification rejects malformed typed provenance and PCM records without repairing them", () => {
     const out = join(scratch, "schema"); complete(deliver(out, backend("schema-backend", 17)));
     const original = read(join(out, "manifest.json"));
-    for (const field of ["renderer", "soundfont", "midi", "wav"] as const) {
+    for (const field of ["source", "renderer", "soundfont", "midi", "wav"] as const) {
       const m = structuredClone(original);
-      if (field === "midi") m.modes.original.render.midi.tempoBpm = "120";
+      if (field === "source") m.sourceSha256 = [original.sourceSha256];
+      else if (field === "midi") m.modes.original.render.midi.tempoBpm = "120";
       else if (field === "wav") m.modes.original.render.wav.peak = null;
       else m.modes.original.render[field] = null;
       const edited = JSON.stringify(m); writeFileSync(join(out, "manifest.json"), edited);
@@ -124,6 +130,17 @@ describe("complete song delivery", () => {
       expect(result.status, field).toBe(1); expect(result.stdout, field).toBe("");
       expect(readFileSync(join(out, "manifest.json"), "utf8")).toBe(edited);
     }
+  }, 90_000);
+  it.each(["empty", "float-clipped"] as const)("retains verifiable blocked %s PCM diagnostics and the usable mode", (failure) => {
+    const out = join(scratch, failure); const result = deliver(out, backend(failure + "-backend", 17, 5000, failure));
+    expect(result.status).toBe(1);
+    const m = read(join(out, "manifest.json"));
+    expect(m.status).toBe("incomplete"); expect(m.modes.original.status).toBe("rendered");
+    expect(m.modes.chords.status).toBe("blocked"); expect(m.modes.chords.render).toBeDefined();
+    if (failure === "empty") expect(m.modes.chords.render.wav.frameCount).toBe(0);
+    else expect(m.modes.chords.render.wav.rawPeak).toBe(2);
+    const verified = command("deliver-song", ["verify", out]);
+    expect(verified.status).toBe(1); expect(JSON.parse(verified.stdout).status).toBe("incomplete");
   }, 90_000);
   it("exposes release-tail warnings instead of silently claiming a clean pass", () => {
     const out = join(scratch, "tail"); complete(deliver(out, backend("tail-backend", 19)));
