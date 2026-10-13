@@ -1,7 +1,7 @@
 /** Thin offline handoff for a verified ordinary preparation. No catalog publication. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { midiBeatToNativeSeconds, parseMidi } from "@keyspilli/midi";
@@ -37,6 +37,28 @@ function bytes(path: string, max = MAX_SYMBOLIC): Buffer {
   const b = readFileSync(path); assert(b.length <= max, "file grew past limit"); return b;
 }
 function json(path: string) { return JSON.parse(bytes(path).toString("utf8")); }
+function validateRenderReceipt(value: unknown): asserts value is MidiRenderResult {
+  const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+  const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
+  const positive = (n: unknown) => finite(n) && n > 0;
+  const integer = (n: unknown): n is number => finite(n) && Number.isSafeInteger(n) && n >= 0;
+  const ratio = (n: unknown) => finite(n) && n >= 0 && n <= 1;
+  assert(record(value) && record(value.renderer) && record(value.midi) && record(value.soundfont)
+    && record(value.wav) && record(value.duration), "invalid render receipt records");
+  const { renderer: r, midi: m, soundfont: s, wav: w, duration: d } = value;
+  assert(r.id === "fluidsynth" && r.version === "pcm16-v1", "unsupported renderer receipt");
+  assert([r.executable, m.path, s.path, w.path].every(v => typeof v === "string" && v.trim().length > 0), "invalid render receipt paths");
+  assert([m.sha256, s.sha256, w.sha256].every(v => typeof v === "string" && /^[a-f0-9]{64}$/.test(v)), "invalid render receipt hashes");
+  assert(integer(r.sampleRate) && positive(r.sampleRate) && positive(r.gain) && ratio(r.targetPeak) && positive(r.targetPeak), "invalid renderer settings");
+  assert([m.tempoBpm, m.durationBeats, m.expectedSeconds].every(positive), "invalid MIDI receipt clock");
+  assert(integer(s.bytes) && positive(s.bytes) && s.bytes <= MAX_WAV, "invalid SoundFont receipt size");
+  assert(integer(w.bytes) && positive(w.bytes) && w.bitsPerSample === 16, "invalid WAV receipt size or format");
+  assert([w.sampleRate, w.channels, w.frameCount, w.sampleCount].every(n => integer(n) && positive(n))
+    && positive(w.durationSeconds) && [w.peak, w.rms, w.silenceRatio].every(ratio) && integer(w.clippingCount), "invalid WAV receipt metrics");
+  assert((w.rawPeak === undefined || ratio(w.rawPeak)) && (w.rawClippingCount === undefined || integer(w.rawClippingCount)), "invalid raw PCM receipt metrics");
+  assert(positive(d.expectedSeconds) && positive(d.renderedSeconds) && finite(d.deltaSeconds)
+    && finite(d.toleranceSeconds) && d.toleranceSeconds >= 0 && (d.status === "pass" || d.status === "warning" || d.status === "fail"), "invalid duration receipt");
+}
 function regularRoot(path: string): string {
   const absolute = resolve(path);
   assert(lstatSync(absolute).isDirectory() && realpathSync(absolute) === absolute, "directory aliases are not supported");
@@ -94,6 +116,7 @@ export function verifyDelivery(directory: string): DeliveryManifest {
   const root = regularRoot(directory), m = json(join(root, "manifest.json")) as DeliveryManifest;
   assert(m.schemaVersion === 1 && m.kind === "keyspilli-song-delivery" && DELIVERY_LEVELS.includes(m.originalLevel), "unsupported delivery manifest");
   assert(m.musicalAcceptance === "not-established" && m.productionAdmission === false, "unexpected approval claim");
+  assert(typeof m.title === "string" && typeof m.artist === "string", "invalid delivery labels");
   assert(/^[a-f0-9]{64}$/.test(m.sourceSha256) && m.baseId === `upload-${m.sourceSha256}`, "source identity mismatch");
   const names = Object.keys(m.files).sort();
   assert.deepEqual(Object.keys(m.modes).sort(), ["chords", "original"], "unexpected delivery modes");
@@ -111,8 +134,12 @@ export function verifyDelivery(directory: string): DeliveryManifest {
     assert(v.midi === `${mode}.mid` && v.musicxml === `${mode}.musicxml` && v.preview === `${mode}-preview.wav`, "mode path mismatch");
     assert(v.status === "rendered" || v.status === "blocked", "invalid mode status");
     assert(v.difficultyScope === (mode === "chords" ? "shared-advanced-derived" : m.originalLevel), "mode difficulty mismatch");
+    assert(Array.isArray(v.warnings) && v.warnings.every(w => typeof w === "string")
+      && (v.error === undefined || typeof v.error === "string"), "invalid mode diagnostics");
+    if (v.render !== undefined) validateRenderReceipt(v.render);
     if (v.status === "rendered") {
       assert(v.render, "missing render receipt");
+      assert(v.render.midi.path === v.midi && v.render.wav.path === v.preview, "render receipt path mismatch");
       assert.deepEqual(validatePreview(v.render, bytes(join(root, v.midi)), bytes(join(root, v.preview), MAX_WAV)), v.warnings, "unreported preview warnings");
     } else assert(typeof v.error === "string" && v.error.length > 0, "blocked mode lacks reason");
   }
@@ -170,7 +197,17 @@ export async function deliverSong(runPath: string, destination: string, options:
       // Delivery paths are relative; external runtime paths are provenance only, never used by verify.
       rendered.midi.path = v.midi; rendered.wav.path = v.preview;
       v.status = "rendered"; delete v.error;
-    } catch (error) { v.error = (error instanceof Error ? error.message : String(error)).slice(0, 2000); }
+    } catch (error) {
+      v.error = (error instanceof Error ? error.message : String(error)).slice(0, 2000);
+      const preview = join(out, v.preview);
+      if (existsSync(preview)) {
+        const rejected = lstatSync(preview);
+        if (rejected.isFile() && rejected.size > MAX_WAV) {
+          v.error += ` Rejected preview output removed: ${rejected.size} bytes exceeds the 256 MiB delivery limit.`;
+          unlinkSync(preview);
+        }
+      }
+    }
   }
   for (const [name, content] of before) assert(content.equals(bytes(join(run, "bundle", name))), "preparation changed during delivery");
   assert(resultBytes.equals(bytes(join(run, "result.json"))), "preparation result changed during delivery");
