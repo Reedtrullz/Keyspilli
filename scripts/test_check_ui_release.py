@@ -39,5 +39,16 @@ class GitTests(unittest.TestCase):
  def test_pin_never_exempts_other_player_files(self):
   live=self.commit('apps/web/src/components/player/Other.tsx','1');target=self.commit('apps/web/src/components/player/Other.tsx','2')
   self.assertEqual(ui.violations(ui.changed_paths(live,target),live,target),['apps/web/src/components/player/Other.tsx'])
+ def test_tooling_must_match_the_trusted_ref_exactly(self):
+  ci='.github/workflows/ci.yml';script='scripts/check-ui-release.py';app='apps/web/src/components/a.tsx'
+  self.commit(ci,'v1');self.commit(script,'s1');live=self.commit(app,'1')
+  self.git('checkout','-qb','trusted');trusted=self.commit(ci,'v2');trusted=self.commit(script,'s2')
+  self.git('checkout','-q','master' if 'master' in self.git('branch','--format=%(refname:short)') else 'main')
+  self.git('checkout','-qb','release');self.commit(ci,'v2');matching=self.commit(script,'s2')
+  self.assertEqual(ui.violations([ci,script],live,matching,trusted),[])
+  self.assertEqual(ui.violations([ci,script],live,matching),[ci,script])
+  drifted=self.commit(ci,'v2 tampered')
+  self.assertEqual(ui.violations([ci,script],live,drifted,trusted),[ci])
+  self.assertEqual(ui.violations(['deploy/playbook.yml','scripts/sub/dir.py'],live,drifted,trusted),['deploy/playbook.yml','scripts/sub/dir.py'])
 
 if __name__=='__main__':unittest.main()
