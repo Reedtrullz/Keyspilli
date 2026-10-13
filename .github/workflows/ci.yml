@@ -258,7 +258,10 @@ jobs:
     if: >-
       always() &&
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main' &&
+      (github.ref == 'refs/heads/main' ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false)) &&
       inputs.ui_only_release == true &&
       inputs.promote_reviewed == false &&
       inputs.operation == 'deploy_only' &&
@@ -274,7 +277,12 @@ jobs:
         env:
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
           KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
-        run: python3 scripts/check-ui-release.py --target "$GITHUB_SHA"
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            python3 scripts/check-ui-release.py --target "$GITHUB_SHA"
+          else
+            python3 scripts/check-ui-release.py --target "$GITHUB_SHA" --tooling-ref origin/main
+          fi
 
   build-and-push:
     name: Build and push images to GHCR
@@ -287,7 +295,10 @@ jobs:
     if: >-
       always() &&
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main' &&
+      (github.ref == 'refs/heads/main' ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false)) &&
       inputs.operation == 'deploy_only' &&
       ((inputs.promote_reviewed == true &&
         inputs.ui_only_release == false &&
@@ -412,7 +423,10 @@ jobs:
     if: >-
       always() &&
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main' &&
+      (github.ref == 'refs/heads/main' ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.ui_only_release == true &&
+        inputs.promote_reviewed == false)) &&
       inputs.operation == 'deploy_only' &&
       needs.build-and-push.result == 'success' &&
       ((inputs.promote_reviewed == true &&

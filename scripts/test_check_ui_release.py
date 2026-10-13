@@ -11,6 +11,20 @@ class PathTests(unittest.TestCase):
   paths=['apps/web/src/components/player/Player.tsx','apps/web/src/components/player/chord-practice.ts','.github/workflows/ci.yml','packages/midi/src/validate.ts','packages/catalog/src/db.ts','packages/player-core/src/engine.ts','apps/web/src/lib/catalog-api.ts','apps/web/src/app/api/songs/route.ts','services/transcribe/src/x.py','deploy/playbook.yml','package-lock.json','apps/web/Dockerfile','catalog/manifest.json','apps/web/src/app/export/route.ts','apps/web/src/components/hidden/middleware.ts']
   self.assertEqual(ui.violations(paths),paths)
 
+class LiveRevisionTests(unittest.TestCase):
+ def test_health_request_identifies_itself_and_never_uses_the_python_default_agent(self):
+  import io,json
+  from unittest import mock
+  seen=[]
+  def fake(request,timeout):
+   seen.append(request);return io.BytesIO(json.dumps({'status':'healthy','version':'a'*40}).encode())
+  with mock.patch.dict(os.environ,{'KEYSPILLI_ACCESS_USERNAME':'u','KEYSPILLI_ACCESS_PASSWORD':'p'}),mock.patch.object(ui.urllib.request,'urlopen',fake):
+   self.assertEqual(ui.live_revision(),'a'*40)
+  headers={k.lower():v for k,v in seen[0].header_items()}
+  self.assertEqual(headers['user-agent'],ui.USER_AGENT)
+  self.assertNotIn('python',headers['user-agent'].lower())
+  self.assertTrue(headers['authorization'].startswith('Basic '))
+
 class GitTests(unittest.TestCase):
  def setUp(self):
   self.dir=tempfile.TemporaryDirectory();self.old=os.getcwd();os.chdir(self.dir.name)
@@ -27,5 +41,28 @@ class GitTests(unittest.TestCase):
   live=self.commit('docs/a.md','1');self.git('checkout','-qb','other','HEAD~0');other=self.commit('docs/b.md','2');self.git('checkout','-q','-');side=self.commit('docs/c.md','3')
   with self.assertRaises(SystemExit):ui.changed_paths(other,side)
   with self.assertRaises(SystemExit):ui.changed_paths(live,live)
+ def test_pinned_player_change_passes_only_when_it_matches_exactly(self):
+  path='apps/web/src/components/player/Player.tsx'
+  live=self.commit(path,'a\nb\nc\n');reviewed=self.commit(path,'a\nB\nc\n')
+  old=dict(ui.PINNED);self.addCleanup(lambda:(ui.PINNED.clear(),ui.PINNED.update(old)))
+  ui.PINNED.clear();ui.PINNED[path]=ui.change_digest(live,reviewed,path)
+  self.assertEqual(ui.violations([path]),[path])
+  self.assertEqual(ui.violations([path],live,reviewed),[])
+  wider=self.commit(path,'a\nB\nc\nextra\n')
+  self.assertEqual(ui.violations([path],live,wider),[path])
+ def test_pin_never_exempts_other_player_files(self):
+  live=self.commit('apps/web/src/components/player/Other.tsx','1');target=self.commit('apps/web/src/components/player/Other.tsx','2')
+  self.assertEqual(ui.violations(ui.changed_paths(live,target),live,target),['apps/web/src/components/player/Other.tsx'])
+ def test_tooling_must_match_the_trusted_ref_exactly(self):
+  ci='.github/workflows/ci.yml';script='scripts/check-ui-release.py';app='apps/web/src/components/a.tsx'
+  self.commit(ci,'v1');self.commit(script,'s1');live=self.commit(app,'1')
+  self.git('checkout','-qb','trusted');trusted=self.commit(ci,'v2');trusted=self.commit(script,'s2')
+  self.git('checkout','-q','master' if 'master' in self.git('branch','--format=%(refname:short)') else 'main')
+  self.git('checkout','-qb','release');self.commit(ci,'v2');matching=self.commit(script,'s2')
+  self.assertEqual(ui.violations([ci,script],live,matching,trusted),[])
+  self.assertEqual(ui.violations([ci,script],live,matching),[ci,script])
+  drifted=self.commit(ci,'v2 tampered')
+  self.assertEqual(ui.violations([ci,script],live,drifted,trusted),[ci])
+  self.assertEqual(ui.violations(['deploy/playbook.yml','scripts/sub/dir.py'],live,drifted,trusted),['deploy/playbook.yml','scripts/sub/dir.py'])
 
 if __name__=='__main__':unittest.main()
