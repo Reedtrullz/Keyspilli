@@ -123,6 +123,7 @@ import { levelLabel } from "../level-labels";
 import { displaySong } from "../song-display";
 import { loopFromBars, practiceContext, resolvePracticeRange } from "./player-ui-context";
 import { APP_THEME_EVENT, applyAppTheme } from "../app-theme";
+import { recordRecent } from "../recent-songs";
 import {
   melodyHarmonicSupportPolicy,
   selectChordSource,
@@ -1250,7 +1251,14 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     if (!engineRef.current?.playing && engineRef.current?.audio instanceof SamplerAudioEngine) setPracticeError("Piano samples are not ready. Wait or choose synthesis fallback in Sound.");
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
-  }, [cancelSoundPreview, chordPracticeActive, initial.song.id, navigationPendingRef]);
+    recordRecent({
+      id: initial.song.id,
+      baseId: initial.song.baseId,
+      title: initial.song.title,
+      artist: initial.song.artist,
+      difficulty: initial.song.difficulty,
+    });
+  }, [cancelSoundPreview, chordPracticeActive, initial.song, navigationPendingRef]);
 
   // Outside-click closes the mode menu.
   useEffect(() => {
