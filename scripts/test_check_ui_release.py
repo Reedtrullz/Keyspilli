@@ -27,5 +27,17 @@ class GitTests(unittest.TestCase):
   live=self.commit('docs/a.md','1');self.git('checkout','-qb','other','HEAD~0');other=self.commit('docs/b.md','2');self.git('checkout','-q','-');side=self.commit('docs/c.md','3')
   with self.assertRaises(SystemExit):ui.changed_paths(other,side)
   with self.assertRaises(SystemExit):ui.changed_paths(live,live)
+ def test_pinned_player_change_passes_only_when_it_matches_exactly(self):
+  path='apps/web/src/components/player/Player.tsx'
+  live=self.commit(path,'a\nb\nc\n');reviewed=self.commit(path,'a\nB\nc\n')
+  old=dict(ui.PINNED);self.addCleanup(lambda:(ui.PINNED.clear(),ui.PINNED.update(old)))
+  ui.PINNED.clear();ui.PINNED[path]=ui.change_digest(live,reviewed,path)
+  self.assertEqual(ui.violations([path]),[path])
+  self.assertEqual(ui.violations([path],live,reviewed),[])
+  wider=self.commit(path,'a\nB\nc\nextra\n')
+  self.assertEqual(ui.violations([path],live,wider),[path])
+ def test_pin_never_exempts_other_player_files(self):
+  live=self.commit('apps/web/src/components/player/Other.tsx','1');target=self.commit('apps/web/src/components/player/Other.tsx','2')
+  self.assertEqual(ui.violations(ui.changed_paths(live,target),live,target),['apps/web/src/components/player/Other.tsx'])
 
 if __name__=='__main__':unittest.main()
