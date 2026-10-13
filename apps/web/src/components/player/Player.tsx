@@ -118,6 +118,7 @@ import { KeyboardRangeControls } from "./KeyboardRangeControls";
 import { PracticeSetupDialog, type PracticeSetup } from "./PracticeSetupDialog";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
+import { displaySong } from "../song-display";
 import { loopFromBars, practiceContext, resolvePracticeRange } from "./player-ui-context";
 import { APP_THEME_EVENT, applyAppTheme } from "../app-theme";
 import {
@@ -2211,8 +2212,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <LibraryReturnLink songId={initial.song.id} variants={initial.variants} />
         <div className="player-song-identity min-w-0">
-          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
-          <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{displaySong(initial.song.title, initial.song.artist).title}</h1>
+          {displaySong(initial.song.title, initial.song.artist).artist && <div className="text-sm text-zinc-500">by {displaySong(initial.song.title, initial.song.artist).artist}</div>}
           <p className="player-context" aria-label="Practice key and tempo">{contextLabel}</p>
           <SourceArrangementNotice source={initial.sourceArrangement} />
           <VersionSelector versions={initial.playerVersions} selected={initial.song.id} disabled={!engineReady || versionControls?.pending || grading || countIn !== null || showPracticeSetup || chordPracticeActive || auxiliary !== null} onChange={id => {
@@ -2954,8 +2955,8 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
       <div className="player-song-header mb-3 flex items-center gap-2 flex-wrap">
         <LibraryReturnLink songId={initial.song.id} variants={initial.variants} />
         <div className="player-song-identity">
-          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{initial.song.title}</h1>
-          <div className="text-sm text-zinc-500">by {initial.song.artist}</div>
+          <h1 className="text-xl font-bold leading-tight truncate max-w-[70vw]" title={initial.song.title}>{displaySong(initial.song.title, initial.song.artist).title}</h1>
+          {displaySong(initial.song.title, initial.song.artist).artist && <div className="text-sm text-zinc-500">by {displaySong(initial.song.title, initial.song.artist).artist}</div>}
           <p className="player-context">{practiceContext(initial.song.key, initial.song.tempo, { transpose: savedTranspose, speed: savedSpeed }, initial.sourceArrangement?.sourceKind === "tutorial-preview")}</p>
           <SourceArrangementNotice source={initial.sourceArrangement} />
           <VersionSelector versions={initial.playerVersions} selected={initial.song.id} disabled={loading || versionControls?.pending} onChange={id => versionControls?.switchVersion(id, { beat: 0, settings: { ...loadSettings(), mode: requestedMode, speed: savedSpeed, transpose: savedTranspose } })} />
