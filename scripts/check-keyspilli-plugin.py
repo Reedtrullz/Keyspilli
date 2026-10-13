@@ -224,7 +224,8 @@ def inspect_preparation(run, source_sha):
 
 
 def check(source, checkout, node, report):
-    source, checkout, report = Path(source), Path(checkout).resolve(), Path(report).absolute()
+    # Resolve report aliases before either mkdir or file reservation can alter source.
+    source, checkout, report = Path(source), Path(checkout).resolve(), Path(report).resolve()
     if report.is_relative_to(source.resolve()):
         raise ValueError('report must be outside the packaged source')
     report.parent.mkdir(parents=True, exist_ok=True)

@@ -30,8 +30,9 @@ Use the returned `requestPath` as the host input, not the helper's stdout JSON.
 The helper computes actual SHA-256 values, normalizes relative paths without a
 shell, preserves instruction order and writes a new private request file. It
 never overwrites an output, follows symlinks, writes inside its own package,
-creates missing parents, or accepts parent traversal. Its `--help` and
-`--self-test` require no checkout, provider or network access.
+creates missing parents, or accepts parent traversal or ambiguous leading slashes.
+Single-value options may appear only once; only `--instruction` is repeatable.
+Its `--help` and `--self-test` require no checkout, provider or network access.
 
 Repeat `--instruction` for one to eight real task instruction files. Their hashes
 record those files, not the assistant's complete active instructions. When a

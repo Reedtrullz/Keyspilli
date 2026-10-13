@@ -27,6 +27,8 @@ def checked_path(raw, label, new=False):
     if (not isinstance(text, str) or not text or len(text) > 4096
             or '\\' in text or any(ord(c) < 32 or ord(c) == 127 for c in text)):
         raise ValueError(f'{label} path must be bounded and contain no control characters or backslashes')
+    if text.startswith('//'):
+        raise ValueError(f'{label} path must not contain ambiguous leading slashes')
     if '..' in Path(text).parts:
         raise ValueError(f'{label} path must not contain parent traversal')
     path = Path(os.path.abspath(text))
@@ -166,16 +168,24 @@ def self_test():
             'scope': 'Offline request bytes, pins, readback and overwrite refusal only.'}
 
 
+class StoreOnce(argparse.Action):
+    """Reject singleton repetition rather than silently discarding a constraint."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        if getattr(namespace, self.dest, None) is not None:
+            parser.error(f'{option_string} may appear only once')
+        setattr(namespace, self.dest, values)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--self-test', action='store_true')
-    parser.add_argument('--source', type=Path)
+    parser.add_argument('--source', action=StoreOnce, type=Path)
     parser.add_argument('--instruction', action='append', type=Path, default=[])
-    parser.add_argument('--output', type=Path)
-    parser.add_argument('--title')
-    parser.add_argument('--artist')
-    parser.add_argument('--phrase-plan', type=Path)
-    parser.add_argument('--expected-source-sha256')
+    parser.add_argument('--output', action=StoreOnce, type=Path)
+    parser.add_argument('--title', action=StoreOnce)
+    parser.add_argument('--artist', action=StoreOnce)
+    parser.add_argument('--phrase-plan', action=StoreOnce, type=Path)
+    parser.add_argument('--expected-source-sha256', action=StoreOnce)
     args = parser.parse_args()
     try:
         if args.self_test:
