@@ -88,6 +88,21 @@ export function SongBrowser() {
   );
   const experimentLabels = useMemo(() => experimentLabelsForSongs(visible), [visible]);
   const activeFilterCount = [difficulty, key, bass, sort !== "popular" ? sort : "", favoritesOnly ? "favorites" : ""].filter(Boolean).length;
+  const chips = [
+    q && { label: `Search: ${q}`, clear: () => { setInput(""); setQ(""); } },
+    difficulty && { label: LEVEL_LABEL[difficulty] ?? difficulty, clear: () => setDifficulty("") },
+    key && { label: `Key: ${key}`, clear: () => setKey("") },
+    bass && { label: `Left hand: ${bass}`, clear: () => setBass("") },
+    favoritesOnly && { label: "Favorites", clear: () => setFavoritesOnly(false) },
+  ].filter((chip): chip is { label: string; clear: () => void } => Boolean(chip));
+  const clearAll = () => {
+    setInput("");
+    setQ("");
+    setDifficulty("");
+    setKey("");
+    setBass("");
+    setFavoritesOnly(false);
+  };
 
   return (
     <div aria-busy={loading}>
@@ -109,22 +124,29 @@ export function SongBrowser() {
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </button>
         <div id="song-library-filters" className="library-filters flex flex-wrap items-center gap-2" data-open={filtersOpen}>
-          <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Difficulty">
-            <option value="">All difficulties</option>
-            {PUBLIC_DIFFICULTY_ORDER.map((d) => (
-              <option key={d} value={d}>{LEVEL_LABEL[d] ?? d}</option>
+          <div className="flex flex-wrap gap-1 basis-full" role="group" aria-label="Difficulty">
+            {["", ...PUBLIC_DIFFICULTY_ORDER].map((d) => (
+              <button
+                key={d || "all"}
+                type="button"
+                aria-pressed={difficulty === d}
+                onClick={() => setDifficulty(d)}
+                className={`pressable min-h-11 px-3 py-1.5 rounded-full border text-sm ${difficulty === d ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
+              >
+                {d ? LEVEL_LABEL[d] ?? d : "All levels"}
+              </button>
             ))}
-          </select>
+          </div>
           <select value={key} onChange={(e) => setKey(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Key">
             <option value="">All keys</option>
             {KEYS.map((k) => (
               <option key={k} value={k}>{k}</option>
             ))}
           </select>
-          <select value={bass} onChange={(e) => setBass(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Bass pattern">
-            <option value="">All bass patterns</option>
+          <select value={bass} onChange={(e) => setBass(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Left-hand style">
+            <option value="">Any left-hand style</option>
             {BASS.map((b) => (
-              <option key={b} value={b}>{b}</option>
+              <option key={b} value={b}>{b[0]?.toUpperCase()}{b.slice(1)}</option>
             ))}
           </select>
           <select value={sort} onChange={(e) => setSort(e.target.value)} className="form-control px-2 py-2 rounded-lg border border-zinc-300 text-sm" aria-label="Sort">
@@ -140,8 +162,35 @@ export function SongBrowser() {
         </div>
         <span className="library-count text-xs text-zinc-600" role="status" aria-live="polite">{loading ? "Loading…" : `${visible.length} songs`}</span>
       </div>
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4" aria-label="Active filters" role="group">
+          {chips.map((chip) => (
+            <button
+              key={chip.label}
+              type="button"
+              onClick={chip.clear}
+              aria-label={`Remove filter: ${chip.label}`}
+              className="pressable min-h-9 px-3 rounded-full bg-zinc-100 text-sm text-zinc-800 hover:bg-zinc-200"
+            >
+              {chip.label} <span aria-hidden="true">×</span>
+            </button>
+          ))}
+          <button type="button" onClick={clearAll} className="pressable min-h-9 px-2 text-sm text-zinc-600 underline">
+            Clear all
+          </button>
+        </div>
+      )}
       {error && <p className="motion-feedback text-red-600 text-sm mb-3" role="alert">{error}</p>}
-      {!loading && visible.length === 0 && <p className="motion-feedback text-zinc-500 py-8 text-center">No songs match these filters.</p>}
+      {!loading && visible.length === 0 && (
+        <div className="motion-feedback text-zinc-500 py-8 text-center">
+          <p>No songs match these filters.</p>
+          {chips.length > 0 && (
+            <button type="button" onClick={clearAll} className="pressable mt-2 min-h-11 px-4 rounded-full border border-zinc-300 text-sm text-zinc-800 hover:bg-zinc-100">
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
       <ul className="library-results motion-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-loading={loading}>
         {visible.map((s) => {
           const fav = s.levels.some((l) => favorites.includes(l.id));
