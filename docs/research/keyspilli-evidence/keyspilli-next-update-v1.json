@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "benchmarkId": "keyspilli-next-update-v1",
-  "purpose": "Fresh Batch 1 source inventory and prospective reference obligations; not a musical approval manifest",
+  "purpose": "Fresh source inventory and prospective reference obligations across the approved update batches; not a musical approval manifest",
   "frozenBeforeBaselines": "2026-10-13",
   "engineeringCandidate": "d9c8a2c4190288a96780405950b1236a0a771233",
   "engineeringTree": "55838456a6e7aaa0a43dfdaebe411e3ce1e0ae6b",
@@ -77,14 +77,30 @@
     }
   ],
   "holdouts":[
-    {"id":"H1","status":"not-independently-reserved","composition":null,"source":null,"referenceObligations":null,"exposure":"No content opened for this slot; untouched status cannot be established without a reservation receipt"},
-    {"id":"H2","status":"not-independently-reserved","composition":null,"source":null,"referenceObligations":null,"exposure":"No content opened for this slot; untouched status cannot be established without a reservation receipt"},
-    {"id":"H3","status":"not-independently-reserved","composition":null,"source":null,"referenceObligations":null,"exposure":"No content opened for this slot; untouched status cannot be established without a reservation receipt"}
+    {"id":"H1","status":"exact-source-qualified-reference-admission-pending","composition":"Burgmuller Op. 100 No. 2, l'Arabesque",
+      "source":{"bytes":2643,"sha256":"9b689a9b3f178e7bb2b5899d0559e223e9d8de7081d83fc087760ac2b4d378e1","permission":"Official Mutopia Public Domain edition; exact official/local bytes matched independently"},
+      "referenceSha256":"9ee203a6c2059700b10d45a7a1fd7a122803793af9a2e328d634bee538819a94",
+      "referenceObligations":{"privateReceipt":"H1-obligations.json","sha256":"d9ccf15c0096b9a5415deebef06242ff2fd003dd8db4dc4cb9c693d220f38913"},
+      "exposure":"Prior catalog and six generated variants exist; earlier access/tuning unknown. Implementer has not opened the reserved content; untouched generalization unestablished."},
+    {"id":"H2","status":"exact-source-qualified-reference-admission-pending","composition":"Burgmuller Op. 100 No. 4, La Petite Reunion",
+      "source":{"bytes":3860,"sha256":"c88010cace8858c30ca95e3075cf5e4afdde19b5ad7c37cceb96159f6c55326c","permission":"Official Mutopia Public Domain edition; exact official/local bytes matched independently"},
+      "referenceSha256":"97c25bd304d8972a6aca488d2f61b52b4cb229c17bcec14b5922bb4d92f6aeee",
+      "referenceObligations":{"privateReceipt":"H2-obligations.json","sha256":"a15fbf48665369b9784cff1b54e0b9c99f828ba686dbd92fea9072adf223500b"},
+      "exposure":"Prior catalog and six generated variants exist; earlier access/tuning unknown. Implementer has not opened the reserved content; untouched generalization unestablished."},
+    {"id":"H3","status":"exact-source-qualified-reference-admission-pending","composition":"Burgmuller Op. 100 No. 6, Progres",
+      "source":{"bytes":2148,"sha256":"d28e280d333d8a97262a4ffeba00fab251d382cd9a17e45a517d6613cb03f722","permission":"Official Mutopia Public Domain edition; exact official/local bytes matched independently"},
+      "referenceSha256":"e3f05f6bd21543333f1843d1f024f721bba34f63699de71e09def1d0d6f5ad61",
+      "referenceObligations":{"privateReceipt":"H3-obligations.json","sha256":"2b7c61e4a7dba8d279be9e9ae14f7299a8aab5edb5f43ff78abb81d3f0d4d242"},
+      "exposure":"Prior catalog and six generated variants exist; earlier access/tuning unknown. Implementer has not opened the reserved content; untouched generalization unestablished."}
   ],
   "holdoutReservationProtocol": {
-    "custodian":null,"qualifiedMusicKeyboardReviewer":null,"status":"independent-custodian-and-reviewer-unavailable",
+    "custodian":"Independent software evaluator 01a1374b-9c4e-7a20-8c8c-896ecacdf9e5; no human/keyboard qualification",
+    "qualifiedMusicKeyboardReviewer":null,"status":"source-custody-complete-semantic-and-human-review-pending",
+    "receipt":"output/batch1-resume/remaining-batches/evidence/holdout-reservation-20261013T220753Z.json",
+    "receiptSha256":"d3d7f7b2854365f22cefefd78c47deda5e2c2613e98a7df72ca1da30c95729e1",
+    "privateReferenceRoot":"output/batch1-resume/remaining-batches/private-holdouts/reservation-20261013T220753Z",
     "steps":["Independent evaluator chooses three different compositions, disjoint from D1-D3 and authored controls", "Keep raw source/reference bytes outside tracked/public paths and the implementing context", "Record exact hashes, permissions, performance identity, clocks, anchors/rests, permitted transformations and uncertainty before viewing outputs", "Publish only an identity/hash/reservation receipt to the implementer; keep full labels with the evaluator", "Freeze code, skill, bank and settings before paired baseline/candidate generation", "Record every content exposure or tuning access; replace exposed cases before an untouched-generalization claim"],
-    "missing":["Named independent evaluator/custodian", "Three actual different compositions with qualified exact sources and prospective reference receipts", "Finite independently qualified music/keyboard review scope"]
+    "missing":["Complete independent semantic reference admission", "Trustworthy earlier exposure/tuning provenance or fresh cases for an untouched claim", "Finite independently qualified music/keyboard review scope"]
   },
   "softwareControls": {
     "historicalThreeAuthoredStudies":"Retained as exposed software controls in PR #298; their complete original study archive was not included in this handoff input",
@@ -93,5 +109,6 @@
     "externalSongValidation":false,"untouchedMusicalGold":false
   },
   "baselinePolicy":"Generate D1/D3 before KU-04/KU-05 changes. Reparse all six Original exports and shared Chords, retain both full designated previews and source/reference hashes. Report source-anchor deficits without tuning or repinning. D2 and H1-H3 remain in the denominator.",
-  "boundaries":["No historical golden pins replaced", "No backup hunt", "No paid inference or reviewer recruitment", "No musical tuning", "No publication, installation or production deployment"]
+  "advisoryMusicReviewer":{"tool":"Anti review-music","requestedModel":"gemini-3.8-flash-medium","status":"current-runtime-audio-capability-unavailable","musicalAcceptance":"not-established"},
+  "boundaries":["No historical golden pins replaced", "No backup hunt", "Workflow inference authorized only on selected Luna/MiMo configurations with hard USD5 total cap", "No reviewer recruitment", "Development corrections only; no tuning on reserved content", "No publication, installation or production deployment"]
 }

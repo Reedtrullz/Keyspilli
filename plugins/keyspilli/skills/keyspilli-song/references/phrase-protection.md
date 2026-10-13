@@ -7,6 +7,14 @@ absence does not block ordinary preparation. This source-profile pilot protects
 explicit Original note events; it does not certify the Chords reduction or
 select musically correct roles automatically.
 
+When the checkout advertises `prepare-song.mts --source-backed-chords`, pair
+that opt-in with `--phrase-plan` targeting Advanced. The shared Chords backing
+uses only lineages explicitly selected as bass, harmony or accompaniment in
+the pinned plan, through the existing conservative harmony policy. Melody,
+hook, unknown and unlisted lineages cannot supply missing chord tones. The
+backing remains inferred and provisional; selection is not source validation.
+Ordinary generated backing remains available without this opt-in.
+
 ## Inspect exact bytes and select evidence
 
 From the selected checkout, use the absolute compatible Node returned by
@@ -82,6 +90,12 @@ channel-scoped sustain-pedal resonance. A melody rest permits unrelated
 accompaniment. Source contradictions, stale or ambiguous origins, incompatible
 merged lineages and mechanical/duration-limit conflicts are refusals. Do not
 edit a source pin, erase another origin or drop a required note to bypass them.
+
+When ordinary reduction extends an optional note into a selected rest, the
+host may shorten its tail only with explicit `release-change` permission, or
+remove it only with explicit `omit` permission for every represented lineage.
+Required and unlisted events keep their refusal boundary. This correction
+does not relax sounding, pedal, density or difficulty limits.
 
 Compatible exact unisons retain every source occurrence. The pilot refuses
 ambiguous physical collisions and unsupported source-pedal semantics. It does

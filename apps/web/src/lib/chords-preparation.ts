@@ -1,11 +1,32 @@
-import { CHORDS_TUNING, groupAttackClusters, inferHarmonyTimeline, type Note } from "@keyspilli/midi";
-import type { ChordTimelineArtifact } from "@keyspilli/catalog";
+import { canonicalPhrasePlan, CHORDS_TUNING, groupAttackClusters, inferHarmonyTimeline, type Note, type PhraseProtectionReport } from "@keyspilli/midi";
+import { createHash } from "node:crypto";
+import type { ArrangementManifest, ChordTimelineArtifact } from "@keyspilli/catalog";
 import type { SongData } from "@keyspilli/player-core";
 import { projectChordSources } from "./catalog-api";
 import { replayChordsBacking } from "../components/player/chords-backing";
 import { evaluateChordsBacking, snapshotChordsBacking } from "./chords-evaluation";
 
 type Snapshot = ReturnType<typeof snapshotChordsBacking>;
+
+export function sourceBoundHarmony(data: SongData, report: PhraseProtectionReport | undefined,
+  pin: ArrangementManifest["phrasePlan"] | undefined) {
+  if (!report || report.status !== "preserved" || !pin || report.sourceSha256 !== pin.sourceSha256
+    || createHash("sha256").update(canonicalPhrasePlan(report.plan)).digest("hex") !== pin.sha256)
+    throw new Error("source-backed Chords requires the retained, pinned Advanced phrase plan");
+  const roles = new Map(report.plan.phrases.flatMap(p => p.events.map(e => [
+    JSON.stringify([e.sourceOriginId, e.sourceOccurrence ?? null]), e.role,
+  ] as const)));
+  const backing = data.notes.filter(note => {
+    if (!note.sourceOrigins?.length) return false;
+    return note.sourceOrigins.every(origin => {
+      const role = roles.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
+        ?? roles.get(JSON.stringify([origin.id, null]));
+      return role === "bass" || role === "harmony" || role === "accompaniment";
+    });
+  });
+  if (!backing.length) throw new Error("source-backed Chords has no explicitly selected backing events");
+  return inferHarmonyTimeline(backing, data.measures, { key: data.key, policy: "conservative-backing-v1" });
+}
 function attacks(snapshot: Snapshot): Note[] {
   return [...snapshot.notes, ...snapshot.chords.flatMap(c => c.notes.map((midi, i) => ({
     midi, start: c.beat, dur: c.durationBeats ?? 0, vel: 80, hand: c.suggestedHands[i],

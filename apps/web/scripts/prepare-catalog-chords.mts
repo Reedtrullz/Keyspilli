@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { inferHarmonyTimeline, parseMidi, parseMusicXmlNotes, writeMidi, writeMusicXml, type ChordLabel, type Note } from "@keyspilli/midi";
+import { inferHarmonyTimeline, parseMidi, parseMusicXmlNotes, writeMidi, writeMusicXml, type ChordLabel, type Note, type Variant } from "@keyspilli/midi";
 import { parseChordTimeline, type ChordSourceMap, type ChordTimelineArtifact } from "@keyspilli/catalog";
 import { PlaybackEngine } from "../../../packages/player-core/src/engine.js";
 import { DEFAULT_SETTINGS } from "../../../packages/player-core/src/prefs.js";
@@ -16,7 +16,7 @@ import { resolveTimedNotes } from "../../../packages/player-core/src/timeline.js
 import { getSongDetail, projectChordSources } from "../src/lib/catalog-api.js";
 import { replayChordsBacking } from "../src/components/player/chords-backing.js";
 import { evaluateChordsBacking, snapshotChordsBacking } from "../src/lib/chords-evaluation.js";
-import { diagnosePreparedChords, repairPreparedHarmony } from "../src/lib/chords-preparation.js";
+import { diagnosePreparedChords, repairPreparedHarmony, sourceBoundHarmony } from "../src/lib/chords-preparation.js";
 
 const [inventoryPath, outputPath] = process.argv.slice(2);
 assert(inventoryPath && outputPath && process.env.KEYSPILLI_DATA_DIR, "usage: KEYSPILLI_DATA_DIR=/snapshot tsx prepare-catalog-chords.mts INVENTORY_JSON OUTPUT_DIR");
@@ -32,7 +32,7 @@ for (const row of inventory) assert(/^[a-z0-9][a-z0-9-]{0,119}$/.test(row.repres
 assert(new Set(inventory.map(r => r.representative.baseId)).size === inventory.length, "duplicate inventory base IDs");
 if (process.argv.includes("--verify")) {
   assert(resolve(process.env.KEYSPILLI_CHORD_SOURCE_MAP ?? "") === join(out, "chord-sources.json"), "verification must load the delivered map");
-  const verified = [];
+  const verified: string[] = [];
   for (const { representative: song } of inventory) {
     const dir = join(out, song.baseId), receipt = JSON.parse(readFileSync(join(dir, "receipt.json"), "utf8"));
     for (const [name, digest] of Object.entries(receipt.files)) assert.equal(hash(readFileSync(join(dir, name))), digest, `${song.baseId}: changed ${name}`);
@@ -51,7 +51,9 @@ const sourceMap: ChordSourceMap = JSON.parse(readFileSync("catalog/chord-sources
 const preserved = new Set(sourceMap.entries.filter(e => e.sources.some(s => s.artifactPath)).map(e => e.baseId));
 const sourceFiles = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--",
   "packages/midi/src", "packages/player-core/src", "packages/catalog/src", "apps/web/src/lib", "apps/web/src/components/player", "package-lock.json"], { encoding: "utf8" });
-const generator = hash(String(process.argv.includes("--repair")) + [...new Set(sourceFiles.split("\0").filter(Boolean))].sort()
+const sourceBacked = process.argv.includes("--source-backed");
+assert(!sourceBacked || !process.argv.includes("--repair"), "source-backed selection cannot use generated repair");
+const generator = hash(String(process.argv.includes("--repair")) + String(sourceBacked) + [...new Set(sourceFiles.split("\0").filter(Boolean))].sort()
   .map(path => `${path}:${hash(readFileSync(path))}`).join("\n") + readFileSync(new URL(import.meta.url), "utf8"));
 const overridesPath = join(out, "harmonizations.json");
 const overrides = existsSync(overridesPath) ? JSON.parse(readFileSync(overridesPath, "utf8")) : {};
@@ -80,12 +82,15 @@ for (const { representative: song } of inventory) {
     if (!preserved.has(song.baseId)) {
       // The owner requested composed learner backings. Contextual harmony is
       // an arrangement choice, explicitly inferred; it is not recovered ground truth.
-      const labels: ChordLabel[] = overrides[song.baseId]?.chords ?? inferHarmonyTimeline(original.notes, original.measures, { key: original.key });
+      const labels: ChordLabel[] = sourceBacked
+        ? sourceBoundHarmony(original, (original as typeof original & Pick<Variant, "phraseProtection">).phraseProtection,
+          detail.artifact.status === "valid" ? detail.artifact.manifest.phrasePlan : undefined)
+        : overrides[song.baseId]?.chords ?? inferHarmonyTimeline(original.notes, original.measures, { key: original.key });
       assert(input.sourceFingerprint, "preparation requires a source fingerprint");
       timeline = parseChordTimeline({ schemaVersion: 1, baseId: song.baseId, title: song.title, artist: song.artist,
         key: input.key, tempoBpm: input.tempoBpm, timeSig: input.timeSig,
         durationBeats: Math.max(...input.measures.map(m => m.endBeat), ...input.notes.map(n => n.start + n.dur)), coverage: "full-song",
-        chords: labels.map(c => ({ ...c, sourceKind: "inferred", inferred: true, inferenceType: "learner-harmonization" })),
+        chords: labels.map(c => ({ ...c, sourceKind: "inferred", inferred: true, inferenceType: sourceBacked ? "harmony-window" : "learner-harmonization" })),
         provenance: { sourceId: "prepared", provider: "keyspilli", kind: "midi-derived", sourceRef: `prepared:${input.sourceFingerprint}`, confidence: "inferred arrangement" } });
       if (process.argv.includes("--repair") && !overrides[song.baseId]) {
         const repair = repairPreparedHarmony(input, timeline);
@@ -130,7 +135,8 @@ for (const { representative: song } of inventory) {
     const files = Object.fromEntries(["chords.mid", "chords.musicxml", "playback.json", "diagnosis.json", ...(timeline ? ["timeline.json"] : [])].map(name => [name, hash(readFileSync(join(dir, name)))]));
     receipt = { ...song, generator, inputHash, sourceFingerprint: input.sourceFingerprint, status: preserved.has(song.baseId) ? "preserved" : "prepared-candidate",
       assessment: "structural checks only; not a musical acceptance", files, mapping, metrics,
-      references: overrides[song.baseId]?.references ?? [], rationale: overrides[song.baseId]?.rationale ?? "Contextual learner harmonization from the existing Advanced arrangement.",
+      references: sourceBacked ? ["Pinned Advanced phrase plan; role accuracy and musical acceptance remain unestablished."] : overrides[song.baseId]?.references ?? [],
+      rationale: sourceBacked ? "Conservative harmony from explicitly selected backing roles; melody/hook and unclassified lineages excluded." : overrides[song.baseId]?.rationale ?? "Contextual learner harmonization from the existing Advanced arrangement.",
       checks: { transportEvents: noteEvents + chordEvents, exportedNotes: captured.length, midiRoundTrip: true, musicXmlRoundTrip: true, chordMidiVelocity: 80 } };
     json(receiptPath, receipt); rows.push(receipt);
     console.log(`${rows.length}/${inventory.length} ${song.baseId}: ${receipt.status}; proxies ${metrics.backing.gate.passed ? "pass" : "flagged"}`);

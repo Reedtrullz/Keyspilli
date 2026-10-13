@@ -54,6 +54,13 @@ This is provisional software-checked delivery, not musical approval or release.
 
 ## Maintain
 
+The 20261014 source-backing candidate adds an opt-in from a pinned Advanced
+PhrasePlan and preserves explicitly selected rests when a permitted optional
+tail can be shortened. All six Original variants still ship; only targeted
+tiers have exact phrase protections. This is a provisional source candidate,
+with musical/keyboard review, inexpensive-model comparison and installed
+adoption recorded separately. It has not been published or installed.
+
 Edit this plugin's `skills/keyspilli-song/` as the canonical source and commit reviewed changes to Git. Installed plugin caches are release snapshots. Packaging and compatibility checks do not install or release a version. Version bumps, installed adoption and distribution require the relevant separate authorization; do not maintain a second independent skill copy.
 
 Run these bounded checks from the plugin directory:

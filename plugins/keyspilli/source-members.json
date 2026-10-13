@@ -33,9 +33,9 @@
     "source-members.json"
   ],
   "sha256": {
-    ".codex-plugin/plugin.json": "0390460dd74a4f503c9e9b2a4135ac5e499bf3f76dbbfcfed70e347ee789dd3c",
-    "README.md": "6249fa1c68fe85421e5e2c6d26666afe5f7951485c37eeadc68cdab55059d4ae",
-    "skills/keyspilli-song/SKILL.md": "a123643369e21ac3c664d0731c0f1e79facf71048665e8ab9e78ddf7d565c9a1",
+    ".codex-plugin/plugin.json": "8985f0356e15a2694fd5388a20135b70cfab4d7fcad7a63972da90442de7d90a",
+    "README.md": "560bb685eda8d03be1b8d8c724a8ecead18bed51de23e287e8c3fe8f12211f92",
+    "skills/keyspilli-song/SKILL.md": "c57fd9a64ae9c9d07ebca691f3199238c9ee3c2497866c6f60e7a10bf744b88d",
     "skills/keyspilli-song/agents/openai.yaml": "09974a1a8aa25d3e855bdc3f0690b36887516956f404e9bec909d4caf61a39b6",
     "skills/keyspilli-song/examples/inversion-and-bass.json": "42e72c67f2485c93dd546abd51475b1195e59a879c371d275a8eda2fc98aae35",
     "skills/keyspilli-song/examples/rests-and-pickup.json": "5cd23a9b082cdc687371ef121f30735eb08fae7c0bc2a44e749e7ab9453ff233",
@@ -51,7 +51,7 @@
     "skills/keyspilli-song/references/keyspilli-workflow.md": "6ac0bf794ed639ac30a0418f39a36b8750de091803fcdabe7c3efd3ab21d1d2f",
     "skills/keyspilli-song/references/music-review-workflow.md": "f3169f45d2a2ee10983bea8ca432c51c434c0ade0e0d30a9b2760eb930e071e7",
     "skills/keyspilli-song/references/musical-quality-gate.md": "63c22b64caca5eb3d9026c8065bec6f1c93c7e221aeb03f88c59c1e8174d6a54",
-    "skills/keyspilli-song/references/phrase-protection.md": "c87fc49f7bc72e5fcb698546a1282aaceb2f5b906eaa4c464fed28d708e3112b",
+    "skills/keyspilli-song/references/phrase-protection.md": "8595871285a4e1c50e1cf366a2c5015735e82e816be914170b35731f062e476e",
     "skills/keyspilli-song/references/score-review-workflow.md": "e8ae8a973f611db0d98b9f5ad6ba634eb3824bcd79f5668c18b9d2d80f124228",
     "skills/keyspilli-song/references/source-and-delivery-contracts.md": "873a75401fb932b3e1c70ad7744e846fd698cbe56b73fa6efa1980f24aedae3d",
     "skills/keyspilli-song/references/ultimate-guitar.md": "f6b1515f9ae71785becce8d912bd2770ec968539703ecb81fc1234675a717393",

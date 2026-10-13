@@ -35,6 +35,8 @@ Preserve accepted Original/backing when improving an existing catalog entry.
    [deterministic preparation workflow](references/deterministic-preparation.md)
    only when `deterministic_workflow.status: compatible`.
    Use its packaged request-pinning helper instead of hand-writing hashes or JSON.
+   For explicit source-role backing, load the [phrase protection pilot](references/phrase-protection.md)
+   and check for `--source-backed-chords`; it requires a pinned plan targeting Advanced.
 4. **Diagnose and correct.** When `score_review.status: compatible`, use the
    [offline score review](references/score-review-workflow.md). Repair only an
    exact authorized event with unchanged evidence pins. Preserve protected

@@ -123,6 +123,9 @@ type Interval = { start: number; end: number };
 function intervalIndex(notes: readonly Note[], pedal: ParsedMidi["sourcePedal"]): Interval[] {
   const spans = notes.map(n => ({ start: n.start, end: pedal ? sourcePedalEnd(n, pedal) : n.start + n.dur }))
     .sort((a, b) => a.start - b.start || a.end - b.end);
+  return mergeIntervals(spans);
+}
+function mergeIntervals(spans: readonly Interval[]): Interval[] {
   const merged: Interval[] = [];
   for (const span of spans) {
     const last = merged.at(-1);
@@ -130,6 +133,12 @@ function intervalIndex(notes: readonly Note[], pedal: ParsedMidi["sourcePedal"])
     else merged.push(span);
   }
   return merged;
+}
+function firstIntersection(spans: readonly Interval[], start: number, end: number): Interval | undefined {
+  let lo = 0, hi = spans.length;
+  while (lo < hi) { const mid = (lo + hi) >>> 1; if (spans[mid]!.end <= start + EPS) lo = mid + 1; else hi = mid; }
+  const span = spans[lo];
+  return span && span.start < end - EPS ? span : undefined;
 }
 function intersects(spans: readonly Interval[], start: number, end: number): boolean {
   let lo = 0, hi = spans.length;
@@ -286,6 +295,9 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
     dur: beat(n.start + n.dur) - beat(n.start), hand: n.hand ?? handByPitch.get(n.midi)! }]));
   const sourceIndex = indexOrigins(source.notes);
   const eventBySource = new Map(events.map(e => [e.source, e]));
+  const rests = new Map(["all", ...ROLES].map(role => [role, mergeIntervals(plan.phrases.flatMap(p => p.rests
+    .filter(r => r.scope === role).map(r => ({ start: beat(r.startBeat), end: beat(r.endBeat) })))
+    .sort((a, b) => a.start - b.start || a.end - b.end))]));
   const result = variants.map(variant => {
     const report: PhraseProtectionReport = { schemaVersion: 1, sourceSha256: plan.source.sha256,
       status: plan.levels.includes(variant.level) ? "preserved" : "not-targeted", protectedEvents: 0,
@@ -329,6 +341,23 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
       if (before.length !== 1 || !sameMusic(before[0]!, desired)) report.changes.push({ eventId: entry.event.id,
         phraseId: entry.phrase.id, occurrenceId: entry.phrase.occurrenceId, role: entry.event.role,
         operation: "restored-source", before: structuredClone(before), after: [structuredClone(desired)] });
+    }
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const note = notes[i]!;
+      const entries = (note.sourceOrigins ?? []).flatMap(origin => descendants(sourceIndex, {
+        sourceOriginId: origin.id, sourceOccurrence: origin.occurrence,
+      } as PhraseEvent).map(peer => eventBySource.get(peer)));
+      if (!entries.length || entries.length !== note.sourceOrigins?.length || entries.some(e => !e || e.event.required)) continue;
+      const optional = entries.filter((e): e is BoundEvent => e !== undefined);
+      const scopes = new Set(["all", ...optional.map(e => e.event.role)]);
+      const rest = [...scopes].flatMap(scope => {
+        const span = firstIntersection(rests.get(scope)!, note.start, note.start + note.dur);
+        return span ? [span] : [];
+      }).sort((a, b) => a.start - b.start)[0];
+      if (!rest) continue;
+      if (note.start < rest.start - EPS && optional.every(e => e.event.allowedTransformations.includes("release-change"))) {
+        note.dur = rest.start - note.start;
+      } else if (optional.every(e => e.event.allowedTransformations.includes("omit"))) notes.splice(i, 1);
     }
     notes.sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || (a.hand ?? "").localeCompare(b.hand ?? ""));
     const finalIndex = indexOrigins(notes);

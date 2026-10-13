@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVariants, parseMidi, parseMusicXmlNotes, writeVariantArtifacts, type ParsedMidi } from "../src/index.js";
+import { applyPhrasePlan, buildVariants, compilePhrasePlan, parseMidi, parseMusicXmlNotes, writeVariantArtifacts, type ParsedMidi, type PhrasePlanV1 } from "../src/index.js";
 import corpus from "./fixtures/phrase-corpus.json";
 import * as midiApi from "../src/index.js";
 
@@ -33,6 +33,25 @@ const run = (source: ParsedMidi, plan: unknown, sourceSha256 = HASH) => buildVar
   { arrangementProfile: "source", maxDurBeats: null, normalizeRange: false, phrasePlan: plan, sourceSha256 } as Parameters<typeof buildVariants>[2]);
 
 describe("explicit source-bound phrase contract", () => {
+  it("shortens only a permitted optional reduction tail to preserve a source rest", () => {
+    const { source, plan } = fixture();
+    const compiled = compilePhrasePlan(source, plan as PhrasePlanV1, HASH);
+    const advanced = run(source, plan).find(v => v.level === "advanced")!;
+    const tail = advanced.notes.filter(n => n.sourceOrigins?.some(o => plan.phrases[0]!.events.some(e =>
+      e.sourceOriginId === o.id && !e.required))).at(-1)!;
+    expect(tail).toBeDefined();
+    const origin = tail.sourceOrigins![0]!.id;
+    tail.dur = 16.5 - tail.start;
+    const result = applyPhrasePlan([advanced], compiled)[0]!;
+    const reduced = result.notes.find(n => n.sourceOrigins?.some(o => o.id === origin))!;
+    expect(reduced.midi).toBe(tail.midi);
+    expect(reduced.start).toBe(tail.start);
+    expect(reduced.start + reduced.dur).toBe(16);
+    expect(result.notes.every(n => n.start + n.dur <= 16)).toBe(true);
+    const forbidden = structuredClone(plan) as PhrasePlanV1;
+    forbidden.phrases[0]!.events.find(e => e.sourceOriginId === origin)!.allowedTransformations = ["octave-displacement", "onset-change", "hand-reassignment", "velocity-change"];
+    expect(() => applyPhrasePlan([advanced], compilePhrasePlan(source, forbidden, HASH))).toThrow(/phrase/i);
+  });
   for (let index = 0; index < corpus.cases.length; index++) {
     it(`preserves exact selected events through all six tiers: ${corpus.cases[index]!.compositionId}`, () => {
       const { source, plan, item } = fixture(index);

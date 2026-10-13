@@ -2,7 +2,8 @@ import { expect, it } from "vitest";
 import { leftHandSupport, repairPreparedHarmony, diagnosePreparedChords } from "./chords-preparation";
 import type { SongData } from "@keyspilli/player-core";
 import type { ChordTimelineArtifact } from "@keyspilli/catalog";
-import { writeMidi } from "@keyspilli/midi";
+import { parseMidi, sourcePhraseClock, suggestPhrasePlan, writeMidi } from "@keyspilli/midi";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,6 +12,40 @@ const data = { title: "Test", artist: "Test", tempoBpm: 120, timeSig: [4, 4], ke
   notes: [{ midi: 48, start: 0, dur: 4, vel: 80, hand: "L" }, { midi: 64, start: 0, dur: 4, vel: 80, hand: "R" }],
   chords: [{ name: "C", beat: 0, durationBeats: 4, notes: [48, 64, 67], sourceKind: "inferred", inferenceType: "learner-harmonization" }],
   measures: [{ index: 0, startBeat: 0, endBeat: 4 }] } as SongData;
+it("uses explicitly selected source roles to leave a melody-only opening and backing rests silent", () => {
+  const root = new URL("../../../../", import.meta.url).pathname;
+  const scratch = mkdtempSync(join(root, "output", "source-role-backing-test-"));
+  const run = join(scratch, "run"), input = join(scratch, "source.mid"), planPath = join(scratch, "plan.json");
+  const melody = Array.from({ length: 32 }, (_, i) => ({ midi: 60 + i % 3 * 2, start: i * 2, dur: 0.5, vel: 80, hand: "R" as const }));
+  const backing = Array.from({ length: 12 }, (_, i) => [72, 76, 79].map(midi => ({ midi, start: 8 + i * 4, dur: 3, vel: 70, hand: "L" as const }))).flat();
+  const bytes = writeMidi([...melody, ...backing], { tempoBpm: 120, tracks: [{ name: "Right hand", notes: melody }, { name: "Left hand", notes: backing }] });
+  const hash = createHash("sha256").update(bytes).digest("hex");
+  const source = parseMidi(bytes);
+  const plan = suggestPhrasePlan(source, { sha256: hash, compositionId: "authored-crossing-control", performanceId: "test-v1" });
+  plan.levels = ["advanced"];
+  plan.source.clock = sourcePhraseClock(source);
+  for (const event of plan.phrases[0]!.events) {
+    const note = source.notes.find(n => n.sourceOrigins?.some(o => o.id === event.sourceOriginId))!;
+    event.role = note.hand === "R" ? "melody" : "harmony";
+    event.required = event.sourceOriginId === source.notes[0]!.sourceOrigins![0]!.id;
+    if (event.required) event.allowedTransformations = [];
+  }
+  const call = (args: string[]) => execFileSync(process.execPath, ["--import", "tsx", join(root, "apps/web/scripts/prepare-song.mts"), ...args], { cwd: root, encoding: "utf8", timeout: 60000 });
+  try {
+    writeFileSync(input, bytes); writeFileSync(planPath, JSON.stringify(plan));
+    call([input, run, "Crossing control", "Authored tests", "--phrase-plan", planPath, "--source-backed-chords"]);
+    const actual = parseMidi(readFileSync(join(run, "bundle", "chords.mid"))).notes;
+    expect(actual.length).toBeGreaterThan(0);
+    expect(actual.some(n => n.start < 8)).toBe(false);
+    expect(actual.some(n => n.start < 12 && n.start + n.dur > 11.01)).toBe(false);
+    expect(actual.some(n => n.midi % 12 === 2)).toBe(false);
+    const timeline = JSON.parse(readFileSync(join(run, "bundle", "timeline.json"), "utf8"));
+    expect(timeline.chords.every((c: { inferred: boolean; sourceKind: string }) => c.inferred && c.sourceKind === "inferred")).toBe(true);
+    expect(readFileSync(input)).toEqual(Buffer.from(bytes));
+    expect(() => call([input, join(scratch, "missing-plan"), "Test", "Tests", "--source-backed-chords"])).toThrow();
+    expect(existsSync(join(scratch, "missing-plan"))).toBe(false);
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+}, 60000);
 it("counts uncovered LH duration and overlapping octave doublings only once", () => {
   const snapshot = { schemaVersion: 1, tempoBpm: 120, timeSig: [4, 4], endBeatExclusive: 4, chords: [],
     notes: [{ midi: 48, start: 0, dur: 2, vel: 80 }, { midi: 60, start: 0, dur: 2, vel: 80 }] };
