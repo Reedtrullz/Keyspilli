@@ -20,7 +20,7 @@ import {
   type SourceTimingMetadata,
   type SongRow,
 } from "@keyspilli/catalog";
-import { chordToNotes, inferHarmonyTimeline, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
+import { artifactFidelityForRead, chordToNotes, inferHarmonyTimeline, validateArtifactFiles, type ChordLabel, type Variant } from "@keyspilli/midi";
 import { parseOwnedSections } from "./owned-sections";
 import { arithmeticMeasures, completeChordDurations, overlaySourceSections, playbackTiming, validatePlaybackData, validateSparseBackingTiming, type ChordSourceBundle, type ChordSourceTimeline, type SongData } from "@keyspilli/player-core";
 import { resolveSongSections } from "./song-sections";
@@ -759,7 +759,7 @@ export async function getArtifactFileWithRevision(
       sourcePedal:loaded.data.sourcePedal,
       measures: loaded.data.measures,
     };
-    if (validateArtifactFiles(variant, { midi, xml }).length > 0) return null;
+    if (validateArtifactFiles(variant, { midi, xml, fidelity: artifactFidelityForRead((loaded.data as SongData & {artifactFidelity?: unknown}).artifactFidelity) }).length > 0) return null;
     const entry: ArtifactCacheEntry = { midi, xml: Buffer.from(xml, "utf8") };
     // Reject a changed pair even for legacy data, which has no durable revision token.
     const data = cachedArtifact(entry, name);

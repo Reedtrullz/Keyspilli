@@ -1,0 +1,10 @@
+{
+  "stage": "algorithm frozen before first holdout run",
+  "commit": "7bd6891c1388104533ac7c337b5fd80e3f3cc2e6",
+  "files": {
+    "packages/midi/src/harmony.ts": "b505c31897aa7bf85eda853f9c7783035de9f9a53ab9a5efb61ab51d999ec9b8",
+    "packages/midi/test/fixtures/ks09-harmony-pilot-v1.json": "7d6e8861fa5f15f5065166c8d8a9d5642b0bf190c62c6dbe47a9d09f051383c6",
+    "apps/web/src/lib/harmony-pilot-evaluation.ts": "c6e35c8921a2bd05407cbc6567f2b21bafdc14857b8e9fc252cab732195ee919",
+    "apps/web/scripts/evaluate-harmony-pilot.mts": "fffa750f36c07682a7f50a778f58b918a68125262d7a8158d01486c89c931b83"
+  }
+}

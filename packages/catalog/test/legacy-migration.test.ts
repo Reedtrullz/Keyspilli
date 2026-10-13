@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildVariants,
+  CURRENT_ARTIFACT_FIDELITY,
+  LEGACY_ARTIFACT_FIDELITY,
   parseMidi,
   writeMidi,
   writeVariantArtifacts,
@@ -68,6 +70,20 @@ describe("legacy artifact migration preflight", () => {
     expect(plan.manifest.tempo.playback.bpm).toBe(120);
     expect(plan.sourceArtifactHash).toMatch(/^[0-9a-f]{64}$/);
     expect(plan.configFingerprint).toBe(legacyMigrationConfigFingerprint(null));
+  });
+
+  it.each([undefined,LEGACY_ARTIFACT_FIDELITY])("reads historical velocity omission explicitly without changing bytes: %j",fidelity=>{
+    const input=fixture();
+    for(const f of input.artifacts){f.variant!.notes[0]!.vel=20; const a=writeVariantArtifacts(f.variant!,"Legacy fixture","Keyspilli");f.midi=a.midi;f.xml=a.xml.replace(/ dynamics="[^"]*"/g,"");f.notesJson=JSON.stringify({...JSON.parse(f.notesJson),notes:f.variant!.notes})+"\n";Object.assign(f.variant!,{artifactFidelity:fidelity});}
+    const before=structuredClone(input),plan=inspectLegacyArtifact({baseId:"legacy-fixture",...input,now:NOW,maxDurBeats:null});
+    expect(plan.status).toBe("migrate");expect(input).toEqual(before);
+  });
+  it.each([CURRENT_ARTIFACT_FIDELITY,{schemaVersion:3},null])("refuses lost v2 velocity or invalid persisted fidelity: %j",fidelity=>{
+    const input=fixture();
+    for(const f of input.artifacts){Object.assign(f.variant!,{artifactFidelity:fidelity});if(fidelity===CURRENT_ARTIFACT_FIDELITY){f.variant!.notes[0]!.vel=20;const a=writeVariantArtifacts(f.variant!,"Legacy fixture","Keyspilli");f.midi=a.midi;f.xml=a.xml.replace(/ dynamics="[^"]*"/g,"");f.notesJson=JSON.stringify({...JSON.parse(f.notesJson),notes:f.variant!.notes})+"\n";}}
+    const plan=inspectLegacyArtifact({baseId:"legacy-fixture",...input,now:NOW,maxDurBeats:null});
+    expect(plan.status).toBe("invalid");
+    if(plan.status==="invalid")expect(plan.issues.join(" ")).toMatch(/velocity|fidelity/i);
   });
 
   it("produces a permutation-stable source hash", () => {

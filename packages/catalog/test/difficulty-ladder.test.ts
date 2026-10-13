@@ -87,8 +87,52 @@ function eventDigest(notes: Note[]): string {
   return sha256Hex(new TextEncoder().encode(JSON.stringify(rows)));
 }
 
-function midiDigest(variant: Variant): string {
-  return sha256Hex(writeVariantArtifacts(variant, "Synthetic ladder", "Test").midi);
+/** Compare the old pinned transport after removing only the new measure map
+ * and terminal EOT delay. All original events and their encoded deltas survive. */
+function legacyTransportDigest(bytes: Uint8Array): string {
+  let position = 14, maps = 0;
+  const tracks: number[] = [];
+  const varint = () => {
+    let value = 0;
+    for (let index = 0; index < 4; index++) {
+      const byte = bytes[position++]!;
+      value = value * 128 + (byte & 127);
+      if (!(byte & 128)) return value;
+    }
+    throw new Error("Invalid synthetic MIDI varint");
+  };
+  while (position < bytes.length) {
+    expect(new TextDecoder().decode(bytes.slice(position, position + 4))).toBe("MTrk");
+    const size = new DataView(bytes.buffer, bytes.byteOffset + position + 4, 4).getUint32(0);
+    position += 8;
+    const end = position + size, body: number[] = [];
+    while (position < end) {
+      const start = position, delta = varint(), status = bytes[position++]!;
+      if (status === 255) {
+        const type = bytes[position++]!, length = varint();
+        const payload = new TextDecoder().decode(bytes.slice(position, position + length));
+        position += length;
+        if (type === 127 && payload.startsWith("keyspilli-notation-measures-v1:")) {
+          expect(delta).toBe(0);
+          maps++;
+          continue;
+        }
+        if (type === 47) {
+          expect(length).toBe(0);
+          body.push(0, 255, 47, 0);
+          continue;
+        }
+      } else {
+        if (status < 128 || status >= 240) throw new Error("Unexpected synthetic MIDI event");
+        position += (status & 240) === 192 || (status & 240) === 208 ? 1 : 2;
+      }
+      body.push(...bytes.slice(start, position));
+    }
+    expect(position).toBe(end);
+    tracks.push(77, 84, 114, 107, (body.length >>> 24) & 255, (body.length >>> 16) & 255, (body.length >>> 8) & 255, body.length & 255, ...body);
+  }
+  expect(maps).toBe(1);
+  return sha256Hex(new Uint8Array([...bytes.slice(0, 14), ...tracks]));
 }
 
 describe("difficulty ladder calibration", () => {
@@ -120,7 +164,7 @@ describe("difficulty ladder calibration", () => {
     expect(verifyMonotonicity(first.variants)).toEqual([]);
   });
 
-  it("keeps every synthetic ladder level stable through the canonical MIDI writer", () => {
+  it("keeps the pinned synthetic note transport while adding measure-map and EOT metadata", () => {
     const { variants } = learnerVariants();
     const expectedWriterDigests: Record<Variant["level"], string> = {
       "very-beginner": "b85b94214cbebc168b54f4898260b6301554c3eec7fa3be80bafb1b0f9d4d52c",
@@ -138,7 +182,11 @@ describe("difficulty ladder calibration", () => {
       const roundTripped = parseMidi(rendered.midi);
       expect(eventDigest(roundTripped.notes), variant.level).toBe(eventDigest(variant.notes));
       expect(roundTripped.tempoBpm, variant.level).toBeCloseTo(variant.tempoBpm, 2);
-      actualWriterDigests[variant.level] = midiDigest(variant);
+      expect(roundTripped.notationMeasures, variant.level).toEqual(variant.measures);
+      expect(roundTripped.durationBeats, variant.level).toBe(8);
+      expect(roundTripped.repeatPlayback, variant.level).toBeUndefined();
+      expect(writeVariantArtifacts(variant, "Synthetic ladder", "Test").midi, variant.level).toEqual(rendered.midi);
+      actualWriterDigests[variant.level] = legacyTransportDigest(rendered.midi);
     }
     expect(actualWriterDigests).toEqual(expectedWriterDigests);
   });

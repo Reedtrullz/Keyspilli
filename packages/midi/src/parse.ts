@@ -1,5 +1,6 @@
 import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js";
-import {validSourcePedal} from "./source-pedal.js";
+import {NOTATION_MEASURES,readNotationMeasures} from "./notation-measures.js";
+import {SOURCE_PEDAL_END,validSourcePedal} from "./source-pedal.js";
 import { sectionsFromMarkers } from "./source-sections.js";
 import { tutorialSourceLane } from "./source-hand-lanes.js";
 import { Hand, MidiTempoEvent, MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
@@ -71,6 +72,8 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
   const pedalChanges: NonNullable<ParsedMidi["sourcePedal"]>["changes"] = [];
   let fileEndBeat=0;
   let occurrences:ParsedMidi["notationMeasures"];
+  let notationMeasures:ParsedMidi["notationMeasures"];
+  let declaredPedalEnd:number|undefined;
   const sectionMarkers: Array<{beat:number;label:string}> = [];
 
   for (let t = 0; t < ntrks; t++) {
@@ -138,12 +141,22 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
               trackNames.push(name);
             }
           } else if (type === 0x7f) {
-            const prefix=readStr(buf,{v:pos},Math.min(len2,SOURCE_OCCURRENCES.length+1));
-            if (prefix===`${SOURCE_OCCURRENCES}:` && len2>262144)throw new Error("source occurrence map exceeds bounds");
+            const prefix=readStr(buf,{v:pos},Math.min(len2,Math.max(SOURCE_OCCURRENCES.length,NOTATION_MEASURES.length,SOURCE_PEDAL_END.length)+1));
+            if (prefix.startsWith(`${SOURCE_OCCURRENCES}:`) && len2>262144)throw new Error("source occurrence map exceeds bounds");
+            if (prefix.startsWith(`${NOTATION_MEASURES}:`) && len2>262144)throw new Error("notation measure map exceeds bounds");
+            if (prefix.startsWith(`${SOURCE_PEDAL_END}:`) && len2>128)throw new Error("source pedal extent exceeds bounds");
             const payload=len2<=262144?readStr(buf,{v:pos},len2):"";
             if(payload.startsWith(`${SOURCE_OCCURRENCES}:`)){
-              if(occurrences || tick!==0)throw new Error("ambiguous source occurrence map");
+              if(occurrences || notationMeasures || tick!==0)throw new Error("ambiguous source occurrence map");
               occurrences=readSourceOccurrences(payload.slice(SOURCE_OCCURRENCES.length+1));
+            } else if(payload.startsWith(`${NOTATION_MEASURES}:`)){
+              if(occurrences || notationMeasures || tick!==0)throw new Error("ambiguous notation measure map");
+              notationMeasures=readNotationMeasures(payload.slice(NOTATION_MEASURES.length+1));
+            } else if(payload.startsWith(`${SOURCE_PEDAL_END}:`)){
+              if(declaredPedalEnd!==undefined || tick!==0)throw new Error("ambiguous source pedal extent");
+              const value=Number(payload.slice(SOURCE_PEDAL_END.length+1));
+              if(!Number.isFinite(value)||value<=0||value>4096)throw new Error("invalid source pedal extent");
+              declaredPedalEnd=value;
             }
           } else if ((type === 0x06 || type === 0x07) && len2 <= 160) {
             if(sectionMarkers.length<4097) sectionMarkers.push({beat:tick/division,label:new TextDecoder().decode(buf.subarray(pos,pos+len2))});
@@ -266,13 +279,16 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     }
   }
   valid.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const noteEndBeat = valid.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
+  if(declaredPedalEnd!==undefined && (!pedalChanges.length || declaredPedalEnd>fileEndBeat+1e-9 || noteEndBeat>declaredPedalEnd+1e-9))throw new Error("source pedal extent differs from MIDI");
   if(!pedalChanges.length)for(const note of valid)delete note.sourceMidiChannel;
-  const sourcePedal=pedalChanges.length ? {version:1 as const,endBeat:fileEndBeat,provenance:"midi-file" as const,changes:pedalChanges.sort((a,b)=>a.beat-b.beat)} : undefined;
+  const sourcePedal=pedalChanges.length ? {version:1 as const,endBeat:declaredPedalEnd ?? fileEndBeat,provenance:declaredPedalEnd===undefined ? "midi-file" as const : "declared-export" as const,changes:pedalChanges.sort((a,b)=>a.beat-b.beat)} : undefined;
   if(sourcePedal && !validSourcePedal(sourcePedal))throw new Error("Invalid or ambiguous source CC64 timeline");
   const tempoBpm = tempos.find((event) => event.tick === 0)?.bpm ?? 120;
-  const durationBeats = valid.reduce((m, n) => Math.max(m, n.start + n.dur), 0);
+  const durationBeats = Math.max(noteEndBeat,fileEndBeat);
   const sections=sectionsFromMarkers(sectionMarkers,durationBeats);
-  if(occurrences && durationBeats>occurrences.at(-1)!.endBeat+1/division+1e-9)throw new Error("source occurrence map differs from MIDI");
+  if(occurrences && noteEndBeat>occurrences.at(-1)!.endBeat+1/division+1e-9)throw new Error("source occurrence map differs from MIDI");
+  if(notationMeasures && durationBeats>notationMeasures.at(-1)!.endBeat+1/division+1e-9)throw new Error("notation measure map differs from MIDI");
   return {
     format,
     ...(sections.length ? {sections} : {}),
@@ -288,9 +304,10 @@ export function parseMidi(buf: Uint8Array): ParsedMidi {
     trackNames: trackNames.filter((n) => n.trim()),
     sourceParts,
     ...(unsupportedControls.size ? { unsupportedControls: [...unsupportedControls].sort() } : {}),
-    durationBeats:Math.max(durationBeats,occurrences?.at(-1)?.endBeat ?? 0,sourcePedal?.endBeat ?? 0),
+    durationBeats:Math.max(durationBeats,occurrences?.at(-1)?.endBeat ?? 0,notationMeasures?.at(-1)?.endBeat ?? 0,sourcePedal?.endBeat ?? 0),
     ...(sourcePedal?{sourcePedal}:{}),
     ...(occurrences?{notationMeasures:occurrences,repeatPlayback:"declared" as const}:{}),
+    ...(notationMeasures?{notationMeasures}:{}),
     title,
   };
 }

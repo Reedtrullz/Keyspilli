@@ -1,5 +1,7 @@
 import type {Note,SourcePedalTimeline} from './types.js';
 export const SOURCE_PEDAL='keyspilli-source-pedal-v1';
+/** MIDI extent only; controller values and note channels come from actual events. */
+export const SOURCE_PEDAL_END='keyspilli-source-pedal-end-v1';
 export function validSourcePedal(value:unknown):value is SourcePedalTimeline {
  if(!value||typeof value!=='object'||Array.isArray(value))return false;const v=value as SourcePedalTimeline;
  if(Object.keys(v).some(k=>!['version','endBeat','provenance','changes'].includes(k))||v.version!==1||!Number.isFinite(v.endBeat)||v.endBeat<=0||v.endBeat>4096||!['midi-file','declared-export'].includes(v.provenance)||!Array.isArray(v.changes)||!v.changes.length||v.changes.length>4096)return false;

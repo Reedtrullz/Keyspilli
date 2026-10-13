@@ -46,7 +46,14 @@ export function activeExportVariant(data:SongData,resolution:AccompanimentResolu
  const notes:Note[]=[...selected,...chords.flatMap(chord=>{
   if(chord.durationBeats===undefined)throw new ActiveExportUnsupportedError("Legacy chord duration is unavailable for symbolic export.");
   const duration=Math.min(chord.durationBeats,end-chord.beat);
-  return duration>0?[...new Set(chord.notes)].sort((a,b)=>a-b).map(midi=>({midi:midi+selection.transpose,start:chord.beat,dur:duration,vel:100,hand:"L" as const})):[];
+  const seen=new Set<number>();
+  // Keep the hand paired with its original pitch before the final note sort.
+  // Exact unisons collapse once, matching the chord audio event contract.
+  return duration>0?chord.notes.flatMap((midi,index)=>{
+   if(seen.has(midi))return [];
+   seen.add(midi);
+   return [{midi:midi+selection.transpose,start:chord.beat,dur:duration,vel:100,hand:chord.suggestedHands[index]}];
+  }):[];
  })].sort((a,b)=>a.start-b.start||a.midi-b.midi||a.dur-b.dur);
  if((!notes.length&&!options.allowSilence)||notes.length>100000||notes.some(n=>!Number.isInteger(n.midi)||n.midi<0||n.midi>127||!Number.isFinite(n.start)||n.start<0||!Number.isFinite(n.dur)||n.dur<=0))throw new ActiveExportUnsupportedError("Active notes are empty or outside the supported MIDI range.");
  const key=selection.transpose?transposeChordSymbol(data.key.replace(/\s+major$/i,"").replace(/\s+minor$/i,"m"),selection.transpose):data.key;

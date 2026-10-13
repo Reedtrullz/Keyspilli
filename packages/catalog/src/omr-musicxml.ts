@@ -11,6 +11,7 @@
  */
 
 import { unzipSync } from "fflate";
+import { musicXmlElementFidelity } from "@keyspilli/midi";
 import type {
   OmrEventInput,
   OmrPartInput,
@@ -19,7 +20,7 @@ import type {
   OmrTieInput,
 } from "./omr-consensus.js";
 
-export const OMR_MUSICXML_ADAPTER_VERSION = "omr-musicxml-v1" as const;
+export const OMR_MUSICXML_ADAPTER_VERSION = "omr-musicxml-v3-note-velocity-boundary" as const;
 
 export class OmrMusicXmlError extends Error {
   constructor(message: string) {
@@ -47,6 +48,8 @@ export interface OmrMusicXmlParseResult {
 interface XmlNode {
   name: string;
   attrs: Record<string, string>;
+  /** Exact source keys for semantic policy; qualified metadata cannot mask them. */
+  exactAttrs: Record<string, string>;
   children: XmlNode[];
   text: string;
 }
@@ -92,30 +95,34 @@ function localName(name: string): string {
 }
 
 function decodeXml(value: string): string {
-  return value
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)));
+  // Decode once: an escaped literal such as &amp;#46; is not a numeric entity.
+  const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+  return value.replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);/gi, (_match, entity: string) => {
+    if (!entity.startsWith("#")) return named[entity] ?? _match;
+    const code = /^#x/i.test(entity) ? Number.parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+    return String.fromCodePoint(code);
+  });
 }
 
 function parseAttributes(source: string): Record<string, string> {
-  const attrs: Record<string, string> = {};
-  // MusicXML attributes are simple quoted values.  Ignore malformed/unquoted
-  // attributes rather than trying to interpret arbitrary markup as a value.
-  const attrRe = /([^\s=/>]+)\s*=\s*(["'])([\s\S]*?)\2/g;
-  let match: RegExpExecArray | null;
-  while ((match = attrRe.exec(source))) attrs[localName(match[1]!)] = decodeXml(match[3]!);
+  const attrs: Record<string, string> = Object.create(null);
+  // Consume the complete source: unmatched tokens cannot erase an explicit
+  // playback attribute or hide a malformed duplicate from semantic policy.
+  while (source.trim()) {
+    const match = source.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([\s\S]*?)\2/);
+    if (!match) throw new OmrMusicXmlError("invalid XML attribute syntax");
+    const name = match[1]!;
+    if (Object.hasOwn(attrs, name)) throw new OmrMusicXmlError(`duplicate XML attribute: ${name}`);
+    attrs[name] = decodeXml(match[3]!);
+    source = source.slice(match[0].length);
+  }
   return attrs;
 }
 
 /** Parse XML without DTD/entity resolution or network access. */
-function parseXml(xml: string): XmlNode {
+function parseXml(xml: string, exactNames = false): XmlNode {
   if (typeof xml !== "string" || !xml.trim()) throw new OmrMusicXmlError("MusicXML input is empty");
-  const root: XmlNode = { name: "#root", attrs: {}, children: [], text: "" };
+  const root: XmlNode = { name: "#root", attrs: {}, exactAttrs: {}, children: [], text: "" };
   const stack: XmlNode[] = [root];
   let cursor = 0;
   while (cursor < xml.length) {
@@ -155,8 +162,9 @@ function parseXml(xml: string): XmlNode {
     cursor = end + 1;
     if (!raw || raw.startsWith("?") || raw.startsWith("!")) continue;
     if (raw.startsWith("/")) {
-      const closing = localName(raw.slice(1).trim());
-      if (stack.length <= 1 || localName(stack[stack.length - 1]!.name) !== closing) {
+      const closing = raw.slice(1).trim();
+      const opening = stack[stack.length - 1]!.name;
+      if (stack.length <= 1 || (exactNames ? opening !== closing : localName(opening) !== localName(closing))) {
         throw new OmrMusicXmlError(`mismatched closing XML tag: ${closing}`);
       }
       stack.pop();
@@ -166,9 +174,12 @@ function parseXml(xml: string): XmlNode {
     const body = selfClosing ? raw.slice(0, -1).trim() : raw;
     const nameMatch = body.match(/^(\S+)/);
     if (!nameMatch) continue;
+    const exactAttrs = parseAttributes(body.slice(nameMatch[0].length));
     const node: XmlNode = {
       name: nameMatch[1]!,
-      attrs: parseAttributes(body.slice(nameMatch[0].length)),
+      // Retain existing notation extraction separately from source semantics.
+      attrs: exactNames ? exactAttrs : Object.fromEntries(Object.entries(exactAttrs).map(([name, value]) => [localName(name), value])),
+      exactAttrs,
       children: [],
       text: "",
     };
@@ -250,14 +261,14 @@ function parseTie(note: XmlNode): OmrTieInput | undefined {
   };
   for (const tie of children(note, "tie")) add(tie.attrs.type);
   const notations = child(note, "notations");
-  for (const tied of children(notations ?? { name: "", attrs: {}, children: [], text: "" }, "tied")) add(tied.attrs.type);
+  for (const tied of children(notations ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "tied")) add(tied.attrs.type);
   return flags.start || flags.stop || flags.continue ? flags : undefined;
 }
 
 function hasTuplet(note: XmlNode): boolean {
   if (child(note, "time-modification")) return true;
   const notations = child(note, "notations");
-  return children(notations ?? { name: "", attrs: {}, children: [], text: "" }, "tuplet").length > 0;
+  return children(notations ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "tuplet").length > 0;
 }
 
 function midiForPitch(note: XmlNode): { midi: number; accidental: string | null } | null {
@@ -276,11 +287,11 @@ function midiForPitch(note: XmlNode): { midi: number; accidental: string | null 
 function parsePartList(root: XmlNode): Map<string, { name: string | null; role: OmrRole | null }> {
   const result = new Map<string, { name: string | null; role: OmrRole | null }>();
   const partList = child(root, "part-list");
-  for (const scorePart of children(partList ?? { name: "", attrs: {}, children: [], text: "" }, "score-part")) {
+  for (const scorePart of children(partList ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "score-part")) {
     const id = scorePart.attrs.id;
     if (!id) continue;
     const name = textOf(child(scorePart, "part-name")) || textOf(child(scorePart, "part-abbreviation")) || null;
-    const instrumentName = textOf(child(child(scorePart, "score-instrument") ?? { name: "", attrs: {}, children: [], text: "" }, "instrument-name"));
+    const instrumentName = textOf(child(child(scorePart, "score-instrument") ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "instrument-name"));
     const displayName = name || instrumentName || null;
     result.set(id, { name: displayName, role: roleFromName(displayName) });
   }
@@ -291,8 +302,8 @@ function parseTempo(direction: XmlNode): number | null {
   const sound = child(direction, "sound");
   const soundTempo = sound?.attrs.tempo === undefined ? null : Number(sound.attrs.tempo);
   if (positive(soundTempo)) return soundTempo;
-  const metronome = child(child(direction, "direction-type") ?? { name: "", attrs: {}, children: [], text: "" }, "metronome");
-  const perMinute = numberOf(child(metronome ?? { name: "", attrs: {}, children: [], text: "" }, "per-minute"));
+  const metronome = child(child(direction, "direction-type") ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "metronome");
+  const perMinute = numberOf(child(metronome ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "per-minute"));
   return positive(perMinute) ? perMinute : null;
 }
 
@@ -338,10 +349,10 @@ function parseRawPart(
         const nextDivisions = numberOf(child(element, "divisions"));
         if (nextDivisions !== null && Number.isInteger(nextDivisions) && nextDivisions > 0) divisions = nextDivisions;
         const time = child(element, "time");
-        const beats = integerOf(textOf(child(time ?? { name: "", attrs: {}, children: [], text: "" }, "beats")));
-        const beatType = integerOf(textOf(child(time ?? { name: "", attrs: {}, children: [], text: "" }, "beat-type")));
+        const beats = integerOf(textOf(child(time ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "beats")));
+        const beatType = integerOf(textOf(child(time ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "beat-type")));
         if (beats !== null && beats > 0 && beatType !== null && beatType > 0) timeSignature = [beats, beatType];
-        const fifths = integerOf(textOf(child(child(element, "key") ?? { name: "", attrs: {}, children: [], text: "" }, "fifths")));
+        const fifths = integerOf(textOf(child(child(element, "key") ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "fifths")));
         if (fifths !== null) keySignature = fifths;
       } else if (name === "print") {
         const printPage = integerOf(element.attrs["page-number"]);
@@ -430,9 +441,9 @@ function parseRawPart(
   return { id, name: partName, role: partRole, measures: rawMeasures };
 }
 
-function parseScorePartwise(root: XmlNode, options: OmrMusicXmlParseOptions): OmrMusicXmlParseResult {
+function parseScorePartwise(root: XmlNode, options: OmrMusicXmlParseOptions, semanticWarnings: string[] = []): OmrMusicXmlParseResult {
   const partInfo = parsePartList(root);
-  const warnings: string[] = [];
+  const warnings: string[] = [...semanticWarnings];
   const sourceParts = children(root, "part");
   if (!sourceParts.length) throw new OmrMusicXmlError("MusicXML contains no score-partwise parts");
   const rawParts: RawPart[] = [];
@@ -502,7 +513,7 @@ function parseScorePartwise(root: XmlNode, options: OmrMusicXmlParseOptions): Om
   }));
   const firstTime = rawParts.flatMap((part) => part.measures).find((measure) => measure.timeSignature)?.timeSignature ?? null;
   const firstKey = rawParts.flatMap((part) => part.measures).find((measure) => measure.keySignature !== null)?.keySignature ?? null;
-  const title = textOf(child(root, "movement-title")) || textOf(child(child(root, "work") ?? { name: "", attrs: {}, children: [], text: "" }, "work-title")) || undefined;
+  const title = textOf(child(root, "movement-title")) || textOf(child(child(root, "work") ?? { name: "", attrs: {}, exactAttrs: {}, children: [], text: "" }, "work-title")) || undefined;
   const score: OmrScoreInput = {
     title,
     tempoBpm: tempoBpm ?? undefined,
@@ -568,7 +579,61 @@ function assertMxlZipSafe(bytes: Uint8Array): void {
   }
 }
 
-function xmlFromMxl(bytes: Uint8Array): { xml: string; rootFile: string | null } {
+/** Resolve only the bounded container hierarchy; never confuse foreign extensions
+ * with a score declaration. Same-URI aliases are the same element identity. */
+function containerElement(node: XmlNode, inherited: ReadonlyMap<string, string> = new Map()) {
+  const namespaces = new Map(inherited);
+  for (const [name, value] of Object.entries(node.exactAttrs)) {
+    if (name === "xmlns") namespaces.set("", value);
+    else if (name.startsWith("xmlns:")) namespaces.set(name.slice(6), value);
+  }
+  if (!/^[A-Za-z_][\w.-]*(?::[A-Za-z_][\w.-]*)?$/.test(node.name)) {
+    throw new OmrMusicXmlError("MXL rootfile declaration has an invalid element name");
+  }
+  const parts = node.name.split(":");
+  const namespace = namespaces.get(parts.length === 2 ? parts[0]! : "") ?? "";
+  if (parts.length === 2 && !namespace) throw new OmrMusicXmlError("MXL rootfile declaration has an undeclared namespace prefix");
+  return { node, namespaces, namespace, local: parts.at(-1)! };
+}
+
+/** Select one exact source for every MXL consumer. A declared source never falls back. */
+export function selectMusicXmlRootfile(containerXml: string | undefined, names: readonly string[]): string {
+  let rootFile: string;
+  if (containerXml !== undefined) {
+    let document: XmlNode;
+    try {
+      // A namespace declaration or qualified lookalike is not the unqualified
+      // full-path attribute. Preserve exact identity and reject duplicates.
+      document = parseXml(containerXml, true);
+    } catch (error) {
+      throw new OmrMusicXmlError(`MXL rootfile declaration is invalid: ${(error as Error).message}`);
+    }
+    const container = document.children.length === 1 ? containerElement(document.children[0]!) : undefined;
+    const rootfiles = container?.local === "container" ? container.node.children
+      .map(node => containerElement(node, container.namespaces))
+      .filter(element => element.local === "rootfiles" && element.namespace === container.namespace) : [];
+    // The first actual rootfile is the MusicXML starting point; subsequent
+    // entries may be companion scores, PDF or audio. Comments/text are not roots.
+    const rootfilesElement = rootfiles.length === 1 ? rootfiles[0] : undefined;
+    const first = rootfilesElement?.node.children
+      .map(node => containerElement(node, rootfilesElement.namespaces))
+      .find(element => element.local === "rootfile" && element.namespace === container!.namespace);
+    rootFile = first?.node.exactAttrs["full-path"] ?? "";
+    if (!rootFile) throw new OmrMusicXmlError("MXL container must declare its first rootfile with a quoted full-path");
+    if (!names.includes(rootFile)) throw new OmrMusicXmlError(`MXL declared rootfile is missing: ${rootFile}; repair the archive or supply its MusicXML source directly`);
+  } else {
+    // Preserve legacy single-score ZIPs without guessing between multiple scores.
+    const candidates = names.filter((name) => /\.(musicxml|xml)$/i.test(name) && !/^META-INF\//i.test(name));
+    if (candidates.length !== 1) throw new OmrMusicXmlError(candidates.length ? "MXL archive has ambiguous rootfiles; add META-INF/container.xml selecting the source" : "MXL archive contains no MusicXML rootfile");
+    rootFile = candidates[0]!;
+  }
+  if (rootFile.startsWith("/") || /^[a-z]:/i.test(rootFile) || rootFile.includes("\\") || rootFile.split("/").some((part) => !part || part === "." || part === "..")) {
+    throw new OmrMusicXmlError("MXL archive rootfile must be an exact relative path");
+  }
+  return rootFile;
+}
+
+function xmlFromMxl(bytes: Uint8Array): { xml: string; rootFile: string } {
   assertMxlZipSafe(bytes);
   let files: Record<string, Uint8Array>;
   try {
@@ -576,20 +641,8 @@ function xmlFromMxl(bytes: Uint8Array): { xml: string; rootFile: string | null }
   } catch (error) {
     throw new OmrMusicXmlError(`invalid MXL archive: ${(error as Error).message}`);
   }
-  const names = Object.keys(files).sort(stableCompare);
-  let rootFile: string | null = null;
   const container = files["META-INF/container.xml"];
-  if (container) {
-    const containerXml = decodeBytes(container);
-    const match = containerXml.match(/full-path\s*=\s*["']([^"']+)["']/i);
-    if (match?.[1] && files[decodeXml(match[1])]) rootFile = decodeXml(match[1]);
-  }
-  rootFile ??= names.find((name) => /\.musicxml$/i.test(name)) ?? null;
-  rootFile ??= names.find((name) => /\.xml$/i.test(name) && !/^META-INF\//i.test(name)) ?? null;
-  if (!rootFile || !files[rootFile]) throw new OmrMusicXmlError("MXL archive contains no MusicXML rootfile");
-  if (rootFile.startsWith("/") || rootFile.split("/").includes("..")) {
-    throw new OmrMusicXmlError("MXL archive rootfile must be a relative path");
-  }
+  const rootFile = selectMusicXmlRootfile(container === undefined ? undefined : decodeBytes(container), Object.keys(files));
   return { xml: decodeBytes(files[rootFile]!), rootFile };
 }
 
@@ -597,7 +650,14 @@ function xmlFromMxl(bytes: Uint8Array): { xml: string; rootFile: string | null }
 export function parseOmrMusicXml(xml: string, options: OmrMusicXmlParseOptions = {}): OmrMusicXmlParseResult {
   const root = parseXml(xml).children.find((node) => localName(node.name) === "score-partwise");
   if (!root) throw new OmrMusicXmlError("only score-partwise MusicXML is supported");
-  return parseScorePartwise(root, options);
+  const warnings = new Set<string>();
+  const pending = [root];
+  while (pending.length) {
+    const node = pending.pop()!;
+    for (const warning of musicXmlElementFidelity(node.name, node.exactAttrs, "notation")) warnings.add(warning);
+    for (const element of node.children) pending.push(element);
+  }
+  return parseScorePartwise(root, options, [...warnings].sort(stableCompare));
 }
 
 /** Parse raw MusicXML bytes or an MXL archive. */

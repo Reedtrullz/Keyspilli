@@ -1,0 +1,1760 @@
+{
+  "schemaVersion": 1,
+  "authorship": "Original synthetic musical controls authored for this test suite; no third-party source material.",
+  "cases": [
+    {
+      "compositionId": "inner-voice-line",
+      "performanceId": "inner-voice-line-authored-v1",
+      "split": "development",
+      "role": "melody",
+      "protectedOrigins": [
+        "inner-voice-line-identity-0",
+        "inner-voice-line-identity-1",
+        "inner-voice-line-identity-2",
+        "inner-voice-line-identity-3",
+        "inner-voice-line-identity-4",
+        "inner-voice-line-identity-5",
+        "inner-voice-line-identity-6",
+        "inner-voice-line-identity-7"
+      ],
+      "source": {
+        "format": 1,
+        "division": 480,
+        "tempoBpm": 120,
+        "keySig": 0,
+        "keyMode": 0,
+        "timeSig": [
+          4,
+          4
+        ],
+        "notes": [
+          {
+            "midi": 60,
+            "start": 0.3333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-0",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 0,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-0",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 2.3333333333333335,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-1",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 2,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-1",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 4.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-2",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 4,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-2",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 6.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-3",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 6,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-3",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 65,
+            "start": 8.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-4",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 8,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-4",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 10.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-5",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 10,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-5",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 12.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-6",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 12,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-6",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 60,
+            "start": 14.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-identity-7",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 14,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "inner-voice-line-support-7",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          }
+        ],
+        "trackNames": [
+          "Identity",
+          "Support"
+        ],
+        "durationBeats": 18,
+        "notationMeasures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      }
+    },
+    {
+      "compositionId": "crossing-line",
+      "performanceId": "crossing-line-authored-v1",
+      "split": "development",
+      "role": "melody",
+      "protectedOrigins": [
+        "crossing-line-identity-0",
+        "crossing-line-identity-1",
+        "crossing-line-identity-2",
+        "crossing-line-identity-3",
+        "crossing-line-identity-4",
+        "crossing-line-identity-5",
+        "crossing-line-identity-6",
+        "crossing-line-identity-7"
+      ],
+      "source": {
+        "format": 1,
+        "division": 480,
+        "tempoBpm": 120,
+        "keySig": 0,
+        "keyMode": 0,
+        "timeSig": [
+          4,
+          4
+        ],
+        "notes": [
+          {
+            "midi": 60,
+            "start": 0.3333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-0",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 0,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-0",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 2.3333333333333335,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-1",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 2,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-1",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 4.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-2",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 4,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-2",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 6.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-3",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 6,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-3",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 65,
+            "start": 8.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-4",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 8,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-4",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 10.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-5",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 10,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-5",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 12.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-6",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 12,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-6",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 60,
+            "start": 14.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-identity-7",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 14,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "crossing-line-support-7",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          }
+        ],
+        "trackNames": [
+          "Identity",
+          "Support"
+        ],
+        "durationBeats": 18,
+        "notationMeasures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      }
+    },
+    {
+      "compositionId": "guitar-answer",
+      "performanceId": "guitar-answer-authored-v1",
+      "split": "development",
+      "role": "hook",
+      "protectedOrigins": [
+        "guitar-answer-identity-0",
+        "guitar-answer-identity-1",
+        "guitar-answer-identity-2",
+        "guitar-answer-identity-3",
+        "guitar-answer-identity-4",
+        "guitar-answer-identity-5",
+        "guitar-answer-identity-6",
+        "guitar-answer-identity-7"
+      ],
+      "source": {
+        "format": 1,
+        "division": 480,
+        "tempoBpm": 120,
+        "keySig": 0,
+        "keyMode": 0,
+        "timeSig": [
+          4,
+          4
+        ],
+        "notes": [
+          {
+            "midi": 60,
+            "start": 0.3333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-0",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 0,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-0",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 2.3333333333333335,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-1",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 2,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-1",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 4.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-2",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 4,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-2",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 6.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-3",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 6,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-3",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 65,
+            "start": 8.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-4",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 8,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-4",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 10.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-5",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 10,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-5",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 12.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-6",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 12,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-6",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 60,
+            "start": 14.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-identity-7",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 14,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "guitar-answer-support-7",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          }
+        ],
+        "trackNames": [
+          "Identity",
+          "Support"
+        ],
+        "durationBeats": 18,
+        "notationMeasures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      }
+    },
+    {
+      "compositionId": "breathing-line",
+      "performanceId": "breathing-line-authored-v1",
+      "split": "holdout",
+      "role": "melody",
+      "protectedOrigins": [
+        "breathing-line-identity-0",
+        "breathing-line-identity-1",
+        "breathing-line-identity-2",
+        "breathing-line-identity-3",
+        "breathing-line-identity-4",
+        "breathing-line-identity-5",
+        "breathing-line-identity-6",
+        "breathing-line-identity-7"
+      ],
+      "source": {
+        "format": 1,
+        "division": 480,
+        "tempoBpm": 120,
+        "keySig": 0,
+        "keyMode": 0,
+        "timeSig": [
+          4,
+          4
+        ],
+        "notes": [
+          {
+            "midi": 60,
+            "start": 0.3333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-0",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 0,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-0",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 2.3333333333333335,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-1",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 2,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-1",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 4.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-2",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 4,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-2",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 6.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-3",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 6,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-3",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 65,
+            "start": 8.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-4",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 8,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-4",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 10.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-5",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 10,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-5",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 12.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-6",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 12,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-6",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 60,
+            "start": 14.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-identity-7",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 14,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "breathing-line-support-7",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          }
+        ],
+        "trackNames": [
+          "Identity",
+          "Support"
+        ],
+        "durationBeats": 18,
+        "notationMeasures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      }
+    },
+    {
+      "compositionId": "doubled-riff",
+      "performanceId": "doubled-riff-authored-v1",
+      "split": "holdout",
+      "role": "hook",
+      "protectedOrigins": [
+        "doubled-riff-identity-0",
+        "doubled-riff-identity-1",
+        "doubled-riff-identity-2",
+        "doubled-riff-identity-3",
+        "doubled-riff-identity-4",
+        "doubled-riff-identity-5",
+        "doubled-riff-identity-6",
+        "doubled-riff-identity-7"
+      ],
+      "source": {
+        "format": 1,
+        "division": 480,
+        "tempoBpm": 120,
+        "keySig": 0,
+        "keyMode": 0,
+        "timeSig": [
+          4,
+          4
+        ],
+        "notes": [
+          {
+            "midi": 60,
+            "start": 0.3333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-0",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 72,
+            "start": 0,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-0",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 2.3333333333333335,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-1",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 74,
+            "start": 2,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-1",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 4.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-2",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 76,
+            "start": 4,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-2",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 6.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-3",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 74,
+            "start": 6,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-3",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 65,
+            "start": 8.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-4",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 77,
+            "start": 8,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-4",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 64,
+            "start": 10.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-5",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 76,
+            "start": 10,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-5",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 62,
+            "start": 12.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-6",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 74,
+            "start": 12,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-6",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 60,
+            "start": 14.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-identity-7",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 72,
+            "start": 14,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "doubled-riff-support-7",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          }
+        ],
+        "trackNames": [
+          "Identity",
+          "Support"
+        ],
+        "durationBeats": 18,
+        "notationMeasures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      }
+    },
+    {
+      "compositionId": "tempo-pickup",
+      "performanceId": "tempo-pickup-authored-v1",
+      "split": "holdout",
+      "role": "bass",
+      "protectedOrigins": [
+        "tempo-pickup-identity-0",
+        "tempo-pickup-identity-1",
+        "tempo-pickup-identity-2",
+        "tempo-pickup-identity-3",
+        "tempo-pickup-identity-4",
+        "tempo-pickup-identity-5",
+        "tempo-pickup-identity-6",
+        "tempo-pickup-identity-7"
+      ],
+      "source": {
+        "format": 1,
+        "division": 480,
+        "tempoBpm": 120,
+        "keySig": 0,
+        "keyMode": 0,
+        "timeSig": [
+          4,
+          4
+        ],
+        "notes": [
+          {
+            "midi": 48,
+            "start": 0.3333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-0",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 0,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-0",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 50,
+            "start": 2.3333333333333335,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-1",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 2,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-1",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 52,
+            "start": 4.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-2",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 4,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-2",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 50,
+            "start": 6.333333333333333,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-3",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 6,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-3",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 53,
+            "start": 8.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-4",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 8,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-4",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 52,
+            "start": 10.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-5",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 86,
+            "start": 10,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-5",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 50,
+            "start": 12.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-6",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 84,
+            "start": 12,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-6",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 48,
+            "start": 14.333333333333334,
+            "dur": 0.3333333333333333,
+            "vel": 82,
+            "hand": "L",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-identity-7",
+                "part": "identity",
+                "occurrence": 1
+              }
+            ]
+          },
+          {
+            "midi": 85,
+            "start": 14,
+            "dur": 1,
+            "vel": 95,
+            "hand": "R",
+            "sourceOrigins": [
+              {
+                "id": "tempo-pickup-support-7",
+                "part": "support",
+                "occurrence": 1
+              }
+            ]
+          }
+        ],
+        "trackNames": [
+          "Identity",
+          "Support"
+        ],
+        "durationBeats": 18,
+        "notationMeasures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ],
+        "tempoEvents": [
+          {
+            "tick": 0,
+            "beat": 0,
+            "microsecondsPerQuarter": 500000,
+            "bpm": 120
+          },
+          {
+            "tick": 3840,
+            "beat": 8,
+            "microsecondsPerQuarter": 1000000,
+            "bpm": 60
+          }
+        ]
+      }
+    }
+  ]
+}

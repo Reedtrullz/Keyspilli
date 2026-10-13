@@ -313,6 +313,8 @@ export interface ArrangementManifest {
   /** Required for current/migrated artifacts; absent only for legacy bootstrap. */
   configFingerprint?: string;
   arrangementProfile?: string;
+  /** Explicit local phrase policy; the complete plan is retained in variant sidecars. */
+  phrasePlan?: { schemaVersion: 1; sha256: string; sourceSha256: string };
   /** Canonical logical source identity plus optional physical source locator. */
   source?: SourceProvenance;
   /** Explicit generation-candidate ownership for native uploads. */
@@ -864,6 +866,13 @@ export function validateArrangementManifest(value: unknown): string[] {
     errors.push("arrangementProfile must be a non-empty string when present");
   }
   if (value.source !== undefined) validateSourceProvenance(value.source, "source", errors);
+  if (value.phrasePlan !== undefined) {
+    const pin = value.phrasePlan;
+    if (!isRecord(pin) || pin.schemaVersion !== 1 || typeof pin.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(pin.sha256)
+      || typeof pin.sourceSha256 !== "string" || pin.sourceSha256 !== value.sourceArtifactHash) {
+      errors.push("phrasePlan must pin its canonical SHA-256 and the exact sourceArtifactHash");
+    }
+  }
   if (value.candidate !== undefined) validateCandidateMetadata(value.candidate, "candidate", errors);
   if (value.sourceArrangement !== undefined) errors.push(...validateSourceArrangement(value.sourceArrangement));
   if (value.symbolicIntent !== undefined) {

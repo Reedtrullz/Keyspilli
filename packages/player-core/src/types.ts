@@ -81,6 +81,8 @@ export interface PlayerSettings {
   /** Normalized Cathedral dry/wet control. */
   organSpace: number;
   metronome: boolean;
+  /** Explicit per-song click choice; omission retains the existing metronome. */
+  practicePulse?: import("./practice-pulse.js").PracticePulseSettings;
   chordKeys: boolean;
   sustainPedal: boolean;
   hand: "L" | "R" | "both";

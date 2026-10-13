@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "corpusFreezeCommit": "3e0b585",
+  "algorithmFreezeCommit": "7bd6891c1388104533ac7c337b5fd80e3f3cc2e6",
+  "algorithmChangedAfterHoldout": false,
+  "validation": {
+    "midiFocused": {
+      "files": 3,
+      "tests": 39,
+      "failed": 0
+    },
+    "playerFocused": {
+      "files": 3,
+      "tests": 63,
+      "failed": 0
+    },
+    "midiSuite": {
+      "files": 31,
+      "tests": 541,
+      "failed": 0
+    },
+    "playerCoreSuite": {
+      "files": 36,
+      "tests": 383,
+      "failed": 0
+    },
+    "midiTypecheck": "passed",
+    "webTypecheckAndSongTools": "passed",
+    "sourceCli": "passed C5 [36,67,72], no reference-accuracy claim"
+  },
+  "admission": "opt-in read-only pilot only; no catalog/default admission",
+  "artifacts": {
+    "development-evaluation.json": "da8519fb401ede6b079458cb41afb3bf5752f4ad25b443db3cefbeb6b5366c40",
+    "holdout-evaluation.json": "2245c176aa9bb07f6c508a92ef5bbc5fcb1b974b0fff03cd03217c288ea1638b",
+    "pre-holdout-freeze.json": "469983a58db1fe7ec1e482f7d86f1d85e483bc079abddde3a0a169e515ddf7c7"
+  },
+  "splits": {
+    "development": [
+      {
+        "policy": "legacy-backing",
+        "cases": 12,
+        "durationBeats": 54,
+        "supportedReferenceBeats": 35.25,
+        "unknownReferenceBeats": 10.5,
+        "restReferenceBeats": 8.25,
+        "wrongHarmonyBeats": 18.25,
+        "restViolationBeats": 0,
+        "audibleSupportedBeats": 32.75,
+        "supportedCoverage": 0.9290780141843972,
+        "audibleReferenceBeats": 39.25,
+        "audibleCoverage": 0.8579234972677595,
+        "abstentionBeats": 4,
+        "abstentionRate": 0.08743169398907104
+      },
+      {
+        "policy": "conservative-backing-v1",
+        "cases": 12,
+        "durationBeats": 54,
+        "supportedReferenceBeats": 35.25,
+        "unknownReferenceBeats": 10.5,
+        "restReferenceBeats": 8.25,
+        "wrongHarmonyBeats": 0,
+        "restViolationBeats": 0,
+        "audibleSupportedBeats": 29.75,
+        "supportedCoverage": 0.8439716312056738,
+        "audibleReferenceBeats": 29.75,
+        "audibleCoverage": 0.6502732240437158,
+        "abstentionBeats": 11.5,
+        "abstentionRate": 0.25136612021857924
+      }
+    ],
+    "holdout": [
+      {
+        "policy": "legacy-backing",
+        "cases": 12,
+        "durationBeats": 70,
+        "supportedReferenceBeats": 32.5,
+        "unknownReferenceBeats": 13.5,
+        "restReferenceBeats": 24,
+        "wrongHarmonyBeats": 24.25,
+        "restViolationBeats": 0,
+        "audibleSupportedBeats": 32.5,
+        "supportedCoverage": 1,
+        "audibleReferenceBeats": 41.75,
+        "audibleCoverage": 0.907608695652174,
+        "abstentionBeats": 1.5,
+        "abstentionRate": 0.03260869565217391
+      },
+      {
+        "policy": "conservative-backing-v1",
+        "cases": 12,
+        "durationBeats": 70,
+        "supportedReferenceBeats": 32.5,
+        "unknownReferenceBeats": 13.5,
+        "restReferenceBeats": 24,
+        "wrongHarmonyBeats": 0,
+        "restViolationBeats": 0,
+        "audibleSupportedBeats": 28.5,
+        "supportedCoverage": 0.8769230769230769,
+        "audibleReferenceBeats": 28.5,
+        "audibleCoverage": 0.6195652173913043,
+        "abstentionBeats": 14,
+        "abstentionRate": 0.30434782608695654
+      }
+    ]
+  }
+}

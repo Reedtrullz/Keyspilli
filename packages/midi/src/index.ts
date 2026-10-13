@@ -1,4 +1,8 @@
 export * from "./types.js";
+export { analyzeTechnique, TECHNIQUE_DIAGNOSTIC_LIMITS } from "./technique-diagnostics.js";
+export type { TechniqueInput, TechniqueResult, TechniqueReport, TechniqueEvent, TechniqueHeldAttack, TechniqueRegisterTransition, TechniqueSameKeyRecurrence, TechniqueInstant, TechniqueInterval } from "./technique-diagnostics.js";
+export { sourcePhraseClock, canonicalPhrasePlan, compilePhrasePlan, applyPhrasePlan, suggestPhrasePlan } from "./phrase-plan.js";
+export type { PhrasePlanV1, SourcePhrase, PhraseEvent, PhraseRole, PhraseAuthority, PhraseTransformation, PhraseProtectionReport } from "./phrase-plan.js";
 export { inferHarmonyTimeline, harmonySegments, type HarmonySegment } from "./harmony.js";
 export { CHORDS_TUNING, type ChordsTuning, type HarmonyTuning, type StrikeTuning } from "./chords-tuning.js";
 export { parseMidi, midiBeatToNativeSeconds, midiTickToNativeSeconds } from "./parse.js";
@@ -73,9 +77,10 @@ export type {
 } from "./metal-arrange.js";
 export { PITCH_COLORS, pitchColor } from "./pitchColors.js";
 export { parseMusicXmlNotes } from "./parseXml.js";
+export { musicXmlElementFidelity, UnsupportedMusicXmlSemanticsError } from "./musicxml-fidelity.js";
 export { selectSourceParts } from "./source-selection.js";
 export { matchingSourcePitch } from "./source-pitch.js";
-export { ARTIFACT_TEMPO_TOLERANCE, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
+export { ARTIFACT_TEMPO_TOLERANCE, CURRENT_ARTIFACT_FIDELITY, LEGACY_ARTIFACT_FIDELITY, artifactFidelityForRead, writeVariantArtifacts, validateArtifactFiles, validateArtifactRoundtrip } from "./roundtrip.js";
 export {
   parseChordSymbol,
   tryParseChordSymbol,

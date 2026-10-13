@@ -161,7 +161,7 @@ export async function readScoreJson(pin: FilePin): Promise<unknown> { return JSO
 export function parseSymbolicScore(bytes: Uint8Array, format: "midi" | "musicxml" | "mxl"): ParsedMidi {
     assertMusic(bytes.length <= SCORE_INPUT_LIMITS.bytes, "oversized symbolic score");
     const adapted = adaptNativeSymbolicBytes(bytes, format, { maxBytes: SCORE_INPUT_LIMITS.bytes });
-    assertMusic(adapted.status === "parsed", `native score parse failed: ${adapted.status}`);
+    assertMusic(adapted.status === "parsed", `native score parse failed: ${adapted.status}${adapted.status === "unsupported" ? `: ${adapted.reason}` : adapted.status === "invalid" ? `: ${adapted.error}` : ""}`);
     let parsed: ParsedMidi;
     if (format === "midi")
         parsed = parseMidi(bytes);

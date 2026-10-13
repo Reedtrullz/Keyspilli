@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseMidi, writeMidi, type Note, type ParsedMidi } from "@keyspilli/midi";
 import { canonicalRouteFunnelJson, evaluateRouteFunnel } from "../src/route-funnel.js";
@@ -97,7 +97,7 @@ describe("local A/B/C route funnel", () => {
     }
   });
 
-  it("rejects source paths resolving into this repository and keeps output under the system temp directory", async () => {
+  it("rejects source paths resolving into this repository", async () => {
     const dir = await mkdtemp(join(tmpdir(), "keyspilli-route-funnel-path-"));
     try {
       const manifestPath = join(dir, "manifest.json");
@@ -107,9 +107,39 @@ describe("local A/B/C route funnel", () => {
         fixture: { id: "path-test" },
         routes: [{ id: "A", path: join(process.cwd(), "package.json") }],
       }), "utf8");
-      await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", out])).rejects.toThrow(/inside repository/i);
-      await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", join(process.cwd(), "route-report.json")])).rejects.toThrow(/under the system temp directory/i);
+      await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", out])).rejects.toThrow("A route resolves inside repository");
     } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects output outside temp and through temp symlinks into this repository", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "keyspilli-route-funnel-output-"));
+    // The temp directory's parent stays outside temp regardless of checkout placement.
+    const outsideTempOut = join(dirname(resolve(tmpdir())), `${basename(dir)}.json`);
+    const repositoryOut = join(process.cwd(), `${basename(dir)}.json`);
+    try {
+      const bytes = writeMidi([note(60, 0), note(62, 1)], { tempoBpm: 120 });
+      const midiPath = join(dir, "authored.mid");
+      const manifestPath = join(dir, "manifest.json");
+      await writeFile(midiPath, bytes);
+      await writeFile(manifestPath, JSON.stringify({
+        schemaVersion: 1,
+        fixture: { id: "output-path-test" },
+        routes: [{ id: "A", path: midiPath, sha256: sha256(bytes) }],
+      }), "utf8");
+      const control = await runRouteFunnelCli(["--manifest", manifestPath, "--out", join(dir, "control.json")]);
+      expect(JSON.parse(control.json).coverage.availableCount).toBe(1);
+
+      await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", outsideTempOut])).rejects.toThrow("--out must be under the system temp directory");
+      const repositoryLink = join(dir, "checkout");
+      await symlink(process.cwd(), repositoryLink, "dir");
+      const linkedOut = join(repositoryLink, basename(repositoryOut));
+      await expect(runRouteFunnelCli(["--manifest", manifestPath, "--out", linkedOut])).rejects.toThrow("--out resolves inside repository");
+    } finally {
+      // Also clean these unique destinations if a containment regression writes one.
+      await rm(outsideTempOut, { force: true });
+      await rm(repositoryOut, { force: true });
       await rm(dir, { recursive: true, force: true });
     }
   });

@@ -1,39 +1,6 @@
 # Maintained evaluation and repair workflow
 
-Inspected and exercised 2026-09-27 on `codex/chords-golden-audit` (draft PR #110). These commands are not assumed present in main or production. Run from a capable checkout root with its pinned Node/tsx. Reuse preflight's absolute `node_executable` with `--import tsx` for the scripts below; a tsx shebang or a later bare `node` can select another ABI. Never repair an accepted digest to silence a regression.
-
-## Resumable host preparation
-
-Prefer this path when preflight reports `host_workflow.status: compatible`. Discovery reads existing worktrees, checks the Node/SQLite runtime and compares the driver's implementation hash with an independent file fingerprint. It does not change branches or certify music.
-
-Use actual file pins in a request (replace these example paths/hashes, never invent them):
-
-```json
-{
-  "schemaVersion": 1,
-  "title": "TITLE", "artist": "ARTIST", "decisionMode": "baseline",
-  "source": {"path": "/absolute/source.mid", "sha256": "actual 64-character SHA256"},
-  "soundfont": {"path": "/absolute/sampled-grand.sf2", "sha256": "actual 64-character SHA256"},
-  "instructionPin": {"path": "/absolute/loaded-skill/SKILL.md", "sha256": "actual 64-character SHA256"}
-}
-```
-
-Compute pins with the existing host tools, for example `shasum -a 256 /absolute/source.mid`. MIDI intake is bounded to 16 MiB. Native MusicXML/MXL still uses ordinary intake below; do not relabel it as MIDI. Baseline uses no model and preserves the input; unqualified harmony uses the ordinary inferred backing engine. This is an engineering baseline, not a source-confirmed arrangement.
-
-```sh
-"$KEYSPILLI_NODE" --import tsx apps/web/scripts/song-workflow.mts prepare /absolute/request.json output/song-prep/NEW-RUN
-"$KEYSPILLI_NODE" --import tsx apps/web/scripts/song-workflow.mts respond output/song-prep/NEW-RUN SPAN_ID /absolute/response.json
-"$KEYSPILLI_NODE" --import tsx apps/web/scripts/song-workflow.mts resume output/song-prep/NEW-RUN
-"$KEYSPILLI_NODE" --import tsx apps/web/scripts/song-workflow.mts verify output/song-prep/NEW-RUN
-```
-
-`plan` additionally accepts pinned v2 `evidence` and actual `referenceAssets`; each response is one strict ArrangementPlan for its owned span. `selection` requires pinned `referenceCorpus` plus `referenceCaseId`; each response selects a finite choice ID from that span's packet. Use the existing reference checker to prepare these facts. Known source-confirmed no-chord phrases are handled by the host even while Original sounds; source authority is never a model field.
-
-Read `workflow.json.pending` and each listed `SPAN_ID/decision-packet.json` (maximum 512 events/32 KiB). Return only the declared response schema. `respond` retains the initial response and at most two repairs, with precise validation errors; no new orchestration code or binary MIDI generation is needed. Submitted files do not prove a model call: comparisons additionally require independently verified exact session route/effort and final-turn receipts.
-
-Copy each actual pending ID exactly; an interface/arm label such as `A` is not a span ID. A plan's sounding chord uses `sourceKind:"inferred",inferred:true`; unknown silent harmony uses `name:"N.C.",notes:[],sourceKind:"unknown",inferred:false` with its actual bounds/evidence IDs. The host derives unresolved warnings even if the response has `unresolved:[]`. Never apply the sounding-chord provenance recipe to N.C. Confirmed source rests are owned and authenticated by the host, not by a model claim.
-
-The host writes compiled source/lineage, warnings, six-tier portable bundle, second isolated installation, protected-event audit, checked Player replay, actual Original/Chords MP3s and `index.html`. Its finite local stages resume without reissuing model/audio requests. Interrupted owned directories are preserved and deterministic stage retries are bounded. `verify` checks existing pins and completed imports without advancing unfinished stages. Changed source, evidence, code or pinned instructions requires a new run. A missing bank keeps the useful prepared bundle `review-required` (exit 2); other failures remain `blocked` with receipts. `complete` means the provisional artifacts exist, never musical readiness. Retain the entire run and its actual inputs; see the musical gate for independent listening/keyboard requirements.
+The default is the ordinary supported `prepare-song.mts` route returned by preflight. Run from its selected checkout with its absolute Node executable and `--import tsx`. Do not repin an accepted digest to silence a regression. The [experimental host workflow](experimental-host-workflow.md) is optional and loads only when its matching capability is present and the task needs it.
 
 ## Intake and preparation
 
@@ -48,6 +15,12 @@ Once the source has been arranged into suitable symbolic piano input:
 
 Accepts MIDI/MusicXML/MXL via `ingestSource`. Creates six variants under the exact upload-byte hash base ID, prepared backing, MIDI/XML, diagnoses, a portable bundle, and a second isolated installation. Re-import proves musical idempotence. The existing source/learner arrangement logic still needs musical assessment; this command deliberately writes `provisional`.
 
+For explicitly selected source events that must survive ordinary reduction,
+use the optional [phrase protection pilot](phrase-protection.md) when its
+inspector is present. Inspect exact source bytes first, review the uncertain
+roles, and supply the selected plan with `--phrase-plan FILE`. Its preservation
+report is separate from source-role accuracy and full musical acceptance.
+
 Original exports are `bundle/artifacts/a/variant.mid` and `variant.xml`; Chords exports are `bundle/chords.mid` and `chords.musicxml`. Export aliases may be supplied for convenience. `bundle.json` pins every file, complete six-level publication and exact Player snapshot. Keep the directory intact.
 
 For the existing catalog, use the implementation map's frozen inventory/snapshot and append `--repair` to `prepare-catalog-chords.mts`. Existing mapped backings and explicit `harmonizations.json` overrides are preserved. Repair only tries bass/stack-anchored harmony windows; it retains a candidate only with a material improvement in sounding LH support and no measured dead-air, clash, duplicate-attack or wide-hand regression. It does not invent chart evidence. One rejected proposal is a stopping condition for that automatic method; the agent may pursue a different source-backed correction.
@@ -61,11 +34,20 @@ Prepared `inferred/learner-harmonization` events use the existing bass/voicing e
 ```sh
 KEYSPILLI_SOUNDFONT=/installed/piano.sf2 "$KEYSPILLI_NODE" --import tsx \
   apps/web/scripts/render-prepared-chords.mts output/RUN/prepared
-# Optional: BASE_ID --mode original|chords|both. Original/both additionally require
-# KEYSPILLI_DATA_DIR pointing at the actual prepared source catalog.
+# Optional: BASE_ID filters the prepared Chords batch. This command renders Chords only.
 ```
 
-The command checks raw clipping before normalization, retries lower gain at most twice, checks non-silence/full duration, hashes the inputs and MP3, and deletes bounded scratch WAVs. The shared renderer reads samples in place instead of building an expanding JS number array; still allow memory for the WAV buffers. Check free disk before long batches. SF2 timbre is not the app sampler, although note events come from actual Player scheduling.
+This command renders Chords only. It checks raw clipping before normalization, retries lower gain at most twice, checks non-silence/full duration, hashes inputs and MP3, and deletes bounded scratch WAVs. The shared renderer reads samples in place; still allow memory for WAV buffers. Check free disk before long batches. SF2 timbre is not the app sampler, although note events come from actual Player scheduling.
+
+For Original, use the existing FluidSynth CLI adapter on the exact exported MIDI:
+
+```sh
+"$KEYSPILLI_NODE" --import tsx packages/catalog/scripts/render-midi.ts \
+  --input /absolute/original.mid --output /absolute/NEW-original.wav \
+  --soundfont /installed/piano.sf2 --gain 0.2
+```
+
+Its implemented `--help` reports renderer options. FluidSynth and the selected bank are optional runtime dependencies. Record a preview blocker if they are unavailable; neither renderer implies that listening or musical acceptance occurred.
 
 For sampled acoustic piano previews, select the licensed bank explicitly with `KEYSPILLI_SOUNDFONT` and retain its hash. The Salamander Grand Piano is an available option ([FreePats source](https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html), Alexander Holm, CC BY 3.0). It is about 1.2 GB unpacked: render it with the existing FluidSynth CLI and FFmpeg rather than loading the entire bank through the JS renderer. Measure the WAV peak, apply a fixed gain with headroom during MP3 encoding, then verify decoding, duration, non-silence, clipping and hashes. Keep MIDI unchanged when only replacing preview timbre. Choose a licensed sampled acoustic piano bank on each host and record its identity; do not substitute an electronic piano or generic synth for a requested piano preview.
 
@@ -116,10 +98,10 @@ For a single song, lead the final response with the chosen song/version and two 
 
 ```markdown
 Original — piano preview
-![Original piano preview](/absolute/delivery/original-preview.mp3)
+![Original piano preview](sandbox:/absolute/delivery/original-preview.mp3)
 
 Chords — backing-only piano preview
-![Chords backing preview](/absolute/delivery/chords-preview.mp3)
+![Chords backing preview](sandbox:/absolute/delivery/chords-preview.mp3)
 ```
 
 Replace the example paths with real files. Previews that exist only in a folder or manifest have not been surfaced to the user. Keep MIDI/MusicXML downloads, mode statuses, the tested import command and material limitations below the players. Preserve provisional statuses; embedding audio does not mean the agent listened. Never require installation, a terminal command or another application merely to hear a prepared song. If this surface cannot embed audio, provide and verify an accessible player page using existing local preview tooling.

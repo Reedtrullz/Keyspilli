@@ -14,4 +14,15 @@ class PackageTests(unittest.TestCase):
         (self.source/'README.md').unlink();(self.source/'README.md').symlink_to('/etc/hosts');self.assertRaises(ValueError,module.package,self.source,self.root/'a.zip',self.root/'a.json')
     def test_output_exists_refuses(self):
         module.package(self.source,self.root/'a.zip',self.root/'a.json');self.assertRaises(FileExistsError,module.package,self.source,self.root/'a.zip',self.root/'a.json')
+    def test_refuses_a_release_with_a_missing_referenced_score_review(self):
+        text='[Score review](skills/keyspilli-song/references/score-review-workflow.md)'
+        (self.source/'README.md').write_text(text)
+        inventory=json.loads((self.source/'source-members.json').read_text());inventory['sha256']['README.md']=hashlib.sha256(text.encode()).hexdigest();(self.source/'source-members.json').write_text(json.dumps(inventory))
+        self.assertRaisesRegex(ValueError,'reference',module.package,self.source,self.root/'a.zip',self.root/'a.json')
+    def test_checks_heading_fragments_in_packaged_references(self):
+        text='# Intake and preparation\n\n[Start](README.md#intake-and-preparation)\n[Missing](#imaginary-command)\n'
+        (self.source/'README.md').write_text(text)
+        self.assertRaisesRegex(ValueError,'fragment',module.validate_references,self.source)
+        (self.source/'README.md').write_text(text.replace('[Missing](#imaginary-command)', '[Here](#intake-and-preparation)'))
+        self.assertEqual(len(module.validate_references(self.source)),2)
 if __name__=='__main__':unittest.main()

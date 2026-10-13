@@ -5,10 +5,9 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const cli = join(repoRoot, "packages/catalog/scripts/research-song.ts");
-const tsx = join(repoRoot, "node_modules/.bin/tsx");
 
 function runCli(args: string[]): string {
-  return execFileSync(tsx, [cli, ...args], { cwd: repoRoot, encoding: "utf8" });
+  return execFileSync(process.execPath, ["--import", "tsx", cli, ...args], { cwd: repoRoot, encoding: "utf8" });
 }
 
 describe("research-song CLI", () => {

@@ -2,6 +2,7 @@ import {SOURCE_OCCURRENCES,writeSourceOccurrences} from "./source-occurrences.js
 import {SOURCE_PEDAL,writeSourcePedal} from "./source-pedal.js";
 import { matchingSourcePitch } from "./source-pitch.js";
 import { Note, Variant } from "./types.js";
+import { musicXmlVelocityPercent } from "./musicxml-fidelity.js";
 import { PITCH_COLORS } from "./pitchColors.js";
 import { keySignature } from "./analyze.js";
 
@@ -260,7 +261,7 @@ export function writeMusicXml(variant: Variant, title: string, artist: string, o
           const durationNotations = timeModification ? TUPLET_NOTATIONS : "";
           const notations = tiedNotations || durationNotations ? "<notations>" + tiedNotations + durationNotations + "</notations>" : "";
           xml.push(
-            "<note" + (isChord ? "" : " default-x=\"" + Math.round(10 + start * 120) + "\"") + " color=\"" + color + "\">" +
+            "<note dynamics=\"" + musicXmlVelocityPercent(n.vel) + "\"" + (isChord ? "" : " default-x=\"" + Math.round(10 + start * 120) + "\"") + " color=\"" + color + "\">" +
               (isChord ? "<chord/>" : "") +
               "<pitch><step>" + step + "</step>" + (alter ? "<alter>" + alter + "</alter>" : "") + "<octave>" + octave + "</octave></pitch>" +
               "<duration>" + Math.round(durBeats * DIV) + "</duration>" +

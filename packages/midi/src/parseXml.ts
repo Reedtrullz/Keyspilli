@@ -3,6 +3,7 @@ import {SOURCE_OCCURRENCES,readSourceOccurrences} from "./source-occurrences.js"
 import { sectionsFromMarkers } from "./source-sections.js";
 import { MidiTimeSignatureEvent, Note, ParsedMidi } from "./types.js";
 import { mergedNoteLineage } from "./quantize.js";
+import { musicXmlElementFidelity, musicXmlNoteVelocity } from "./musicxml-fidelity.js";
 
 interface ParsedXmlNote extends Note {
   tieStart?: boolean;
@@ -18,24 +19,47 @@ function xmlAttribute(attributes: string, name: string): string {
   return attributes.match(new RegExp(`\\b${escaped}\\s*=\\s*(["'])(.*?)\\1`))?.[2] ?? "";
 }
 
-/** Decode the standard XML entities that appear in MusicXML lyrics. */
+/** Decode original source references once; escaped entity text stays literal. */
 function decodeXmlEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
+  const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+  return s.replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, (_reference, entity: string) => {
+    if (!entity.startsWith("#")) return named[entity]!;
+    const code = entity.startsWith("#x") ? Number.parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+    return String.fromCodePoint(code);
+  });
 }
 
 function firstMatch(s: string, re: RegExp): string {
   return s.match(re)?.[1] ?? "";
 }
 
+/** Preserve exact source keys for both semantic validation and note decoding. */
+function exactMusicXmlAttributes(source: string): Record<string, string> {
+  const parsed: Record<string, string> = Object.create(null);
+  while (source.trim()) {
+    const attr = source.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([^<]*?)\2/);
+    if (!attr || /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/.test(attr[3]!)) throw new Error("invalid MusicXML attribute");
+    const name = attr[1]!;
+    if (Object.hasOwn(parsed, name)) throw new Error(`duplicate MusicXML attribute: ${name}`);
+    parsed[name] = decodeXmlEntities(attr[3]!);
+    source = source.slice(attr[0].length);
+  }
+  return parsed;
+}
+
+function noteAttributes(element: string): Record<string, string> {
+  let quote = "";
+  for (let end = "<note".length; end < element.length; end++) {
+    const char = element[end]!;
+    if (quote) { if (char === quote) quote = ""; }
+    else if (char === '"' || char === "'") quote = char;
+    else if (char === ">") return exactMusicXmlAttributes(element.slice("<note".length, end));
+  }
+  throw new Error("invalid MusicXML note tag");
+}
+
 /** Validate the MusicXML subset before regex extraction can mistake comments for music. */
-function cleanMusicXml(xml: string): string {
+function cleanMusicXml(xml: string, semanticWarnings: string[] = []): string {
   const stack: string[] = [];
   let roots = 0;
   let clean = "";
@@ -80,12 +104,8 @@ function cleanMusicXml(xml: string): string {
         if (name !== "score-partwise" || ++roots !== 1) throw new Error("invalid MusicXML document root");
       }
       const suffix = tag.match(/\/\s*>$/)?.[0] ?? ">";
-      let attributes = tag.slice(match[0].length, tag.length - suffix.length);
-      while (attributes.trim()) {
-        const attr = attributes.match(/^\s+([A-Za-z_:][\w:.-]*)\s*=\s*(["'])([^<]*?)\2/);
-        if (!attr || /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/.test(attr[3]!)) throw new Error("invalid MusicXML attribute");
-        attributes = attributes.slice(attr[0].length);
-      }
+      const parsedAttributes = exactMusicXmlAttributes(tag.slice(match[0].length, tag.length - suffix.length));
+      semanticWarnings.push(...musicXmlElementFidelity(name, parsedAttributes));
       if (!/\/\s*>$/.test(tag)) stack.push(name);
     }
     clean += tag;
@@ -167,7 +187,12 @@ function repeatOrder(xml: string, measures: string[]): { index: number; occurren
  */
 export function parseMusicXmlNotes(xml: string): ParsedMidi {
   if (xml.length > 8 * 1024 * 1024) throw new Error("MusicXML source workload exceeds supported limits");
-  const clean = cleanMusicXml(xml);
+  const semanticWarnings: string[] = [];
+  const clean = cleanMusicXml(xml, semanticWarnings);
+  const withFidelity = (parsed: ParsedMidi): ParsedMidi => {
+    const warnings = [...new Set([...(parsed.unsupportedControls ?? []), ...semanticWarnings])];
+    return { ...parsed, ...(warnings.length ? { unsupportedControls: warnings } : {}) };
+  };
   const partNodes = [...clean.matchAll(/<part(?![-\w])([^>]*)>[\s\S]*?<\/part>/g)];
   const partNames = new Map<string, string>();
   for (const match of clean.matchAll(/<score-part\b([^>]*)>([\s\S]*?)<\/score-part>/g)) {
@@ -199,11 +224,18 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
       .sort(([left], [right]) => left - right)
       .map(([beat, timeSig]) => ({ beat, timeSig, tick: Math.round(beat * first.division) }));
     const notes = parsedParts.flatMap(({ parsed }) => parsed.notes).sort((a, b) => a.start - b.start || a.midi - b.midi);
-    const sections=sectionsFromMarkers(sourceMarkers,notes.reduce((end,n)=>Math.max(end,n.start+n.dur),0));
-    return {
+    const durationBeats=parsedParts.reduce((end, { parsed }) => Math.max(end, parsed.durationBeats), 0);
+    // Part selection must not inherit a different part's pickup geometry.
+    const notationMeasures=parsedParts.every(({parsed})=>parsed.notationMeasures?.length===first.notationMeasures?.length
+      && parsed.notationMeasures?.every((measure,index)=>Math.abs(measure.startBeat-first.notationMeasures![index]!.startBeat)<=1e-9
+        && Math.abs(measure.endBeat-first.notationMeasures![index]!.endBeat)<=1e-9)) ? first.notationMeasures : undefined;
+    const sections=sectionsFromMarkers(sourceMarkers,durationBeats);
+    return withFidelity({
       ...first,
+      unsupportedControls: [...new Set(parsedParts.flatMap(({ parsed }) => parsed.unsupportedControls ?? []))],
       sections,
       notes,
+      notationMeasures,
       trackNames: parsedParts.map(({ name }) => name),
       sourceParts: parsedParts.map(({ parsed, id, name }) => ({
         id: `musicxml:${id}`,
@@ -214,13 +246,13 @@ export function parseMusicXmlNotes(xml: string): ParsedMidi {
         startBeat: parsed.notes.length ? Math.min(...parsed.notes.map((note) => note.start)) : null,
         endBeat: parsed.notes.length ? Math.max(...parsed.notes.map((note) => note.start + note.dur)) : null,
       })),
-      durationBeats: notes.reduce((end, note) => Math.max(end, note.start + note.dur), 0),
+      durationBeats,
       ...(timeSigEvents.length ? { timeSigEvents } : {}),
-    };
+    });
   }
   const node = partNodes[0];
   const id = node ? xmlAttribute(node[1]!, "id") || "part-1" : "part-1";
-  return parseSingleMusicXmlNotes(clean, { id: `musicxml:${id}`, name: partNames.get(id) ?? "MusicXML" });
+  return withFidelity(parseSingleMusicXmlNotes(clean, { id: `musicxml:${id}`, name: partNames.get(id) ?? "MusicXML" }));
 }
 
 function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: string }, markerCollector?:Array<{beat:number;label:string}>): ParsedMidi {
@@ -355,7 +387,7 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
           : {}),
         start: measureStart + start,
         dur: durBeats,
-        vel: 80,
+        vel: musicXmlNoteVelocity(noteAttributes(el)),
         hand: staffRaw === "2" ? "L" : staffRaw === "1" ? "R" : voiceRaw === "2" ? "L" : "R",
         lyrics: lyric ? decodeXmlEntities(lyric) : undefined,
         tieStart,
@@ -395,7 +427,9 @@ function parseSingleMusicXmlNotes(xml: string, sourcePart: { id: string; name: s
   const pedals=[...xml.matchAll(/<miscellaneous-field\b([^>]*)>([\s\S]*?)<\/miscellaneous-field>/g)].filter(m=>xmlAttribute(m[1]!,"name")===SOURCE_PEDAL);
   if(pedals.length>1 || order && pedals.length)throw new Error("ambiguous source pedal metadata");
   const sourcePedal=pedals[0]?readSourcePedal(decodeXmlEntities(pedals[0][2]!),mergedNotes):undefined;
-  const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), order ? measureStart : 0);
+  // Explicit rests and an ordinary final empty measure belong to the score's
+  // timeline just as they do for an unfolded repeat.
+  const durationBeats = mergedNotes.reduce((m, n) => Math.max(m, n.start + n.dur), measureStart);
   const sections=sectionsFromMarkers(sectionMarkers,durationBeats);
   markerCollector?.push(...sectionMarkers);
   if (order && Math.ceil(durationBeats/.25)*mergedNotes.length > 200_000_000) throw new Error("repeat source workload exceeds supported limits");

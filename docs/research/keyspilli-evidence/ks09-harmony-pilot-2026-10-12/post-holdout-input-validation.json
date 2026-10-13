@@ -1,0 +1,32 @@
+{
+  "stage": "Post-holdout input-validation correction; inference unchanged at this checkpoint",
+  "originalFreezeCommit": "7bd6891c1388104533ac7c337b5fd80e3f3cc2e6",
+  "tests": {
+    "newBoundaryTests": 35,
+    "existingEvaluationTests": 18,
+    "passed": 53
+  },
+  "unchangedFrozenFiles": {
+    "packages/midi/src/harmony.ts": true,
+    "packages/midi/test/fixtures/ks09-harmony-pilot-v1.json": true
+  },
+  "originalReceipts": [
+    {
+      "split": "development",
+      "byteIdentical": true,
+      "originalSha256": "da8519fb401ede6b079458cb41afb3bf5752f4ad25b443db3cefbeb6b5366c40",
+      "validatedSha256": "da8519fb401ede6b079458cb41afb3bf5752f4ad25b443db3cefbeb6b5366c40"
+    },
+    {
+      "split": "holdout",
+      "byteIdentical": true,
+      "originalSha256": "2245c176aa9bb07f6c508a92ef5bbc5fcb1b974b0fff03cd03217c288ea1638b",
+      "validatedSha256": "2245c176aa9bb07f6c508a92ef5bbc5fcb1b974b0fff03cd03217c288ea1638b"
+    }
+  ],
+  "currentValidationFiles": {
+    "apps/web/scripts/evaluate-harmony-pilot.mts": "b31431b7cf659ab67a55656a4d75449a3f15c24a36f1f523fb4dbdb4ede88026",
+    "apps/web/src/lib/harmony-pilot-evaluation.ts": "5913f586c55b57464aa991a1631730ca66159c65c26188a113187de5ab216707",
+    "apps/web/src/lib/harmony-pilot-validation.ts": "ad0f39e29deb26e2ad1cc35b351be1bf6828cd811e7abc67d1e1e768ae8a8940"
+  }
+}

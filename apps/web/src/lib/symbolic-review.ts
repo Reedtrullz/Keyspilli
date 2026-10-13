@@ -26,6 +26,17 @@ export interface ScoreFinding {
     reason: string;
     nextAction: string;
 }
+export interface SourceEventAuthorization {
+    anchorId: string;
+    expectedEventId: string;
+    expectedEventSha256: string;
+    targetEventId: string;
+    targetEventSha256: string;
+    sourceSha256: string;
+    semanticSha256: string;
+    clockSha256: string;
+    evidenceHashes: string[];
+}
 export interface SymbolicReviewReceiptV1 {
     schemaVersion: 1;
     kind: "keyspilli-symbolic-review";
@@ -42,6 +53,8 @@ export interface SymbolicReviewReceiptV1 {
     modes: Partial<Record<ReviewMode, {
         scoreConformance: ScoreCheck;
         sourceFidelity: ScoreCheck;
+        /** Absent in historical reports. A mode-level pass is never repair authority. */
+        sourceAuthorizations?: SourceEventAuthorization[];
         structuralPlayability: StructuralPlayabilityReceiptV1;
         coverage: {
             declared: string;
@@ -129,12 +142,13 @@ function sourceFidelity(input: NormalizedScoreReviewInput, mode: NormalizedScore
         startSeconds: number;
         reason: string;
     }>;
+    authorizations: SourceEventAuthorization[];
 } {
     const source = input.source;
     const check = (status: CheckStatus, reason: string, landmarks = 0, failures: Array<{
         startSeconds: number;
         reason: string;
-    }> = []) => ({ check: { status, basis: "scoped independent source landmarks; not full-song correctness", evidenceHashes: [mode.pins.source, ...(source.anchors ? [source.anchors.sha256] : []), ...(source.validationReceipt ? [source.validationReceipt.sha256] : [])], reason }, landmarks, failures });
+    }> = [], authorizations: SourceEventAuthorization[] = []) => ({ check: { status, basis: "scoped independent source landmarks; not full-song correctness", evidenceHashes: [mode.pins.source, ...(source.anchors ? [source.anchors.sha256] : []), ...(source.validationReceipt ? [source.validationReceipt.sha256] : [])], reason }, landmarks, failures, authorizations });
     if (source.relationship !== "independent-reference")
         return check("authority-unknown", "Unknown/candidate-derived reference cannot certify source fidelity");
     if (!source.anchorsValue || !["self-authored", "human-validated"].includes(source.authority))
@@ -142,6 +156,7 @@ function sourceFidelity(input: NormalizedScoreReviewInput, mode: NormalizedScore
     if (!mode.clockVerified || source.anchorsValue.timingKnown !== true)
         return check("not-run", "Source timing/common clock unresolved");
     let anchors = source.anchorsValue.anchors.filter(a => a.phraseId === mode.phraseId && a.occurrenceId === mode.occurrenceId);
+    let semanticSha256 = identityHash(source.anchorsValue);
     if (source.authority === "human-validated") {
         if (!source.validationReceipt || source.anchorsValue.validationReceiptSha256 !== source.validationReceipt.sha256)
             return check("authority-unknown", "Actual matching reviewer receipt unavailable");
@@ -152,20 +167,42 @@ function sourceFidelity(input: NormalizedScoreReviewInput, mode: NormalizedScore
         catch {
             return check("authority-unknown", "Reviewer receipt failed scope/identity validation");
         }
+        if (receipt.schemaVersion !== 2)
+            return check("authority-unknown", "Historical V1 receipt does not bind reviewed labels; obtain a new V2 review without upgrading the old attestation");
         if (receipt.scope.mode !== mode.mode || receipt.scope.difficulty !== mode.intent.difficulty || receipt.selected.phraseId !== mode.phraseId || receipt.selected.occurrenceId !== mode.occurrenceId)
             return check("authority-unknown", "Reviewer receipt is for a different mode/difficulty/occurrence");
-        anchors = anchors.filter(a => a.role === receipt.selected.role && a.onsetSeconds === receipt.selected.onsetSeconds);
+        if (receipt.semanticBinding.clockSha256 !== mode.pins.clock)
+            return check("authority-unknown", "Reviewer receipt is for a different score clock");
+        semanticSha256 = receipt.semanticBinding.sha256;
+        anchors = anchors.filter(a => receipt.semanticBinding.reviewedAnchorIds.includes(a.id));
     }
     if (!anchors.length)
         return check("not-run", "No selected source landmarks; empty anchors never pass");
     const trustedEvents = mode.expected.filter((e): e is NormalizedScoreEvent & {
         role: MusicalEvent["role"];
     } => e.role !== null).map(e => ({ id: e.id, phraseId: mode.phraseId, occurrenceId: e.occurrenceId, role: e.role, ...(e.hand ? { hand: e.hand } : {}), midi: e.midi, onsetSeconds: e.onsetSeconds, durationSeconds: e.keyReleaseSeconds - e.onsetSeconds }));
-    const normalizedAnchors: SourceAnchors = { ...source.anchorsValue, anchors: anchors.map(a => ({ ...a, onsetSeconds: (a.onsetSeconds - mode.clock.sourceStartSeconds) / mode.clock.speed, durationSeconds: a.durationSeconds / mode.clock.speed })) };
+    const normalizedAnchors: SourceAnchors = { ...source.anchorsValue, anchors: anchors.map(a => ({ ...a, midi: a.midi + mode.clock.transpose, onsetSeconds: (a.onsetSeconds - mode.clock.sourceStartSeconds) / mode.clock.speed, durationSeconds: a.durationSeconds / mode.clock.speed })) };
     const comparison = compareMusicalIntent(normalizedAnchors, { schemaVersion: 1, sourceSha256: identityHash(trustedEvents), events: trustedEvents }, mode.intent);
     const violated = comparison.landmarks.some(l => l.status === "violated");
     const incomplete = mode.coverage !== "full-phrase" || mode.expected.some(e => e.role === null) || comparison.landmarks.some(l => l.status === "unknown") || !comparison.landmarks.length;
-    return check(violated ? "failed" : incomplete ? "not-run" : "passed", comparison.landmarks.map(l => `${l.id}: ${l.reason}`).join("; "), comparison.landmarks.length, comparison.landmarks.filter(l => l.status === "violated").map(l => ({ startSeconds: l.startSeconds, reason: `Source landmark ${l.id}: ${l.reason}` })));
+    const authorizations: SourceEventAuthorization[] = [];
+    // A reviewed attack/release/role must resolve to exactly one delivery event
+    // AND one replay counterpart. Diagnostic matching is deliberately tolerant;
+    // it cannot decide which simultaneous note a reviewed source note authorizes.
+    // Permitted omissions, octave changes, censored releases and fuzzy landmark matches
+    // remain observations, never permission to modify another event.
+    for (const a of normalizedAnchors.anchors) {
+        if (!a.required || a.ambiguous || !mode.pins.clock) continue;
+        const matches = mode.expected.filter(e => e.scope === "attack" && e.releaseCovered && e.occurrenceId === a.occurrenceId && e.role === a.role && (a.hand === undefined || e.hand === a.hand) && e.midi === a.midi && Math.abs(e.onsetSeconds - a.onsetSeconds) < 1e-9 && Math.abs(e.keyReleaseSeconds - a.onsetSeconds - a.durationSeconds) < 1e-9);
+        if (matches.length !== 1) continue;
+        const e = matches[0]!;
+        const sameSlot = (other: NormalizedScoreEvent) => other.scope === "attack" && other.releaseCovered && other.occurrenceId === e.occurrenceId && other.role === e.role && other.hand === e.hand && Math.abs(other.onsetSeconds - e.onsetSeconds) < 1e-9 && Math.abs(other.keyReleaseSeconds - e.keyReleaseSeconds) < 1e-9;
+        const replayMatches = mode.replayed.filter(sameSlot);
+        if (replayMatches.length !== 1 || mode.expected.filter(sameSlot).length !== 1) continue;
+        const target = replayMatches[0]!;
+        authorizations.push({ anchorId: a.id, expectedEventId: e.id, expectedEventSha256: identityHash(e), targetEventId: target.id, targetEventSha256: identityHash(target), sourceSha256: mode.pins.source, semanticSha256, clockSha256: mode.pins.clock, evidenceHashes: [mode.pins.source, mode.pins.delivery, mode.pins.replay, mode.pins.clock, ...(mode.pins.roles ? [mode.pins.roles] : []), ...(mode.pins.hands ? [mode.pins.hands] : []), ...(source.anchors ? [source.anchors.sha256] : []), ...(source.validationReceipt ? [source.validationReceipt.sha256] : [])] });
+    }
+    return check(violated ? "failed" : incomplete ? "not-run" : "passed", comparison.landmarks.map(l => `${l.id}: ${l.reason}`).join("; "), comparison.landmarks.length, comparison.landmarks.filter(l => l.status === "violated").map(l => ({ startSeconds: l.startSeconds, reason: `Source landmark ${l.id}: ${l.reason}` })), authorizations);
 }
 export function buildSymbolicReviewReceipt(input: NormalizedScoreReviewInput, code: SymbolicReviewReceiptV1["code"] = null): SymbolicReviewReceiptV1 {
     const result: SymbolicReviewReceiptV1 = { schemaVersion: 1, kind: "keyspilli-symbolic-review", inputSha256: input.inputSha256, manifestSha256: input.manifestSha256, code, policySha256: sha256Text(stableJson(SCORE_CONFORMANCE_POLICY)), modes: {}, findings: [], limitations: ["Supplied symbolic equality is not audible realization or recognizable song correctness.", "No musical acceptance or production admission is granted."], musicalAcceptance: "not-established", productionAdmission: false };
@@ -193,7 +230,7 @@ export function buildSymbolicReviewReceipt(input: NormalizedScoreReviewInput, co
             add("source-landmark", null, null, f.reason, "sourceFidelity", f.startSeconds);
         for (const f of structural.failures)
             add("structural", mode.expected.find(e => e.id === f.eventId) ?? null, null, f.reason, "structuralPlayability", f.startSeconds);
-        result.modes[mode.mode] = { scoreConformance: { status, basis: mode.basis, evidenceHashes: [mode.pins.delivery, mode.pins.replay, ...(mode.pins.clock ? [mode.pins.clock] : [])], reason }, sourceFidelity: fidelity.check, structuralPlayability: structural, coverage: { declared: mode.coverage, checkedAttacks: mode.expected.filter(e => e.scope === "attack").length, checkedContext: mode.expected.filter(e => e.scope === "context").length, unresolvedReleases: mode.expected.filter(e => !e.releaseCovered).length + mode.replayed.filter(e => !e.releaseCovered).length, sourceLandmarks: fidelity.landmarks }, approvedTransformations: mode.intent.approvedTransformations };
+        result.modes[mode.mode] = { scoreConformance: { status, basis: mode.basis, evidenceHashes: [mode.pins.delivery, mode.pins.replay, ...(mode.pins.clock ? [mode.pins.clock] : [])], reason }, sourceFidelity: fidelity.check, sourceAuthorizations: fidelity.authorizations, structuralPlayability: structural, coverage: { declared: mode.coverage, checkedAttacks: mode.expected.filter(e => e.scope === "attack").length, checkedContext: mode.expected.filter(e => e.scope === "context").length, unresolvedReleases: mode.expected.filter(e => !e.releaseCovered).length + mode.replayed.filter(e => !e.releaseCovered).length, sourceLandmarks: fidelity.landmarks }, approvedTransformations: mode.intent.approvedTransformations };
         result.limitations.push(...mode.unavailableReasons);
     }
     return result;

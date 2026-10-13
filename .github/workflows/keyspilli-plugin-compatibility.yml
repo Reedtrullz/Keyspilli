@@ -1,0 +1,61 @@
+name: Keyspilli plugin offline compatibility
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/keyspilli-plugin-compatibility.yml'
+      - 'plugins/keyspilli/**'
+      - 'scripts/*keyspilli*'
+      - 'apps/web/scripts/**'
+      - 'apps/web/src/lib/**'
+      - 'apps/web/src/components/player/**'
+      - 'packages/catalog/**'
+      - 'packages/midi/**'
+      - 'packages/player-core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.nvmrc'
+      - '.node-version'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keyspilli-plugin-compatibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: '22.22.3'
+          cache: npm
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: '3.11'
+      - name: Install pinned workspace dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check packaging, preflight and compatibility contracts
+        run: python -B -m unittest discover -s scripts -p 'test_*keyspilli*.py'
+      - name: Exercise extracted helpers and ordinary preparation
+        run: python -B scripts/check-keyspilli-plugin.py --source plugins/keyspilli --checkout "$GITHUB_WORKSPACE" --node "$(command -v node)" --report "$RUNNER_TEMP/keyspilli-plugin-compatibility.json"
+      - name: Retain offline compatibility report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: keyspilli-plugin-compatibility-${{ github.sha }}
+          path: ${{ runner.temp }}/keyspilli-plugin-compatibility.json
+          if-no-files-found: warn
+          retention-days: 14

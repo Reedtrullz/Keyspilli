@@ -10,7 +10,6 @@ import { evaluateArrangement } from "../src/arrangement-evaluation.js";
 
 const repoRoot = resolveRepoRoot();
 const cli = join(repoRoot, "packages/catalog/scripts/evaluate-metal.ts");
-const tsx = join(repoRoot, "node_modules/.bin/tsx");
 
 function resolveRepoRoot(): string {
   return join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -28,7 +27,7 @@ async function midiFile(path: string, notes: Note[]): Promise<void> {
 }
 
 function runCli(args: string[]): string {
-  return execFileSync(tsx, [cli, ...args], { cwd: repoRoot, encoding: "utf8" });
+  return execFileSync(process.execPath, ["--import", "tsx", cli, ...args], { cwd: repoRoot, encoding: "utf8" });
 }
 
 describe("evaluate-metal CLI", () => {
@@ -197,7 +196,8 @@ describe("evaluate-metal CLI", () => {
     try {
       const candidate = join(directory, "candidate.mid");
       await midiFile(candidate, [{ midi: 64, start: 0, dur: 1, vel: 100, hand: "R" }]);
-      expect(() => runCli(["--candidate", candidate, "--reference", join(repoRoot, "package.json")])).toThrow();
+      expect(() => runCli(["--candidate", candidate, "--reference", join(repoRoot, "package.json")]))
+        .toThrow(/reference must be outside the repository/);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

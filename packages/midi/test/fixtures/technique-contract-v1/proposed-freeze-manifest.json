@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "kind": "keyspilli-ks11-proposed-freeze-manifest",
+  "candidateVersion": "1.0.0-proposed-3",
+  "status": "PROPOSED; immutable submission for separate review; root freeze pending",
+  "submittedAtUtc": "2026-10-12 23:19:00 UTC",
+  "hashRecipe": "SHA-256 over exact raw file bytes, including final LF. No canonicalization. Paths are relative to this corpus directory.",
+  "selfExclusion": "This manifest does not include its own hash. Its exact hash is recorded in the separate handoff and review/freeze receipt.",
+  "sourceKinds": "Original authored ParsedMidi-shaped JSON, prospective source references and identity policies; no observed generated tier artifacts.",
+  "fileCount": 24,
+  "payloadBytes": 2412784,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "cc2066925f6192522a2f885f507db3774343a3cc7948e83374409a03b7989a2a",
+      "bytes": 11439
+    },
+    {
+      "path": "phrase-plans/alternating-beacon.plans.json",
+      "sha256": "ff88e2d43b508d0f54097f6da03b977b08e0e2336bdc48c54f31d06e823a0341",
+      "bytes": 144616
+    },
+    {
+      "path": "phrase-plans/aperture-held.plans.json",
+      "sha256": "c08c3ab43494142725d962c9eef3e3f08a79f5e9b89fb8ce1ed7940c0a7fd1c6",
+      "bytes": 129261
+    },
+    {
+      "path": "phrase-plans/aperture-open.plans.json",
+      "sha256": "273ddf07c7a8bb77e5e4201645043eb9c6c15ef890b1ff524547636f4c4b1f8f",
+      "bytes": 129261
+    },
+    {
+      "path": "phrase-plans/boundary-garden.plans.json",
+      "sha256": "aa40ca1d81acf3b1d4a263e07034b4de89142a6c9dac4405269573f7dba76a38",
+      "bytes": 143157
+    },
+    {
+      "path": "phrase-plans/changing-hourglass.plans.json",
+      "sha256": "052d403cf05ca09819019d53bd74d75958de3d8322db3e9a24ed838b0c39c954",
+      "bytes": 135332
+    },
+    {
+      "path": "phrase-plans/pedal-envelope.plans.json",
+      "sha256": "2193663e1fc4a9edcddde3ee0d2b45ee410070e305fe9ccf9e4364d91e11a92c",
+      "bytes": 132712
+    },
+    {
+      "path": "phrase-plans/prism-barline.plans.json",
+      "sha256": "6ff67fd4ce3688f00d5241b39cd33cdd97e72fb93ff5b41efbd3f3dc34dc1c3f",
+      "bytes": 147873
+    },
+    {
+      "path": "phrase-plans/same-key-overlap.plans.json",
+      "sha256": "ec2db682f256d55b3cb78510db13075d4a27a9aaf2859e34a26a86517f029313",
+      "bytes": 143714
+    },
+    {
+      "path": "phrase-plans/unnamed-hands.plans.json",
+      "sha256": "21ba0dfc61f106e4e7a076f5c339262240adc8f6cce8fdbb0b74ea1cd0a02735",
+      "bytes": 134913
+    },
+    {
+      "path": "sources/alternating-beacon.source.json",
+      "sha256": "8a728b8cec5dd8eb2ee144d20a3e6e80bc9d611548980e4b3b804d9384f3dc8d",
+      "bytes": 18268
+    },
+    {
+      "path": "sources/aperture-held.source.json",
+      "sha256": "a03aac26048e1cb2f88a9b909964ce701820a2d5c55024250d9a181176e55864",
+      "bytes": 15989
+    },
+    {
+      "path": "sources/aperture-open.source.json",
+      "sha256": "ae3fcb1375f0fe9db7b1ecc51c98f7e626d3ea4d37981ac091b138b89e4284ef",
+      "bytes": 15989
+    },
+    {
+      "path": "sources/boundary-garden.source.json",
+      "sha256": "4eff3146f680cf8400b98616b3353d2189fe8df6dc95eeb2a8b0197c50695b5e",
+      "bytes": 18114
+    },
+    {
+      "path": "sources/changing-hourglass.source.json",
+      "sha256": "a98441dede3e2491aa60255250261c5d7880cce9e3d079b00e592d705b7c5a70",
+      "bytes": 16874
+    },
+    {
+      "path": "sources/clock-malformed.source.json",
+      "sha256": "c5d221b8484330524abc2f58183cf4a7823a73683d2e81c7588ff99572c96bb1",
+      "bytes": 16217
+    },
+    {
+      "path": "sources/clock-unknown.source.json",
+      "sha256": "d90dfc2c1050dea21079e4c20ddde23b905b58aa927aa9db8f43290e257f4165",
+      "bytes": 15897
+    },
+    {
+      "path": "sources/pedal-envelope.source.json",
+      "sha256": "b8a36c2cccb514cadeb04e319cd19bfe00634094623a445633cabba443a416e8",
+      "bytes": 16856
+    },
+    {
+      "path": "sources/prism-barline.source.json",
+      "sha256": "a805032cfb586b93c4fd7b50f344763d348e1a1c4fb71a855b6364219b5fa29b",
+      "bytes": 19263
+    },
+    {
+      "path": "sources/same-key-overlap.source.json",
+      "sha256": "ddbef3a6d80919afae6744c97b425c6c6edd8634105d73b3d158ffb4832d13a5",
+      "bytes": 18189
+    },
+    {
+      "path": "sources/unnamed-hands.source.json",
+      "sha256": "eed0e35a69c5c9343bd78a34bf826f29570f17de11867c6cc793028e6a12be9c",
+      "bytes": 16932
+    },
+    {
+      "path": "technique-contract-corpus-v1.json",
+      "sha256": "72c5d33a947e5f8683c51a71aefb782ba5b9b8992f3d3a4d152c58ebf144f9d0",
+      "bytes": 358962
+    },
+    {
+      "path": "technique-contract-policy-v1.json",
+      "sha256": "c36322353e04fbd579e50ec4b58c46928408170dd0dbdf09951d77af905b969c",
+      "bytes": 540156
+    },
+    {
+      "path": "technique-contract-reference-v1.json",
+      "sha256": "c82425550a3d61ec39da8b53e174ceb693cd7f791f4e44b951ab3be941ba73ba",
+      "bytes": 72800
+    }
+  ],
+  "previousCandidateManifestSha256": "9098f2d2223dc2238aeb73b875bfa59f41a6b322de0aa74b092ac894f35a33e2",
+  "amendment": "Explicit rest-ID namespace policy and README triplet label only. Source JSON, corpus declarations, plans, tier requirement objects and reference bytes are unchanged."
+}

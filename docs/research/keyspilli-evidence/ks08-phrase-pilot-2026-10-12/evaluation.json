@@ -1,0 +1,1303 @@
+{
+  "schemaVersion": 1,
+  "kind": "keyspilli-phrase-pilot-evaluation",
+  "corpusSha256": "7fe96e90fe5921bdb8945583b51650a71eab81109667d25c7c28cf18fb2fb15b",
+  "sourceBoundary": "Original authored parsed-note JSON fixtures; real MIDI/XML/MXL intake is covered by separate CLI tests.",
+  "independence": "Implementer-authored controls, exercised during development. Split labels are organizational; this is not untouched holdout or independent musical acceptance.",
+  "selectionAccuracy": "not-established",
+  "musicalAcceptance": "not-established",
+  "rows": [
+    {
+      "compositionId": "inner-voice-line",
+      "performanceId": "inner-voice-line-authored-v1",
+      "assignedSplit": "development",
+      "declaredIdentityRole": "melody",
+      "sourceFixtureSha256": "59628cbbf7cc18b787efd41eb1663c49bcb2803e8c0a059bade75dd0f405a465",
+      "sourceClock": {
+        "timebase": "source-quarter-beats",
+        "division": 480,
+        "tempoBpm": 120,
+        "durationBeats": 18,
+        "timeSig": [
+          4,
+          4
+        ],
+        "tempoEvents": [],
+        "timeSigEvents": [],
+        "measures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      },
+      "existingMelodySelectorAgainstDeclaredIdentity": {
+        "selected": 16,
+        "requiredIdentityEvents": 8,
+        "truePositive": 8,
+        "precision": 0.5,
+        "recall": 1,
+        "basis": "Existing melody selector compared with this control's declared identity; not full semantic role accuracy."
+      },
+      "tiers": [
+        {
+          "level": "very-beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "43ebffbb13b1097211485f8b100b38f89d8f80d3353f82d04f09470e639fac7b"
+            }
+          ]
+        },
+        {
+          "level": "beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "43ebffbb13b1097211485f8b100b38f89d8f80d3353f82d04f09470e639fac7b"
+            }
+          ]
+        },
+        {
+          "level": "very-easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "43ebffbb13b1097211485f8b100b38f89d8f80d3353f82d04f09470e639fac7b"
+            }
+          ]
+        },
+        {
+          "level": "easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "43ebffbb13b1097211485f8b100b38f89d8f80d3353f82d04f09470e639fac7b"
+            }
+          ]
+        },
+        {
+          "level": "medium",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "43ebffbb13b1097211485f8b100b38f89d8f80d3353f82d04f09470e639fac7b"
+            }
+          ]
+        },
+        {
+          "level": "advanced",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "43ebffbb13b1097211485f8b100b38f89d8f80d3353f82d04f09470e639fac7b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "compositionId": "crossing-line",
+      "performanceId": "crossing-line-authored-v1",
+      "assignedSplit": "development",
+      "declaredIdentityRole": "melody",
+      "sourceFixtureSha256": "674317f2f37143495133b099097bfe4a9af2aad317d402d648bea401f5aee961",
+      "sourceClock": {
+        "timebase": "source-quarter-beats",
+        "division": 480,
+        "tempoBpm": 120,
+        "durationBeats": 18,
+        "timeSig": [
+          4,
+          4
+        ],
+        "tempoEvents": [],
+        "timeSigEvents": [],
+        "measures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      },
+      "existingMelodySelectorAgainstDeclaredIdentity": {
+        "selected": 16,
+        "requiredIdentityEvents": 8,
+        "truePositive": 8,
+        "precision": 0.5,
+        "recall": 1,
+        "basis": "Existing melody selector compared with this control's declared identity; not full semantic role accuracy."
+      },
+      "tiers": [
+        {
+          "level": "very-beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "d8d979d17994141d86cf8f46675cd920c734ce9b03bcab50c4b9bcb078eab9f1"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 8.881784197001252e-16,
+              "maxReleaseErrorBeats": 8.881784197001252e-16,
+              "sha256": "94496ef9e310becb76c3749f08b2ac267c7e185f57bff91e90431203bc14d6a0"
+            }
+          ]
+        },
+        {
+          "level": "beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "d8d979d17994141d86cf8f46675cd920c734ce9b03bcab50c4b9bcb078eab9f1"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 8.881784197001252e-16,
+              "maxReleaseErrorBeats": 8.881784197001252e-16,
+              "sha256": "94496ef9e310becb76c3749f08b2ac267c7e185f57bff91e90431203bc14d6a0"
+            }
+          ]
+        },
+        {
+          "level": "very-easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "d8d979d17994141d86cf8f46675cd920c734ce9b03bcab50c4b9bcb078eab9f1"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 8.881784197001252e-16,
+              "maxReleaseErrorBeats": 8.881784197001252e-16,
+              "sha256": "94496ef9e310becb76c3749f08b2ac267c7e185f57bff91e90431203bc14d6a0"
+            }
+          ]
+        },
+        {
+          "level": "easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "d8d979d17994141d86cf8f46675cd920c734ce9b03bcab50c4b9bcb078eab9f1"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 8.881784197001252e-16,
+              "maxReleaseErrorBeats": 8.881784197001252e-16,
+              "sha256": "94496ef9e310becb76c3749f08b2ac267c7e185f57bff91e90431203bc14d6a0"
+            }
+          ]
+        },
+        {
+          "level": "medium",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "d8d979d17994141d86cf8f46675cd920c734ce9b03bcab50c4b9bcb078eab9f1"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 8.881784197001252e-16,
+              "maxReleaseErrorBeats": 8.881784197001252e-16,
+              "sha256": "94496ef9e310becb76c3749f08b2ac267c7e185f57bff91e90431203bc14d6a0"
+            }
+          ]
+        },
+        {
+          "level": "advanced",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "d8d979d17994141d86cf8f46675cd920c734ce9b03bcab50c4b9bcb078eab9f1"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 8.881784197001252e-16,
+              "maxReleaseErrorBeats": 8.881784197001252e-16,
+              "sha256": "94496ef9e310becb76c3749f08b2ac267c7e185f57bff91e90431203bc14d6a0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "compositionId": "guitar-answer",
+      "performanceId": "guitar-answer-authored-v1",
+      "assignedSplit": "development",
+      "declaredIdentityRole": "hook",
+      "sourceFixtureSha256": "207d7d34c72912eac1dff6f18f8da601ba7c98ab588a34e2165e85eef07e1516",
+      "sourceClock": {
+        "timebase": "source-quarter-beats",
+        "division": 480,
+        "tempoBpm": 120,
+        "durationBeats": 18,
+        "timeSig": [
+          4,
+          4
+        ],
+        "tempoEvents": [],
+        "timeSigEvents": [],
+        "measures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      },
+      "existingMelodySelectorAgainstDeclaredIdentity": {
+        "selected": 16,
+        "requiredIdentityEvents": 8,
+        "truePositive": 8,
+        "precision": 0.5,
+        "recall": 1,
+        "basis": "Existing melody selector compared with this control's declared identity; not full semantic role accuracy."
+      },
+      "tiers": [
+        {
+          "level": "very-beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7dcb66ac230ae9d410977109ce85b1e2a828e60c23433d0215d1c36c530756e2"
+            }
+          ]
+        },
+        {
+          "level": "beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7dcb66ac230ae9d410977109ce85b1e2a828e60c23433d0215d1c36c530756e2"
+            }
+          ]
+        },
+        {
+          "level": "very-easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7dcb66ac230ae9d410977109ce85b1e2a828e60c23433d0215d1c36c530756e2"
+            }
+          ]
+        },
+        {
+          "level": "easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7dcb66ac230ae9d410977109ce85b1e2a828e60c23433d0215d1c36c530756e2"
+            }
+          ]
+        },
+        {
+          "level": "medium",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7dcb66ac230ae9d410977109ce85b1e2a828e60c23433d0215d1c36c530756e2"
+            }
+          ]
+        },
+        {
+          "level": "advanced",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7dcb66ac230ae9d410977109ce85b1e2a828e60c23433d0215d1c36c530756e2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "compositionId": "breathing-line",
+      "performanceId": "breathing-line-authored-v1",
+      "assignedSplit": "holdout",
+      "declaredIdentityRole": "melody",
+      "sourceFixtureSha256": "e755a6da4f6528cc0e8f89e1a70fb553629c51a6fd2d11477ad22f2c7446b66a",
+      "sourceClock": {
+        "timebase": "source-quarter-beats",
+        "division": 480,
+        "tempoBpm": 120,
+        "durationBeats": 18,
+        "timeSig": [
+          4,
+          4
+        ],
+        "tempoEvents": [],
+        "timeSigEvents": [],
+        "measures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      },
+      "existingMelodySelectorAgainstDeclaredIdentity": {
+        "selected": 16,
+        "requiredIdentityEvents": 8,
+        "truePositive": 8,
+        "precision": 0.5,
+        "recall": 1,
+        "basis": "Existing melody selector compared with this control's declared identity; not full semantic role accuracy."
+      },
+      "tiers": [
+        {
+          "level": "very-beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "0fbbf156a5f3511f4b78afeeadecfef2f745fd59199fffb8ff21f4839b10d040"
+            }
+          ]
+        },
+        {
+          "level": "beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "0fbbf156a5f3511f4b78afeeadecfef2f745fd59199fffb8ff21f4839b10d040"
+            }
+          ]
+        },
+        {
+          "level": "very-easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "0fbbf156a5f3511f4b78afeeadecfef2f745fd59199fffb8ff21f4839b10d040"
+            }
+          ]
+        },
+        {
+          "level": "easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "0fbbf156a5f3511f4b78afeeadecfef2f745fd59199fffb8ff21f4839b10d040"
+            }
+          ]
+        },
+        {
+          "level": "medium",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "0fbbf156a5f3511f4b78afeeadecfef2f745fd59199fffb8ff21f4839b10d040"
+            }
+          ]
+        },
+        {
+          "level": "advanced",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "7951f7d5da48bd4388348be1b232276d1cbf48d71b27e7544961a6a65ef1783d"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "0fbbf156a5f3511f4b78afeeadecfef2f745fd59199fffb8ff21f4839b10d040"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "compositionId": "doubled-riff",
+      "performanceId": "doubled-riff-authored-v1",
+      "assignedSplit": "holdout",
+      "declaredIdentityRole": "hook",
+      "sourceFixtureSha256": "f7bad8bc7dbb96964026784e4fd4a7964277d7751f6f00694414627d92f0a347",
+      "sourceClock": {
+        "timebase": "source-quarter-beats",
+        "division": 480,
+        "tempoBpm": 120,
+        "durationBeats": 18,
+        "timeSig": [
+          4,
+          4
+        ],
+        "tempoEvents": [],
+        "timeSigEvents": [],
+        "measures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      },
+      "existingMelodySelectorAgainstDeclaredIdentity": {
+        "selected": 16,
+        "requiredIdentityEvents": 8,
+        "truePositive": 8,
+        "precision": 0.5,
+        "recall": 1,
+        "basis": "Existing melody selector compared with this control's declared identity; not full semantic role accuracy."
+      },
+      "tiers": [
+        {
+          "level": "very-beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "c1f35b8b493df526ee80d861dcb63f866bd741a6ab03195212a7fb6e334c1392"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "4ff416f0a1094ff921b26724898f859e1d81835e52e104a2a7e7055bcab61ac9"
+            }
+          ]
+        },
+        {
+          "level": "beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "2d57ef40432c1aeb3cb154482820fd6482c45e710cdfef6a02ece423f39898b0"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "5ae3d665ef5d596aa0b1a87e523b99347f5b7f2140d4199cb23fc6eab3c8ba1b"
+            }
+          ]
+        },
+        {
+          "level": "very-easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "2d57ef40432c1aeb3cb154482820fd6482c45e710cdfef6a02ece423f39898b0"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "5ae3d665ef5d596aa0b1a87e523b99347f5b7f2140d4199cb23fc6eab3c8ba1b"
+            }
+          ]
+        },
+        {
+          "level": "easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "2d57ef40432c1aeb3cb154482820fd6482c45e710cdfef6a02ece423f39898b0"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "5ae3d665ef5d596aa0b1a87e523b99347f5b7f2140d4199cb23fc6eab3c8ba1b"
+            }
+          ]
+        },
+        {
+          "level": "medium",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "c1f35b8b493df526ee80d861dcb63f866bd741a6ab03195212a7fb6e334c1392"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "4ff416f0a1094ff921b26724898f859e1d81835e52e104a2a7e7055bcab61ac9"
+            }
+          ]
+        },
+        {
+          "level": "advanced",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 18,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 0,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "c1f35b8b493df526ee80d861dcb63f866bd741a6ab03195212a7fb6e334c1392"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 1.7763568394002505e-15,
+              "sha256": "4ff416f0a1094ff921b26724898f859e1d81835e52e104a2a7e7055bcab61ac9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "compositionId": "tempo-pickup",
+      "performanceId": "tempo-pickup-authored-v1",
+      "assignedSplit": "holdout",
+      "declaredIdentityRole": "bass",
+      "sourceFixtureSha256": "862fd2da6f1b552d8115a9becc67fd9a14eea7459de1d6499281358f6a237ed3",
+      "sourceClock": {
+        "timebase": "source-quarter-beats",
+        "division": 480,
+        "tempoBpm": 120,
+        "durationBeats": 18,
+        "timeSig": [
+          4,
+          4
+        ],
+        "tempoEvents": [
+          {
+            "tick": 0,
+            "beat": 0,
+            "microsecondsPerQuarter": 500000,
+            "bpm": 120
+          },
+          {
+            "tick": 3840,
+            "beat": 8,
+            "microsecondsPerQuarter": 1000000,
+            "bpm": 60
+          }
+        ],
+        "timeSigEvents": [],
+        "measures": [
+          {
+            "index": 0,
+            "startBeat": 0,
+            "endBeat": 1
+          },
+          {
+            "index": 1,
+            "startBeat": 1,
+            "endBeat": 5
+          },
+          {
+            "index": 2,
+            "startBeat": 5,
+            "endBeat": 9
+          },
+          {
+            "index": 3,
+            "startBeat": 9,
+            "endBeat": 13
+          },
+          {
+            "index": 4,
+            "startBeat": 13,
+            "endBeat": 17
+          },
+          {
+            "index": 5,
+            "startBeat": 17,
+            "endBeat": 18
+          }
+        ]
+      },
+      "existingMelodySelectorAgainstDeclaredIdentity": {
+        "selected": 16,
+        "requiredIdentityEvents": 8,
+        "truePositive": 8,
+        "precision": 0.5,
+        "recall": 1,
+        "basis": "Existing melody selector compared with this control's declared identity; not full semantic role accuracy."
+      },
+      "tiers": [
+        {
+          "level": "very-beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 28,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "284334a4dc261fcb888957b7edfd63f7d43e488986b8b1d88206add8524baac2"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 3.552713678800501e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "7035a9e655126afef481d87f7446490739844de3b82dd00702d3f59c62ea9805"
+            }
+          ]
+        },
+        {
+          "level": "beginner",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 28,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "284334a4dc261fcb888957b7edfd63f7d43e488986b8b1d88206add8524baac2"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 3.552713678800501e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "7035a9e655126afef481d87f7446490739844de3b82dd00702d3f59c62ea9805"
+            }
+          ]
+        },
+        {
+          "level": "very-easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 28,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "284334a4dc261fcb888957b7edfd63f7d43e488986b8b1d88206add8524baac2"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 3.552713678800501e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "7035a9e655126afef481d87f7446490739844de3b82dd00702d3f59c62ea9805"
+            }
+          ]
+        },
+        {
+          "level": "easy",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 28,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "284334a4dc261fcb888957b7edfd63f7d43e488986b8b1d88206add8524baac2"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 3.552713678800501e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "7035a9e655126afef481d87f7446490739844de3b82dd00702d3f59c62ea9805"
+            }
+          ]
+        },
+        {
+          "level": "medium",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 28,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "284334a4dc261fcb888957b7edfd63f7d43e488986b8b1d88206add8524baac2"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 3.552713678800501e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "7035a9e655126afef481d87f7446490739844de3b82dd00702d3f59c62ea9805"
+            }
+          ]
+        },
+        {
+          "level": "advanced",
+          "requiredEvents": 8,
+          "ordinaryExactRetention": 0,
+          "protectedExactRetention": 8,
+          "outputEndBeat": 28,
+          "roundtrips": [
+            {
+              "format": "midi",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 1.7763568394002505e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "284334a4dc261fcb888957b7edfd63f7d43e488986b8b1d88206add8524baac2"
+            },
+            {
+              "format": "musicxml",
+              "requiredEvents": 8,
+              "retained": 8,
+              "maxAttackErrorBeats": 3.552713678800501e-15,
+              "maxReleaseErrorBeats": 3.552713678800501e-15,
+              "sha256": "7035a9e655126afef481d87f7446490739844de3b82dd00702d3f59c62ea9805"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "compositions": 6,
+    "tiers": 36,
+    "requiredEventComparisons": 288,
+    "ordinaryExactRetention": 0,
+    "protectedExactRetention": 288,
+    "artifactRoundtrips": 72,
+    "roundtripComparisons": 576,
+    "roundtripRetention": 576,
+    "proposedIdentityTruePositive": 48,
+    "proposedIdentityCount": 96,
+    "declaredIdentityCount": 48
+  }
+}

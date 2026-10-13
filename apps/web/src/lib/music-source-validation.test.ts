@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import { identityHash } from '@keyspilli/catalog/src/acoustic-receipt.js';
-import { validateSourceValidationReceipt, type SourceValidationReceiptV1 } from './music-source-validation.js';
+import { validateSourceValidationReceipt, sourceValidationSemanticHash, type SourceValidationReceiptV1, type SourceValidationReceiptV2 } from './music-source-validation.js';
 import type { SourceAnchors } from './music-correspondence.js';
 
 const source = (): SourceAnchors => ({
@@ -20,8 +20,23 @@ const receipt = (): SourceValidationReceiptV1 => ({
   timingKnown: true,
 });
 
-it('binds a human source receipt to bytes, occurrence, role, timing and scope', () => {
+it('keeps V1 historical receipt structure readable without upgrading its schema', () => {
   expect(validateSourceValidationReceipt(receipt(), source())).toEqual(receipt());
+});
+
+it('binds V2 labels, reviewed intervals and clock independently of array/object ordering', () => {
+  const s: SourceAnchors = { ...source(), timebase: 'source-native-seconds' };
+  s.anchors.push({ ...s.anchors[0]!, id: 'second', onsetSeconds: 1 });
+  const r: SourceValidationReceiptV2 = { ...receipt(), schemaVersion: 2, semanticBinding: { schemaVersion: 1, timebase: 'source-native-seconds', clockSha256: 'c'.repeat(64), reviewedAnchorIds: ['anchor', 'second'], reviewedIntervals: [{ phraseId: 'phrase', occurrenceId: 'occurrence', startSeconds: 0, endSeconds: 2 }], sha256: '' } };
+  r.semanticBinding.sha256 = sourceValidationSemanticHash(s, r);
+  expect(validateSourceValidationReceipt(r, s)).toEqual(r);
+  expect(sourceValidationSemanticHash({ ...s, anchors: [...s.anchors].reverse() }, { ...r, semanticBinding: { ...r.semanticBinding, reviewedAnchorIds: ['second', 'anchor'] } })).toBe(r.semanticBinding.sha256);
+  for (const change of [
+    { clockSha256: 'd'.repeat(64) }, { reviewedAnchorIds: ['anchor'] },
+    { reviewedIntervals: [{ phraseId: 'phrase', occurrenceId: 'occurrence', startSeconds: 0, endSeconds: 3 }] },
+    { timebase: 'output-seconds' },
+  ]) expect(() => validateSourceValidationReceipt({ ...r, semanticBinding: { ...r.semanticBinding, ...change } }, s)).toThrow();
+  expect(() => validateSourceValidationReceipt(r, { ...s, timebase: undefined })).toThrow(/timebase/);
 });
 
 it('rejects stale source, missing timing, wrong occurrence and unsupported assertions', () => {

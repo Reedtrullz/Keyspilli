@@ -25,3 +25,11 @@ it("backing-only symbolic notes match the engine chord schedule and unavailable 
  expect(()=>activeExportVariant(data,resolveActiveExport(data,{...selection,transpose:100}),{...selection,transpose:100})).toThrow("MIDI range");
  expect(validActiveExportSelection(selection)).toBe(true);expect(validActiveExportSelection({...selection,notes:data.notes})).toBe(false);expect(validActiveExportSelection({...selection,speed:NaN})).toBe(false);
 });
+it("keeps each declared hand attached to its pitch through sorting and duplicate collapse",()=>{
+ const selected={...selection,backgroundMode:"chord" as const,hand:"both" as const,speed:1,transpose:2};
+ const resolution=resolveActiveExport(data,selected),chord=resolution.chords[0]!;
+ const reordered={...resolution,chords:[{...chord,notes:[76,40,67,72,67],suggestedHands:["R","L","R","R","R"] as ("R"|"L")[]}]};
+ const variant=activeExportVariant(data,reordered,selected);
+ expect(variant.notes.map(n=>[n.midi,n.hand,n.start,n.dur])).toEqual([[42,"L",0,2],[69,"R",0,2],[74,"R",0,2],[78,"R",0,2]]);
+ expect(reordered.chords[0]!.notes).toEqual([76,40,67,72,67]);
+});

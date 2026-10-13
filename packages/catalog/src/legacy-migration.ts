@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  artifactFidelityForRead,
   validateArtifactFiles,
   validateVariants,
   type DifficultyLevel,
@@ -269,7 +270,7 @@ export function inspectLegacyArtifact(input: LegacyMigrationInput): LegacyMigrat
     const variant = { ...file.variant, level };
     variants.push(variant);
     pushTempo(tempos, `${code}/notes.json`, variant.tempoBpm);
-    for (const issue of validateArtifactFiles(variant, { midi: file.midi, xml: file.xml })) {
+    for (const issue of validateArtifactFiles(variant, { midi: file.midi, xml: file.xml, fidelity: artifactFidelityForRead((file.variant as Variant & {artifactFidelity?: unknown}).artifactFidelity) })) {
       issues.push(`${code}: ${issue}`);
     }
   }
