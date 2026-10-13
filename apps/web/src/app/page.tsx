@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listSongsGrouped, countSongs, getDb, projectPublicGroupedSongs, type GroupedSong } from "@keyspilli/catalog";
 import { LEVEL_LABEL } from "../components/level-labels";
 import { displaySong } from "../components/song-display";
+import { ContinueSection } from "../components/ContinueSection";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ export default function HomePage() {
           {total} arrangements · {plays.toLocaleString()} plays
         </p>
       </section>
+
+      <ContinueSection />
 
       <section className="mb-8 motion-rise-in">
         <h2 className="page-title text-xl font-semibold mb-3">Most played</h2>

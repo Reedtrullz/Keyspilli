@@ -45,6 +45,7 @@ import { GradingPanel } from "./GradingPanel";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
 import { displaySong } from "../song-display";
+import { recordRecent } from "../recent-songs";
 import {
   resolveChordSources,
   selectChordSource,
@@ -409,7 +410,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     engineRef.current?.start();
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
-  }, [chordPracticeActive, initial.song.id]);
+    recordRecent({
+      id: initial.song.id,
+      baseId: initial.song.baseId,
+      title: initial.song.title,
+      artist: initial.song.artist,
+      difficulty: initial.song.difficulty,
+    });
+  }, [chordPracticeActive, initial.song]);
 
   const stopPlayback = useCallback(() => {
     engineRef.current?.stop();
