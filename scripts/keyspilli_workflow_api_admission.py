@@ -205,16 +205,15 @@ class Admission:
         self.accounted_usd = 0.0
         self.stopped = False
         self.unknown_usage_calls = 0
-        self.blocked_routes: dict[str, str] = {}
-        self.verified_routes: set[str] = set()
-        self.results = results.resolve()
+        self.blocked_routes, self.verified_routes, self.results = dict[str, str](), set[str](), results.resolve()
         if self.journal.exists():
             for line in self.journal.read_text().splitlines():
                 record = json.loads(line)
                 self.accounted_usd += record.get("reservedUsd", 0) + record.get("deltaUsd", 0)
                 self.stopped |= record.get("stopped", False)
                 self.unknown_usage_calls += record.get("kind") == "settled" and not core.known_usage(record.get("usage"))
-                if record.get("kind") == "route-blocked": self.blocked_routes[record["model"]] = record["reason"]
+                if record.get("kind") == "route-blocked":
+                    self.blocked_routes[record["model"]] = record["reason"]; self.verified_routes.discard(record["model"])
                 if record.get("kind") == "route-response-verified" and record.get("experimentSha256") == self.experiment_sha256:
                     proof = Path(record["response"])
                     if not proof.is_relative_to(self.results) or not proof.is_file() or sha(proof) != record["responseSha256"]:
@@ -267,6 +266,7 @@ class Admission:
 
     def block_route(self, model: str, reason: str) -> None:
         self.blocked_routes[model] = reason
+        self.verified_routes.discard(model)
         self.append({"kind": "route-blocked", "model": model, "reason": reason})
 
     def bind_runtime(self, runtime: RuntimeBasis, model: str) -> None:

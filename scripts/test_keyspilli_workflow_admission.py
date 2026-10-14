@@ -154,6 +154,25 @@ class WorkflowAdmissionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "proof"):
                 self.module.Admission(experiment, fixtures, results)
 
+    def test_later_block_invalidates_success_cache_before_explicit_recovery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            experiment, fixtures, _new, _asset = self.make_inputs(root)
+            results = root / "results"
+            with self.module.Admission(experiment, fixtures, results) as admitted:
+                admitted.append({"kind": "admitted", "reservedUsd": .09212504})
+                first = results / "first.json"; first.write_text('{"model":"main/gpt-6-luna"}')
+                admitted.record_success("gpt-6-luna", first)
+                admitted.block_route("gpt-6-luna", "later429")
+            with self.module.Admission(experiment, fixtures, results) as admitted:
+                self.assertIn("gpt-6-luna", admitted.blocked_routes)
+                admitted.retry_route("gpt-6-luna")
+                second = results / "second.json"; second.write_text('{"model":"main/gpt-6-luna","recovered":true}')
+                admitted.record_success("gpt-6-luna", second)
+            with self.module.Admission(experiment, fixtures, results) as admitted:
+                self.assertNotIn("gpt-6-luna", admitted.blocked_routes)
+                self.assertEqual(admitted.accounted_usd, .09212504)
+
     def test_legacy_invalid_usage_stays_unknown_on_resume(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
