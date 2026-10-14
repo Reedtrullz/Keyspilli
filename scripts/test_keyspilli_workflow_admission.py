@@ -135,6 +135,80 @@ class WorkflowAdmissionTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     admission.retry_route("B.AI/mimo-v2.6-flash")
 
+    def test_verified_transport_recovery_reuses_the_frozen_experiment_and_rejects_tampering(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            experiment, fixtures, _new, _asset = self.make_inputs(root)
+            results = root / "results"
+            with self.module.Admission(experiment, fixtures, results) as admitted:
+                admitted.append({"kind": "admitted", "reservedUsd": .09212504})
+                admitted.block_route("gpt-6-luna", "retained401")
+                admitted.retry_route("gpt-6-luna")
+                response = results / "response.json"
+                response.write_text('{"model":"main/gpt-6-luna"}')
+                admitted.record_success("gpt-6-luna", response)
+            with self.module.Admission(experiment, fixtures, results) as admitted:
+                self.assertNotIn("gpt-6-luna", admitted.blocked_routes)
+                self.assertEqual(admitted.accounted_usd, .09212504)
+            response.write_text("tampered")
+            with self.assertRaisesRegex(ValueError, "proof"):
+                self.module.Admission(experiment, fixtures, results)
+
+    def test_legacy_invalid_usage_stays_unknown_on_resume(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            experiment, fixtures, _new, _asset = self.make_inputs(root)
+            with self.module.Admission(experiment, fixtures, root / "results") as admitted:
+                admitted.append({"kind": "admitted", "reservedUsd": .04})
+                admitted.append({"kind": "settled", "usage": {"prompt_tokens": -1, "completion_tokens": 0}, "deltaUsd": 0})
+            with self.module.Admission(experiment, fixtures, root / "results") as admitted:
+                self.assertEqual(admitted.accounted_usd, .04)
+                self.assertEqual(admitted.unknown_usage_calls, 1)
+
+    def test_streamed_quota_and_auth_errors_stop_only_the_affected_route(self):
+        api = self.module.load_module("run-keyspilli-workflow-api")
+        for error_type, code in (("rate_limit_error", "rate_limit_exceeded"), ("authentication_error", "invalid_api_key")):
+            with self.subTest(error_type=error_type), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                experiment, fixtures, _new, _asset = self.make_inputs(root)
+                requests = []
+                raw = ("data: " + json.dumps({"error": {"type": error_type, "code": code, "message": "Owned stream refusal"}}) + "\n\n").encode()
+                class Response:
+                    def __init__(self, request, timeout): requests.append(json.loads(request.data)["model"])
+                    def __enter__(self): return self
+                    def __exit__(self, *_args): pass
+                    def read(self, _bound): return raw
+                runtime = {"nativeQuotaIncluded": True}
+                argv = ["executor", "--experiment", str(experiment), "--fixtures", str(fixtures), "--results", str(root / "results"), "--limit", "2"]
+                with patch.object(sys, "argv", argv), patch.object(api, "qualify_runtime", return_value=runtime), patch.object(api.urllib.request, "urlopen", side_effect=Response):
+                    api.main()
+                self.assertEqual(requests, ["main/gpt-6-luna"])
+                with self.module.Admission(experiment, fixtures, root / "results") as admitted:
+                    self.assertIn("gpt-6-luna", admitted.blocked_routes)
+                    self.assertEqual(admitted.unknown_usage_calls, 1)
+
+    def test_invalid_usage_keeps_unknown_counts_and_money_after_actual_resume(self):
+        api = self.module.load_module("run-keyspilli-workflow-api")
+        for usage in ({"prompt_tokens": -1, "completion_tokens": 0}, {"prompt_tokens": 1}, {"prompt_tokens": "1", "completion_tokens": 1}, {"prompt_tokens": True, "completion_tokens": 0}):
+            with self.subTest(usage=usage), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                experiment, fixtures, _new, _asset = self.make_inputs(root)
+                raw = json.dumps({"model": "mimo-v2.6-flash", "usage": usage, "choices": [{"message": {"role": "assistant", "content": "{}"}}]}).encode()
+                class Response:
+                    def __enter__(self): return self
+                    def __exit__(self, *_args): pass
+                    def read(self, _bound): return raw
+                with self.module.Admission(experiment, fixtures, root / "results") as admitted:
+                    cell = next(c for c in admitted.experiment["cells"] if c["model"] == "B.AI/mimo-v2.6-flash")
+                    budget = api.CORE.Budget(5)
+                    with patch.object(api, "qualify_runtime", return_value={"nativeQuotaIncluded": False}), patch.object(api.urllib.request, "urlopen", return_value=Response()):
+                        api.evaluate_cell(cell, admitted.fixtures[cell["task"]], root / "results", budget, admitted)
+                    self.assertEqual(budget.unknown_usage_calls, 1)
+                    money = budget.spent
+                with self.module.Admission(experiment, fixtures, root / "results") as admitted:
+                    self.assertEqual(admitted.unknown_usage_calls, 1)
+                    self.assertEqual(admitted.accounted_usd, money)
+
     def test_native_quota_entitlement_rejects_paid_backend_and_after_limit_spending(self):
         runtime = self.module.load_module("keyspilli_workflow_api_runtime")
         catalog = {"data": [{"id": "gpt-6-luna", "owned_by": "openai", "api_types": ["chat_completions"], "capabilities": {"supports_tool_use": True}}]}

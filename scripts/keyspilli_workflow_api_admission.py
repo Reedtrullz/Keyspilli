@@ -206,13 +206,21 @@ class Admission:
         self.stopped = False
         self.unknown_usage_calls = 0
         self.blocked_routes: dict[str, str] = {}
+        self.verified_routes: set[str] = set()
+        self.results = results.resolve()
         if self.journal.exists():
             for line in self.journal.read_text().splitlines():
                 record = json.loads(line)
                 self.accounted_usd += record.get("reservedUsd", 0) + record.get("deltaUsd", 0)
                 self.stopped |= record.get("stopped", False)
-                self.unknown_usage_calls += record.get("kind") == "settled" and record.get("usage") is None
+                self.unknown_usage_calls += record.get("kind") == "settled" and not core.known_usage(record.get("usage"))
                 if record.get("kind") == "route-blocked": self.blocked_routes[record["model"]] = record["reason"]
+                if record.get("kind") == "route-response-verified" and record.get("experimentSha256") == self.experiment_sha256:
+                    proof = Path(record["response"])
+                    if not proof.is_relative_to(self.results) or not proof.is_file() or sha(proof) != record["responseSha256"]:
+                        self.lock.close()
+                        raise ValueError("route recovery proof changed")
+                    self.blocked_routes.pop(record["model"], None); self.verified_routes.add(record["model"])
 
     def _bind_lineage(self, experiment_path: Path, fixtures_path: Path, results: Path) -> None:
         configuration = self.accounting_root / (sha(experiment_path) + ".json")
@@ -277,3 +285,10 @@ class Admission:
         self.append({"kind": "route-retry-authorized", "model": model, "experimentSha256": self.experiment_sha256,
             "accountedUsd": self.accounted_usd, "scope": "explicit invocation only; historical route block retained"})
         del self.blocked_routes[model]
+
+    def record_success(self, model: str, response: Path) -> None:
+        if model in self.verified_routes: return
+        if not response.resolve().is_relative_to(self.results): raise ValueError("route recovery proof outside results")
+        self.append({"kind": "route-response-verified", "model": model, "experimentSha256": self.experiment_sha256,
+            "response": str(response.resolve()), "responseSha256": sha(response)})
+        self.verified_routes.add(model)

@@ -13,6 +13,17 @@ class CallParts(TypedDict):
     function: FunctionParts
 
 
+class ChatStreamFailure(ValueError):
+    def __init__(self, error: dict[str, object]):
+        self.status = error.get("status") if type(error.get("status")) is int else None
+        code, kind = error.get("code"), error.get("type")
+        if code in ("rate_limit_exceeded", "insufficient_quota") or kind == "rate_limit_error": self.status = 429
+        elif code in ("invalid_api_key", "authentication_error") or kind == "authentication_error": self.status = 401
+        elif code == "model_not_found": self.status = 404
+        self.blocks_route = self.status in (401, 403, 404, 429)
+        super().__init__(f"structured stream failure; status {self.status or 'unknown'}; see retained response")
+
+
 def parse_chat_stream(raw: bytes) -> dict[str, object]:
     if len(raw) > 2 * 1024 * 1024: raise ValueError("stream exceeds 2 MiB")
     model: str | None = None
@@ -28,6 +39,10 @@ def parse_chat_stream(raw: bytes) -> dict[str, object]:
         if data == "[DONE]": done = True; continue
         chunk = json.loads(data)
         if not isinstance(chunk, dict): raise ValueError("stream event must be an object")
+        error = chunk.get("error")
+        if error is not None:
+            if not isinstance(error, dict): raise ValueError("stream error must be an object")
+            raise ChatStreamFailure(error)
         current = chunk.get("model")
         if current is not None:
             if not isinstance(current, str) or not current or model is not None and current != model:

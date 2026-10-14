@@ -15,6 +15,9 @@ explicit protocol configurations, distinct from native Codex adoption. The
 shared $5 campaign ledger retains earlier failed calls and unknown-use ceilings.
 An explicit `--retry-blocked-route` admits a repaired-protocol trial only in that
 invocation; it never clears historical blocks, spending or a stopped budget.
+A validated response can record recovery for that same frozen experiment, tied
+to retained response bytes. That proof permits the ordinary four-cell-to-96-cell
+resume, and altered proof bytes or later quota/auth errors stop that route again.
 Revised source/protocol requires a new frozen experiment, with old results kept.
 
 Freeze the repository commit, plugin package/source-tree hashes, loaded files,

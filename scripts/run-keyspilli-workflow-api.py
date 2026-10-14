@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.keyspilli_workflow_api_admission import Admission, BudgetPort, Cell, Experiment, Fixture, load_module
 from scripts.keyspilli_workflow_api_tools import TOOLS, Trace, execute_tool, qualifies, remaining_seconds, validate_tool
 from scripts.keyspilli_workflow_api_runtime import absolute_deadline, qualify_runtime
-from scripts.keyspilli_workflow_chat_stream import parse_chat_stream
+from scripts.keyspilli_workflow_chat_stream import ChatStreamFailure, parse_chat_stream
 
 CORE = load_module("evaluate-keyspilli-workflow")
 
@@ -35,7 +35,9 @@ def encode_request(body: Mapping[str, object]) -> tuple[bytes, int]:
 def model_request(model: str, body: dict[str, object], cell: Cell, directory: Path,
                   deadline: float, turn: int, budget: BudgetPort, admitted: Admission):
     with absolute_deadline(deadline):
-        return _model_request(model, body, cell, directory, deadline, turn, budget, admitted)
+        message = _model_request(model, body, cell, directory, deadline, turn, budget, admitted)
+        admitted.record_success(model, directory / f"response-{turn + 1}.json")
+        return message
 
 
 def _model_request(model: str, body: dict[str, object], cell: Cell, directory: Path,
@@ -70,10 +72,11 @@ def _model_request(model: str, body: dict[str, object], cell: Cell, directory: P
         reported_usage = data.get("usage")
         if isinstance(reported_usage, dict):
             incoming, outgoing = reported_usage.get("prompt_tokens"), reported_usage.get("completion_tokens")
-            if isinstance(incoming, int) and not isinstance(incoming, bool) and isinstance(outgoing, int) and not isinstance(outgoing, bool):
+            if isinstance(incoming, int) and not isinstance(incoming, bool) and incoming >= 0 and isinstance(outgoing, int) and not isinstance(outgoing, bool) and outgoing >= 0:
                 usage = {"prompt_tokens": incoming, "completion_tokens": outgoing}
         reported = data.get("model")
-        if reported not in (model, model.split("/")[-1]):
+        identities = (model, "main/gpt-6-luna") if model == "gpt-6-luna" else (model, "mimo-v2.6-flash")
+        if reported not in identities:
             budget.stopped = True
             raise ValueError("response model does not match the admitted exact route")
         choices = data.get("choices")
@@ -167,6 +170,8 @@ def evaluate_cell(cell: Cell, fixture: Fixture, root: Path, budget: BudgetPort, 
     except (ValueError, KeyError, TypeError, TimeoutError, OSError, urllib.error.URLError) as failure:
         error = str(failure)
         if isinstance(failure, urllib.error.HTTPError) and failure.code in (401, 403, 404, 429):
+            admitted.block_route(model, str(failure))
+        elif isinstance(failure, ChatStreamFailure) and failure.blocks_route:
             admitted.block_route(model, str(failure))
     result: dict[str, object] = {**cell, "attempted_calls": attempts, "status": final.get("status", "failed"),
         "verified": error is None and qualifies(task, final, traces), "modelFinal": final, "error": error, "traces": traces,

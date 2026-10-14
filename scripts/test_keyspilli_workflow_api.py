@@ -114,6 +114,21 @@ class WorkflowApiTests(unittest.TestCase):
                 self.assertIn("object", result["error"])
                 self.assertEqual(json.loads((root / "owned/result.json").read_text())["status"], "failed")
 
+    def test_translated_native_selector_does_not_stop_the_campaign(self):
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_args): pass
+            def read(self, _bound):
+                return b'event: message\ndata: {"model":"main/gpt-6-luna","choices":[{"index":0,"delta":{"role":"assistant","content":"{}"},"finish_reason":"stop"}]}\n\ndata: {"model":"main/gpt-6-luna","choices":[],"usage":{"prompt_tokens":1,"completion_tokens":1}}\n\ndata: [DONE]\n\n'
+        admitted = SimpleNamespace(recheck=lambda _task: None, fixtures={"simple-midi": {"ocxExecutable": "/owned"}},
+            bind_runtime=lambda *_args: None, append=lambda _record: None, record_success=lambda *_args: None)
+        with tempfile.TemporaryDirectory() as directory, patch.object(self.module, "qualify_runtime", return_value={"nativeQuotaIncluded": True}), patch.object(self.module.urllib.request, "urlopen", return_value=Response()):
+            budget = self.module.CORE.Budget(5)
+            result = self.module.model_request("gpt-6-luna", self.module.request_configuration("gpt-6-luna", []),
+                {"id": "owned", "task": "simple-midi", "model": "gpt-6-luna"}, Path(directory), time.monotonic() + 10, 0, budget, admitted)
+            self.assertEqual(result["content"], "{}")
+            self.assertFalse(budget.stopped)
+
     def test_empty_choices_is_a_protocol_error(self):
         class Response:
             def __enter__(self): return self

@@ -40,6 +40,11 @@ class Reservation(NamedTuple):
     cost: float
 
 
+def known_usage(value: object) -> bool:
+    return isinstance(value, dict) and all(type(value.get(key)) is int and value[key] >= 0
+        for key in ("prompt_tokens", "completion_tokens"))
+
+
 class Budget:
     def __init__(self, cap: float, native_quota_verified: bool = False):
         if not math.isfinite(cap) or not 0 <= cap <= 5:
@@ -77,8 +82,7 @@ class Budget:
             self.unknown_usage_calls += 1
             return
         incoming, outgoing = RATES[model]
-        tokens = [usage.get("prompt_tokens"), usage.get("completion_tokens")]
-        if any(type(t) is not int or t < 0 for t in tokens):
+        if not known_usage(usage):
             self.unknown_usage_calls += 1
             return
         cost = (usage["prompt_tokens"] * incoming + usage["completion_tokens"] * outgoing) / 1e6
