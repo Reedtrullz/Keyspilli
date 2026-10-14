@@ -309,6 +309,12 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
     dur: beat(n.start + n.dur) - beat(n.start), hand: n.hand ?? handByPitch.get(n.midi)! }]));
   const sourceIndex = indexOrigins(source.notes);
   const eventBySource = new Map(events.map(e => [e.source, e]));
+  const optionalPolicy = (note: Note, policy: PhraseTransformation) => !!note.sourceOrigins?.length
+    && note.sourceOrigins.every(origin => {
+      const peers = descendants(sourceIndex, { sourceOriginId: origin.id, sourceOccurrence: origin.occurrence } as PhraseEvent);
+      const entry = peers.length === 1 ? eventBySource.get(peers[0]!) : undefined;
+      return !!entry && !entry.event.required && entry.event.allowedTransformations.includes(policy);
+    });
   const rests = new Map(["all", ...ROLES].map(role => [role, mergeIntervals(plan.phrases.flatMap(p => p.rests
     .filter(r => r.scope === role).map(r => ({ start: beat(r.startBeat), end: beat(r.endBeat) })))
     .sort((a, b) => a.start - b.start || a.end - b.end))]));
@@ -323,7 +329,7 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
     const initialIndex = indexOrigins(variant.notes);
     const beforeByEvent = new Map(required.map(e => [e, descendants(initialIndex, e.event)]));
     const removed = new Set([...beforeByEvent.values()].flat());
-    const notes = variant.notes.filter(n => !removed.has(n)).map(n => structuredClone(n));
+    let notes = variant.notes.filter(n => !removed.has(n)).map(n => structuredClone(n));
     const unisonKey = (n: Note) => `${n.midi}:${n.start.toFixed(8)}:${n.dur.toFixed(8)}`;
     const unisons = new Map<string, Note[]>();
     const addUnison = (n: Note) => { const key = unisonKey(n), bucket = unisons.get(key) ?? []; bucket.push(n); unisons.set(key, bucket); };
@@ -379,6 +385,20 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
       } else if (optional.every(e => e.event.allowedTransformations.includes("omit"))) notes.splice(i, 1);
     }
     notes.sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || (a.hand ?? "").localeCompare(b.hand ?? ""));
+    const heldKeys = new Map<number, Note>();
+    const omitted = new Set<Note>();
+    for (const note of notes) {
+      const previous = heldKeys.get(note.midi);
+      if (previous && previous.start + previous.dur > note.start + EPS) {
+        if (previous.start < note.start - EPS && optionalPolicy(previous, "release-change")) {
+          previous.dur = note.start - previous.start;
+        } else if (optionalPolicy(note, "omit")) { omitted.add(note); continue; }
+        else if (optionalPolicy(previous, "omit")) omitted.add(previous);
+        else fail(`${variant.level}: protected restoration creates overlapping MIDI ${note.midi}`);
+      }
+      heldKeys.set(note.midi, note);
+    }
+    notes = notes.filter(note => !omitted.has(note));
     const finalIndex = indexOrigins(notes);
     const roleNotes = new Map(ROLES.map(role => [role, new Set<Note>()]));
     for (const entry of events) {

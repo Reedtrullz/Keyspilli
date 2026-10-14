@@ -135,6 +135,9 @@ export function bassChordsBackground(
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures, ...options,
     ...(sourceBacked ? { generatedHarmonyPolicy: "conservative-backing-v1" as const } : {}),
   }));
+  if (sourceBacked) {
+    return { ...resolution, notes, chords: [], guidanceNotes: notes };
+  }
   if (data.sourceFingerprint === journeySourceFingerprint && data.chordProvenance?.provider !== "owner-candidate") {
     // This chordal RH phrase repeats exactly; the RH elsewhere carries the vocal line.
     const laterBassOnly = (beat: number) => (beat >= 244 && beat < 308) || beat >= 372;

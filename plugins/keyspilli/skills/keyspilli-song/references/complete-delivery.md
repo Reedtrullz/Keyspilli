@@ -28,6 +28,16 @@ Chords is explicitly one shared Advanced-derived backing, not six independent
 accompaniment difficulty levels. No renderer flag is silently ignored without
 `--previews`.
 
+With `--phrase-plan PLAN --source-backed-chords`, the shared backing plays the
+explicitly selected bass, harmony and accompaniment events retained in Advanced,
+including monophonic and broken-chord passages. It preserves their pitches,
+attacks and releases and excludes melody, hook and undeclared lineages. Chord
+labels remain inferred; an unresolved label does not erase selected backing
+notes. Source roles require reference review, and useful music or keyboard
+suitability still needs actual output review. Optional overlapping holds may
+shorten or disappear only when every origin explicitly permits that change;
+protected and undeclared collisions remain a refusal.
+
 Select a licensed sampled acoustic piano bank and verify the selected MIDI
 program. The new route has a fixed gain of 0.2 and a 22050 Hz render, a two-minute
 backend timeout per mode and a 256 MiB WAV/bank read limit.

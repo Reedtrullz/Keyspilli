@@ -121,6 +121,13 @@ def qualify_runtime(model: str, executable: str) -> RuntimeBasis:
     shadow = ocx(executable, "models", "shadow", "status")
     price: Price = ocx(executable, "models", "price", "B.AI/mimo-v2.6-flash") if model == "B.AI/mimo-v2.6-flash" else {}
     result = validate_runtime(model, catalog, providers, accounts, shadow, price)
+    if model == "gpt-6-luna":
+        if ocx(executable, "config", "get", "codexAccountNamespaces.main") != "@main":
+            raise ValueError("existing main selector is not bound to the included native account")
+        preview = ocx(executable, "api", "explain", "--model", "main/gpt-6-luna", "--inbound", "chat")
+        candidates = preview.get("candidates", [])
+        if len(candidates) != 1 or candidates[0].get("provider") != "openai" or candidates[0].get("model") != "gpt-6-luna" or candidates[0].get("eligible") is not True or candidates[0].get("fidelity") != "preserved":
+            raise ValueError("existing exact-account Luna transport is not qualified")
     result["ocxExecutable"], result["ocxVersion"] = executable, version
     return result
 
@@ -155,7 +162,7 @@ def validate_entitlement(model: str, accounts: Accounts, shadow: Shadow, price: 
     if len(active) != 1: raise ValueError("one active native Codex account is required")
     account = active[0]
     account_id = account.get("id")
-    if not isinstance(account_id, str) or not account_id: raise ValueError("native account identity missing")
+    if account_id != "__main__": raise ValueError("included native main account identity is not verified")
     percent = account.get("quota", {}).get("weeklyPercent")
     if account.get("type") != "codex" or account.get("plan") not in ("pro", "prolite", "plus", "team", "business", "enterprise") or account.get("needsReauth") is not False or account.get("paused") is not False or account.get("creditsAfterLimit") is not False or account.get("health") != "Healthy" or account.get("quotaRefresh", {}).get("status") != "ok":
         raise ValueError("included native entitlement with after-limit spending disabled is not verified")

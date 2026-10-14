@@ -74,6 +74,31 @@ it.each([false, true])("realizes only selected backing attacks and releases with
     expect(readFileSync(input)).toEqual(Buffer.from(bytes));
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 }, 60000);
+it("retains explicitly selected monophonic backing without inventing chord tones", () => {
+  const root = new URL("../../../../", import.meta.url).pathname;
+  const scratch = mkdtempSync(join(root, "output", "monophonic-source-backing-"));
+  const melody = Array.from({ length: 16 }, (_, i) => ({ midi: 74, start: i, dur: .25, vel: 80, hand: "R" as const }));
+  const backing = Array.from({ length: 14 }, (_, i) => ({ midi: [48, 55, 52][i % 3]!, start: i + 2, dur: .5, vel: 70, hand: "L" as const }));
+  const bytes = writeMidi([...melody, ...backing], { tempoBpm: 120,
+    tracks: [{ name: "Right hand", notes: melody }, { name: "Left hand", notes: backing }] });
+  const source = parseMidi(bytes), hash = createHash("sha256").update(bytes).digest("hex");
+  const plan = suggestPhrasePlan(source, { sha256: hash, compositionId: "authored-monophonic-backing", performanceId: "test-v1" });
+  for (const event of plan.phrases[0]!.events) {
+    event.role = event.expected.midi === 74 ? "melody" : "accompaniment";
+    event.required = true; event.allowedTransformations = [];
+  }
+  try {
+    const input = join(scratch, "source.mid"), planPath = join(scratch, "plan.json"), run = join(scratch, "run");
+    writeFileSync(input, bytes); writeFileSync(planPath, JSON.stringify(plan));
+    execFileSync(process.execPath, ["--import", "tsx", join(root, "apps/web/scripts/prepare-song.mts"), input, run,
+      "Authored monophonic backing", "Tests", "--phrase-plan", planPath, "--source-backed-chords"], { cwd: root, timeout: 60000 });
+    const actual = parseMidi(readFileSync(join(run, "bundle", "chords.mid"))).notes;
+    expect(actual.map(n => [n.midi, n.start, n.dur])).toEqual(backing.map(n => [n.midi, n.start, n.dur]));
+    expect(actual.some(n => n.midi === 74 || n.start < 2)).toBe(false);
+    expect(readFileSync(input)).toEqual(Buffer.from(bytes));
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+}, 60000);
+
 it("counts uncovered LH duration and overlapping octave doublings only once", () => {
   const snapshot = { schemaVersion: 1, tempoBpm: 120, timeSig: [4, 4], endBeatExclusive: 4, chords: [],
     notes: [{ midi: 48, start: 0, dur: 2, vel: 80 }, { midi: 60, start: 0, dur: 2, vel: 80 }] };

@@ -11,6 +11,16 @@
   "referenceReview": "independent-review-pending",
   "developmentDenominator": 3,
   "holdoutDenominator": 3,
+  "continuation20261014": {
+    "authority":"user-authorized D2/sparse-backing/reference/API continuation; model advice does not supply human keyboard approval",
+    "developmentReferenceReview":"output/batch1-resume/remaining-batches/evidence/anti-development-reference-low.json",
+    "developmentPlanFreeze":"output/batch1-resume/remaining-batches/evidence/advised-development-plan-freeze.json",
+    "holdoutReferenceAdmission":["output/batch1-resume/remaining-batches/evidence/advised-holdout-reference-admission.json","output/batch1-resume/remaining-batches/evidence/advised-holdout-reference-admission-H2-corrected.json"],
+    "holdoutAuthority":"model-estimate; exact source/score and executable IDs/clocks/rests checked; keyboard and musical acceptance pending",
+    "holdoutExposure":"Private source/score submitted to Anti; implementing context did not inspect notes/anchors/assessment content; previous catalog exposure unknown",
+    "workingDeliveries":{"D1":"output/batch1-resume/remaining-batches/candidate-D1-advised/delivery","D2":"output/batch1-resume/remaining-batches/candidate-D2-compact/delivery","D3":"output/batch1-resume/remaining-batches/candidate-D3-advised/delivery"},
+    "priorFailures":"Retained verbatim below as historical observations; current continuation permits further correction without changing historical approval pins"
+  },
   "development": [
     {
       "id": "D1",

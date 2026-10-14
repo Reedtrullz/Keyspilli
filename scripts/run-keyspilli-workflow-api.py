@@ -16,6 +16,15 @@ from scripts.keyspilli_workflow_api_runtime import absolute_deadline, qualify_ru
 CORE = load_module("evaluate-keyspilli-workflow")
 
 
+def request_configuration(model: str, messages: list[dict[str, object]]) -> dict[str, object]:
+    if model not in ("gpt-6-luna", "B.AI/mimo-v2.6-flash"): raise ValueError("unapproved workflow model")
+    body: dict[str, object] = {"model": "main/gpt-6-luna" if model == "gpt-6-luna" else model,
+        "messages": messages, "tools": TOOLS, "max_tokens": 2048, "stream": False}
+    if model == "gpt-6-luna": body["reasoning_effort"] = "low"
+    else: body["thinking"] = {"type": "disabled"}
+    return body
+
+
 def encode_request(body: Mapping[str, object]) -> tuple[bytes, int]:
     wire = json.dumps(body, ensure_ascii=True).encode()
     if len(wire) > 131072:
@@ -127,8 +136,7 @@ def evaluate_cell(cell: Cell, fixture: Fixture, root: Path, budget: BudgetPort, 
     error = None
     try:
         for turn in range(8):
-            body: dict[str, object] = {"model": model, "messages": messages, "tools": TOOLS, "max_tokens": 2048, "stream": False}
-            if model == "gpt-6-luna": body["reasoning_effort"] = "low"
+            body = request_configuration(model, messages)
             attempts_before = admitted.admission_count(cell["id"])
             try:
                 message = model_request(model, body, cell, directory, deadline, turn, budget, admitted)
@@ -166,9 +174,12 @@ def main() -> None:
     parser.add_argument("--fixtures", required=True, type=Path)
     parser.add_argument("--results", required=True, type=Path)
     parser.add_argument("--limit", type=int, default=96)
+    parser.add_argument("--retry-blocked-route", action="append", default=[], choices=["gpt-6-luna", "B.AI/mimo-v2.6-flash"],
+        help="Explicit repaired-protocol trial in this invocation; preserves historical blocks and spending.")
     args = parser.parse_args()
     if not 1 <= args.limit <= 96: raise ValueError("limit must be within the frozen 96-cell matrix")
     with Admission(args.experiment, args.fixtures, args.results) as admitted:
+        for model in args.retry_blocked_route: admitted.retry_route(model)
         budget: BudgetPort = CORE.Budget(5)
         budget.spent, budget.stopped, budget.unknown_usage_calls = admitted.accounted_usd, admitted.stopped, admitted.unknown_usage_calls
         rows: list[dict[str, object]] = []

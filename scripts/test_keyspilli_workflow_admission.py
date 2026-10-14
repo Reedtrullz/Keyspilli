@@ -113,6 +113,28 @@ class WorkflowAdmissionTests(unittest.TestCase):
                     self.module.Admission(experiment, fixtures, root / "results")
             self.assertFalse((root / "results").exists())
 
+    def test_explicit_route_retry_preserves_campaign_money_and_original_block(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            experiment, fixtures, _new, _asset = self.make_inputs(root)
+            results = root / "results"
+            with self.module.Admission(experiment, fixtures, results) as admission:
+                admission.append({"kind": "admitted", "reservedUsd": .09212504})
+                admission.block_route("gpt-6-luna", "retained HTTP401")
+            with self.module.Admission(experiment, fixtures, results) as admission:
+                before = admission.accounted_usd
+                admission.retry_route("gpt-6-luna")
+                self.assertEqual(admission.accounted_usd, before)
+                self.assertNotIn("gpt-6-luna", admission.blocked_routes)
+                with self.assertRaisesRegex(ValueError, "already"):
+                    admission.retry_route("gpt-6-luna")
+            with self.module.Admission(experiment, fixtures, results) as admission:
+                self.assertEqual(admission.accounted_usd, .09212504)
+                self.assertIn("gpt-6-luna", admission.blocked_routes)
+                admission.stopped = True
+                with self.assertRaises(ValueError):
+                    admission.retry_route("B.AI/mimo-v2.6-flash")
+
     def test_native_quota_entitlement_rejects_paid_backend_and_after_limit_spending(self):
         runtime = self.module.load_module("keyspilli_workflow_api_runtime")
         catalog = {"data": [{"id": "gpt-6-luna", "owned_by": "openai", "api_types": ["chat_completions"], "capabilities": {"supports_tool_use": True}}]}
@@ -145,7 +167,7 @@ class WorkflowAdmissionTests(unittest.TestCase):
             def read(self, _bound):
                 final = {"status": "refused-or-incomplete", "explanation": "Owned offline control", "playbackIndex": None,
                          "musicalAcceptance": "not-established", "productionAdmission": False}
-                return json.dumps({"model": self.model, "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                return json.dumps({"model": self.model.removeprefix("main/"), "usage": {"prompt_tokens": 1, "completion_tokens": 1},
                     "choices": [{"message": {"role": "assistant", "content": json.dumps(final)}}]}).encode()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -159,7 +181,7 @@ class WorkflowAdmissionTests(unittest.TestCase):
                     api.main()
             invoke(results, 1)
             invoke(results, 4)
-            self.assertEqual(requests, ["gpt-6-luna", "gpt-6-luna"])
+            self.assertEqual(requests, ["main/gpt-6-luna", "main/gpt-6-luna"])
             summary = json.loads((results / "summary-4.json").read_text())
             self.assertLessEqual(summary["accountedUsd"], 5)
             self.assertEqual(summary["summary"]["executed"], 2)

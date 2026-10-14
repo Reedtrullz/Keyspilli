@@ -21,6 +21,18 @@ class WorkflowApiTests(unittest.TestCase):
         self.module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.module)
 
+    def test_exact_account_transport_and_non_thinking_mimo_configuration(self):
+        luna = self.module.request_configuration("gpt-6-luna", [])
+        self.assertEqual(luna["model"], "main/gpt-6-luna")
+        self.assertEqual(luna["reasoning_effort"], "low")
+        mimo = self.module.request_configuration("B.AI/mimo-v2.6-flash", [])
+        self.assertEqual(mimo["thinking"], {"type": "disabled"})
+        self.assertEqual(mimo["model"], "B.AI/mimo-v2.6-flash")
+        self.assertEqual(mimo["max_tokens"], 2048)
+        self.assertFalse(mimo["stream"])
+        with self.assertRaises(ValueError):
+            self.module.request_configuration("unapproved-fallback", [])
+
     def test_request_bound_covers_serialized_tool_and_history_bytes(self):
         body = {"model": "B.AI/mimo-v2.6-flash", "messages": [{"role": "user", "content": "ø" * 100}]}
         wire, bound = self.module.encode_request(body)

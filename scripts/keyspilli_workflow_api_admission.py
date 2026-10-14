@@ -193,6 +193,7 @@ class Admission:
         common = common if common.is_absolute() else checkout / common
         self.accounting_root = common.resolve() / "keyspilli-evaluations/keyspilli-next-update-v1"
         self.accounting_root.mkdir(parents=True, exist_ok=True)
+        self.experiment_sha256 = sha(experiment_path)
         self.lock = (self.accounting_root / "exclusive.lock").open("a")
         fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         try:
@@ -267,3 +268,12 @@ class Admission:
             if json.loads(path.read_text()) != basis: raise ValueError("qualified runtime/entitlement changed during this campaign")
         else:
             with path.open("x") as handle: json.dump(basis, handle, indent=2)
+
+    def retry_route(self, model: str) -> None:
+        if self.stopped or self.accounted_usd >= 5: raise ValueError("campaign spending remains stopped")
+        if model not in self.blocked_routes: raise ValueError("route is not blocked or was already retried")
+        if any(r.get("kind") == "route-retry-authorized" and r.get("model") == model and r.get("experimentSha256") == self.experiment_sha256
+            for r in (json.loads(line) for line in self.journal.read_text().splitlines())): raise ValueError("route already retried for this experiment")
+        self.append({"kind": "route-retry-authorized", "model": model, "experimentSha256": self.experiment_sha256,
+            "accountedUsd": self.accounted_usd, "scope": "explicit invocation only; historical route block retained"})
+        del self.blocked_routes[model]

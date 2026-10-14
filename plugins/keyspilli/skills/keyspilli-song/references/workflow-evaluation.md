@@ -4,6 +4,15 @@ This is an evaluation protocol, not a capability or a completed model benchmark.
 First-wave checks are deterministic and offline. Obtain separate authorization
 before paid inference, provider experiments or external musical qualification.
 
+The authorized local API trial uses the existing exact-account
+`main/gpt-6-luna` selector with verified included main-account quota and low
+reasoning, and `B.AI/mimo-v2.6-flash` with `thinking.type=disabled`. These are
+explicit protocol configurations, distinct from native Codex adoption. The
+shared $5 campaign ledger retains earlier failed calls and unknown-use ceilings.
+An explicit `--retry-blocked-route` admits a repaired-protocol trial only in that
+invocation; it never clears historical blocks, spending or a stopped budget.
+Revised source/protocol requires a new frozen experiment, with old results kept.
+
 Freeze the repository commit, plugin package/source-tree hashes, loaded files,
 source bytes, prompts, allowed tools, provider/model/effort and hard cost limit.
 Run each model in a fresh isolated workspace with the same accepted references.

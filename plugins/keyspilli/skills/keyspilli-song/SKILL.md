@@ -12,6 +12,14 @@ Preserve accepted Original/backing when improving an existing catalog entry.
 
 ## Default workflow
 
+For a supplied, qualified local source and ordinary full delivery, load
+[complete delivery](references/complete-delivery.md) first. After one compatible
+checkout preflight, prepare once with previews and verify the resulting delivery.
+Use delivery directly when a prepared run already exists. The optional
+deterministic request/checkpoint, arranger and model-review procedures are needed
+only for their corresponding tasks; they are not prerequisites for ordinary
+MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recovery.
+
 1. **Select a supported Git checkout.** Read its instructions and preserve WIP. From
    this skill directory run `python3 scripts/check_checkout.py CHECKOUT --node
    /absolute/compatible/node --discover`. Require `preparation.status: compatible`.

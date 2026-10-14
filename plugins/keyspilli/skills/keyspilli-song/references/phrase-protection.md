@@ -10,9 +10,11 @@ select musically correct roles automatically.
 When the checkout advertises `prepare-song.mts --source-backed-chords`, pair
 that opt-in with `--phrase-plan` targeting Advanced. The shared Chords backing
 uses only lineages explicitly selected as bass, harmony or accompaniment in
-the pinned plan, through the existing conservative harmony policy. Melody,
-hook, unknown and unlisted lineages cannot supply missing chord tones. The
-backing remains inferred and provisional; selection is not source validation.
+the pinned plan. It plays those retained Advanced notes directly, including
+monophonic or broken accompaniment without a complete chord stack. Conservative
+harmony supplies inferred labels; it cannot erase declared backing attacks or
+invent missing tones. Melody, hook, unknown and unlisted lineages are excluded.
+The backing remains inferred and provisional; selection is not source validation.
 Ordinary generated backing remains available without this opt-in.
 
 ## Inspect exact bytes and select evidence

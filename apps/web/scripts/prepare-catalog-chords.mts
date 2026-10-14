@@ -129,7 +129,7 @@ for (const { representative: song } of inventory) {
     const parsedXml = parseMusicXmlNotes(xml);
     assert.deepEqual(canonical(parsedXml.notes, 960), canonical(captured, 960), "MusicXML round trip changed notes");
     atomic(join(dir, "chords.mid"), midi); atomic(join(dir, "chords.musicxml"), xml);
-    json(join(dir, "playback.json"), { baseId: song.baseId, title: song.title, status: preserved.has(song.baseId) ? "preserved" : "prepared candidate", inputPins: {}, advanced: original, playerData, snapshot, resolution: replay.resolution });
+    atomic(join(dir, "playback.json"), JSON.stringify({ baseId: song.baseId, title: song.title, status: preserved.has(song.baseId) ? "preserved" : "prepared candidate", inputPins: {}, advanced: original, playerData, snapshot, resolution: replay.resolution }) + "\n");
     const metrics = evaluateChordsBacking(playerData);
     json(join(dir, "diagnosis.json"), diagnosePreparedChords(playerData));
     const files = Object.fromEntries(["chords.mid", "chords.musicxml", "playback.json", "diagnosis.json", ...(timeline ? ["timeline.json"] : [])].map(name => [name, hash(readFileSync(join(dir, name)))]));
