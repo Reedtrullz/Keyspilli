@@ -136,7 +136,7 @@ for (const { representative: song } of inventory) {
     receipt = { ...song, generator, inputHash, sourceFingerprint: input.sourceFingerprint, status: preserved.has(song.baseId) ? "preserved" : "prepared-candidate",
       assessment: "structural checks only; not a musical acceptance", files, mapping, metrics,
       references: sourceBacked ? ["Pinned Advanced phrase plan; role accuracy and musical acceptance remain unestablished."] : overrides[song.baseId]?.references ?? [],
-      rationale: sourceBacked ? "Conservative harmony from explicitly selected backing roles; melody/hook and unclassified lineages excluded." : overrides[song.baseId]?.rationale ?? "Contextual learner harmonization from the existing Advanced arrangement.",
+      rationale: sourceBacked ? "Conservative harmony from explicitly selected backing roles; shared declared keys retain all lineage. Standalone melody/hook events and unknown or undeclared lineages excluded." : overrides[song.baseId]?.rationale ?? "Contextual learner harmonization from the existing Advanced arrangement.",
       checks: { transportEvents: noteEvents + chordEvents, exportedNotes: captured.length, midiRoundTrip: true, musicXmlRoundTrip: true, chordMidiVelocity: 80 } };
     json(receiptPath, receipt); rows.push(receipt);
     console.log(`${rows.length}/${inventory.length} ${song.baseId}: ${receipt.status}; proxies ${metrics.backing.gate.passed ? "pass" : "flagged"}`);
