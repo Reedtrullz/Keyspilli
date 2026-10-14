@@ -3,12 +3,12 @@ import { normalizeChordTimeline, resolveChordTimeline } from "@keyspilli/catalog
 import { arithmeticMeasures, type SongData } from "@keyspilli/player-core";
 import { projectChordSources, withChordSources } from "../../lib/catalog-api";
 import { accompanimentFallbackNotice, bassChordsBackground, replayChordsBacking } from "./chords-backing";
-import type { Note, PhraseProtectionReport } from "@keyspilli/midi";
+import { phraseBackingNotes, type Note, type PhraseProtectionReport } from "@keyspilli/midi";
 
 function lowBassControl(collision = false): SongData {
   const notes: Note[] = [
     { midi: 25, start: 0, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "optional-bass" }] },
-    { midi: collision ? 49 : 30, start: collision ? 0.5 : 1, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "required-bass" }] },
+    { midi: collision ? 37 : 30, start: collision ? 0.5 : 1, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "required-bass" }] },
     { midi: 31, start: 2, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "harmony" }] },
     { midi: 32, start: 3, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "unpermitted-bass" }] },
   ];
@@ -32,10 +32,12 @@ function lowBassControl(collision = false): SongData {
 it("projects only explicitly permitted optional low bass into a piano register with a receipt", () => {
   const data = lowBassControl(), before = structuredClone(data);
   const resolution = bassChordsBackground(data, [], 4, null);
-  expect(resolution.notes.map(n => n.midi)).toEqual([49, 30, 31, 32]);
+  expect(resolution.notes.map(n => n.midi)).toEqual([37, 30, 43, 32]);
   expect(resolution.sourceTransformations).toEqual([expect.objectContaining({ eventId: "event-0", role: "bass",
     operation: "permitted-transformation", before: [expect.objectContaining({ midi: 25, start: 0, dur: 1 })],
-    after: [expect.objectContaining({ midi: 49, start: 0, dur: 1 })] })]);
+    after: [expect.objectContaining({ midi: 37, start: 0, dur: 1 })] }),
+    expect.objectContaining({ eventId: "event-2", role: "harmony",
+      after: [expect.objectContaining({ midi: 43, start: 2, dur: 1 })] })]);
   expect(data).toEqual(before);
 });
 
@@ -51,7 +53,7 @@ it("keeps a merged bass unison unchanged when one source origin denies octave di
     allowedTransformations: [] });
   const resolution = bassChordsBackground(data, [], 4, null);
   expect(resolution.notes[0]!.midi).toBe(25);
-  expect(resolution.sourceTransformations).toBeUndefined();
+  expect(resolution.sourceTransformations?.some(change => change.eventId === "event-0" || change.eventId === "denied-unison")).toBe(false);
 });
 
 it("retains the source bass pulse even when omission is permitted", () => {
@@ -68,11 +70,11 @@ it("retains the source bass pulse even when omission is permitted", () => {
   }
   const before = structuredClone(data), resolution = bassChordsBackground(data, [], 4, null);
   expect(resolution.notes.filter(n => n.start < 2).map(n => [n.midi, n.start])).toEqual([
-    [49, 0], [49, 0.25], [25, 0.5], [49, 0.75], [49, 1.5], [52, 1.75],
+    [37, 0], [37, 0.25], [25, 0.5], [37, 0.75], [37, 1.5], [40, 1.75],
   ]);
   expect(resolution.sourceTransformations).toContainEqual(expect.objectContaining({ eventId: "repeat-a",
     before: [expect.objectContaining({ midi: 25, start: 0.25 })],
-    after: [expect.objectContaining({ midi: 49, start: 0.25, dur: 0.125 })] }));
+    after: [expect.objectContaining({ midi: 37, start: 0.25, dur: 0.125 })] }));
   expect(resolution.sourceTransformations!.every(change => change.after.length === 1)).toBe(true);
   expect(data).toEqual(before);
   phrase.events.find(e => e.id === "repeat-a")!.allowedTransformations = ["octave-displacement"];
@@ -89,10 +91,31 @@ it("uses one permitted octave shift across a low bass phrase without folding its
     allowedTransformations: ["octave-displacement"] }));
   const before = structuredClone(data), resolution = bassChordsBackground(data, [], 4, null);
   expect(resolution.notes.map(note => [note.midi, note.start, note.dur])).toEqual([
-    [49, 0, 0.5], [59, 1, 0.5], [60, 2, 0.5], [62, 3, 0.5],
+    [37, 0, 0.5], [47, 1, 0.5], [48, 2, 0.5], [50, 3, 0.5],
   ]);
   expect(data).toEqual(before);
   expect(resolution.sourceTransformations).toHaveLength(4);
+});
+
+it("retains a shared backing key without importing standalone melody or unknown lineages", () => {
+  const data = lowBassControl(), phrase = data.phraseProtection!.plan.phrases[0]!;
+  const shared = data.notes[2]!;
+  shared.sourceOrigins!.push({ id: "shared-hook" });
+  phrase.events.push({ ...structuredClone(phrase.events[2]!), id: "shared-hook", sourceOriginId: "shared-hook", role: "hook" });
+  data.notes.push({ ...structuredClone(shared), start: 3, sourceOrigins: [{ id: "shared-hook" }] });
+  data.notes.push({ ...structuredClone(shared), start: 3, sourceOrigins: [{ id: "harmony" }, { id: "unknown" }] });
+  const before = structuredClone(data);
+  expect(phraseBackingNotes(data.notes, data.phraseProtection)).toHaveLength(4);
+  const resolution = bassChordsBackground(data, [], 4, null);
+  const actual = resolution.notes.find(n => n.sourceOrigins?.some(o => o.id === "shared-hook"))!;
+  expect(actual).toMatchObject({ midi: 43, start: 2, dur: 1 });
+  expect(actual.sourceOrigins).toEqual(shared.sourceOrigins);
+  expect(resolution.sourceTransformations).toContainEqual(expect.objectContaining({ eventId: "shared-hook", role: "hook" }));
+  phrase.events.at(-1)!.allowedTransformations = [];
+  expect(bassChordsBackground(data, [], 4, null).notes.find(n => n.sourceOrigins?.some(o => o.id === "shared-hook"))!.midi).toBe(31);
+  phrase.events.at(-1)!.role = "unknown";
+  expect(phraseBackingNotes(data.notes, data.phraseProtection)).toHaveLength(3);
+  expect(before.notes).toEqual(data.notes);
 });
 
 it("separates an unresolved label from unavailable source-backed playback", () => {

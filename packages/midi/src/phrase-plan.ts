@@ -62,11 +62,14 @@ export function phraseBackingNotes(notes: readonly Note[], report: PhraseProtect
   const roles = new Map(report.plan.phrases.flatMap(p => p.events.map(e => [
     JSON.stringify([e.sourceOriginId, e.sourceOccurrence ?? null]), e.role,
   ] as const)));
-  const backing = notes.filter(note => note.sourceOrigins?.length && note.sourceOrigins.every(origin => {
-    const role = roles.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
-      ?? roles.get(JSON.stringify([origin.id, null]));
-    return role === "bass" || role === "harmony" || role === "accompaniment";
-  }));
+  const backing = notes.filter(note => {
+    const declared = note.sourceOrigins?.map(origin => roles.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
+      ?? roles.get(JSON.stringify([origin.id, null])));
+    // Reduction merges shared keys. A declared backing contributor still
+    // supports that key; keep all lineage and all transformation permissions.
+    return declared?.length && declared.every(role => role !== undefined && role !== "unknown")
+      && declared.some(role => role === "bass" || role === "harmony" || role === "accompaniment");
+  });
   if (!backing.length) throw new Error("source-backed Chords has no explicitly selected backing events");
   return backing;
 }
@@ -78,15 +81,16 @@ export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtect
   const entries = new Map(report!.plan.phrases.flatMap(phrase => phrase.events.map(event => [
     JSON.stringify([event.sourceOriginId, event.sourceOccurrence ?? null]), { phrase, event },
   ] as const)));
-  // A wholly low bass phrase needs one consistent register, not pitch folding
-  // at C2. Bound the treatment to two octaves and retain its source pulse.
-  const bassShifts = new Map(report!.plan.phrases.map(phrase => {
+  // Keep a low bass below its support. Use consistent phrase registers and
+  // retain source attacks rather than folding pitches or filling source rests.
+  const registers = new Map(report!.plan.phrases.map(phrase => {
     const pitches = phrase.events.filter(event => event.role === "bass").map(event => event.expected.midi);
     const lowest = pitches.reduce((minimum, pitch) => Math.min(minimum, pitch), Infinity);
     const highest = pitches.reduce((maximum, pitch) => Math.max(maximum, pitch), -Infinity);
     const shift = pitches.length && highest < 48
-      ? Math.min(24, Math.max(0, Math.ceil((48 - lowest) / 12) * 12)) : 0;
-    return [phrase, shift] as const;
+      ? Math.min(24, Math.max(0, Math.ceil((36 - lowest) / 12) * 12)) : 0;
+    const support = phrase.events.filter(event => event.role === "harmony" || event.role === "accompaniment");
+    return [phrase, { bass: shift, support: shift && support.length && support.every(event => event.expected.midi < 60) ? 12 : 0 }] as const;
   }));
   const changes: PhraseProtectionReport["changes"] = [];
   const retained: Note[] = [];
@@ -95,15 +99,17 @@ export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtect
       ?? entries.get(JSON.stringify([origin.id, null])));
     const declarations = origins.filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
     if (declarations.length !== origins.length) throw new Error("piano backing has an undeclared source origin");
-    const bass = declarations.every(entry => entry.event.role === "bass");
     const permits = (policy: PhraseTransformation) => declarations.every(entry => !entry.event.required
       && entry.event.allowedTransformations.includes(policy));
     const before = structuredClone(note);
     const recordChange = (after: Note[]) => { for (const entry of declarations) changes.push({
       eventId: entry.event.id, phraseId: entry.phrase.id, occurrenceId: entry.phrase.occurrenceId,
-      role: "bass", operation: "permitted-transformation", before: [structuredClone(before)], after: structuredClone(after) }); };
-    if (bass && permits("octave-displacement")) {
-      const shifts = declarations.map(entry => bassShifts.get(entry.phrase)!);
+      role: entry.event.role, operation: "permitted-transformation", before: [structuredClone(before)], after: structuredClone(after) }); };
+    if (permits("octave-displacement")) {
+      const shifts = declarations.map(entry => {
+        const register = registers.get(entry.phrase)!;
+        return entry.event.role === "bass" ? register.bass : register.support;
+      });
       if (!shifts.every(shift => shift === shifts[0])) throw new Error("piano backing has conflicting phrase registers");
       if (shifts[0]) { note.midi += shifts[0]; recordChange([note]); }
     }
