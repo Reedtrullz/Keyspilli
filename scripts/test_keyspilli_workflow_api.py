@@ -51,22 +51,24 @@ class WorkflowApiTests(unittest.TestCase):
                         wire.replace(b'"index": 0', b'"index": -1'), wire.replace(b'"model": "mimo-v2.6-flash"', b'"model": "another-model"', 1)]:
             with self.assertRaises(ValueError): self.module.parse_chat_stream(damaged)
 
-    def test_transport_requests_a_structured_terminal_response_for_each_route(self):
+    def test_transport_uses_a_native_function_for_the_terminal_handoff(self):
         final = {"status": "refused-or-incomplete", "explanation": "No local source bytes.",
                  "playbackIndex": None, "musicalAcceptance": "not-established", "productionAdmission": False}
-        for model, format_type in [("gpt-6-luna", "json_schema"), ("B.AI/mimo-v2.6-flash", "json_object")]:
+        for model in ("gpt-6-luna", "B.AI/mimo-v2.6-flash"):
             with self.subTest(model=model), tempfile.TemporaryDirectory() as directory:
                 def upstream(request, **_kwargs):
                     body = json.loads(request.data)
-                    output_format = body.get("response_format", {})
-                    constrained = output_format.get("type") == format_type
-                    if constrained and format_type == "json_schema":
-                        definition = output_format["json_schema"]
-                        constrained = definition["strict"] is True and definition["schema"]["additionalProperties"] is False
-                        constrained &= set(definition["schema"]["required"]) == set(final)
-                    content = json.dumps(final) if constrained else "Prose before JSON: " + json.dumps(final)
+                    terminal = [tool["function"] for tool in body["tools"] if tool["function"]["name"] == "finish_result"]
+                    constrained = len(terminal) == 1 and "response_format" not in body
+                    if constrained:
+                        self.assertEqual(set(terminal[0]["parameters"]["required"]), set(final))
+                        self.assertFalse(terminal[0]["parameters"]["additionalProperties"])
+                    message = {"role": "assistant", "content": "Prose before JSON: " + json.dumps(final)}
+                    if constrained:
+                        message = {"role": "assistant", "content": None, "tool_calls": [{"id": "final", "type": "function",
+                            "function": {"name": "finish_result", "arguments": json.dumps(final)}}]}
                     canonical = "gpt-6-luna" if model == "gpt-6-luna" else "mimo-v2.6-flash"
-                    payload = json.dumps({"model": canonical, "choices": [{"message": {"role": "assistant", "content": content}}],
+                    payload = json.dumps({"model": canonical, "choices": [{"message": message}],
                                           "usage": {"prompt_tokens": 1, "completion_tokens": 1}}).encode()
                     class Response:
                         def __enter__(self): return self
@@ -76,12 +78,42 @@ class WorkflowApiTests(unittest.TestCase):
                 admitted = SimpleNamespace(recheck=lambda _task: None,
                     fixtures={"simple-midi": {"ocxExecutable": "/owned"}}, bind_runtime=lambda *_args: None,
                     append=lambda _record: None, record_success=lambda *_args: None)
-                body = self.module.request_configuration(model, [{"role": "system", "content": "Return only JSON."}])
+                body = self.module.request_configuration(model, [{"role": "system", "content": "Use finish_result."}])
                 with patch.object(self.module, "qualify_runtime", return_value={"nativeQuotaIncluded": True}), \
                      patch.object(self.module.urllib.request, "urlopen", side_effect=upstream):
                     message = self.module.model_request(model, body, {"id": "owned", "task": "simple-midi", "model": model},
                         Path(directory), time.monotonic() + 10, 0, self.module.CORE.Budget(5), admitted)
-                self.assertEqual(json.loads(message["content"]), final)
+                self.assertEqual(self.module.final_submission(message), final)
+
+    def test_terminal_handoff_refuses_mixed_tools_and_false_boundaries(self):
+        final = {"status": "refused-or-incomplete", "explanation": "Missing bytes.", "playbackIndex": None,
+                 "musicalAcceptance": "not-established", "productionAdmission": False}
+        call = {"id": "final", "function": {"name": "finish_result", "arguments": json.dumps(final)}}
+        self.assertIsNone(self.module.final_submission({"tool_calls": [{"function": {"name": "checkout_preflight"}}]}))
+        for message in ({"tool_calls": [call, {"function": {"name": "prepare_song"}}]},
+                        {"tool_calls": [{**call, "function": {"name": "finish_result", "arguments": json.dumps({**final, "productionAdmission": True})}}]},
+                        {"tool_calls": [{**call, "function": {"name": "finish_result", "arguments": json.dumps({**final, "extra": 1})}}]}):
+            with self.assertRaises(ValueError):
+                self.module.final_submission(message)
+
+    def test_cell_finishes_without_executing_the_terminal_function(self):
+        final = {"status": "refused-or-incomplete", "explanation": "Missing bytes.", "playbackIndex": None,
+                 "musicalAcceptance": "not-established", "productionAdmission": False}
+        message = {"role": "assistant", "content": None, "tool_calls": [{"id": "final", "function": {
+            "name": "finish_result", "arguments": json.dumps(final)}}]}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            skill = root / "skills/keyspilli-song/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("# Owned control")
+            admitted = SimpleNamespace(experiment={"skillSnapshots": {"old": {"path": str(root)}}}, admission_count=lambda _id: 0)
+            cell = {"id": "owned", "task": "unqualified-url", "model": "gpt-6-luna", "skill": "old", "repetition": 1}
+            with patch.object(self.module, "model_request", return_value=message), patch.object(self.module, "execute_tool") as execute:
+                result = self.module.evaluate_cell(cell, {"description": "No qualified source"}, root, self.module.CORE.Budget(5), admitted)
+            execute.assert_not_called()
+            self.assertTrue(result["verified"])
+            self.assertEqual(result["modelFinal"], final)
+            self.assertEqual(result["traces"], [{"tool": "finish_result"}])
 
     def test_request_bound_covers_serialized_tool_and_history_bytes(self):
         body = {"model": "B.AI/mimo-v2.6-flash", "messages": [{"role": "user", "content": "ø" * 100}]}

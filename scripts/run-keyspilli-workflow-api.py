@@ -15,25 +15,51 @@ from scripts.keyspilli_workflow_api_runtime import absolute_deadline, qualify_ru
 from scripts.keyspilli_workflow_chat_stream import ChatStreamFailure, parse_chat_stream
 
 CORE = load_module("evaluate-keyspilli-workflow")
+FINAL_FIELDS = ("status", "explanation", "playbackIndex", "musicalAcceptance", "productionAdmission")
+FINAL_SCHEMA = {"type": "object", "additionalProperties": False,
+    "required": list(FINAL_FIELDS),
+    "properties": {
+        "status": {"type": "string", "enum": ["complete-provisional", "refused-or-incomplete"]},
+        "explanation": {"type": "string"}, "playbackIndex": {"type": ["string", "null"]},
+        "musicalAcceptance": {"type": "string", "enum": ["not-established"]},
+        "productionAdmission": {"type": "boolean", "enum": [False]}}}
+FINAL_TOOL = {"type": "function", "function": {"name": "finish_result", "strict": True,
+    "description": "Submit the final provisional result alone after required verification. Executes no commands.",
+    "parameters": FINAL_SCHEMA}}
+
+
+def validate_final(parsed: object) -> dict[str, object]:
+    if not isinstance(parsed, dict) or set(parsed) != set(FINAL_FIELDS):
+        raise ValueError("final result must be an object containing exactly the required fields")
+    if parsed["status"] not in ("complete-provisional", "refused-or-incomplete") or not isinstance(parsed["explanation"], str):
+        raise ValueError("final result has invalid status or explanation")
+    if parsed["playbackIndex"] is not None and not isinstance(parsed["playbackIndex"], str):
+        raise ValueError("final playback index must be a string or null")
+    if parsed["musicalAcceptance"] != "not-established" or parsed["productionAdmission"] is not False:
+        raise ValueError("final result lacks the required provisional/production boundary")
+    return parsed
+
+
+def final_submission(message: dict[str, object]) -> dict[str, object] | None:
+    calls = message.get("tool_calls") or []
+    if not isinstance(calls, list): raise ValueError("assistant tool_calls must be a list")
+    terminal = []
+    for call in calls:
+        if not isinstance(call, dict) or not isinstance(call.get("function"), dict):
+            raise ValueError("assistant tool call must identify one function")
+        if call["function"].get("name") == "finish_result": terminal.append(call)
+    if not terminal: return None
+    if len(calls) != 1:
+        raise ValueError("final submission cannot accompany other tool calls")
+    return validate_final(json.loads(terminal[0]["function"]["arguments"]))
 
 
 def request_configuration(model: str, messages: list[dict[str, object]]) -> dict[str, object]:
     if model not in ("gpt-6-luna", "B.AI/mimo-v2.6-flash"): raise ValueError("unapproved workflow model")
     body: dict[str, object] = {"model": "main/gpt-6-luna" if model == "gpt-6-luna" else model,
-        "messages": messages, "tools": TOOLS, "max_tokens": 2048, "stream": True}
+        "messages": messages, "tools": [*TOOLS, FINAL_TOOL], "max_tokens": 2048, "stream": True}
     if model == "gpt-6-luna":
         body["reasoning_effort"] = "low"
-        body["response_format"] = {"type": "json_schema", "json_schema": {
-            "name": "keyspilli_workflow_result", "strict": True,
-            "schema": {"type": "object", "additionalProperties": False,
-                "required": ["status", "explanation", "playbackIndex", "musicalAcceptance", "productionAdmission"],
-                "properties": {
-                    "status": {"type": "string", "enum": ["complete-provisional", "refused-or-incomplete"]},
-                    "explanation": {"type": "string"}, "playbackIndex": {"type": ["string", "null"]},
-                    "musicalAcceptance": {"type": "string", "enum": ["not-established"]},
-                    "productionAdmission": {"type": "boolean", "enum": [False]}}}}}
-    else:
-        body["response_format"] = {"type": "json_object"}
     return body
 
 
@@ -147,7 +173,7 @@ def evaluate_cell(cell: Cell, fixture: Fixture, root: Path, budget: BudgetPort, 
     skill = Path(experiment["skillSnapshots"][cell["skill"]]["path"]) / "skills/keyspilli-song/SKILL.md"
     messages: list[dict[str, object]] = [{"role": "system", "content":
         "Execute this Keyspilli task through the restricted tools. Never invent source, approval, command success or complete delivery. "
-        "Return only one JSON object as your final response, with no prose or Markdown fence: "
+        "Submit your final response using finish_result alone, never alongside an execution tool: "
         "status (complete-provisional or refused-or-incomplete), explanation (string), playbackIndex (string or null), "
         "musicalAcceptance (not-established), productionAdmission (false). This final format overrides packaged handoff formatting; "
         "include any required warnings and limitations in explanation. No acquisition, production, release, installation or arbitrary shell/files.\n" + skill.read_text()},
@@ -168,15 +194,17 @@ def evaluate_cell(cell: Cell, fixture: Fixture, root: Path, budget: BudgetPort, 
                 attempts += admitted.admission_count(cell["id"]) - attempts_before
             messages.append(message)
             remaining_seconds(deadline)
+            submitted = final_submission(message)
+            if submitted is not None:
+                if len(traces) >= 24: raise ValueError("tool attempt cap exceeded")
+                traces.append({"tool": "finish_result"})
+                final = submitted
+                break
             if not message.get("tool_calls"):
                 content = (message.get("content") or "").strip()
                 if content.startswith("```json"): content = content[7:]
                 if content.endswith("```"): content = content[:-3]
-                parsed = json.loads(content.strip())
-                if not isinstance(parsed, dict): raise ValueError("final result must be an object")
-                if parsed.get("musicalAcceptance") != "not-established" or parsed.get("productionAdmission") is not False:
-                    raise ValueError("final result lacks the required provisional/production boundary")
-                final = parsed
+                final = validate_final(json.loads(content.strip()))
                 break
             with absolute_deadline(deadline):
                 messages.extend(tool_turn(message, fixture, cell, directory, experiment, deadline, traces, admitted))
