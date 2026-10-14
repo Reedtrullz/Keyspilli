@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.keyspilli_workflow_api_admission import Admission, BudgetPort, Cell, Experiment, Fixture, load_module
 from scripts.keyspilli_workflow_api_tools import TOOLS, Trace, execute_tool, qualifies, remaining_seconds, validate_tool
-from scripts.keyspilli_workflow_api_runtime import qualify_runtime
+from scripts.keyspilli_workflow_api_runtime import absolute_deadline, qualify_runtime
 
 CORE = load_module("evaluate-keyspilli-workflow")
 
@@ -25,6 +25,12 @@ def encode_request(body: Mapping[str, object]) -> tuple[bytes, int]:
 
 def model_request(model: str, body: dict[str, object], cell: Cell, directory: Path,
                   deadline: float, turn: int, budget: BudgetPort, admitted: Admission):
+    with absolute_deadline(deadline):
+        return _model_request(model, body, cell, directory, deadline, turn, budget, admitted)
+
+
+def _model_request(model: str, body: dict[str, object], cell: Cell, directory: Path,
+                   deadline: float, turn: int, budget: BudgetPort, admitted: Admission):
     admitted.recheck(cell["task"])
     budget.native_quota_verified = False
     executable = admitted.fixtures[cell["task"]].get("ocxExecutable")
@@ -54,7 +60,23 @@ def model_request(model: str, body: dict[str, object], cell: Cell, directory: Pa
         if reported not in (model, model.split("/")[-1]):
             budget.stopped = True
             raise ValueError("response model does not match the admitted exact route")
-        return data["choices"][0]["message"]
+        choices = data.get("choices")
+        if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict):
+            raise ValueError("response choices must contain one object")
+        message = choices[0].get("message")
+        if not isinstance(message, dict) or message.get("role") != "assistant":
+            raise ValueError("response message must be an assistant object")
+        if message.get("content") is not None and not isinstance(message["content"], str):
+            raise ValueError("assistant content must be a string or null")
+        calls = message.get("tool_calls")
+        if calls is not None:
+            if not isinstance(calls, list): raise ValueError("assistant tool_calls must be a list")
+            for call in calls:
+                if not isinstance(call, dict) or not isinstance(call.get("id"), str) or not isinstance(call.get("function"), dict):
+                    raise ValueError("assistant tool call must identify one function")
+                if not isinstance(call["function"].get("name"), str) or not isinstance(call["function"].get("arguments"), str):
+                    raise ValueError("assistant function name and arguments must be strings")
+        return message
     finally:
         before = budget.spent
         try:
@@ -113,15 +135,19 @@ def evaluate_cell(cell: Cell, fixture: Fixture, root: Path, budget: BudgetPort, 
             finally:
                 attempts += admitted.admission_count(cell["id"]) - attempts_before
             messages.append(message)
+            remaining_seconds(deadline)
             if not message.get("tool_calls"):
                 content = (message.get("content") or "").strip()
                 if content.startswith("```json"): content = content[7:]
                 if content.endswith("```"): content = content[:-3]
-                final = json.loads(content.strip())
-                if not isinstance(final, dict) or final.get("musicalAcceptance") != "not-established" or final.get("productionAdmission") is not False:
+                parsed = json.loads(content.strip())
+                if not isinstance(parsed, dict): raise ValueError("final result must be an object")
+                if parsed.get("musicalAcceptance") != "not-established" or parsed.get("productionAdmission") is not False:
                     raise ValueError("final result lacks the required provisional/production boundary")
+                final = parsed
                 break
-            messages.extend(tool_turn(message, fixture, cell, directory, experiment, deadline, traces, admitted))
+            with absolute_deadline(deadline):
+                messages.extend(tool_turn(message, fixture, cell, directory, experiment, deadline, traces, admitted))
             if model.startswith("B.AI/"): time.sleep(min(4, remaining_seconds(deadline)))
     except (ValueError, KeyError, TypeError, TimeoutError, OSError, urllib.error.URLError) as failure:
         error = str(failure)

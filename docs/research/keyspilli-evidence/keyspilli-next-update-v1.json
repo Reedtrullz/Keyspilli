@@ -42,10 +42,22 @@
       "baseline": {"location":"output/batch1-resume/baseline-D1/delivery", "admission":"structural result only; see retained baseline receipt"}
     },
     {
-      "id":"D2", "slot":"riff-led rock/metal", "status":"blocked-source-and-reference-qualification",
-      "composition":null,"performance":null,"source":null,"nativeClock":null,"referenceObligations":null,"baseline":null,
-      "missing":["Actual authorized pitched symbolic bytes for a named composition/performance", "Verifiable permission/attribution evidence; a free-download or private-use label is insufficient", "Source-backed riff and bass anchors with attacks/releases, rests and clock", "Reference obligations frozen before candidate examination"],
-      "availableEvidenceBoundary":"Existing HiMMP evidence covers kick timing and partial orchestration, not a qualified complete pitched rock/metal piano source; authored dense-metal controls remain software controls"
+      "id":"D2", "slot":"riff-led rock/metal", "status":"source-qualified-protected-candidate-refused",
+      "composition":"Steel and Brass", "performance":"Creator-published Freedoom Phase 1 E1M1 MIDI by J.Astartes and Mr795",
+      "source":{"file":"d_e1m1.mid","bytes":42240,"sha256":"d7e43ae0b04d7476acde1cb27bfd918badc1eb88f23604738de16002387b24b5",
+        "url":"https://raw.githubusercontent.com/freedoom/freedoom/3ac019628d70b812ffb722f7f2365771b76a9d29/musics/d_e1m1.mid",
+        "repositoryRevision":"3ac019628d70b812ffb722f7f2365771b76a9d29", "permission":"BSD-3-Clause: retained official COPYING and creator credits; preserve copyright, conditions and disclaimer; no endorsement",
+        "licenseSha256":"ed60abcf1ff64bf61bf8b4c585ab63643d655a21f8997ba284c01f94ed681fc5","creditsSha256":"6ea179f197ba58a9b6689dec0afd2832394fdc63c13a79408ef428c3f65c8edd"},
+      "nativeClock":{"division":96,"quarterMicroseconds":363636,"meter":[4,4],"endBeat":512.0104166666666},
+      "referenceObligations":{"receipt":"output/batch1-resume/remaining-batches/D2-source-candidate/reference-obligations.json",
+        "planSha256":"6b1740f107d23ce4fce3a41658373277f1aea65258e5ca2a1e0bd90a749fefec", "frozenBeforeGeneratedOutputs":true,
+        "targetOriginalTier":"a", "requiredRiffOrigins":["midi:5:0","midi:5:2","midi:5:4","midi:5:5","midi:5:6","midi:5:7"], "requiredBassOrigins":["midi:16:0","midi:16:2"],
+        "bassRestBeats":[[0,32],[416,512.0104166666666]], "roleAuthority":"unknown/prospective; independent semantic and keyboard admission pending"},
+      "baseline":{"location":"output/batch1-resume/remaining-batches/baseline-D2/delivery","producerHead":"71b82438b78e191c7f0a2ffdb99933013dc9cfa6","producerTree":"30e6fc1add6ba99cd62377c456bef83215a0e77a","admission":"Both stock previews, six exports and relocated read-only verification; musical/keyboard acceptance unestablished"},
+      "candidate":{"status":"refused","attempts":2,"lastDiagnostic":"advanced: protected restoration creates overlapping MIDI 49","evidence":"output/batch1-resume/remaining-batches/evidence/D2-candidate-pass2.log","completeDelivery":false},
+      "exposure":{"implementer":"Source structure and prospective obligations inspected before generated outputs; development only","holdout":false},
+      "missing":["Independent full role/harmony and physical keyboard qualification", "Full source CC/expression equivalence under acoustic piano mapping", "Feasible protected Advanced arrangement; lower tiers not admitted"],
+      "availableEvidenceBoundary":"Actual GM muted/overdrive/distortion guitar and picked bass source, with channel-9 percussion excluded. Two bounded protected attempts refused; no third tuning pass or source-pin change."
     },
     {
       "id":"D3", "slot":"compound meter",
@@ -109,6 +121,6 @@
     "externalSongValidation":false,"untouchedMusicalGold":false
   },
   "baselinePolicy":"Generate D1/D3 before KU-04/KU-05 changes. Reparse all six Original exports and shared Chords, retain both full designated previews and source/reference hashes. Report source-anchor deficits without tuning or repinning. D2 and H1-H3 remain in the denominator.",
-  "advisoryMusicReviewer":{"tool":"Anti review-music","requestedModel":"gemini-3.8-flash-medium","status":"current-runtime-audio-capability-unavailable","musicalAcceptance":"not-established"},
+  "advisoryMusicReviewer":{"tool":"Anti review-music","requestedModel":"gemini-3.8-flash-medium","status":"experimental-transport-observed-listening-unverified","musicalAcceptance":"not-established","limitation":"First advisory onset judgment contradicted by exact PCM onset control; further bounded full-output coverage does not establish human or keyboard acceptance"},
   "boundaries":["No historical golden pins replaced", "No backup hunt", "Workflow inference authorized only on selected Luna/MiMo configurations with hard USD5 total cap", "No reviewer recruitment", "Development corrections only; no tuning on reserved content", "No publication, installation or production deployment"]
 }

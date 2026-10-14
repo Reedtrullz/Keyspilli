@@ -3,6 +3,9 @@ import json
 import math
 import subprocess
 import urllib.request
+import signal
+import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import TypedDict
 
@@ -82,6 +85,24 @@ class Price(TypedDict, total=False):
     provider: str
     modelId: str
     effectiveCost: Rates
+
+
+@contextmanager
+def absolute_deadline(deadline: float):
+    remaining = deadline - time.monotonic()
+    if remaining <= 0: raise TimeoutError("session deadline exhausted")
+    def expired(_signal, _frame):
+        raise TimeoutError("session deadline exhausted")
+    previous_handler = signal.signal(signal.SIGALRM, expired)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, remaining)
+    started = time.monotonic()
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
+        if previous_timer[0] > 0:
+            signal.setitimer(signal.ITIMER_REAL, max(.000001, previous_timer[0] - (time.monotonic() - started)), previous_timer[1])
 
 
 def ocx(executable: str, *args: str):

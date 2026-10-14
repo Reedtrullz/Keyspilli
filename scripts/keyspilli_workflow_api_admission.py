@@ -132,6 +132,8 @@ def check_fixture(fixture: Fixture) -> None:
     if set(fixture["assets"]) != paths:
         raise ValueError("fixture asset inventory does not cover consumed paths")
     for key, expected in fixture["assets"].items():
+        if not Path(str(fixture[key])).is_absolute():
+            raise ValueError(f"consumed fixture path must be absolute: {key}")
         if expected["sha256"] is None and key not in ("renderer", "renderer2"):
             raise ValueError(f"required fixture asset is missing: {key}")
         if pin_asset(Path(str(fixture[key]))) != expected:

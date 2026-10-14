@@ -244,6 +244,28 @@ describe("explicit source-bound phrase contract", () => {
     expect(() => run(source, plan)).toThrow(/incompatible unlisted merged source lineage/i);
   });
 
+  it("restores a protected attack when every colliding optional source is explicitly permitted to be omitted", () => {
+    const { source, plan } = fixture();
+    source.notes = source.notes.filter(n => n.sourceOrigins![0]!.part === "identity");
+    plan.phrases[0]!.events = plan.phrases[0]!.events.filter(e => e.required);
+    const protectedNote = source.notes[0]!;
+    const collision = { ...structuredClone(protectedNote), dur: 8,
+      sourceOrigins: [{ id: "listed-optional-pad", occurrence: 1 as const, part: "harmony" }] };
+    source.notes.push(collision);
+    const optional = { id: "optional-pad", sourceOriginId: "listed-optional-pad", sourceOccurrence: 1 as const,
+      role: "harmony", priority: 10, expected: { midi: collision.midi, startBeat: collision.start, durationBeats: collision.dur, hand: collision.hand },
+      required: false, allowedTransformations: ["omit"] };
+    plan.phrases[0]!.events.push(optional);
+    for (const variant of run(source, plan)) {
+      expect(variant.notes.find(n => n.sourceOrigins?.some(o => o.id === protectedNote.sourceOrigins![0]!.id))).toMatchObject({
+        midi: protectedNote.midi, start: protectedNote.start, dur: protectedNote.dur });
+      expect(variant.notes.some(n => n.sourceOrigins?.some(o => o.id === "listed-optional-pad"))).toBe(false);
+      expect(variant.phraseProtection!.changes).toContainEqual(expect.objectContaining({ eventId: "optional-pad", operation: "permitted-transformation", after: [] }));
+    }
+    optional.allowedTransformations = [];
+    expect(() => run(source, plan)).toThrow(/incompatible unlisted merged source lineage/i);
+  });
+
   it("addresses distinct repeat occurrences of the same origin independently", () => {
     const { source, plan } = fixture();
     const first = source.notes[0]!, second = source.notes[2]!;

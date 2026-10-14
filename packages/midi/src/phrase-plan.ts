@@ -340,7 +340,12 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
         const peer = peers[0]!;
         if (peer === entry.source || eventBySource.get(peer)?.event.required) continue;
         const peerNote = mappedNotes.get(peer)!;
-        check(sameMusic(peerNote, desired) && peerNote.sourceMidiChannel === desired.sourceMidiChannel,
+        const compatible = sameMusic(peerNote, desired) && peerNote.sourceMidiChannel === desired.sourceMidiChannel;
+        const peerEntry = eventBySource.get(peer);
+        if (!compatible && peerEntry && !peerEntry.event.required && peerEntry.event.allowedTransformations.includes("omit")) {
+          continue;
+        }
+        check(compatible,
           `${variant.level}: incompatible unlisted merged source lineage ${origin.id}`);
         Object.assign(desired, exactLineage(desired, peerNote));
       }

@@ -2,6 +2,11 @@ import importlib.util
 import unittest
 import tempfile
 import time
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 from types import ModuleType
 
@@ -63,6 +68,85 @@ class WorkflowApiTests(unittest.TestCase):
             trace = self.module.execute_tool("pin_request", {}, fixture, cell, checkout, checkout / "plugins/keyspilli", time.monotonic() + 30, 1)
             self.assertEqual(trace["exitCode"], 0)
             self.assertTrue((cell / "request.json").is_file())
+
+    def test_malformed_protocol_keeps_failed_cell_result(self):
+        for content in ("[]", "null"):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                skill = root / "skills/keyspilli-song/SKILL.md"
+                skill.parent.mkdir(parents=True)
+                skill.write_text("# Owned control")
+                admitted = SimpleNamespace(experiment={"skillSnapshots": {"old": {"path": str(root)}}}, admission_count=lambda _id: 0)
+                cell = {"id": "owned", "task": "unqualified-url", "model": "gpt-6-luna", "skill": "old", "repetition": 1}
+                with patch.object(self.module, "model_request", return_value={"role": "assistant", "content": content}):
+                    result = self.module.evaluate_cell(cell, {"description": "No qualified source"}, root, self.module.CORE.Budget(5), admitted)
+                self.assertFalse(result["verified"])
+                self.assertIn("object", result["error"])
+                self.assertEqual(json.loads((root / "owned/result.json").read_text())["status"], "failed")
+
+    def test_empty_choices_is_a_protocol_error(self):
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_args): pass
+            def read(self, _bound):
+                return b'{"model":"gpt-6-luna","choices":[],"usage":{"prompt_tokens":1,"completion_tokens":1}}'
+        admitted = SimpleNamespace(recheck=lambda _task: None, fixtures={"simple-midi": {"ocxExecutable": "/owned"}},
+            bind_runtime=lambda *_args: None, append=lambda _record: None)
+        with tempfile.TemporaryDirectory() as directory, patch.object(self.module, "qualify_runtime", return_value={"nativeQuotaIncluded": True}), patch.object(self.module.urllib.request, "urlopen", return_value=Response()):
+            with self.assertRaisesRegex(ValueError, "choices"):
+                self.module.model_request("gpt-6-luna", {}, {"id": "owned", "task": "simple-midi", "model": "gpt-6-luna"},
+                    Path(directory), time.monotonic() + 10, 0, self.module.CORE.Budget(5), admitted)
+
+    def test_real_chunked_response_cannot_extend_absolute_deadline(self):
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, format: str, *_args): pass
+            def do_POST(self):
+                payload = b'{"model":"gpt-6-luna","choices":[{"message":{"role":"assistant","content":"{}"}}]}'
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                try:
+                    for offset in range(0, len(payload), 10):
+                        self.wfile.write(payload[offset:offset + 10])
+                        self.wfile.flush()
+                        time.sleep(.06)
+                except (BrokenPipeError, ConnectionResetError): pass
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=.01), daemon=True)
+        thread.start()
+        original_open = self.module.urllib.request.urlopen
+        def owned_open(request, timeout):
+            return original_open(self.module.urllib.request.Request(f"http://127.0.0.1:{server.server_port}", data=request.data), timeout=timeout)
+        admitted = SimpleNamespace(recheck=lambda _task: None, fixtures={"simple-midi": {"ocxExecutable": "/owned"}},
+            bind_runtime=lambda *_args: None, append=lambda _record: None)
+        try:
+            with tempfile.TemporaryDirectory() as directory, patch.object(self.module, "qualify_runtime", return_value={"nativeQuotaIncluded": True}), patch.object(self.module.urllib.request, "urlopen", side_effect=owned_open):
+                started = time.monotonic()
+                with self.assertRaises(TimeoutError):
+                    self.module.model_request("gpt-6-luna", {}, {"id": "owned", "task": "simple-midi", "model": "gpt-6-luna"},
+                        Path(directory), started + .2, 0, self.module.CORE.Budget(5), admitted)
+                self.assertLess(time.monotonic() - started, .4)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    def test_late_final_response_cannot_qualify(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            skill = root / "skills/keyspilli-song/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("# Owned control")
+            admitted = SimpleNamespace(experiment={"skillSnapshots": {"old": {"path": str(root)}}}, admission_count=lambda _id: 0)
+            cell = {"id": "owned", "task": "unqualified-url", "model": "gpt-6-luna", "skill": "old", "repetition": 1}
+            clock = [0.0]
+            def late_response(*_args):
+                clock[0] = 901
+                return {"role": "assistant", "content": '{"status":"refused-or-incomplete","musicalAcceptance":"not-established","productionAdmission":false}'}
+            with patch.object(self.module.time, "monotonic", side_effect=lambda: clock[0]), patch.object(self.module, "model_request", side_effect=late_response):
+                result = self.module.evaluate_cell(cell, {"description": "No qualified source"}, root, self.module.CORE.Budget(5), admitted)
+            self.assertFalse(result["verified"])
+            self.assertIn("deadline", result["error"])
 
 
 if __name__ == "__main__":

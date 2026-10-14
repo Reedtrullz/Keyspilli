@@ -30,7 +30,7 @@ class WorkflowAdmissionTests(unittest.TestCase):
         checkout = root / "checkout"
         checkout.mkdir()
         subprocess.run(["git", "init", "-q", str(checkout)], check=True)
-        subprocess.run(["git", "-C", str(checkout), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+        subprocess.run(["git", "-C", str(checkout), "-c", "commit.gpgsign=false", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
                         "commit", "-q", "--allow-empty", "-m", "Fixture"], check=True)
         old, new = root / "old", root / "new"
         for source in (old, new):
@@ -99,6 +99,19 @@ class WorkflowAdmissionTests(unittest.TestCase):
                 asset.write_bytes(b"changed after admission")
                 with self.assertRaises(ValueError):
                     admitted.recheck("simple-midi")
+
+    def test_relative_consumed_path_refused_with_different_parent_and_checkout_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            experiment, fixtures, _new, asset = self.make_inputs(root)
+            (root / "checkout/source.mid").write_bytes(b"different consumed bytes")
+            payload = json.loads(fixtures.read_text())
+            for fixture in payload.values(): fixture["source"] = "source.mid"
+            fixtures.write_text(json.dumps(payload))
+            with patch("os.getcwd", return_value=str(root)), patch.object(self.module, "pin_asset", return_value={"path": str(asset), "sha256": self.module.sha(asset)}):
+                with self.assertRaisesRegex(ValueError, "absolute"):
+                    self.module.Admission(experiment, fixtures, root / "results")
+            self.assertFalse((root / "results").exists())
 
     def test_native_quota_entitlement_rejects_paid_backend_and_after_limit_spending(self):
         runtime = self.module.load_module("keyspilli_workflow_api_runtime")
