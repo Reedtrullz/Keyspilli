@@ -2336,7 +2336,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
 
       {settings.backgroundMode === "chord" && !!accompaniment.sourceTransformations?.length && (
         <p className="mb-3 text-sm text-zinc-600" data-testid="source-backed-register-treatment">
-          Where permitted, optional bass is raised one octave or repeated strikes are spaced. Protected notes stay fixed.
+          Optional bass is raised where permitted. Selected backing attacks are retained; protected notes stay fixed.
         </p>
       )}
       {hasAccompanimentFallbackSlot && (

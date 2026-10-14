@@ -31,11 +31,12 @@ accompaniment difficulty levels. No renderer flag is silently ignored without
 With `--phrase-plan PLAN --source-backed-chords`, the shared backing plays the
 explicitly selected bass, harmony and accompaniment events retained in Advanced,
 including monophonic and broken-chord passages. Retained notes keep their attacks
-and releases; melody, hook and undeclared lineages are excluded. Optional bass below MIDI 36
-uses one higher octave only when every source origin explicitly permits octave
-displacement. Repeated optional bass strikes on the same pitch within one beat
-may be omitted only with unanimous omission permission. Required attacks and pitch
-changes remain. Required events and other voices keep their pitches; any resulting
+and releases; melody, hook and undeclared lineages are excluded. A bass phrase
+entirely below MIDI 48 uses one consistent octave lift, bounded to two octaves,
+aiming to place its lowest note at MIDI 48 or above. Each optional note moves only
+when every source origin explicitly permits octave displacement and agrees on the
+phrase register. Source bass attacks remain, including rapid repeats. Required
+events and other voices keep their pitches; any resulting
 physical-key collision is refused. The register changes are recorded in the
 existing playback resolution, and the Player labels this piano treatment. Chord
 labels remain inferred; an unresolved label does not erase selected backing

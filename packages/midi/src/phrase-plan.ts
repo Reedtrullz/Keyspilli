@@ -78,27 +78,35 @@ export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtect
   const entries = new Map(report!.plan.phrases.flatMap(phrase => phrase.events.map(event => [
     JSON.stringify([event.sourceOriginId, event.sourceOccurrence ?? null]), { phrase, event },
   ] as const)));
+  // A wholly low bass phrase needs one consistent register, not pitch folding
+  // at C2. Bound the treatment to two octaves and retain its source pulse.
+  const bassShifts = new Map(report!.plan.phrases.map(phrase => {
+    const pitches = phrase.events.filter(event => event.role === "bass").map(event => event.expected.midi);
+    const lowest = pitches.reduce((minimum, pitch) => Math.min(minimum, pitch), Infinity);
+    const highest = pitches.reduce((maximum, pitch) => Math.max(maximum, pitch), -Infinity);
+    const shift = pitches.length && highest < 48
+      ? Math.min(24, Math.max(0, Math.ceil((48 - lowest) / 12) * 12)) : 0;
+    return [phrase, shift] as const;
+  }));
   const changes: PhraseProtectionReport["changes"] = [];
   const retained: Note[] = [];
-  let lastBass: { midi: number; start: number } | undefined;
   for (const note of selected) {
     const origins = note.sourceOrigins!.map(origin => entries.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
       ?? entries.get(JSON.stringify([origin.id, null])));
     const declarations = origins.filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
     if (declarations.length !== origins.length) throw new Error("piano backing has an undeclared source origin");
-    const sourceMidi = note.midi, bass = declarations.every(entry => entry.event.role === "bass");
+    const bass = declarations.every(entry => entry.event.role === "bass");
     const permits = (policy: PhraseTransformation) => declarations.every(entry => !entry.event.required
       && entry.event.allowedTransformations.includes(policy));
     const before = structuredClone(note);
     const recordChange = (after: Note[]) => { for (const entry of declarations) changes.push({
       eventId: entry.event.id, phraseId: entry.phrase.id, occurrenceId: entry.phrase.occurrenceId,
       role: "bass", operation: "permitted-transformation", before: [structuredClone(before)], after: structuredClone(after) }); };
-    if (bass && sourceMidi < 36 && lastBass?.midi === sourceMidi && note.start - lastBass.start < 1 - 1e-9 && permits("omit")) {
-      recordChange([]);
-      continue;
+    if (bass && permits("octave-displacement")) {
+      const shifts = declarations.map(entry => bassShifts.get(entry.phrase)!);
+      if (!shifts.every(shift => shift === shifts[0])) throw new Error("piano backing has conflicting phrase registers");
+      if (shifts[0]) { note.midi += shifts[0]; recordChange([note]); }
     }
-    if (bass && sourceMidi < 36 && permits("octave-displacement")) { note.midi += 12; recordChange([note]); }
-    if (bass) lastBass = { midi: sourceMidi, start: note.start };
     retained.push(note);
   }
   const ends = new Map<number, number>();
