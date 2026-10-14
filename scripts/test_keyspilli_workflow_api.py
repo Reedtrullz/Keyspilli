@@ -53,7 +53,7 @@ class WorkflowApiTests(unittest.TestCase):
 
     def test_transport_uses_a_native_function_for_the_terminal_handoff(self):
         final = {"status": "refused-or-incomplete", "explanation": "No local source bytes.",
-                 "playbackIndex": None, "musicalAcceptance": "not-established", "productionAdmission": False}
+                 "playbackIndex": "", "musicalAcceptance": "not-established", "productionAdmission": False}
         for model in ("gpt-6-luna", "B.AI/mimo-v2.6-flash"):
             with self.subTest(model=model), tempfile.TemporaryDirectory() as directory:
                 def upstream(request, **_kwargs):
@@ -63,6 +63,7 @@ class WorkflowApiTests(unittest.TestCase):
                     if constrained:
                         self.assertEqual(set(terminal[0]["parameters"]["required"]), set(final))
                         self.assertFalse(terminal[0]["parameters"]["additionalProperties"])
+                        self.assertEqual(terminal[0]["parameters"]["properties"]["playbackIndex"]["type"], "string")
                     message = {"role": "assistant", "content": "Prose before JSON: " + json.dumps(final)}
                     if constrained:
                         message = {"role": "assistant", "content": None, "tool_calls": [{"id": "final", "type": "function",
@@ -86,18 +87,20 @@ class WorkflowApiTests(unittest.TestCase):
                 self.assertEqual(self.module.final_submission(message), final)
 
     def test_terminal_handoff_refuses_mixed_tools_and_false_boundaries(self):
-        final = {"status": "refused-or-incomplete", "explanation": "Missing bytes.", "playbackIndex": None,
+        final = {"status": "refused-or-incomplete", "explanation": "Missing bytes.", "playbackIndex": "",
                  "musicalAcceptance": "not-established", "productionAdmission": False}
         call = {"id": "final", "function": {"name": "finish_result", "arguments": json.dumps(final)}}
         self.assertIsNone(self.module.final_submission({"tool_calls": [{"function": {"name": "checkout_preflight"}}]}))
         for message in ({"tool_calls": [call, {"function": {"name": "prepare_song"}}]},
                         {"tool_calls": [{**call, "function": {"name": "finish_result", "arguments": json.dumps({**final, "productionAdmission": True})}}]},
+                        {"tool_calls": [{**call, "function": {"name": "finish_result", "arguments": json.dumps({**final, "playbackIndex": None})}}]},
+                        {"tool_calls": [{**call, "function": {"name": "finish_result", "arguments": '{"playbackIndex": '}}]},
                         {"tool_calls": [{**call, "function": {"name": "finish_result", "arguments": json.dumps({**final, "extra": 1})}}]}):
             with self.assertRaises(ValueError):
                 self.module.final_submission(message)
 
     def test_cell_finishes_without_executing_the_terminal_function(self):
-        final = {"status": "refused-or-incomplete", "explanation": "Missing bytes.", "playbackIndex": None,
+        final = {"status": "refused-or-incomplete", "explanation": "Missing bytes.", "playbackIndex": "",
                  "musicalAcceptance": "not-established", "productionAdmission": False}
         message = {"role": "assistant", "content": None, "tool_calls": [{"id": "final", "function": {
             "name": "finish_result", "arguments": json.dumps(final)}}]}
