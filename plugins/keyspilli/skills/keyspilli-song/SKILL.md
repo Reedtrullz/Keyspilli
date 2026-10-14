@@ -30,6 +30,9 @@ MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recover
 2. **Qualify actual source bytes.** Verify identity, performance, hashes and
    source clocks. Names/URLs are leads, not musical evidence. Follow the
    [source and delivery contracts](references/source-and-delivery-contracts.md).
+   If no local source bytes or verified prepared run exist and acquisition is
+   not authorized, report the missing-source condition. Do not call pinning or
+   preparation to probe for an absent source.
    Keep unknown roles, harmony and authority unresolved. Use the
    [implementation map](references/keyspilli-workflow.md) for acquisition.
 3. **Prepare ordinarily.** Follow [intake and preparation](references/evaluation-and-repair.md#intake-and-preparation):

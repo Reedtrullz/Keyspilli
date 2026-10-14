@@ -51,6 +51,38 @@ class WorkflowApiTests(unittest.TestCase):
                         wire.replace(b'"index": 0', b'"index": -1'), wire.replace(b'"model": "mimo-v2.6-flash"', b'"model": "another-model"', 1)]:
             with self.assertRaises(ValueError): self.module.parse_chat_stream(damaged)
 
+    def test_transport_requests_a_structured_terminal_response_for_each_route(self):
+        final = {"status": "refused-or-incomplete", "explanation": "No local source bytes.",
+                 "playbackIndex": None, "musicalAcceptance": "not-established", "productionAdmission": False}
+        for model, format_type in [("gpt-6-luna", "json_schema"), ("B.AI/mimo-v2.6-flash", "json_object")]:
+            with self.subTest(model=model), tempfile.TemporaryDirectory() as directory:
+                def upstream(request, **_kwargs):
+                    body = json.loads(request.data)
+                    output_format = body.get("response_format", {})
+                    constrained = output_format.get("type") == format_type
+                    if constrained and format_type == "json_schema":
+                        definition = output_format["json_schema"]
+                        constrained = definition["strict"] is True and definition["schema"]["additionalProperties"] is False
+                        constrained &= set(definition["schema"]["required"]) == set(final)
+                    content = json.dumps(final) if constrained else "Prose before JSON: " + json.dumps(final)
+                    canonical = "gpt-6-luna" if model == "gpt-6-luna" else "mimo-v2.6-flash"
+                    payload = json.dumps({"model": canonical, "choices": [{"message": {"role": "assistant", "content": content}}],
+                                          "usage": {"prompt_tokens": 1, "completion_tokens": 1}}).encode()
+                    class Response:
+                        def __enter__(self): return self
+                        def __exit__(self, *_args): pass
+                        def read(self, _bound): return payload
+                    return Response()
+                admitted = SimpleNamespace(recheck=lambda _task: None,
+                    fixtures={"simple-midi": {"ocxExecutable": "/owned"}}, bind_runtime=lambda *_args: None,
+                    append=lambda _record: None, record_success=lambda *_args: None)
+                body = self.module.request_configuration(model, [{"role": "system", "content": "Return only JSON."}])
+                with patch.object(self.module, "qualify_runtime", return_value={"nativeQuotaIncluded": True}), \
+                     patch.object(self.module.urllib.request, "urlopen", side_effect=upstream):
+                    message = self.module.model_request(model, body, {"id": "owned", "task": "simple-midi", "model": model},
+                        Path(directory), time.monotonic() + 10, 0, self.module.CORE.Budget(5), admitted)
+                self.assertEqual(json.loads(message["content"]), final)
+
     def test_request_bound_covers_serialized_tool_and_history_bytes(self):
         body = {"model": "B.AI/mimo-v2.6-flash", "messages": [{"role": "user", "content": "ø" * 100}]}
         wire, bound = self.module.encode_request(body)

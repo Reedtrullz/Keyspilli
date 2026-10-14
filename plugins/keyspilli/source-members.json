@@ -35,7 +35,7 @@
   "sha256": {
     ".codex-plugin/plugin.json": "8985f0356e15a2694fd5388a20135b70cfab4d7fcad7a63972da90442de7d90a",
     "README.md": "560bb685eda8d03be1b8d8c724a8ecead18bed51de23e287e8c3fe8f12211f92",
-    "skills/keyspilli-song/SKILL.md": "ea82f24ffeff546d334510241cd7e3584a8c1993d482166d49fa5a5c290de5fb",
+    "skills/keyspilli-song/SKILL.md": "f0551acec4826549aae09c45886f8f0abee9920eb6cdb6f2f075cc018dc4e2cc",
     "skills/keyspilli-song/agents/openai.yaml": "09974a1a8aa25d3e855bdc3f0690b36887516956f404e9bec909d4caf61a39b6",
     "skills/keyspilli-song/examples/inversion-and-bass.json": "42e72c67f2485c93dd546abd51475b1195e59a879c371d275a8eda2fc98aae35",
     "skills/keyspilli-song/examples/rests-and-pickup.json": "5cd23a9b082cdc687371ef121f30735eb08fae7c0bc2a44e749e7ab9453ff233",

@@ -21,7 +21,19 @@ def request_configuration(model: str, messages: list[dict[str, object]]) -> dict
     if model not in ("gpt-6-luna", "B.AI/mimo-v2.6-flash"): raise ValueError("unapproved workflow model")
     body: dict[str, object] = {"model": "main/gpt-6-luna" if model == "gpt-6-luna" else model,
         "messages": messages, "tools": TOOLS, "max_tokens": 2048, "stream": True}
-    if model == "gpt-6-luna": body["reasoning_effort"] = "low"
+    if model == "gpt-6-luna":
+        body["reasoning_effort"] = "low"
+        body["response_format"] = {"type": "json_schema", "json_schema": {
+            "name": "keyspilli_workflow_result", "strict": True,
+            "schema": {"type": "object", "additionalProperties": False,
+                "required": ["status", "explanation", "playbackIndex", "musicalAcceptance", "productionAdmission"],
+                "properties": {
+                    "status": {"type": "string", "enum": ["complete-provisional", "refused-or-incomplete"]},
+                    "explanation": {"type": "string"}, "playbackIndex": {"type": ["string", "null"]},
+                    "musicalAcceptance": {"type": "string", "enum": ["not-established"]},
+                    "productionAdmission": {"type": "boolean", "enum": [False]}}}}}
+    else:
+        body["response_format"] = {"type": "json_object"}
     return body
 
 
