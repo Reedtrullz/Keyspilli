@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.keyspilli_workflow_api_admission import Admission, BudgetPort, Cell, Experiment, Fixture, load_module
 from scripts.keyspilli_workflow_api_tools import TOOLS, Trace, execute_tool, qualifies, remaining_seconds, validate_tool
 from scripts.keyspilli_workflow_api_runtime import absolute_deadline, qualify_runtime
+from scripts.keyspilli_workflow_chat_stream import parse_chat_stream
 
 CORE = load_module("evaluate-keyspilli-workflow")
 
@@ -19,9 +20,8 @@ CORE = load_module("evaluate-keyspilli-workflow")
 def request_configuration(model: str, messages: list[dict[str, object]]) -> dict[str, object]:
     if model not in ("gpt-6-luna", "B.AI/mimo-v2.6-flash"): raise ValueError("unapproved workflow model")
     body: dict[str, object] = {"model": "main/gpt-6-luna" if model == "gpt-6-luna" else model,
-        "messages": messages, "tools": TOOLS, "max_tokens": 2048, "stream": False}
+        "messages": messages, "tools": TOOLS, "max_tokens": 2048, "stream": True}
     if model == "gpt-6-luna": body["reasoning_effort"] = "low"
-    else: body["thinking"] = {"type": "disabled"}
     return body
 
 
@@ -62,9 +62,16 @@ def _model_request(model: str, body: dict[str, object], cell: Cell, directory: P
             raw = response.read(2 * 1024 * 1024 + 1)
         if len(raw) > 2 * 1024 * 1024: raise ValueError("response exceeds 2 MiB")
         (directory / f"response-{turn + 1}.json").write_bytes(raw)
-        data = json.loads(raw)
+        streamed = raw.lstrip().startswith((b"data:", b"event:", b":"))
+        if streamed: (directory / f"response-{turn + 1}.sse").write_bytes(raw)
+        data = parse_chat_stream(raw) if streamed else json.loads(raw)
+        if streamed: (directory / f"response-{turn + 1}.json").write_text(json.dumps(data))
         if not isinstance(data, dict): raise ValueError("response envelope must be an object")
-        usage = data.get("usage") if isinstance(data.get("usage"), dict) else None
+        reported_usage = data.get("usage")
+        if isinstance(reported_usage, dict):
+            incoming, outgoing = reported_usage.get("prompt_tokens"), reported_usage.get("completion_tokens")
+            if isinstance(incoming, int) and not isinstance(incoming, bool) and isinstance(outgoing, int) and not isinstance(outgoing, bool):
+                usage = {"prompt_tokens": incoming, "completion_tokens": outgoing}
         reported = data.get("model")
         if reported not in (model, model.split("/")[-1]):
             budget.stopped = True

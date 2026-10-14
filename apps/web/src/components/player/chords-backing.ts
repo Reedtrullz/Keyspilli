@@ -17,6 +17,12 @@ const winnerSourceFingerprint = "variant:abba-the-winner-takes-it-all:a:abba-the
 const journeySourceFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
 const thoseDaysSourceFingerprint = "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545";
 
+export function accompanimentFallbackNotice(sourceId: string | undefined, style: string, detail: string): string {
+  if (style !== "bass-chords") return `Original passage retained — ${detail}`;
+  if (sourceId === "prepared-source-backed") return "Source-backed notes and rests retained; chord labels require review here.";
+  return `Backing unavailable — source melody omitted: ${detail}`;
+}
+
 function sourcePlayedVoicings(data: SongData, selected: readonly ChordLabel[], resolution: AccompanimentResolution): AccompanimentResolution {
   const clocks = data.sourceFingerprint === clocksSourceFingerprint;
   const days = data.sourceFingerprint === thoseDaysSourceFingerprint;

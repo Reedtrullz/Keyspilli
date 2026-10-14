@@ -21,17 +21,35 @@ class WorkflowApiTests(unittest.TestCase):
         self.module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.module)
 
-    def test_exact_account_transport_and_non_thinking_mimo_configuration(self):
+    def test_exact_account_transport_and_streaming_mimo_configuration(self):
         luna = self.module.request_configuration("gpt-6-luna", [])
         self.assertEqual(luna["model"], "main/gpt-6-luna")
         self.assertEqual(luna["reasoning_effort"], "low")
         mimo = self.module.request_configuration("B.AI/mimo-v2.6-flash", [])
-        self.assertEqual(mimo["thinking"], {"type": "disabled"})
+        self.assertNotIn("thinking", mimo)
         self.assertEqual(mimo["model"], "B.AI/mimo-v2.6-flash")
         self.assertEqual(mimo["max_tokens"], 2048)
-        self.assertFalse(mimo["stream"])
+        self.assertTrue(mimo["stream"])
         with self.assertRaises(ValueError):
             self.module.request_configuration("unapproved-fallback", [])
+
+    def test_stream_joins_actual_content_tools_reasoning_and_final_usage(self):
+        chunks = [
+            {"model": "mimo-v2.6-flash", "choices": [{"index": 0, "delta": {"role": "assistant", "reasoning_content": "inspect "}}]},
+            {"model": "mimo-v2.6-flash", "choices": [{"index": 0, "delta": {"reasoning_content": "source", "tool_calls": [{"index": 0, "id": "call-1", "type": "function", "function": {"name": "prepare_", "arguments": "{\"previews\":"}}]}}]},
+            {"model": "mimo-v2.6-flash", "choices": [{"index": 0, "delta": {"tool_calls": [{"index": 0, "function": {"name": "song", "arguments": "true}"}}]}, "finish_reason": "tool_calls"}]},
+            {"model": "mimo-v2.6-flash", "choices": [], "usage": {"prompt_tokens": 100, "completion_tokens": 30}},
+        ]
+        wire = ("\n\n".join("data: " + json.dumps(chunk) for chunk in chunks) + "\n\ndata: [DONE]\n\n").encode()
+        result = self.module.parse_chat_stream(wire)
+        self.assertEqual(result["model"], "mimo-v2.6-flash")
+        self.assertEqual(result["usage"], {"prompt_tokens": 100, "completion_tokens": 30})
+        message = result["choices"][0]["message"]
+        self.assertEqual(message["reasoning_content"], "inspect source")
+        self.assertEqual(message["tool_calls"][0]["function"], {"name": "prepare_song", "arguments": '{"previews":true}'})
+        for damaged in [wire.replace(b"tool_calls\"}]", b"length\"}]"), wire.replace(b"data: [DONE]", b""),
+                        wire.replace(b'"index": 0', b'"index": -1'), wire.replace(b'"model": "mimo-v2.6-flash"', b'"model": "another-model"', 1)]:
+            with self.assertRaises(ValueError): self.module.parse_chat_stream(damaged)
 
     def test_request_bound_covers_serialized_tool_and_history_bytes(self):
         body = {"model": "B.AI/mimo-v2.6-flash", "messages": [{"role": "user", "content": "ø" * 100}]}

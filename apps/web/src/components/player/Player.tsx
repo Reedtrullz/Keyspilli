@@ -106,7 +106,7 @@ import { OwnerMetadata } from "../OwnerMetadata";
 import { SheetMusicView, type SheetReaderPosition } from "./SheetMusicView";
 import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction, type MelodyPreviewStatus } from "./SoundControls";
 import { reviewedSourceBacking } from "./reviewed-source-backing";
-import { bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
+import { accompanimentFallbackNotice, bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
 import { melodyArrangementOutcome } from "./melody-arrangement-status";
 import { usePianoInput } from "./usePianoInput";
 import { createHeldInput } from "./held-input";
@@ -2111,13 +2111,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     } as Record<string, string>)[activeAccompanimentFallback.reason]
     : null;
   const accompanimentFallbackMessage = accompanimentFallbackDetail
-    ? settings.accompanimentStyle === "bass-chords"
-      ? `Backing unavailable — source melody omitted: ${accompanimentFallbackDetail}`
-      : `Original passage retained — ${accompanimentFallbackDetail}`
+    ? accompanimentFallbackNotice(activeData.chordProvenance?.sourceId, settings.accompanimentStyle, accompanimentFallbackDetail)
     : null;
-  const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? (settings.accompanimentStyle === "bass-chords"
-    ? "Backing unavailable — source melody omitted: accompaniment fallback requires review."
-    : "Original passage retained — accompaniment fallback requires review.");
+  const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? accompanimentFallbackNotice(
+    activeData.chordProvenance?.sourceId, settings.accompanimentStyle, "accompaniment fallback requires review.");
   const hasAccompanimentFallbackSlot = settings.backgroundMode === "chord" && accompaniment.fallbackSpans.length > 0;
   const melodyArrangementState = melodyArrangementFailed ? "failed" : melodyArrangementPending ? "pending" : "ready";
   const melodyArrangementOutcomeText = melodyArrangementOutcome(melodyArrangementState, melodyArrangement);

@@ -6,7 +6,11 @@ before paid inference, provider experiments or external musical qualification.
 
 The authorized local API trial uses the existing exact-account
 `main/gpt-6-luna` selector with verified included main-account quota and low
-reasoning, and `B.AI/mimo-v2.6-flash` with `thinking.type=disabled`. These are
+reasoning, and `B.AI/mimo-v2.6-flash` with its native default reasoning. Both use
+streaming through OCX; accumulated content, tool arguments, reasoning and final
+usage are validated within the existing response and absolute session bounds.
+OCX's native Chat path drops `thinking.type`, so it cannot establish a requested
+disabled-thinking configuration on this runtime. These are
 explicit protocol configurations, distinct from native Codex adoption. The
 shared $5 campaign ledger retains earlier failed calls and unknown-use ceilings.
 An explicit `--retry-blocked-route` admits a repaired-protocol trial only in that

@@ -2,7 +2,16 @@ import { expect, it } from "vitest";
 import { normalizeChordTimeline, resolveChordTimeline } from "@keyspilli/catalog";
 import { arithmeticMeasures, type SongData } from "@keyspilli/player-core";
 import { projectChordSources, withChordSources } from "../../lib/catalog-api";
-import { bassChordsBackground, replayChordsBacking } from "./chords-backing";
+import { accompanimentFallbackNotice, bassChordsBackground, replayChordsBacking } from "./chords-backing";
+
+it("separates an unresolved label from unavailable source-backed playback", () => {
+  expect(accompanimentFallbackNotice("prepared-source-backed", "bass-chords", "this span is marked as no chord.")).toBe(
+    "Source-backed notes and rests retained; chord labels require review here.");
+  expect(accompanimentFallbackNotice("prepared", "bass-chords", "this span is marked as no chord.")).toBe(
+    "Backing unavailable — source melody omitted: this span is marked as no chord.");
+  expect(accompanimentFallbackNotice("prepared-source-backed", "melody-accompaniment", "uncertain phrase.")).toBe(
+    "Original passage retained — uncertain phrase.");
+});
 
 const clocksFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
 const journeyFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
