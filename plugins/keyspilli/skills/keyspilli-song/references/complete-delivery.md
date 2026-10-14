@@ -30,8 +30,14 @@ accompaniment difficulty levels. No renderer flag is silently ignored without
 
 With `--phrase-plan PLAN --source-backed-chords`, the shared backing plays the
 explicitly selected bass, harmony and accompaniment events retained in Advanced,
-including monophonic and broken-chord passages. It preserves their pitches,
-attacks and releases and excludes melody, hook and undeclared lineages. Chord
+including monophonic and broken-chord passages. Retained notes keep their attacks
+and releases; melody, hook and undeclared lineages are excluded. Optional bass below MIDI 36
+uses one higher octave only when every source origin explicitly permits octave
+displacement. Repeated optional bass strikes on the same pitch within one beat
+may be omitted only with unanimous omission permission. Required attacks and pitch
+changes remain. Required events and other voices keep their pitches; any resulting
+physical-key collision is refused. The register changes are recorded in the
+existing playback resolution, and the Player labels this piano treatment. Chord
 labels remain inferred; an unresolved label does not erase selected backing
 notes. Source roles require reference review, and useful music or keyboard
 suitability still needs actual output review. Optional overlapping holds may
@@ -40,7 +46,9 @@ protected and undeclared collisions remain a refusal.
 
 Select a licensed sampled acoustic piano bank and verify the selected MIDI
 program. The new route has a fixed gain of 0.2 and a 22050 Hz render, a two-minute
-backend timeout per mode and a 256 MiB WAV/bank read limit.
+backend timeout per mode, a 256 MiB WAV limit and a 1536 MiB local-bank read limit.
+Older checkouts may retain a 256 MiB bank limit; use a compatible authorized bank
+or retain an incomplete result instead of inventing an override flag.
 The direct renderer process is forcibly terminated at that timeout; arbitrary
 wrapper programs that spawn independent descendants are not a qualified backend. A clipping or capacity
 failure is an explicit blocker, not permission to relax the checks. The runtime

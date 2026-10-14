@@ -71,6 +71,44 @@ export function phraseBackingNotes(notes: readonly Note[], report: PhraseProtect
   return backing;
 }
 
+export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtectionReport | undefined): {
+  notes: Note[]; changes: PhraseProtectionReport["changes"];
+} {
+  const selected = structuredClone(phraseBackingNotes(notes, report)).sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const entries = new Map(report!.plan.phrases.flatMap(phrase => phrase.events.map(event => [
+    JSON.stringify([event.sourceOriginId, event.sourceOccurrence ?? null]), { phrase, event },
+  ] as const)));
+  const changes: PhraseProtectionReport["changes"] = [];
+  const retained: Note[] = [];
+  let lastBass: { midi: number; start: number } | undefined;
+  for (const note of selected) {
+    const origins = note.sourceOrigins!.map(origin => entries.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
+      ?? entries.get(JSON.stringify([origin.id, null])));
+    const declarations = origins.filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
+    if (declarations.length !== origins.length) throw new Error("piano backing has an undeclared source origin");
+    const sourceMidi = note.midi, bass = declarations.every(entry => entry.event.role === "bass");
+    const permits = (policy: PhraseTransformation) => declarations.every(entry => !entry.event.required
+      && entry.event.allowedTransformations.includes(policy));
+    const before = structuredClone(note);
+    const recordChange = (after: Note[]) => { for (const entry of declarations) changes.push({
+      eventId: entry.event.id, phraseId: entry.phrase.id, occurrenceId: entry.phrase.occurrenceId,
+      role: "bass", operation: "permitted-transformation", before: [structuredClone(before)], after: structuredClone(after) }); };
+    if (bass && sourceMidi < 36 && lastBass?.midi === sourceMidi && note.start - lastBass.start < 1 - 1e-9 && permits("omit")) {
+      recordChange([]);
+      continue;
+    }
+    if (bass && sourceMidi < 36 && permits("octave-displacement")) { note.midi += 12; recordChange([note]); }
+    if (bass) lastBass = { midi: sourceMidi, start: note.start };
+    retained.push(note);
+  }
+  const ends = new Map<number, number>();
+  for (const note of retained) {
+    if (note.start < (ends.get(note.midi) ?? -Infinity) - 1e-9) throw new Error(`piano backing overlap on MIDI ${note.midi}`);
+    ends.set(note.midi, note.start + note.dur);
+  }
+  return { notes: retained, changes };
+}
+
 const ROLES: readonly string[] = ["melody", "hook", "bass", "harmony", "accompaniment", "unknown"];
 const AUTHORITIES: readonly string[] = ["unknown", "model-estimate", "self-authored", "human-validated"];
 const TRANSFORMS: readonly string[] = ["omit", "octave-displacement", "onset-change", "release-change", "hand-reassignment", "velocity-change"];

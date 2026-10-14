@@ -15,6 +15,7 @@ const levelNames: Record<Level, string> = { a: "Advanced", m: "Medium", e: "Easy
 const bundleFiles = ["artifacts/manifest.json", ...DELIVERY_LEVELS.flatMap(l => ["notes.json", "variant.mid", "variant.xml"].map(f => `artifacts/${l}/${f}`)),
   "rows.json", "timeline.json", "playback.json", "chords.mid", "chords.musicxml"].sort();
 const MAX_SYMBOLIC = 16 * 1024 * 1024, MAX_WAV = 256 * 1024 * 1024;
+const MAX_BANK = 1536 * 1024 * 1024;
 interface Mode {
   status: "rendered" | "blocked";
   midi: string; musicxml: string; preview: string;
@@ -52,7 +53,7 @@ function validateRenderReceipt(value: unknown): asserts value is MidiRenderResul
   assert([m.sha256, s.sha256, w.sha256].every(v => typeof v === "string" && /^[a-f0-9]{64}$/.test(v)), "invalid render receipt hashes");
   assert(integer(r.sampleRate) && positive(r.sampleRate) && positive(r.gain) && ratio(r.targetPeak) && positive(r.targetPeak), "invalid renderer settings");
   assert([m.tempoBpm, m.durationBeats, m.expectedSeconds].every(positive), "invalid MIDI receipt clock");
-  assert(integer(s.bytes) && positive(s.bytes) && s.bytes <= MAX_WAV, "invalid SoundFont receipt size");
+  assert(integer(s.bytes) && positive(s.bytes) && s.bytes <= MAX_BANK, "invalid SoundFont receipt size");
   assert(integer(w.bytes) && positive(w.bytes) && w.bitsPerSample === 16, "invalid WAV receipt size or format");
   assert([w.sampleRate, w.channels].every(n => integer(n) && positive(n)) && [w.frameCount, w.sampleCount].every(integer)
     && nonnegative(w.durationSeconds) && [w.peak, w.rms, w.silenceRatio].every(ratio) && integer(w.clippingCount), "invalid WAV receipt metrics");
@@ -187,14 +188,14 @@ export async function deliverSong(runPath: string, destination: string, options:
       const bank = options.soundfont ?? process.env.KEYSPILLI_SOUNDFONT;
       if (bank) {
         const info = lstatSync(bank);
-        assert(info.isFile() && info.size <= MAX_WAV, "sound bank must be a regular file within the 256 MiB delivery limit");
+        assert(info.isFile() && info.size <= MAX_BANK, "sound bank must be a regular file within the 1536 MiB delivery limit");
       }
       const rendered = await renderMidiToWav({ midiPath: join(out, v.midi), outputPath: join(out, v.preview) },
         { soundfontPath: options.soundfont, executable: options.executable, gain: 0.2, sampleRate: 22050, timeoutMs: 120_000 });
       v.render = rendered;
       v.warnings = validatePreview(rendered, input, bytes(join(out, v.preview), MAX_WAV));
       assert(input.equals(bytes(join(out, v.midi))), "MIDI changed during rendering");
-      assert.equal(hash(bytes(rendered.soundfont.path, MAX_WAV)), rendered.soundfont.sha256, "sound bank changed during rendering");
+      assert.equal(hash(bytes(rendered.soundfont.path, MAX_BANK)), rendered.soundfont.sha256, "sound bank changed during rendering");
       // Delivery paths are relative; external runtime paths are provenance only, never used by verify.
       rendered.midi.path = v.midi; rendered.wav.path = v.preview;
       v.status = "rendered"; delete v.error;

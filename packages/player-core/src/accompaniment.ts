@@ -9,6 +9,7 @@ import {
   type ChordLabel,
   type Note,
   type ProtectedMelodyNote,
+  type PhraseProtectionReport,
   type StrikeTuning,
 } from "@keyspilli/midi";
 import { supportedSourceStrikes } from "./supported-source-strikes.js";
@@ -49,6 +50,7 @@ export interface AccompanimentResolution {
   /** Note events for visual guidance; audio uses source notes plus chords. */
   guidanceNotes: Note[];
   fallbackSpans: AccompanimentFallbackSpan[];
+  sourceTransformations?: PhraseProtectionReport["changes"];
 }
 
 export interface AccompanimentChord extends ChordLabel {

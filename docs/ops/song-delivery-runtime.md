@@ -7,6 +7,16 @@ can differ on a system with compatible shared-library updates. Keep their hashes
 and the selected bank/preset in the verification receipt; do not distribute a bank
 merely because the rendered audio is included in a handoff.
 
+The current delivery profile keeps22050Hz,gain0.2,120s per backend and256MiB WAVs.
+Local banks have a separate1536MiB cap. This bounded exception admits the already
+installed FreePats Salamander Yamaha C5 bank (1,266,462,334bytes) after a matched
+MIDI diagnostic identified improved bass attack/pitch clarity over TimGM6mb.
+The stock macOS diagnostic took6.26s and maximumRSS1,517,518,848bytes; this does
+not qualify arbitrary banks or memory configurations. Bank selection stays explicit,
+no bank is acquired/copied, and comparison arms must use the same bank. Old256MiB
+bank refusals and adverse TimGM listening evidence remain retained. No WAV, symbolic
+input, phrase-plan, renderer deadline or clipping limit is increased.
+
 ## Checked paths
 
 Batch 1 exercises MIDI, MusicXML and compressed MXL, selected Original levels,

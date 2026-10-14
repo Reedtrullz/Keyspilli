@@ -3,6 +3,77 @@ import { normalizeChordTimeline, resolveChordTimeline } from "@keyspilli/catalog
 import { arithmeticMeasures, type SongData } from "@keyspilli/player-core";
 import { projectChordSources, withChordSources } from "../../lib/catalog-api";
 import { accompanimentFallbackNotice, bassChordsBackground, replayChordsBacking } from "./chords-backing";
+import type { Note, PhraseProtectionReport } from "@keyspilli/midi";
+
+function lowBassControl(collision = false): SongData {
+  const notes: Note[] = [
+    { midi: 25, start: 0, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "optional-bass" }] },
+    { midi: collision ? 37 : 30, start: collision ? 0.5 : 1, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "required-bass" }] },
+    { midi: 31, start: 2, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "harmony" }] },
+    { midi: 32, start: 3, dur: 1, vel: 80, hand: "L", sourceOrigins: [{ id: "unpermitted-bass" }] },
+  ];
+  const report: PhraseProtectionReport = { schemaVersion: 1, sourceSha256: "a".repeat(64), status: "preserved",
+    protectedEvents: 1, selectionAccuracy: "not-established", musicalAcceptance: "not-established", inferredHands: 0,
+    outputClock: { timebase: "variant-quarter-beats", sourceTempoBpm: 120, playbackTempoBpm: 120 }, changes: [],
+    plan: { schemaVersion: 1, kind: "keyspilli-phrase-plan", levels: ["advanced"],
+      source: { sha256: "a".repeat(64), compositionId: "low-bass-control", performanceId: "authored-control",
+        clock: { timebase: "source-quarter-beats", division: 480, tempoBpm: 120, durationBeats: 4,
+          timeSig: [4, 4], tempoEvents: [], timeSigEvents: [], measures: [] } },
+      phrases: [{ id: "phrase", occurrenceId: "one", startBeat: 0, endBeat: 4,
+        evidence: { authority: "self-authored", confidence: 1, basis: "synthetic register control" }, rests: [],
+        events: notes.map((note, index) => ({ id: `event-${index}`, sourceOriginId: note.sourceOrigins![0]!.id,
+          role: index === 2 ? "harmony" : "bass", priority: 50, required: index === 1,
+          expected: { midi: note.midi, startBeat: note.start, durationBeats: note.dur },
+          allowedTransformations: index === 0 || index === 2 ? ["octave-displacement"] : [] })) }] } };
+  return { key: "C", tempoBpm: 120, timeSig: [4, 4], notes, chords: [], measures: arithmeticMeasures(4, [4, 4]),
+    phraseProtection: report, chordProvenance: { sourceId: "prepared-source-backed" } };
+}
+
+it("projects only explicitly permitted optional low bass into a piano register with a receipt", () => {
+  const data = lowBassControl(), before = structuredClone(data);
+  const resolution = bassChordsBackground(data, [], 4, null);
+  expect(resolution.notes.map(n => n.midi)).toEqual([37, 30, 31, 32]);
+  expect(resolution.sourceTransformations).toEqual([expect.objectContaining({ eventId: "event-0", role: "bass",
+    operation: "permitted-transformation", before: [expect.objectContaining({ midi: 25, start: 0, dur: 1 })],
+    after: [expect.objectContaining({ midi: 37, start: 0, dur: 1 })] })]);
+  expect(data).toEqual(before);
+});
+
+it("refuses a piano bass octave projection that would collide with a required physical hold", () => {
+  expect(() => bassChordsBackground(lowBassControl(true), [], 4, null)).toThrow(/piano backing.*overlap/i);
+});
+
+it("keeps a merged bass unison unchanged when one source origin denies octave displacement", () => {
+  const data = lowBassControl(), first = data.notes[0]!;
+  first.sourceOrigins!.push({ id: "denied-unison" });
+  const phrase = data.phraseProtection!.plan.phrases[0]!;
+  phrase.events.push({ ...structuredClone(phrase.events[0]!), id: "denied-unison", sourceOriginId: "denied-unison",
+    allowedTransformations: [] });
+  const resolution = bassChordsBackground(data, [], 4, null);
+  expect(resolution.notes[0]!.midi).toBe(25);
+  expect(resolution.sourceTransformations).toBeUndefined();
+});
+
+it("consolidates only omittable repeated bass strikes while retaining required attacks and pitch changes", () => {
+  const data = lowBassControl(), phrase = data.phraseProtection!.plan.phrases[0]!;
+  data.notes[0]!.dur = 0.125;
+  phrase.events[0]!.expected.durationBeats = 0.125;
+  phrase.events[0]!.allowedTransformations.push("omit");
+  Object.assign(data.notes[1]!, { midi: 25, start: 0.5, dur: 0.125 });
+  Object.assign(phrase.events[1]!.expected, { midi: 25, startBeat: 0.5, durationBeats: 0.125 });
+  for (const [id, start, midi] of [["repeat-a", 0.25, 25], ["repeat-b", 0.75, 25], ["next-beat", 1.5, 25], ["pitch-change", 1.75, 28]] as const) {
+    data.notes.push({ midi, start, dur: 0.125, vel: 80, hand: "L", sourceOrigins: [{ id }] });
+    phrase.events.push({ id, sourceOriginId: id, role: "bass", priority: 10, required: false,
+      expected: { midi, startBeat: start, durationBeats: 0.125 }, allowedTransformations: ["omit", "octave-displacement"] });
+  }
+  const before = structuredClone(data), resolution = bassChordsBackground(data, [], 4, null);
+  expect(resolution.notes.filter(n => n.start < 2).map(n => [n.midi, n.start])).toEqual([[37, 0], [25, 0.5], [37, 1.5], [40, 1.75]]);
+  expect(resolution.sourceTransformations).toContainEqual(expect.objectContaining({ eventId: "repeat-a",
+    before: [expect.objectContaining({ midi: 25, start: 0.25 })], after: [] }));
+  expect(data).toEqual(before);
+  phrase.events.find(e => e.id === "repeat-a")!.allowedTransformations = ["octave-displacement"];
+  expect(bassChordsBackground(data, [], 4, null).notes.some(n => n.start === 0.25)).toBe(true);
+});
 
 it("separates an unresolved label from unavailable source-backed playback", () => {
   expect(accompanimentFallbackNotice("prepared-source-backed", "bass-chords", "this span is marked as no chord.")).toBe(

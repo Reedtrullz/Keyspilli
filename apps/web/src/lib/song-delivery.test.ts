@@ -131,6 +131,18 @@ describe("complete song delivery", () => {
       expect(readFileSync(join(out, "manifest.json"), "utf8")).toBe(edited);
     }
   }, 90_000);
+  it("validates the local bank receipt budget separately from the unchanged WAV budget", () => {
+    const out = join(scratch, "bank-receipt-budget"); complete(deliver(out, backend("bank-budget-backend", 17)));
+    const m = read(join(out, "manifest.json"));
+    for (const mode of ["original", "chords"]) m.modes[mode].render.soundfont.bytes = 1_266_462_334;
+    writeFileSync(join(out, "manifest.json"), JSON.stringify(m));
+    complete(command("deliver-song", ["verify", out]));
+    m.modes.chords.render.soundfont.bytes = 1536 * 1024 * 1024 + 1;
+    const edited = JSON.stringify(m); writeFileSync(join(out, "manifest.json"), edited);
+    const result = command("deliver-song", ["verify", out]);
+    expect(result.status).toBe(1); expect(result.stderr).toMatch(/SoundFont receipt size/);
+    expect(readFileSync(join(out, "manifest.json"), "utf8")).toBe(edited);
+  }, 90_000);
   it.each(["empty", "float-clipped"] as const)("retains verifiable blocked %s PCM diagnostics and the usable mode", (failure) => {
     const out = join(scratch, failure); const result = deliver(out, backend(failure + "-backend", 17, 5000, failure));
     expect(result.status).toBe(1);
