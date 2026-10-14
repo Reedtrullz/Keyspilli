@@ -1,5 +1,7 @@
 import importlib.util
 import unittest
+import tempfile
+import time
 from pathlib import Path
 from types import ModuleType
 
@@ -33,13 +35,34 @@ class WorkflowApiTests(unittest.TestCase):
         self.assertFalse(self.module.qualifies("simple-midi", {"status": "complete-provisional"}, []))
         self.assertFalse(self.module.qualifies("missing-renderer", {"status": "refused-or-incomplete"}, []))
         self.assertTrue(self.module.qualifies("missing-renderer", {"status": "refused-or-incomplete"},
-            [{"tool": "prepare_song", "exitCode": 1, "previewAttempted": True, "deliveryStatus": "incomplete"}]))
+            [{"tool": "prepare_song", "exitCode": 1, "previewAttempted": True, "deliveryStatus": "incomplete",
+              "modes": {"original": {"status": "blocked", "error": "FluidSynth unavailable. Install FluidSynth or set KEYSPILLI_FLUIDSYNTH."}}}]))
         self.assertFalse(self.module.qualifies("truncated-preview", {"status": "complete-provisional"},
             [{"tool": "prepare_song", "exitCode": 1, "previewAttempted": True, "deliveryStatus": "incomplete"}]))
 
     def test_deadline_prevents_tool_execution(self):
         with self.assertRaises(TimeoutError):
             self.module.remaining_seconds(0)
+
+    def test_wrong_audio_failure_does_not_qualify_the_truncated_case(self):
+        trace = {"tool": "prepare_song", "exitCode": 1, "previewAttempted": True, "deliveryStatus": "incomplete",
+                 "modes": {"original": {"status": "blocked", "error": "FluidSynth unavailable. Install FluidSynth or set KEYSPILLI_FLUIDSYNTH."}}}
+        self.assertFalse(self.module.qualifies("truncated-preview", {"status": "refused-or-incomplete"}, [trace]))
+        self.assertFalse(self.module.qualifies("silent-clipped-preview", {"status": "refused-or-incomplete"}, [trace]))
+
+    def test_real_restricted_request_pinning_creates_exact_source_request(self):
+        checkout = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            cell = Path(directory).resolve()
+            midi = cell / "source.mid"
+            midi.write_bytes(b"MThd\x00\x00\x00\x06\x00\x00\x00\x01\x01\xe0MTrk\x00\x00\x00\x04\x00\xff\x2f\x00")
+            instruction = cell / "instruction.md"
+            instruction.write_text("Use the supplied bytes provisionally.")
+            fixture = {"source": str(midi), "instruction": str(instruction), "title": "Fixture", "artist": "Software control",
+                       "node": "/unused", "soundfont": "/unused", "renderer": "/unused"}
+            trace = self.module.execute_tool("pin_request", {}, fixture, cell, checkout, checkout / "plugins/keyspilli", time.monotonic() + 30, 1)
+            self.assertEqual(trace["exitCode"], 0)
+            self.assertTrue((cell / "request.json").is_file())
 
 
 if __name__ == "__main__":

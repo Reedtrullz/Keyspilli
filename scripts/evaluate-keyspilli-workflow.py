@@ -41,7 +41,7 @@ class Reservation(NamedTuple):
 
 
 class Budget:
-    def __init__(self, cap: float):
+    def __init__(self, cap: float, native_quota_verified: bool = False):
         if not math.isfinite(cap) or not 0 <= cap <= 5:
             raise ValueError("workflow budget must be finite and at most the approved $5")
         self.cap = cap
@@ -50,8 +50,11 @@ class Budget:
         self.serial = 0
         self.pending: dict[int, Reservation] = {}
         self.stopped = False
+        self.native_quota_verified = native_quota_verified
 
     def reserve(self, model: str, input_tokens_bound: int, output_tokens_bound: int) -> Reservation:
+        if model == "gpt-6-luna" and not self.native_quota_verified:
+            raise ValueError("native quota route must be qualified before zero currency admission")
         if self.stopped:
             raise ValueError("workflow budget stopped after usage bound breach")
         if model not in RATES or any(type(v) is not int or v < 0 for v in (input_tokens_bound, output_tokens_bound)):

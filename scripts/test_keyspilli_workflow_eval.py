@@ -78,6 +78,10 @@ class WorkflowEvaluationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             budget.reserve("B.AI/mimo-v2.6-flash", 1000, 1000)
 
+    def test_native_quota_route_must_be_qualified_before_zero_currency_admission(self):
+        with self.assertRaises(ValueError):
+            self.module.Budget(5).reserve("gpt-6-luna", 10000, 2048)
+
     def test_unexecuted_cells_never_become_completions(self):
         summary = self.module.summarize([{"status": "not-run", "attempted_calls": 0}, {"status": "unavailable", "attempted_calls": 0},
                                          {"status": "failed", "attempted_calls": 1}, {"status": "complete-provisional", "verified": False, "attempted_calls": 1}])
