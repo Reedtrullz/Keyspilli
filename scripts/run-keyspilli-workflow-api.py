@@ -135,8 +135,10 @@ def evaluate_cell(cell: Cell, fixture: Fixture, root: Path, budget: BudgetPort, 
     skill = Path(experiment["skillSnapshots"][cell["skill"]]["path"]) / "skills/keyspilli-song/SKILL.md"
     messages: list[dict[str, object]] = [{"role": "system", "content":
         "Execute this Keyspilli task through the restricted tools. Never invent source, approval, command success or complete delivery. "
-        "Finish with JSON: status (complete-provisional or refused-or-incomplete), explanation (string), playbackIndex (string or null), "
-        "musicalAcceptance (not-established), productionAdmission (false). No acquisition, production, release, installation or arbitrary shell/files.\n" + skill.read_text()},
+        "Return only one JSON object as your final response, with no prose or Markdown fence: "
+        "status (complete-provisional or refused-or-incomplete), explanation (string), playbackIndex (string or null), "
+        "musicalAcceptance (not-established), productionAdmission (false). This final format overrides packaged handoff formatting; "
+        "include any required warnings and limitations in explanation. No acquisition, production, release, installation or arbitrary shell/files.\n" + skill.read_text()},
         {"role": "user", "content": CORE.TASKS[task] + "\n" + fixture["description"] +
          "\nSources, destinations, metadata and renderers are fixed by tools. Use returned paths to surface both previews or the verified playback index."}]
     deadline, started = time.monotonic() + 900, time.monotonic()
