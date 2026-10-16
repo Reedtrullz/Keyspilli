@@ -65,6 +65,64 @@ class FakeAudioContext {
 }
 
 describe("SamplerAudioEngine", () => {
+  it("applies backpressure until decoding finishes and requires every piano sample before Ready", async () => {
+    FakeAudioContext.rate = 32000;
+    const pending: Array<() => void> = [];
+    let active = 0;
+    let peak = 0;
+    const fetchSample = vi.fn(async () => new Response(new Uint8Array([1, 2])));
+    vi.stubGlobal("fetch", fetchSample);
+    vi.spyOn(FakeAudioContext.prototype, "decodeAudioData").mockImplementation(async function (this: FakeAudioContext) {
+      this.decodes++;
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise<void>(resolve => pending.push(resolve));
+      active--;
+      return { sampleRate: this.sampleRate } as AudioBuffer;
+    });
+    const { SampleLoader, pianoToPreset } = await import("smplr");
+    const preset = pianoToPreset({ baseUrl: "https://samples.example/piano", formats: ["ogg"], detune: 0, decayTime: 0.5 });
+    pianoFactory.mockImplementation((ctx: AudioContext, options: { loader?: import("smplr").SampleLoader }) => ({
+      ready: (options.loader ?? SampleLoader(ctx)).load(preset),
+      setCC: vi.fn(), start: vi.fn(), stop: vi.fn(), dispose: vi.fn(),
+    }));
+    const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
+    const engine = new SamplerAudioEngine();
+    engine.ensure();
+    const context = FakeAudioContext.last;
+    try {
+      await vi.waitFor(() => expect(pending.length).toBeGreaterThan(0));
+      expect(pending.length).toBeLessThanOrEqual(2);
+      expect(fetchSample).toHaveBeenCalledTimes(2);
+      const completeOne = pending.shift();
+      if (!completeOne) throw new Error("No pending piano decode");
+      completeOne();
+      await vi.waitFor(() => expect(context.decodes).toBe(3));
+      expect(fetchSample).toHaveBeenCalledTimes(3);
+      expect(engine.readiness).toBe("loading");
+      let completed = 1;
+      while (completed < 226) {
+        expect(engine.readiness).toBe("loading");
+        await vi.waitFor(() => expect(pending.length).toBeGreaterThan(0));
+        const batch = pending.splice(0);
+        expect(batch.length).toBeLessThanOrEqual(2);
+        completed += batch.length;
+        batch.forEach(resolve => resolve());
+        await new Promise<void>(resolve => setImmediate(resolve));
+      }
+      await vi.waitFor(() => expect(engine.readiness).toBe("ready"));
+      expect(fetchSample).toHaveBeenCalledTimes(226);
+      expect(context.decodes).toBe(226);
+      expect(peak).toBeLessThanOrEqual(2);
+    } finally {
+      for (let pass = 0; pass < 226 && (context.decodes < 226 || pending.length); pass++) {
+        pending.splice(0).forEach(resolve => resolve());
+        await new Promise<void>(resolve => setImmediate(resolve));
+      }
+      engine.dispose();
+    }
+  });
+
   it("fetches and decodes the piano once for independent voices and a warm replacement context", async () => {
     const fetchSample = vi.fn(async () => new Response(new Uint8Array([1, 2])));
     vi.stubGlobal("fetch", fetchSample);
