@@ -19,7 +19,7 @@ const thoseDaysSourceFingerprint = "variant:mary-hopkin-those-were-the-days:a:ma
 
 export function accompanimentFallbackNotice(sourceId: string | undefined, style: string, detail: string): string {
   if (style !== "bass-chords") return `Original passage retained — ${detail}`;
-  if (sourceId === "prepared-source-backed") return "Source-backed notes and rests retained; chord labels require review here.";
+  if (sourceId === "prepared-source-backed") return `Backing needs review — ${detail}`;
   return `Backing unavailable — source melody omitted: ${detail}`;
 }
 
@@ -137,6 +137,8 @@ export function bassChordsBackground(
   }
   const sourceBacked = data.chordProvenance?.sourceId === "prepared-source-backed";
   const projection = sourceBacked ? phrasePianoBacking(data.notes, data.phraseProtection) : null;
+  if (projection?.unavailableReason) return { style: "bass-chords", notes: [], chords: [], displayChords: [], guidanceNotes: [],
+    fallbackSpans: [{ startBeat: 0, endBeat: arrangementEnd, reason: projection.unavailableReason }] };
   const notes = projection?.notes ?? data.notes;
   const resolution = sourcePlayedVoicings(data, chords, resolveAccompaniment(notes, chords, "bass-chords", {
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures, ...options,

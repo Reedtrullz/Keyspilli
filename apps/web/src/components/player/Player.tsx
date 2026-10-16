@@ -2095,6 +2095,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
   const accompanimentFallbackDetail = activeAccompanimentFallback
     ? ({
       "no source notes": "no source notes are available here.",
+      "shared melody/hook lineage": "selected parts include the lead melody or riff; this backing is unavailable.",
       "unsupported chord": "this chord symbol is not supported.",
       "explicit no-chord": selectedChordSource.source?.chords.find(chord => chord.reviewReason
         && currentBeat >= chord.beat && currentBeat < chord.beat + (chord.durationBeats ?? 0))?.reviewReason

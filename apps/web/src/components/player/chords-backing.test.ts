@@ -100,27 +100,43 @@ it("uses one permitted octave shift across a low bass phrase without folding its
 it("retains a shared backing key without importing standalone melody or unknown lineages", () => {
   const data = lowBassControl(), phrase = data.phraseProtection!.plan.phrases[0]!;
   const shared = data.notes[2]!;
-  shared.sourceOrigins!.push({ id: "shared-hook" });
-  phrase.events.push({ ...structuredClone(phrase.events[2]!), id: "shared-hook", sourceOriginId: "shared-hook", role: "hook" });
-  data.notes.push({ ...structuredClone(shared), start: 3, sourceOrigins: [{ id: "shared-hook" }] });
+  shared.sourceOrigins!.push({ id: "shared-support" });
+  phrase.events.push({ ...structuredClone(phrase.events[2]!), id: "shared-support", sourceOriginId: "shared-support", role: "accompaniment" });
+  data.notes.push({ ...structuredClone(shared), start: 3, sourceOrigins: [{ id: "standalone-melody" }] });
+  phrase.events.push({ ...structuredClone(phrase.events[2]!), id: "standalone-melody", sourceOriginId: "standalone-melody", role: "melody" });
   data.notes.push({ ...structuredClone(shared), start: 3, sourceOrigins: [{ id: "harmony" }, { id: "unknown" }] });
   const before = structuredClone(data);
   expect(phraseBackingNotes(data.notes, data.phraseProtection)).toHaveLength(4);
   const resolution = bassChordsBackground(data, [], 4, null);
-  const actual = resolution.notes.find(n => n.sourceOrigins?.some(o => o.id === "shared-hook"))!;
+  const actual = resolution.notes.find(n => n.sourceOrigins?.some(o => o.id === "shared-support"))!;
   expect(actual).toMatchObject({ midi: 43, start: 2, dur: 1 });
   expect(actual.sourceOrigins).toEqual(shared.sourceOrigins);
-  expect(resolution.sourceTransformations).toContainEqual(expect.objectContaining({ eventId: "shared-hook", role: "hook" }));
-  phrase.events.at(-1)!.allowedTransformations = [];
-  expect(bassChordsBackground(data, [], 4, null).notes.find(n => n.sourceOrigins?.some(o => o.id === "shared-hook"))!.midi).toBe(31);
-  phrase.events.at(-1)!.role = "unknown";
+  expect(resolution.sourceTransformations).toContainEqual(expect.objectContaining({ eventId: "shared-support", role: "accompaniment" }));
+  const sharedEvent = phrase.events.find(event => event.id === "shared-support")!;
+  sharedEvent.allowedTransformations = [];
+  expect(bassChordsBackground(data, [], 4, null).notes.find(n => n.sourceOrigins?.some(o => o.id === "shared-support"))!.midi).toBe(31);
+  sharedEvent.role = "unknown";
   expect(phraseBackingNotes(data.notes, data.phraseProtection)).toHaveLength(3);
   expect(before.notes).toEqual(data.notes);
 });
 
+it.each(["melody", "hook"] as const)("marks raw source-backed playback of a shared %s line unavailable", role => {
+  const data = lowBassControl(), phrase = data.phraseProtection!.plan.phrases[0]!;
+  data.notes[2]!.sourceOrigins!.push({ id: "doubled-lead" });
+  phrase.events.push({ ...structuredClone(phrase.events[2]!), id: "doubled-lead", sourceOriginId: "doubled-lead",
+    role, required: true, allowedTransformations: [] });
+  const before = structuredClone(data);
+  const resolution = bassChordsBackground(data, [], 4, null);
+  expect(resolution.notes).toEqual([]);
+  expect(resolution.chords).toEqual([]);
+  expect(resolution.guidanceNotes).toEqual([]);
+  expect(resolution.fallbackSpans).toEqual([{ startBeat: 0, endBeat: 4, reason: "shared melody/hook lineage" }]);
+  expect(data).toEqual(before);
+});
+
 it("separates an unresolved label from unavailable source-backed playback", () => {
   expect(accompanimentFallbackNotice("prepared-source-backed", "bass-chords", "this span is marked as no chord.")).toBe(
-    "Source-backed notes and rests retained; chord labels require review here.");
+    "Backing needs review — this span is marked as no chord.");
   expect(accompanimentFallbackNotice("prepared", "bass-chords", "this span is marked as no chord.")).toBe(
     "Backing unavailable — source melody omitted: this span is marked as no chord.");
   expect(accompanimentFallbackNotice("prepared-source-backed", "melody-accompaniment", "uncertain phrase.")).toBe(

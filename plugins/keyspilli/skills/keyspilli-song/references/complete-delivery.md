@@ -31,8 +31,14 @@ accompaniment difficulty levels. No renderer flag is silently ignored without
 With `--phrase-plan PLAN --source-backed-chords`, the shared backing plays the
 explicitly selected bass, harmony and accompaniment events retained in Advanced,
 including monophonic and broken-chord passages. Retained notes keep their attacks
-and releases. Shared keys supported by both a declared backing part and another
-declared part remain, with all source lineages and permissions retained.
+and releases. Shared keys supported only by declared backing parts remain, with
+all source lineages and permissions retained. A shared melody/hook contributor
+makes this raw source-backed preview unavailable, rather than importing the lead
+line or deleting shared notes until the backing becomes sparse. Use the ordinary
+chordal preparation command above in a new run, with the same qualified input
+and optional phrase plan but without `--source-backed-chords`. Keep the rejected
+run. Older checkouts may lack this shared-role check; merely advertising the
+flag does not qualify their raw backing for a doubled lead.
 Standalone melody/hook notes and any unknown or undeclared lineage are excluded.
 A bass phrase entirely below MIDI 48 uses one consistent octave lift, bounded to
 two octaves, aiming to place its lowest note at MIDI 36 or above. When that lift

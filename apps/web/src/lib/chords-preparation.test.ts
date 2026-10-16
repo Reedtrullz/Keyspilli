@@ -99,6 +99,42 @@ it("retains explicitly selected monophonic backing without inventing chord tones
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 }, 60000);
 
+it("refuses a doubled lead as raw backing while the same input still prepares chordal Chords", () => {
+  const root = new URL("../../../../", import.meta.url).pathname;
+  const scratch = mkdtempSync(join(root, "output", "doubled-lead-chords-"));
+  const input = join(scratch, "source.mid"), planPath = join(scratch, "plan.json");
+  const melody = Array.from({ length: 32 }, (_, index) => ({ midi: 60 + index % 3 * 2,
+    start: index * 2, dur: 0.5, vel: 80, hand: "R" as const }));
+  const doubled = melody.map(note => ({ ...note }));
+  const chords = Array.from({ length: 12 }, (_, index) => index * 4 + 8)
+    .flatMap(start => [72, 76, 79].map(midi => ({ midi, start, dur: 3, vel: 70, hand: "L" as const })));
+  const bytes = writeMidi([...melody, ...doubled, ...chords], { tempoBpm: 120,
+    tracks: [{ name: "Right hand", notes: melody }, { name: "Left hand", notes: chords },
+      { name: "Right hand backing double", notes: doubled }] });
+  const source = parseMidi(bytes), hash = createHash("sha256").update(bytes).digest("hex");
+  const plan = suggestPhrasePlan(source, { sha256: hash, compositionId: "authored-doubled-lead", performanceId: "test-v1" });
+  const leadTrack = source.notes.find(note => note.hand === "R")!.sourceOrigins![0]!.track;
+  for (const event of plan.phrases[0]!.events) {
+    const note = source.notes.find(note => note.sourceOrigins?.some(origin => origin.id === event.sourceOriginId))!;
+    event.role = note.sourceOrigins!.some(origin => origin.id === event.sourceOriginId && origin.track === leadTrack) ? "melody" : "accompaniment";
+    event.required = true; event.allowedTransformations = [];
+  }
+  const call = (run: string, sourceBacked = false) => execFileSync(process.execPath, ["--import", "tsx",
+    join(root, "apps/web/scripts/prepare-song.mts"), input, run, "Doubled lead", "Authored tests", "--phrase-plan", planPath,
+    ...(sourceBacked ? ["--source-backed-chords"] : [])], { cwd: root, encoding: "utf8", timeout: 60000 });
+  try {
+    writeFileSync(input, bytes); writeFileSync(planPath, JSON.stringify(plan));
+    expect(() => call(join(scratch, "raw-backing"), true)).toThrow(/shared melody\/hook/i);
+    const run = join(scratch, "chordal");
+    call(run);
+    const playback = JSON.parse(readFileSync(join(run, "bundle", "playback.json"), "utf8"));
+    expect(playback.snapshot.notes).toEqual([]);
+    expect(playback.snapshot.chords.length).toBeGreaterThan(0);
+    expect(parseMidi(readFileSync(join(run, "bundle", "chords.mid"))).notes.length).toBeGreaterThan(0);
+    expect(readFileSync(input)).toEqual(Buffer.from(bytes));
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+}, 60000);
+
 it("counts uncovered LH duration and overlapping octave doublings only once", () => {
   const snapshot = { schemaVersion: 1, tempoBpm: 120, timeSig: [4, 4], endBeatExclusive: 4, chords: [],
     notes: [{ midi: 48, start: 0, dur: 2, vel: 80 }, { midi: 60, start: 0, dur: 2, vel: 80 }] };

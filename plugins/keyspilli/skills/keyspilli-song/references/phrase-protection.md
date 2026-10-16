@@ -14,8 +14,13 @@ in the pinned plan. It plays those retained Advanced notes directly, including
 monophonic or broken accompaniment without a complete chord stack. Conservative
 harmony supplies inferred labels; it cannot erase declared backing attacks or
 invent missing tones. Standalone melody/hook events and keys with unknown or
-unlisted lineages are excluded. A declared backing contributor can retain a
-shared key with melody/hook contributors; all lineage and permissions remain.
+unlisted lineages are excluded. Shared keys with only backing contributors keep
+all lineage and permissions. A shared melody/hook contributor makes the raw
+source-backed preview unavailable for the whole arrangement. Do not delete its
+lineage or drop backing notes to bypass this conflict. Prepare the ordinary
+chordal backing from the same input and plan in a new run, without
+`--source-backed-chords`, and keep the rejected run. Older checkouts may lack
+this check; flag discovery alone does not qualify direct doubled-lead playback.
 The backing remains inferred and provisional; selection is not source validation.
 Ordinary generated backing remains available without this opt-in.
 

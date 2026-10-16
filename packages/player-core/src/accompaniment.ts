@@ -20,6 +20,7 @@ export type AccompanimentHand = "L" | "R";
 export type AccompanimentFallbackReason =
   | "no source notes"
   | "no supported source attack"
+  | "shared melody/hook lineage"
   | "unsupported chord"
   | "explicit no-chord"
   | "uncertain harmony"

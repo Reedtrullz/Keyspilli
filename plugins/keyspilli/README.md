@@ -54,7 +54,12 @@ This is provisional software-checked delivery, not musical approval or release.
 
 ## Maintain
 
-The 20261014 source-backing candidate adds an opt-in from a pinned Advanced
+The 20261016 chord-led candidate refuses a raw source-backed preview when a
+shared note also carries a declared melody or hook. The ordinary chordal route
+remains available from the same input in a new run; Original is unchanged by
+this refusal. This corrects a mode-boundary failure, not musical acceptance.
+
+The earlier 20261014 source-backing candidate adds an opt-in from a pinned Advanced
 PhrasePlan and preserves explicitly selected rests when a permitted optional
 tail can be shortened. All six Original variants still ship; only targeted
 tiers have exact phrase protections. This is a provisional source candidate,

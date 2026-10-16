@@ -33,8 +33,8 @@
     "source-members.json"
   ],
   "sha256": {
-    ".codex-plugin/plugin.json": "8985f0356e15a2694fd5388a20135b70cfab4d7fcad7a63972da90442de7d90a",
-    "README.md": "560bb685eda8d03be1b8d8c724a8ecead18bed51de23e287e8c3fe8f12211f92",
+    ".codex-plugin/plugin.json": "24468b245c9c374e7db7fbeab3897d040d84f8fe5d759683139b3b0ae70e8949",
+    "README.md": "fcc3708546940ee9f7b00e0b1569b0d82cf20459b416dcdca461da4cd3d02b7b",
     "skills/keyspilli-song/SKILL.md": "f0551acec4826549aae09c45886f8f0abee9920eb6cdb6f2f075cc018dc4e2cc",
     "skills/keyspilli-song/agents/openai.yaml": "09974a1a8aa25d3e855bdc3f0690b36887516956f404e9bec909d4caf61a39b6",
     "skills/keyspilli-song/examples/inversion-and-bass.json": "42e72c67f2485c93dd546abd51475b1195e59a879c371d275a8eda2fc98aae35",
@@ -42,7 +42,7 @@
     "skills/keyspilli-song/examples/voice-separation.json": "33666da74b99568958a3b1eb2e29c03780af1a55d3ee234ef676b3b53d2b48c0",
     "skills/keyspilli-song/references/approval-and-publication.md": "4405a92f6466c64fbf182f65cb34ad13f10c4cc0caa3b2945f7f1e8c78278f48",
     "skills/keyspilli-song/references/audio-listening-review.md": "e03581e8a34722589d4b16f1b8dc0dcea8d8aa748075088f1d93c4525aff6928",
-    "skills/keyspilli-song/references/complete-delivery.md": "942e599aeaabf6adde279f270b7880216469567fd744d88f8844a81eaf5801de",
+    "skills/keyspilli-song/references/complete-delivery.md": "36cb36b1014b2304c005be4dad714a8616653bf4b46da26f884abe58ac934c24",
     "skills/keyspilli-song/references/constrained-arrangement.md": "88b944d023dc97d69e87eb3cec6bef18f5cd586d4179ed12eeed3bbb1932898b",
     "skills/keyspilli-song/references/dataset-calibration.md": "af224f858014fd45c1a19fb06af2a29c7c20fcfc7161da2c5dd190676fb007c6",
     "skills/keyspilli-song/references/deterministic-preparation.md": "2872f3ae9eea9e43625dfa187924eac291d2eefb9a5c407fde44af625348e3f1",
@@ -51,7 +51,7 @@
     "skills/keyspilli-song/references/keyspilli-workflow.md": "6ac0bf794ed639ac30a0418f39a36b8750de091803fcdabe7c3efd3ab21d1d2f",
     "skills/keyspilli-song/references/music-review-workflow.md": "f3169f45d2a2ee10983bea8ca432c51c434c0ade0e0d30a9b2760eb930e071e7",
     "skills/keyspilli-song/references/musical-quality-gate.md": "63c22b64caca5eb3d9026c8065bec6f1c93c7e221aeb03f88c59c1e8174d6a54",
-    "skills/keyspilli-song/references/phrase-protection.md": "1479a8859a41cba368ffcef967b548d9ad1330bf634f3415fd765fbd24fdc91a",
+    "skills/keyspilli-song/references/phrase-protection.md": "509b290d783cf9ec757be57fb938576202d12b8b63890389f4c642e33067929f",
     "skills/keyspilli-song/references/score-review-workflow.md": "e8ae8a973f611db0d98b9f5ad6ba634eb3824bcd79f5668c18b9d2d80f124228",
     "skills/keyspilli-song/references/source-and-delivery-contracts.md": "873a75401fb932b3e1c70ad7744e846fd698cbe56b73fa6efa1980f24aedae3d",
     "skills/keyspilli-song/references/ultimate-guitar.md": "f6b1515f9ae71785becce8d912bd2770ec968539703ecb81fc1234675a717393",

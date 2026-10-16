@@ -75,7 +75,7 @@ export function phraseBackingNotes(notes: readonly Note[], report: PhraseProtect
 }
 
 export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtectionReport | undefined): {
-  notes: Note[]; changes: PhraseProtectionReport["changes"];
+  notes: Note[]; changes: PhraseProtectionReport["changes"]; unavailableReason?: "shared melody/hook lineage";
 } {
   const selected = structuredClone(phraseBackingNotes(notes, report)).sort((a, b) => a.start - b.start || a.midi - b.midi);
   const entries = new Map(report!.plan.phrases.flatMap(phrase => phrase.events.map(event => [
@@ -99,6 +99,8 @@ export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtect
       ?? entries.get(JSON.stringify([origin.id, null])));
     const declarations = origins.filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
     if (declarations.length !== origins.length) throw new Error("piano backing has an undeclared source origin");
+    if (declarations.some(entry => entry.event.role === "melody" || entry.event.role === "hook"))
+      return { notes: [], changes: [], unavailableReason: "shared melody/hook lineage" };
     const permits = (policy: PhraseTransformation) => declarations.every(entry => !entry.event.required
       && entry.event.allowedTransformations.includes(policy));
     const before = structuredClone(note);

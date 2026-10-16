@@ -1,4 +1,4 @@
-import { canonicalPhrasePlan, CHORDS_TUNING, groupAttackClusters, inferHarmonyTimeline, phraseBackingNotes, type Note, type PhraseProtectionReport } from "@keyspilli/midi";
+import { canonicalPhrasePlan, CHORDS_TUNING, groupAttackClusters, inferHarmonyTimeline, phrasePianoBacking, type Note, type PhraseProtectionReport } from "@keyspilli/midi";
 import { createHash } from "node:crypto";
 import type { ArrangementManifest, ChordTimelineArtifact } from "@keyspilli/catalog";
 import type { SongData } from "@keyspilli/player-core";
@@ -13,8 +13,10 @@ export function sourceBoundHarmony(data: SongData, report: PhraseProtectionRepor
   if (!report || report.status !== "preserved" || !pin || report.sourceSha256 !== pin.sourceSha256
     || createHash("sha256").update(canonicalPhrasePlan(report.plan)).digest("hex") !== pin.sha256)
     throw new Error("source-backed Chords requires the retained, pinned Advanced phrase plan");
-  const backing = phraseBackingNotes(data.notes, report);
-  return inferHarmonyTimeline(backing, data.measures, { key: data.key, policy: "conservative-backing-v1" });
+  const backing = phrasePianoBacking(data.notes, report);
+  if (backing.unavailableReason)
+    throw new Error(`source-backed Chords has ${backing.unavailableReason}; prepare chordal backing without --source-backed-chords`);
+  return inferHarmonyTimeline(backing.notes, data.measures, { key: data.key, policy: "conservative-backing-v1" });
 }
 function attacks(snapshot: Snapshot): Note[] {
   return [...snapshot.notes, ...snapshot.chords.flatMap(c => c.notes.map((midi, i) => ({

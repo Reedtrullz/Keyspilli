@@ -120,7 +120,7 @@ export function SoundControls({
             {settings.backgroundMode === "piano"
               ? "Original arrangement is retained"
               : sourceBacking && settings.accompanimentStyle === "bass-chords"
-                ? "The Advanced piano figure plays with fewer repeated bass notes. No separate vocal melody is added."
+                ? "Backing-only preview. No separate vocal melody is added."
               : settings.accompanimentStyle === "bass-chords"
                 ? "Backing only: generated bass and chords play where the chart is supported; source melody is omitted and unsupported spans are silent."
                 : "A selected melody is retained while sparse harmonic support is generated"}
