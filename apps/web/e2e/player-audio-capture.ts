@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parsePairedPlayerCapture, validatePlayerSignalBytes, type PairedPlayerCaptureV1 } from "@keyspilli/catalog/src/player-input-evidence.js";
 import { expect, type Page } from "@playwright/test";
+import { pianoToPreset } from "smplr";
 import { openPlayerTool } from "./player-tools";
 
 type CompressorParameters = { threshold: number; knee: number; ratio: number; attack: number; release: number };
@@ -285,12 +286,17 @@ export async function capturePlayerClip(page: Page, options: {
   if (options.capturePreCompressor && options.durationMs > 4000) throw new Error("Paired capture duration exceeds4seconds");
   const assets: PlayerCapture["sampleAssets"] = [];
   const assetPromises: Promise<void>[] = [];
+  let rejectAssetRead!: (reason: unknown) => void;
+  const assetFailure = new Promise<never>((_resolve, reject) => { rejectAssetRead = reject; });
+  void assetFailure.catch(() => {});
   page.on("response", (response) => {
     if (!/\.(?:ogg|m4a|mp3|wav)(?:\?|$)/i.test(response.url())) return;
-    assetPromises.push((async () => {
+    const task = (async () => {
       const body = await response.body();
       assets.push({ url: response.url(), sha256: createHash("sha256").update(body).digest("hex"), bytes: body.length });
-    })());
+    })();
+    void task.catch(rejectAssetRead);
+    assetPromises.push(task);
   });
   if (!preferenceInitPages.has(page)) {
     preferenceInitPages.add(page);
@@ -308,9 +314,17 @@ export async function capturePlayerClip(page: Page, options: {
   await installPlayerPcmProbe(page, options.capturePreCompressor ?? false);
   await page.goto(`/player/${options.songId}?__playerCorpusMode=${options.mode}`);
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
-  // Main eagerly warms the same Player sampler. Wait for its readiness state before starting,
-  // so neither hand begins in fallback or queues note starts while the second bus loads.
-  await page.waitForLoadState("networkidle", { timeout: 60_000 });
+  // Bank preparation can be network-idle before every transfer has finished. Require every transfer
+  // within the same 60-second window before the unchanged readiness assertion.
+  const preset = pianoToPreset({ baseUrl: "", detune: 0, decayTime: 0.5 });
+  const pianoSampleCount = new Set(preset.groups.flatMap(group => group.regions.map(region => region.sample))).size;
+  await Promise.race([
+    Promise.all([
+      page.waitForLoadState("networkidle", { timeout: 60_000 }),
+      expect.poll(() => new Set(assets.map(asset => asset.url)).size, { timeout: 60_000 }).toBe(pianoSampleCount),
+    ]),
+    assetFailure,
+  ]);
   await Promise.all(assetPromises);
   await openPlayerTool(page, "Sound");
   const soundDialog = page.getByRole("dialog", { name: "Sound settings", exact: true });

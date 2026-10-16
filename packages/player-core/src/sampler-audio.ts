@@ -20,36 +20,11 @@ function sharedPianoLoader(ctx: AudioContext): SampleLoader {
       if (!entry.promise) {
         // Deselection may finish warming this one set; no disposed instrument is installed.
         const signal = AbortSignal.timeout(30_000);
-        let decodeTail = Promise.resolve();
-        const decodeContext = new Proxy(ctx, {
-          get(target, key) {
-            if (key === "decodeAudioData") return (data: ArrayBuffer) => {
-              const task = decodeTail.then(() => target.decodeAudioData(data));
-              decodeTail = task.then(() => undefined, () => undefined);
-              return task;
-            };
-            const value = Reflect.get(target, key, target);
-            return typeof value === "function" ? value.bind(target) : value;
-          },
-        });
-        const loader = SampleLoader(decodeContext, { storage: { fetch: url => fetch(url, { signal }).catch(() => new Response(null, { status: 503 })) } });
-        entry.promise = (async () => {
-          const missing = [...new Set(preset.groups.flatMap(group => group.regions.map(region => region.sample)))].filter(sample => !entry.buffers.has(sample));
-          // Hold each slot through decoding: a fetch-only limit still queues the entire bank.
-          // Keep the two-job bound measured on the 1.5-CPU client.
-          let next = 0;
-          await Promise.all(Array.from({ length: Math.min(2, missing.length) }, async () => {
-            while (next < missing.length) {
-              const sample = missing[next++];
-              if (sample === undefined) throw new Error("Missing piano sample in load queue");
-              const part = { ...preset, groups: preset.groups.map(group => ({ ...group, regions: group.regions.filter(region => region.sample === sample) })) };
-              const buffers = await loader.load(part, { buffers: entry.buffers });
-              for (const [name, buffer] of buffers) entry.buffers.set(name, buffer);
-            }
-          }));
-          if (preset.groups.some(group => group.regions.some(region => !entry.buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
-          return entry.buffers;
-        })().catch(error => { entry.promise = null; throw error; });
+        entry.promise = SampleLoader(ctx, { storage: { fetch: url => fetch(url, { signal }).catch(() => new Response(null, { status: 503 })) } }).load(preset, { buffers: entry.buffers }).then(buffers => {
+          entry.buffers = buffers;
+          if (preset.groups.some(group => group.regions.some(region => !buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
+          return buffers;
+        }).catch(error => { entry.promise = null; throw error; });
       }
       return entry.promise;
     },
