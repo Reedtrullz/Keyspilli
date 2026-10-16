@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { closeSync, fsyncSync, openSync, writeSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { capturePayload, CONFIG, requireThat, type RuntimePin } from "./prepare-workflow-pins.js";
+import { groupPresent } from "./prepare-workflow-group.js";
 
 export function preparationEnvironment(tmp: string, nodePath: string): NodeJS.ProcessEnv {
   // Never copy process.env. In particular NODE_OPTIONS, NODE_PATH, TSX hooks,
@@ -46,11 +47,21 @@ export async function runOwnedProcess(input: {
   if (input.signal?.aborted) return { command: input.command, exitCode: null, signal: null, termination: "interrupt", groupClosed: true };
   const child = spawn(input.executable, input.args, { cwd: input.cwd, env: input.env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
   let termination: CommandReceipt["termination"] = "exit", exitCode: number | null = null, exitSignal: string | null = null;
-  let closed = false, unsafe = false;
+  let closed = false, unsafe = false, groupGone = false;
+  const sentSignals = new Set<NodeJS.Signals>();
+  const signalOwnedGroup = (signal: NodeJS.Signals) => {
+    if (child.pid === undefined || sentSignals.has(signal)) return;
+    sentSignals.add(signal);
+    signalGroup(child.pid, signal);
+  };
   const alive = (group: number) => {
-    try { process.kill(-group, 0); return true; }
+    if (groupGone) return false;
+    try {
+      const present = groupPresent(group);
+      if (!present) groupGone = true;
+      return present;
+    }
     catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
       // Uncertain presence cannot become a success after a later clean probe.
       unsafe = true; return true;
     }
@@ -62,8 +73,8 @@ export async function runOwnedProcess(input: {
     if (termination !== "exit") return;
     termination = why;
     if (child.pid !== undefined) {
-      try { signalGroup(child.pid, "SIGTERM"); } catch { unsafe = true; }
-      killTimer = setTimeout(() => { try { signalGroup(child.pid!, "SIGKILL"); } catch { unsafe = true; } }, 500);
+      try { signalOwnedGroup("SIGTERM"); } catch { unsafe = true; }
+      killTimer = setTimeout(() => { try { signalOwnedGroup("SIGKILL"); } catch { unsafe = true; } }, 500);
     }
     deadlineTimer = setTimeout(() => {
       // A descendant that escaped its inherited group or retained a pipe cannot
@@ -109,16 +120,16 @@ export async function runOwnedProcess(input: {
     if (child.pid !== undefined && alive(child.pid)) {
       if (termination === "exit") termination = "descendants";
       try {
-        signalGroup(child.pid, "SIGTERM");
+        signalOwnedGroup("SIGTERM");
         const started = performance.now();
-        while (alive(child.pid) && performance.now() - started < 5_000) {
-          if (performance.now() - started >= 500) signalGroup(child.pid, "SIGKILL");
+        while (performance.now() - started < 5_000 && alive(child.pid)) {
+          if (performance.now() - started >= 500) signalOwnedGroup("SIGKILL");
           await delay(25);
         }
       } catch { unsafe = true; }
     }
     return { command: input.command, exitCode, signal: exitSignal, termination,
-      groupClosed: closed && !unsafe && (child.pid === undefined || !alive(child.pid)) };
+      groupClosed: closed && !unsafe && (child.pid === undefined || groupGone) };
   } finally {
     clearTimeout(timeout); if (killTimer) clearTimeout(killTimer); if (deadlineTimer) clearTimeout(deadlineTimer);
     input.signal?.removeEventListener("abort", onAbort);

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { captureRuntime, CONFIG } from "./prepare-workflow-pins.js";
 import { preparationEnvironment, runOwnedProcess, runPreparationStage } from "./prepare-workflow-process.js";
+import * as ownedGroups from "./prepare-workflow-group.js";
 
 const root = fileURLToPath(new URL("../../../../", import.meta.url)).replace(/\/$/, "");
 mkdirSync(join(root, "output"), { recursive: true });
@@ -45,20 +46,26 @@ async function descendant(options: {
     const child=spawn(process.execPath,[${JSON.stringify(join(directory, "helper.mjs"))}],{stdio:['ignore','ignore','ignore','ipc']});
     child.on('message',()=>{console.log(JSON.stringify({leader:process.pid,helper:child.pid}));child.disconnect();child.unref();${options.exitSignal ? "process.kill(process.pid,'SIGTERM');" : `process.exitCode=${options.exitCode ?? 0};`}});
   `);
-  const actualKill = process.kill.bind(process);
+  const actualKill = process.kill.bind(process), actualPresent = ownedGroups.groupPresent;
   let group: number | undefined, firstProbe = false, stdout = "", stderr = "", cleanupNeeded = false;
   const signals: Array<string | number | undefined> = [];
-  const kill = vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
-    if (group !== undefined && pid === -group) {
-      if (signal === 0) {
-        const present = actualKill(pid, signal);
-        if (!firstProbe) {
-          firstProbe = true;
-          if (options.finite) writeFileSync(arm, "armed at first post-close presence probe\n", { flag: "wx" });
-          options.onFirstProbe?.(group);
-        }
-        return present;
+  const observations: Array<{ atMs: number; present?: boolean; error?: string }> = [];
+  const probe = vi.spyOn(ownedGroups, "groupPresent").mockImplementation((pid, timeoutMs) => {
+    let present: boolean;
+    try { present = actualPresent(pid, timeoutMs); }
+    catch (error) { observations.push({ atMs: performance.now(), error: String(error) }); throw error; }
+    observations.push({ atMs: performance.now(), present });
+    if (present && group !== undefined && pid === group) {
+      if (!firstProbe) {
+        firstProbe = true;
+        if (options.finite) writeFileSync(arm, "armed at first post-close presence probe\n", { flag: "wx" });
+        options.onFirstProbe?.(group);
       }
+    }
+    return present;
+  });
+  const kill = vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
+    if (group !== undefined && pid === -group && signal !== 0) {
       signals.push(signal); options.onSignal?.(signal);
       if (options.rejectTerm && signal === "SIGTERM") throw Object.assign(new Error("controlled signal uncertainty"), { code: "EPERM" });
     }
@@ -70,14 +77,14 @@ async function descendant(options: {
       stdout: bytes => { stdout += bytes.toString(); const line = stdout.split("\n").find(value => value.endsWith("}")); if (line) group = JSON.parse(line).leader; },
       stderr: bytes => { stderr += bytes.toString(); } });
     const journal = existsSync(events) ? readFileSync(events, "utf8").trim().split("\n").map(line => JSON.parse(line)) : [];
-    const result = { receipt, firstProbe, signals, journal, stdout, stderr, get cleanupNeeded() { return cleanupNeeded; } };
+    const result = { receipt, firstProbe, signals, journal, observations, stdout, stderr, get cleanupNeeded() { return cleanupNeeded; } };
     writeFileSync(join(directory, "receipt.json"), JSON.stringify(result, null, 2) + "\n");
     return result;
   } finally {
-    kill.mockRestore();
+    kill.mockRestore(); probe.mockRestore();
     // An intentionally ambiguous receipt must not leave a real fixture running.
     if (group !== undefined) {
-      const present = () => { try { actualKill(-group!, 0); return true; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ESRCH") return false; throw error; } };
+      const present = () => actualPresent(group!);
       if (present()) {
         cleanupNeeded = true; actualKill(-group, "SIGKILL");
         const deadline = Date.now() + 3000;
@@ -150,6 +157,23 @@ describe("owned child groups", () => {
     expect(signalledAfterCancellation.every(Boolean)).toBe(true);
   }));
 
+  it("does not repeat KILL while the killed group awaits reaping", retained(async () => {
+    const actualPresent = ownedGroups.groupPresent;
+    let kills = 0, heldProbes = 0;
+    const result = await descendant({ onSignal: signal => {
+      if (signal !== "SIGKILL") return;
+      if (++kills > 1) throw Object.assign(new Error("repeated kill of unreaped group"), { code: "EPERM" });
+      vi.spyOn(ownedGroups, "groupPresent").mockImplementation((group, timeoutMs) => {
+        if (heldProbes++ < 2) return true;
+        return actualPresent(group, timeoutMs);
+      });
+    } });
+    expect(result.firstProbe).toBe(true);
+    expect(result.receipt).toEqual({ command: "fixture", exitCode: 0, signal: null, termination: "descendants", groupClosed: true });
+    expect(result.signals).toEqual(["SIGTERM", "SIGKILL"]);
+    expect(heldProbes).toBeGreaterThan(1); expect(result.cleanupNeeded).toBe(false);
+  }));
+
   it("keeps the original command timeout callback authoritative during post-close drain", retained(async () => {
     const budget = 1737, schedule = setTimeout;
     let expire: (() => void) | undefined, deadlineRegistrations = 0, expirationAvailable = false;
@@ -175,15 +199,14 @@ describe("owned child groups", () => {
   }));
 
   it("refuses closure first observed after the passive deadline even when the delayed poll finds no group", retained(async () => {
-    const schedule = setTimeout, actualKill = process.kill.bind(process);
+    const schedule = setTimeout, actualPresent = ownedGroups.groupPresent;
     let group: number | undefined, heldPoll = false, absentBeforeRelease = false;
     vi.spyOn(globalThis, "setTimeout").mockImplementation(((callback: (...args: unknown[]) => void, ms?: number, ...args: unknown[]) => {
       if (group !== undefined && ms === 25 && !heldPoll) {
         heldPoll = true;
         const stopObservingAt = Date.now() + 1000;
         const releaseAfterNaturalClosure = () => {
-          try { actualKill(-group!, 0); }
-          catch (error) { if ((error as NodeJS.ErrnoException).code === "ESRCH") absentBeforeRelease = true; }
+          absentBeforeRelease = !actualPresent(group!);
           if (absentBeforeRelease || Date.now() >= stopObservingAt) callback(...args);
           else schedule(releaseAfterNaturalClosure, 5);
         };
@@ -200,17 +223,15 @@ describe("owned child groups", () => {
   }));
 
   it("refuses first absence observed across the passive deadline during its probe", retained(async () => {
-    const actualKill = process.kill.bind(process), now = performance.now.bind(performance);
+    const actualPresent = ownedGroups.groupPresent, now = performance.now.bind(performance);
     let crossedDuringProbe = false, stalledMs = 0;
     vi.spyOn(performance, "now").mockImplementation(() => now() + stalledMs);
-    vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
-      try { return actualKill(pid, signal); }
-      catch (error) {
-        if (pid < 0 && signal === 0 && (error as NodeJS.ErrnoException).code === "ESRCH" && !crossedDuringProbe) {
-          crossedDuringProbe = true; stalledMs = 251;
-        }
-        throw error;
+    vi.spyOn(ownedGroups, "groupPresent").mockImplementation((pid, timeoutMs) => {
+      const present = actualPresent(pid, timeoutMs);
+      if (!present && !crossedDuringProbe) {
+        crossedDuringProbe = true; stalledMs = 251;
       }
+      return present;
     });
     const result = await runOwnedProcess({ ...base, args: ["-e", "process.exit(0)"] });
     writeFileSync(join(scratch, "late-absence-probe-receipt.json"), JSON.stringify({ crossedDuringProbe, stalledMs, result }) + "\n");
@@ -232,10 +253,10 @@ describe("owned child groups", () => {
   }
 
   it("does not certify a transient unknown group probe merely because later probes report absence", retained(async () => {
-    const actualKill = process.kill.bind(process); let probes = 0;
-    vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
-      if (pid < 0 && signal === 0 && probes++ === 0) throw Object.assign(new Error("controlled unknown group probe"), { code: "EPERM" });
-      return actualKill(pid, signal);
+    const actualPresent = ownedGroups.groupPresent; let probes = 0;
+    vi.spyOn(ownedGroups, "groupPresent").mockImplementation((pid, timeoutMs) => {
+      if (probes++ === 0) throw Object.assign(new Error("controlled unknown group probe"), { code: "EPERM" });
+      return actualPresent(pid, timeoutMs);
     });
     const result = await runOwnedProcess({ ...base, args: ["-e", "process.exit(0)"] });
     writeFileSync(join(scratch, "transient-probe-receipt.json"), JSON.stringify(result) + "\n");
@@ -243,15 +264,21 @@ describe("owned child groups", () => {
   }));
 
   it("keeps persistent probe uncertainty ambiguous without leaving an actual live child", retained(async () => {
-    const actualKill = process.kill.bind(process);
-    vi.spyOn(process, "kill").mockImplementation((pid, signal) => {
-      if (pid < 0 && signal === 0) throw Object.assign(new Error("controlled persistent unknown group probe"), { code: "EPERM" });
-      return actualKill(pid, signal);
-    });
+    vi.spyOn(ownedGroups, "groupPresent").mockImplementation(() => { throw Object.assign(new Error("controlled persistent unknown group probe"), { code: "EPERM" }); });
     const result = await runOwnedProcess({ ...base, args: ["-e", "process.exit(0)"] });
     writeFileSync(join(scratch, "persistent-probe-receipt.json"), JSON.stringify(result) + "\n");
     expect(result.groupClosed).toBe(false);
   }), 8000);
+
+  it("keeps an observation subprocess failure ambiguous even when its error code is ESRCH", retained(async () => {
+    const actualPresent = ownedGroups.groupPresent; let probes = 0;
+    vi.spyOn(ownedGroups, "groupPresent").mockImplementation(group => {
+      if (probes++ === 0) throw Object.assign(new Error("observer failed to spawn"), { code: "ESRCH" });
+      return actualPresent(group);
+    });
+    const result = await runOwnedProcess({ ...base, args: ["-e", "process.exit(0)"] });
+    expect(probes).toBeGreaterThan(1); expect(result.groupClosed).toBe(false);
+  }));
 
   it("keeps a signal error ambiguous even when the owned fixture can subsequently be cleaned", retained(async () => {
     const result = await descendant({ rejectTerm: true });

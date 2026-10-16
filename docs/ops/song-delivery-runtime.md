@@ -67,7 +67,7 @@ checkout also changes the meaning of negative tests requiring external paths.
 Neither condition is a reason to weaken the policy. Retain the original failed
 receipts and remove the owned temporary directory after the run.
 
-The Batch 1 macOS qualification has both a passing full run and a later full run
+The pre-correction Batch 1 macOS qualification had both a passing full run and a later full run
 with one finite-helper ownership failure, using Node 22.22.3, default repository
 concurrency and an external physical temporary path. A matched base/candidate
 comparison also observed this intermittent failure on unchanged base source.
@@ -82,7 +82,7 @@ the identical probe to `ESRCH`. The experiment reproduced twice. Apple's public
 excludes zombies and permits this error when the group still exists but has no
 eligible member. Natural completion alone therefore does not establish absence.
 
-The captured failure is an OS reaping/probe limitation, not evidence that the
+The captured failure was an OS reaping/probe limitation, not evidence that the
 helper ignored its natural-exit timer. Do not translate `EPERM` into success:
 the same error can represent a real permission failure. All unknown-probe and
 signal-error refusals, the 250 ms passive window, and ownership assertions remain
@@ -90,6 +90,31 @@ unchanged. Seven of eight bounded diagnostic finite-helper runs passed and one
 reproduced the exact failure; these overlapping runs do not replace the latest
 full-suite result or qualify every macOS process environment. Linux CI and stock
 tini qualification remain separate applicable receipts.
+
+The preparation host now observes Darwin group membership through stock
+`/bin/ps -A -o pid=,pgid=` rather than using group signalling as its presence
+probe. Any matching member, including a zombie, keeps the group present until
+reaped. Absence requires a successful, bounded, strictly parsed process-table
+snapshot containing both the observer and caller. A failed query, stderr warning,
+truncated/malformed output or missing sentry remains sticky uncertainty. There
+is no fallback that translates `EPERM` into success. Linux retains its signal-zero
+probe, with `ESRCH` interpreted only by that backend; an observer spawn error
+with the same code cannot prove group absence.
+
+The 250 ms passive window, original command deadline, 500 ms KILL escalation and
+5,000 ms cleanup bound are unchanged. Snapshot execution counts against the
+existing monotonic before/after checks; absence first observed after a passive
+or command deadline cannot grant successful delivery. Each stock query itself
+has a 250 ms cap and bounded output. TERM and KILL are each attempted once per
+owned group across timers and cleanup, avoiding repeated signals to an exited
+group while waiting for reaping. First signal errors still prevent certification.
+
+The controlled native regression holds a known same-UID zombie unreaped, observes
+actual `kill EPERM` alongside positive stock enumeration, explicitly reaps it,
+then observes absence. This validates the changed observation mechanism; it is
+not a guarantee about escaped descendant trees or silently restricted OS process
+visibility. Existing cancellation, late-observation, unknown-probe and signal-error
+assertions remain required.
 
 ## Acceptance scope
 
