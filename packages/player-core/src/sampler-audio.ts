@@ -20,11 +20,20 @@ function sharedPianoLoader(ctx: AudioContext): SampleLoader {
       if (!entry.promise) {
         // Deselection may finish warming this one set; no disposed instrument is installed.
         const signal = AbortSignal.timeout(30_000);
-        entry.promise = SampleLoader(ctx, { storage: { fetch: url => fetch(url, { signal }).catch(() => new Response(null, { status: 503 })) } }).load(preset, { buffers: entry.buffers }).then(buffers => {
-          entry.buffers = buffers;
-          if (preset.groups.some(group => group.regions.some(region => !buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
-          return buffers;
-        }).catch(error => { entry.promise = null; throw error; });
+        const loader = SampleLoader(ctx, { storage: { fetch: url => fetch(url, { signal }).catch(() => new Response(null, { status: 503 })) } });
+        entry.promise = (async () => {
+          const missing = [...new Set(preset.groups.flatMap(group => group.regions.map(region => region.sample)))].filter(sample => !entry.buffers.has(sample));
+          // Bound the entire fetch/decode job, not just the network request.
+          // Otherwise network idle can leave hundreds of decodes queued.
+          for (let offset = 0; offset < missing.length; offset += 8) {
+            const samples = new Set(missing.slice(offset, offset + 8));
+            const batch = { ...preset, groups: preset.groups.map(group => ({ ...group, regions: group.regions.filter(region => samples.has(region.sample)) })) };
+            const buffers = await loader.load(batch, { buffers: entry.buffers });
+            for (const [sample, buffer] of buffers) entry.buffers.set(sample, buffer);
+          }
+          if (preset.groups.some(group => group.regions.some(region => !entry.buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
+          return entry.buffers;
+        })().catch(error => { entry.promise = null; throw error; });
       }
       return entry.promise;
     },
