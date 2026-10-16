@@ -1174,6 +1174,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         // PlaybackEngine stops and seeks to zero when a song reaches its end.
         // Mirror that terminal state in React so the canvas animation loop is
         // also torn down instead of continuing after transport has stopped.
+        setTime(eng.time);
         setPlaying(false);
       }
     };
