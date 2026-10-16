@@ -50,7 +50,7 @@ export {
   DEFAULT_IMPORTED_MAX_SOUNDING,
 } from "./clean.js";
 export { writeMidi } from "./writeMidi.js";
-export { writeMusicXml } from "./writeXml.js";
+export { writeMusicXml, MUSICXML_DIVISIONS } from "./writeXml.js";
 export { buildMetalArrangement, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath } from "./metal-arrange.js";
 export type {
   GuitarLeadPathDiagnostics,

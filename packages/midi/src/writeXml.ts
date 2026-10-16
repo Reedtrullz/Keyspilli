@@ -6,7 +6,8 @@ import { musicXmlVelocityPercent } from "./musicxml-fidelity.js";
 import { PITCH_COLORS } from "./pitchColors.js";
 import { keySignature } from "./analyze.js";
 
-const DIV = 960;
+export const MUSICXML_DIVISIONS = 960;
+const DIV = MUSICXML_DIVISIONS;
 const MEASURE_BOUNDARY_TOLERANCE = 1 / DIV + 1e-9;
 
 interface XmlNoteSegment extends Note {
