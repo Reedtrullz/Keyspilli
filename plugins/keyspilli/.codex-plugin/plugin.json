@@ -1,6 +1,6 @@
 {
   "name": "keyspilli",
-  "version": "0.1.0+codex.20261016chordled",
+  "version": "0.1.0+codex.20261016bridges",
   "description": "Prepare playable Original and Chords previews, then publish approved songs to Keyspilli.",
   "author": {
     "name": "Reidar"

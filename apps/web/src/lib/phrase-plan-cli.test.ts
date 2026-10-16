@@ -78,6 +78,14 @@ describe("phrase-plan inspect CLI", () => {
 });
 
 describe("strict phrase-plan CLI argument handling", () => {
+  it("advertises source-gap bridge support without opening a catalog", () => {
+    const data = join(scratch, "bridge-capability-no-data");
+    const result = call("phrase-plan", ["capabilities"], data);
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ sourceGapBridges: "source-gap-bridges-v1",
+      maximumSourceQuarterBeats: 8, maximumNativeSeconds: 6, maximumEventsPerGap: 16 });
+    expect(existsSync(data)).toBe(false);
+  });
   it.each(["phrase-plan", "prepare-song"])("provides %s help without input or output side effects", script => {
     const result = call(script, ["--help"]);
     expect(result.status, result.stderr).toBe(0);

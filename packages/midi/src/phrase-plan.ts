@@ -4,6 +4,7 @@ import { midiBeatToNativeSeconds } from "./parse.js";
 import { mergedNoteLineage } from "./quantize.js";
 import { sourcePedalEnd, sourcePedalErrors } from "./source-pedal.js";
 import { validateVariants } from "./validate.js";
+import { sourceGapBridgeNotes, validateChordsBridges } from "./chords-bridges.js";
 import { LEVEL_ORDER, type DifficultyLevel, type Hand, type Note, type ParsedMidi, type Variant } from "./types.js";
 
 /** Semantic declarations are independent of instrument, track and physical hand. */
@@ -41,6 +42,8 @@ export interface PhrasePlanV1 {
     clock: ReturnType<typeof sourcePhraseClock>;
   };
   phrases: SourcePhrase[];
+  chordsBridges?: Array<{ id: string; startBeat: number; endBeat: number; basis: string;
+    events: Array<{ eventId: string; octaveShift?: number }> }>;
 }
 export interface PhraseProtectionReport {
   schemaVersion: 1;
@@ -52,7 +55,7 @@ export interface PhraseProtectionReport {
   inferredHands: number;
   outputClock: { timebase: "variant-quarter-beats"; sourceTempoBpm: number; playbackTempoBpm: number };
   changes: Array<{ eventId: string; phraseId: string; occurrenceId: string; role: PhraseRole;
-    operation: "restored-source" | "permitted-transformation"; before: Note[]; after: Note[] }>;
+    operation: "restored-source" | "permitted-transformation" | "source-gap-bridge"; before: Note[]; after: Note[] }>;
   /** Full immutable source/policy declarations; not a validated source receipt. */
   plan: PhrasePlanV1;
 }
@@ -117,6 +120,10 @@ export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtect
     }
     retained.push(note);
   }
+  const bridges = sourceGapBridgeNotes(notes, retained, report!);
+  retained.push(...bridges.notes);
+  changes.push(...bridges.changes);
+  retained.sort((a, b) => a.start - b.start || a.midi - b.midi);
   const ends = new Map<number, number>();
   for (const note of retained) {
     if (note.start < (ends.get(note.midi) ?? -Infinity) - 1e-9) throw new Error(`piano backing overlap on MIDI ${note.midi}`);
@@ -297,6 +304,7 @@ export function compilePhrasePlan(source: ParsedMidi, value: PhrasePlanV1, sourc
     }
   }
   check(events.some(e => e.event.required), "at least one explicitly selected required event is necessary; role proposals alone are not protection");
+  validateChordsBridges(plan);
   // Roles belong to source identities across the entire plan; phrase order and
   // overlapping phrase boundaries do not hide a known sounding event.
   const roleSpans = new Map<string, Interval[]>([["all", intervalIndex(sourceCopy.notes, sourceCopy.sourcePedal)]]);

@@ -53,6 +53,12 @@ MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recover
    exact authorized event with unchanged evidence pins. Preserve protected
    neighbors and retain failed candidates. Stop an unsupported repair method;
    obtain missing evidence or keep the result provisional.
+   For an awkward Chords gap, first preserve any existing source-written
+   counterline or broken accompaniment. If Original continues while backing
+   stops, prefer a brief, explicitly selected source-note bridge over invented
+   chord hits or continuous lead doubling. Follow the [source-gap bridge
+   procedure](references/phrase-protection.md#short-source-gap-bridges), including
+   its capability check, gap bounds, provenance and genuine-rest protection.
 5. **Render and verify delivery.** Follow [delivery requirements](references/evaluation-and-repair.md#deliver-a-usable-package)
    and the [musical gate](references/musical-quality-gate.md). Verify actual
    exports, hands, timing, full-duration sampled-piano previews and hashes.

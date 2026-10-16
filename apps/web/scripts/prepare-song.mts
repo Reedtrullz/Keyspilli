@@ -74,6 +74,7 @@ async function main() {
     const { canonicalPhrasePlan, compilePhrasePlan } = await import("@keyspilli/midi");
     // Refuse stale clocks/events and unselected proposals before creating any run output.
     compilePhrasePlan(parseSymbolicUploadSource(buf).parsed, phrasePlan, sourceSha256);
+    assert(!phrasePlan.chordsBridges?.length || values["source-backed-chords"], "source-gap bridges require --source-backed-chords");
     assert(!values["source-backed-chords"] || phrasePlan.levels.includes("advanced"), "source-backed Chords requires Advanced phrase protection");
     const canonical = canonicalPhrasePlan(phrasePlan);
     assert(Buffer.byteLength(canonical) <= 2 * 1024 * 1024, "canonical phrase plan exceeds 2 MiB");
