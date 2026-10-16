@@ -4,6 +4,7 @@ import { midiBeatToNativeSeconds } from "./parse.js";
 import { mergedNoteLineage } from "./quantize.js";
 import { sourcePedalEnd, sourcePedalErrors } from "./source-pedal.js";
 import { validateVariants } from "./validate.js";
+import { sourceGapBridgeNotes, validateChordsBridges } from "./chords-bridges.js";
 import { LEVEL_ORDER, type DifficultyLevel, type Hand, type Note, type ParsedMidi, type Variant } from "./types.js";
 
 /** Semantic declarations are independent of instrument, track and physical hand. */
@@ -41,6 +42,8 @@ export interface PhrasePlanV1 {
     clock: ReturnType<typeof sourcePhraseClock>;
   };
   phrases: SourcePhrase[];
+  chordsBridges?: Array<{ id: string; startBeat: number; endBeat: number; basis: string;
+    events: Array<{ eventId: string; octaveShift?: number }> }>;
 }
 export interface PhraseProtectionReport {
   schemaVersion: 1;
@@ -52,9 +55,81 @@ export interface PhraseProtectionReport {
   inferredHands: number;
   outputClock: { timebase: "variant-quarter-beats"; sourceTempoBpm: number; playbackTempoBpm: number };
   changes: Array<{ eventId: string; phraseId: string; occurrenceId: string; role: PhraseRole;
-    operation: "restored-source" | "permitted-transformation"; before: Note[]; after: Note[] }>;
+    operation: "restored-source" | "permitted-transformation" | "source-gap-bridge"; before: Note[]; after: Note[] }>;
   /** Full immutable source/policy declarations; not a validated source receipt. */
   plan: PhrasePlanV1;
+}
+
+export function phraseBackingNotes(notes: readonly Note[], report: PhraseProtectionReport | undefined): Note[] {
+  if (!report || report.status !== "preserved") throw new Error("source-backed Chords requires preserved phrase selections");
+  const roles = new Map(report.plan.phrases.flatMap(p => p.events.map(e => [
+    JSON.stringify([e.sourceOriginId, e.sourceOccurrence ?? null]), e.role,
+  ] as const)));
+  const backing = notes.filter(note => {
+    const declared = note.sourceOrigins?.map(origin => roles.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
+      ?? roles.get(JSON.stringify([origin.id, null])));
+    // Reduction merges shared keys. A declared backing contributor still
+    // supports that key; keep all lineage and all transformation permissions.
+    return declared?.length && declared.every(role => role !== undefined && role !== "unknown")
+      && declared.some(role => role === "bass" || role === "harmony" || role === "accompaniment");
+  });
+  if (!backing.length) throw new Error("source-backed Chords has no explicitly selected backing events");
+  return backing;
+}
+
+export function phrasePianoBacking(notes: readonly Note[], report: PhraseProtectionReport | undefined): {
+  notes: Note[]; changes: PhraseProtectionReport["changes"]; unavailableReason?: "shared melody/hook lineage";
+} {
+  const selected = structuredClone(phraseBackingNotes(notes, report)).sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const entries = new Map(report!.plan.phrases.flatMap(phrase => phrase.events.map(event => [
+    JSON.stringify([event.sourceOriginId, event.sourceOccurrence ?? null]), { phrase, event },
+  ] as const)));
+  // Keep a low bass below its support. Use consistent phrase registers and
+  // retain source attacks rather than folding pitches or filling source rests.
+  const registers = new Map(report!.plan.phrases.map(phrase => {
+    const pitches = phrase.events.filter(event => event.role === "bass").map(event => event.expected.midi);
+    const lowest = pitches.reduce((minimum, pitch) => Math.min(minimum, pitch), Infinity);
+    const highest = pitches.reduce((maximum, pitch) => Math.max(maximum, pitch), -Infinity);
+    const shift = pitches.length && highest < 48
+      ? Math.min(24, Math.max(0, Math.ceil((36 - lowest) / 12) * 12)) : 0;
+    const support = phrase.events.filter(event => event.role === "harmony" || event.role === "accompaniment");
+    return [phrase, { bass: shift, support: shift && support.length && support.every(event => event.expected.midi < 60) ? 12 : 0 }] as const;
+  }));
+  const changes: PhraseProtectionReport["changes"] = [];
+  const retained: Note[] = [];
+  for (const note of selected) {
+    const origins = note.sourceOrigins!.map(origin => entries.get(JSON.stringify([origin.id, origin.occurrence ?? null]))
+      ?? entries.get(JSON.stringify([origin.id, null])));
+    const declarations = origins.filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
+    if (declarations.length !== origins.length) throw new Error("piano backing has an undeclared source origin");
+    if (declarations.some(entry => entry.event.role === "melody" || entry.event.role === "hook"))
+      return { notes: [], changes: [], unavailableReason: "shared melody/hook lineage" };
+    const permits = (policy: PhraseTransformation) => declarations.every(entry => !entry.event.required
+      && entry.event.allowedTransformations.includes(policy));
+    const before = structuredClone(note);
+    const recordChange = (after: Note[]) => { for (const entry of declarations) changes.push({
+      eventId: entry.event.id, phraseId: entry.phrase.id, occurrenceId: entry.phrase.occurrenceId,
+      role: entry.event.role, operation: "permitted-transformation", before: [structuredClone(before)], after: structuredClone(after) }); };
+    if (permits("octave-displacement")) {
+      const shifts = declarations.map(entry => {
+        const register = registers.get(entry.phrase)!;
+        return entry.event.role === "bass" ? register.bass : register.support;
+      });
+      if (!shifts.every(shift => shift === shifts[0])) throw new Error("piano backing has conflicting phrase registers");
+      if (shifts[0]) { note.midi += shifts[0]; recordChange([note]); }
+    }
+    retained.push(note);
+  }
+  const bridges = sourceGapBridgeNotes(notes, retained, report!);
+  retained.push(...bridges.notes);
+  changes.push(...bridges.changes);
+  retained.sort((a, b) => a.start - b.start || a.midi - b.midi);
+  const ends = new Map<number, number>();
+  for (const note of retained) {
+    if (note.start < (ends.get(note.midi) ?? -Infinity) - 1e-9) throw new Error(`piano backing overlap on MIDI ${note.midi}`);
+    ends.set(note.midi, note.start + note.dur);
+  }
+  return { notes: retained, changes };
 }
 
 const ROLES: readonly string[] = ["melody", "hook", "bass", "harmony", "accompaniment", "unknown"];
@@ -123,6 +198,9 @@ type Interval = { start: number; end: number };
 function intervalIndex(notes: readonly Note[], pedal: ParsedMidi["sourcePedal"]): Interval[] {
   const spans = notes.map(n => ({ start: n.start, end: pedal ? sourcePedalEnd(n, pedal) : n.start + n.dur }))
     .sort((a, b) => a.start - b.start || a.end - b.end);
+  return mergeIntervals(spans);
+}
+function mergeIntervals(spans: readonly Interval[]): Interval[] {
   const merged: Interval[] = [];
   for (const span of spans) {
     const last = merged.at(-1);
@@ -130,6 +208,12 @@ function intervalIndex(notes: readonly Note[], pedal: ParsedMidi["sourcePedal"])
     else merged.push(span);
   }
   return merged;
+}
+function firstIntersection(spans: readonly Interval[], start: number, end: number): Interval | undefined {
+  let lo = 0, hi = spans.length;
+  while (lo < hi) { const mid = (lo + hi) >>> 1; if (spans[mid]!.end <= start + EPS) lo = mid + 1; else hi = mid; }
+  const span = spans[lo];
+  return span && span.start < end - EPS ? span : undefined;
 }
 function intersects(spans: readonly Interval[], start: number, end: number): boolean {
   let lo = 0, hi = spans.length;
@@ -220,6 +304,7 @@ export function compilePhrasePlan(source: ParsedMidi, value: PhrasePlanV1, sourc
     }
   }
   check(events.some(e => e.event.required), "at least one explicitly selected required event is necessary; role proposals alone are not protection");
+  validateChordsBridges(plan);
   // Roles belong to source identities across the entire plan; phrase order and
   // overlapping phrase boundaries do not hide a known sounding event.
   const roleSpans = new Map<string, Interval[]>([["all", intervalIndex(sourceCopy.notes, sourceCopy.sourcePedal)]]);
@@ -286,6 +371,15 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
     dur: beat(n.start + n.dur) - beat(n.start), hand: n.hand ?? handByPitch.get(n.midi)! }]));
   const sourceIndex = indexOrigins(source.notes);
   const eventBySource = new Map(events.map(e => [e.source, e]));
+  const optionalPolicy = (note: Note, policy: PhraseTransformation) => !!note.sourceOrigins?.length
+    && note.sourceOrigins.every(origin => {
+      const peers = descendants(sourceIndex, { sourceOriginId: origin.id, sourceOccurrence: origin.occurrence } as PhraseEvent);
+      const entry = peers.length === 1 ? eventBySource.get(peers[0]!) : undefined;
+      return !!entry && !entry.event.required && entry.event.allowedTransformations.includes(policy);
+    });
+  const rests = new Map(["all", ...ROLES].map(role => [role, mergeIntervals(plan.phrases.flatMap(p => p.rests
+    .filter(r => r.scope === role).map(r => ({ start: beat(r.startBeat), end: beat(r.endBeat) })))
+    .sort((a, b) => a.start - b.start || a.end - b.end))]));
   const result = variants.map(variant => {
     const report: PhraseProtectionReport = { schemaVersion: 1, sourceSha256: plan.source.sha256,
       status: plan.levels.includes(variant.level) ? "preserved" : "not-targeted", protectedEvents: 0,
@@ -297,7 +391,7 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
     const initialIndex = indexOrigins(variant.notes);
     const beforeByEvent = new Map(required.map(e => [e, descendants(initialIndex, e.event)]));
     const removed = new Set([...beforeByEvent.values()].flat());
-    const notes = variant.notes.filter(n => !removed.has(n)).map(n => structuredClone(n));
+    let notes = variant.notes.filter(n => !removed.has(n)).map(n => structuredClone(n));
     const unisonKey = (n: Note) => `${n.midi}:${n.start.toFixed(8)}:${n.dur.toFixed(8)}`;
     const unisons = new Map<string, Note[]>();
     const addUnison = (n: Note) => { const key = unisonKey(n), bucket = unisons.get(key) ?? []; bucket.push(n); unisons.set(key, bucket); };
@@ -314,7 +408,12 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
         const peer = peers[0]!;
         if (peer === entry.source || eventBySource.get(peer)?.event.required) continue;
         const peerNote = mappedNotes.get(peer)!;
-        check(sameMusic(peerNote, desired) && peerNote.sourceMidiChannel === desired.sourceMidiChannel,
+        const compatible = sameMusic(peerNote, desired) && peerNote.sourceMidiChannel === desired.sourceMidiChannel;
+        const peerEntry = eventBySource.get(peer);
+        if (!compatible && peerEntry && !peerEntry.event.required && peerEntry.event.allowedTransformations.includes("omit")) {
+          continue;
+        }
+        check(compatible,
           `${variant.level}: incompatible unlisted merged source lineage ${origin.id}`);
         Object.assign(desired, exactLineage(desired, peerNote));
       }
@@ -330,7 +429,38 @@ export function applyPhrasePlan(variants: Variant[], compiled: CompiledPhrasePla
         phraseId: entry.phrase.id, occurrenceId: entry.phrase.occurrenceId, role: entry.event.role,
         operation: "restored-source", before: structuredClone(before), after: [structuredClone(desired)] });
     }
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const note = notes[i]!;
+      const entries = (note.sourceOrigins ?? []).flatMap(origin => descendants(sourceIndex, {
+        sourceOriginId: origin.id, sourceOccurrence: origin.occurrence,
+      } as PhraseEvent).map(peer => eventBySource.get(peer)));
+      if (!entries.length || entries.length !== note.sourceOrigins?.length || entries.some(e => !e || e.event.required)) continue;
+      const optional = entries.filter((e): e is BoundEvent => e !== undefined);
+      const scopes = new Set(["all", ...optional.map(e => e.event.role)]);
+      const rest = [...scopes].flatMap(scope => {
+        const span = firstIntersection(rests.get(scope)!, note.start, note.start + note.dur);
+        return span ? [span] : [];
+      }).sort((a, b) => a.start - b.start)[0];
+      if (!rest) continue;
+      if (note.start < rest.start - EPS && optional.every(e => e.event.allowedTransformations.includes("release-change"))) {
+        note.dur = rest.start - note.start;
+      } else if (optional.every(e => e.event.allowedTransformations.includes("omit"))) notes.splice(i, 1);
+    }
     notes.sort((a, b) => a.start - b.start || a.midi - b.midi || a.dur - b.dur || (a.hand ?? "").localeCompare(b.hand ?? ""));
+    const heldKeys = new Map<number, Note>();
+    const omitted = new Set<Note>();
+    for (const note of notes) {
+      const previous = heldKeys.get(note.midi);
+      if (previous && previous.start + previous.dur > note.start + EPS) {
+        if (previous.start < note.start - EPS && optionalPolicy(previous, "release-change")) {
+          previous.dur = note.start - previous.start;
+        } else if (optionalPolicy(note, "omit")) { omitted.add(note); continue; }
+        else if (optionalPolicy(previous, "omit")) omitted.add(previous);
+        else fail(`${variant.level}: protected restoration creates overlapping MIDI ${note.midi}`);
+      }
+      heldKeys.set(note.midi, note);
+    }
+    notes = notes.filter(note => !omitted.has(note));
     const finalIndex = indexOrigins(notes);
     const roleNotes = new Map(ROLES.map(role => [role, new Set<Note>()]));
     for (const entry of events) {

@@ -49,7 +49,8 @@ DETERMINISTIC_REQUIRED = (
     'apps/web/scripts/prepare-workflow.mts', 'apps/web/scripts/prepare-song.mts',
     'apps/web/scripts/prepare-catalog-chords.mts', 'apps/web/scripts/song-bundle.mts',
     'apps/web/src/lib/prepare-workflow.ts', 'apps/web/src/lib/prepare-workflow-pins.ts',
-    'apps/web/src/lib/prepare-workflow-process.ts', 'package.json', 'package-lock.json',
+    'apps/web/src/lib/prepare-workflow-process.ts', 'apps/web/src/lib/prepare-workflow-group.ts',
+    'package.json', 'package-lock.json',
     'catalog/chord-sources.json',
 )
 

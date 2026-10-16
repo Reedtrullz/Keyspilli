@@ -1,7 +1,8 @@
 export * from "./types.js";
 export { analyzeTechnique, TECHNIQUE_DIAGNOSTIC_LIMITS } from "./technique-diagnostics.js";
 export type { TechniqueInput, TechniqueResult, TechniqueReport, TechniqueEvent, TechniqueHeldAttack, TechniqueRegisterTransition, TechniqueSameKeyRecurrence, TechniqueInstant, TechniqueInterval } from "./technique-diagnostics.js";
-export { sourcePhraseClock, canonicalPhrasePlan, compilePhrasePlan, applyPhrasePlan, suggestPhrasePlan } from "./phrase-plan.js";
+export { sourcePhraseClock, canonicalPhrasePlan, compilePhrasePlan, applyPhrasePlan, suggestPhrasePlan, phraseBackingNotes, phrasePianoBacking } from "./phrase-plan.js";
+export { SOURCE_GAP_BRIDGE_CAPABILITY } from "./chords-bridges.js";
 export type { PhrasePlanV1, SourcePhrase, PhraseEvent, PhraseRole, PhraseAuthority, PhraseTransformation, PhraseProtectionReport } from "./phrase-plan.js";
 export { inferHarmonyTimeline, harmonySegments, type HarmonySegment } from "./harmony.js";
 export { CHORDS_TUNING, type ChordsTuning, type HarmonyTuning, type StrikeTuning } from "./chords-tuning.js";
@@ -50,7 +51,7 @@ export {
   DEFAULT_IMPORTED_MAX_SOUNDING,
 } from "./clean.js";
 export { writeMidi } from "./writeMidi.js";
-export { writeMusicXml } from "./writeXml.js";
+export { writeMusicXml, MUSICXML_DIVISIONS } from "./writeXml.js";
 export { buildMetalArrangement, rescueGuitarPreSelectorCandidates, selectGuitarLeadPath } from "./metal-arrange.js";
 export type {
   GuitarLeadPathDiagnostics,

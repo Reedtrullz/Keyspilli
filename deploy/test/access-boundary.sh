@@ -11,7 +11,7 @@ port="${KEYSPILLI_EDGE_TEST_PORT:-38199}"
 backend_port="${KEYSPILLI_EDGE_TEST_BACKEND_PORT:-38200}"
 password='temporary-edge-test-password-2026'
 backend_pid=''
-caddy_image='public.ecr.aws/docker/library/caddy:2.6.2'
+caddy_image='docker.io/library/caddy:2.6.2@sha256:16f4d944907ac8adc93e11df3e4d1b8405d42e4f45e6bc1aae4eb1119552ee79'
 
 cleanup() {
   docker rm -f "$container_name" >/dev/null 2>&1 || true
@@ -23,8 +23,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Shared GitHub runner IPs can trip the ECR Public anonymous surface rate
-# ("Rate exceeded"); throttle windows are short, so pull with bounded backoff.
 pull_ok=0
 for attempt in 1 2 3 4 5; do
   if docker pull "$caddy_image"; then

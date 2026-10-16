@@ -1,11 +1,23 @@
-import { CHORDS_TUNING, groupAttackClusters, inferHarmonyTimeline, type Note } from "@keyspilli/midi";
-import type { ChordTimelineArtifact } from "@keyspilli/catalog";
+import { canonicalPhrasePlan, CHORDS_TUNING, groupAttackClusters, inferHarmonyTimeline, phrasePianoBacking, type Note, type PhraseProtectionReport } from "@keyspilli/midi";
+import { createHash } from "node:crypto";
+import type { ArrangementManifest, ChordTimelineArtifact } from "@keyspilli/catalog";
 import type { SongData } from "@keyspilli/player-core";
 import { projectChordSources } from "./catalog-api";
 import { replayChordsBacking } from "../components/player/chords-backing";
 import { evaluateChordsBacking, snapshotChordsBacking } from "./chords-evaluation";
 
 type Snapshot = ReturnType<typeof snapshotChordsBacking>;
+
+export function sourceBoundHarmony(data: SongData, report: PhraseProtectionReport | undefined,
+  pin: ArrangementManifest["phrasePlan"] | undefined) {
+  if (!report || report.status !== "preserved" || !pin || report.sourceSha256 !== pin.sourceSha256
+    || createHash("sha256").update(canonicalPhrasePlan(report.plan)).digest("hex") !== pin.sha256)
+    throw new Error("source-backed Chords requires the retained, pinned Advanced phrase plan");
+  const backing = phrasePianoBacking(data.notes, report);
+  if (backing.unavailableReason)
+    throw new Error(`source-backed Chords has ${backing.unavailableReason}; prepare chordal backing without --source-backed-chords`);
+  return inferHarmonyTimeline(backing.notes, data.measures, { key: data.key, policy: "conservative-backing-v1" });
+}
 function attacks(snapshot: Snapshot): Note[] {
   return [...snapshot.notes, ...snapshot.chords.flatMap(c => c.notes.map((midi, i) => ({
     midi, start: c.beat, dur: c.durationBeats ?? 0, vel: 80, hand: c.suggestedHands[i],

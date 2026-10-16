@@ -43,6 +43,23 @@ test("paused Grand Piano selection prepares one sample set and reuses it after a
   } finally { release(); }
 });
 
+test("natural completion rewinds the visible position between progress refreshes", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+  await page.goto(song);
+  const seek = page.getByRole("slider", { name: "Seek", exact: true });
+  await expect(seek).toBeEnabled();
+  await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
+  const end = Number(await seek.getAttribute("max"));
+  expect(end).toBeGreaterThan(0.2);
+  await seek.fill((Math.floor((end - 0.05) * 100) / 100).toFixed(2));
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await page.clock.runFor(80);
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Playback status", { exact: true })).toContainText("Ready");
+  await expect(seek).toHaveValue("0");
+  await expect(seek).toHaveAttribute("aria-valuetext", /^Bar 1 of /);
+});
+
 test("Charcoal appearance is shared by player and app, persists and returns to Light", async ({ page }) => {
   await page.goto(song);
   await page.getByRole("button", { name: "Charcoal mode", exact: true }).click();

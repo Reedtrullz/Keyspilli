@@ -176,7 +176,7 @@ jobs:
           test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
           pull_ok=0
           for attempt in 1 2 3 4 5; do
-            if docker pull public.ecr.aws/docker/library/node:22.22.3-bookworm-slim; then
+            if docker pull docker.io/library/node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752; then
               pull_ok=1
               break
             fi

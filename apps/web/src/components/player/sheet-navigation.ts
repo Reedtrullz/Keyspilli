@@ -1,4 +1,4 @@
-import { parseMusicXmlNotes, type Note, type MeasureInfo } from "@keyspilli/midi";
+import { MUSICXML_DIVISIONS, parseMusicXmlNotes, type Note, type MeasureInfo } from "@keyspilli/midi";
 export interface ScoreMeasure extends MeasureInfo { elementId: string }
 export function prepareScoreNavigation(xml: string, source: { notes: readonly Note[]; measures: readonly MeasureInfo[]; sourceFingerprint?: string }, revision: string | null | undefined, responseRevision: string | null): { xml: string; measures: ScoreMeasure[] } {
   if (!revision || responseRevision !== revision || !source.sourceFingerprint) throw new Error("Score interaction needs an exact current source and publication.");
@@ -7,7 +7,9 @@ export function prepareScoreNavigation(xml: string, source: { notes: readonly No
     || source.measures.some(m=>!Number.isFinite(m.startBeat)||m.startBeat<0||!Number.isFinite(m.endBeat)||m.endBeat<=m.startBeat)
     || (xml.match(/<part(?=[\s>])/g) ?? []).length !== 1) throw new Error("This notation is outside the supported interactive subset.");
   const parsed = parseMusicXmlNotes(xml);
-  const shape = (notes: readonly Note[]) => notes.map(n => [n.midi,n.start,n.dur]).sort((a,b)=>a[1]!-b[1]!||a[0]!-b[0]!||a[2]!-b[2]!);
+  // Compare the writer's representable ticks, not the playback's sub-tick floats.
+  // Pitch, attack multiplicity and the source measure map remain exact checks.
+  const shape = (notes: readonly Note[]) => notes.map(n => [n.midi,Math.round(n.start*MUSICXML_DIVISIONS),Math.round(n.dur*MUSICXML_DIVISIONS)]).sort((a,b)=>a[1]!-b[1]!||a[0]!-b[0]!||a[2]!-b[2]!);
   const expected = shape(source.notes), actual = shape(parsed.notes);
   if (actual.length !== expected.length || actual.some((note,i)=>note.some((value,j)=>Math.abs(value!-expected[i]![j]!)>1e-6))
     || parsed.notationMeasures?.length !== source.measures.length

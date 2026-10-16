@@ -7,6 +7,89 @@ absence does not block ordinary preparation. This source-profile pilot protects
 explicit Original note events; it does not certify the Chords reduction or
 select musically correct roles automatically.
 
+When the checkout advertises `prepare-song.mts --source-backed-chords`, pair
+that opt-in with `--phrase-plan` targeting Advanced. The shared Chords backing
+uses keys with a contributor explicitly selected as bass, harmony or accompaniment
+in the pinned plan. It plays those retained Advanced notes directly, including
+monophonic or broken accompaniment without a complete chord stack. Conservative
+harmony supplies inferred labels; it cannot erase declared backing attacks or
+invent missing tones. Standalone melody/hook events and keys with unknown or
+unlisted lineages are excluded. Shared keys with only backing contributors keep
+all lineage and permissions. A shared melody/hook contributor makes the raw
+source-backed preview unavailable for the whole arrangement. Do not delete its
+lineage or drop backing notes to bypass this conflict. Prepare the ordinary
+chordal backing from the same input in a new run, without
+`--source-backed-chords`, and keep the rejected run. If the plan declares
+`chordsBridges`, make a fresh working plan copy with only those bridge
+declarations removed, retaining all other source pins and protections; use that
+copy for ordinary backing. Preserve the rejected plan too. Older checkouts may lack
+this check; flag discovery alone does not qualify direct doubled-lead playback.
+The backing remains inferred and provisional; selection is not source validation.
+Ordinary generated backing remains available without this opt-in.
+
+## Short source-gap bridges
+
+Chords should remain chord-led while carrying useful source-written linking
+figures between backing entrances. Preserve existing bass, harmony and broken
+accompaniment first, even under an unresolved `N.C.` label. Do not force a chord
+into a passage merely to eliminate silence. If Original continues through a
+short internal backing gap, inspect its exact notes and select one sparse
+instrumental linking voice. Keep genuine whole-source rests, pickups, endings
+and singing space; do not copy the continuous Advanced lead. A physical hand,
+track number or highest/lowest pitch alone cannot establish a musical role.
+
+Check the maintained inspector before adding bridge declarations:
+
+```sh
+"$KEYSPILLI_NODE" --import tsx apps/web/scripts/phrase-plan.mts capabilities
+```
+
+Require `sourceGapBridges: "source-gap-bridges-v1"`. An older checkout that
+rejects this command or omits the capability must retain its existing backing
+and report bridge support unavailable. Do not pass a bridge plan to it, relabel
+melody as harmony to bypass exclusion, or invent another command/flag.
+
+In a new working copy of the source-pinned plan, add optional `chordsBridges`:
+
+```json
+{
+  "chordsBridges": [{
+    "id": "transition-link",
+    "startBeat": 24,
+    "endBeat": 27,
+    "basis": "Source-linked instrumental connecting voice; arrangement selection, not validated harmony",
+    "events": [{ "eventId": "EXACT-INSPECTED-EVENT-ID" }]
+  }]
+}
+```
+
+This fragment augments a complete plan; its coordinates are source quarter
+beats. Name actual retained melody event IDs from that plan, preserving their
+roles, evidence authority and source origins. The compiler does not choose
+musically suitable bridges automatically. At most sixteen selected events may
+occupy one internal backing gap, with one voice and no overlap. Both the
+selection window and the entire backing gap are bounded by eight source quarter
+beats; the gap must also fit six native seconds. Bridge windows cannot cross a
+declared whole-source rest. They stop before backing returns. Intro/outro gaps,
+hooks, unknown/shared lineages and missing or retimed notes are refused.
+
+Use exact source attacks, releases, pitches, velocity and hands. An individual
+selection may specify `octaveShift` of -24, -12, 12 or 24 only when that optional
+event explicitly allows `octave-displacement`; zero/omitted means unchanged.
+Keep a compact source-derived register rather than importing a high lead stack.
+Original is unchanged. Playback records each addition as `source-gap-bridge`
+with its original melody role and before/after notes. This is an arrangement
+exception, not evidence that melody was authenticated as source harmony.
+
+Prepare with the existing `--phrase-plan FILE --source-backed-chords` route in
+a fresh run. Keep the previous candidate and baselines. Verify actual Player
+replay, MIDI/XML and preview through each bridge, the neighboring backing
+entrances, genuine breaths and full ending. Check that no bridge plays outside
+its selected windows; compare Original notes/clocks and unaffected Chords
+against their retained versions. Label the result provisional until its actual
+musical evidence supports more. Owner feedback, software checks and independent
+musical/keyboard acceptance remain separate.
+
 ## Inspect exact bytes and select evidence
 
 From the selected checkout, use the absolute compatible Node returned by
@@ -82,6 +165,12 @@ channel-scoped sustain-pedal resonance. A melody rest permits unrelated
 accompaniment. Source contradictions, stale or ambiguous origins, incompatible
 merged lineages and mechanical/duration-limit conflicts are refusals. Do not
 edit a source pin, erase another origin or drop a required note to bypass them.
+
+When ordinary reduction extends an optional note into a selected rest, the
+host may shorten its tail only with explicit `release-change` permission, or
+remove it only with explicit `omit` permission for every represented lineage.
+Required and unlisted events keep their refusal boundary. This correction
+does not relax sounding, pedal, density or difficulty limits.
 
 Compatible exact unisons retain every source occurrence. The pilot refuses
 ambiguous physical collisions and unsupported source-pedal semantics. It does

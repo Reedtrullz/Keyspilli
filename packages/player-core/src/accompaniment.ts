@@ -9,6 +9,7 @@ import {
   type ChordLabel,
   type Note,
   type ProtectedMelodyNote,
+  type PhraseProtectionReport,
   type StrikeTuning,
 } from "@keyspilli/midi";
 import { supportedSourceStrikes } from "./supported-source-strikes.js";
@@ -19,6 +20,7 @@ export type AccompanimentHand = "L" | "R";
 export type AccompanimentFallbackReason =
   | "no source notes"
   | "no supported source attack"
+  | "shared melody/hook lineage"
   | "unsupported chord"
   | "explicit no-chord"
   | "uncertain harmony"
@@ -49,6 +51,7 @@ export interface AccompanimentResolution {
   /** Note events for visual guidance; audio uses source notes plus chords. */
   guidanceNotes: Note[];
   fallbackSpans: AccompanimentFallbackSpan[];
+  sourceTransformations?: PhraseProtectionReport["changes"];
 }
 
 export interface AccompanimentChord extends ChordLabel {

@@ -41,9 +41,30 @@ Optional constrained phrase edits require `apps/web/scripts/arrange-song.mts`; p
 
 For one completed local MIDI source, optional `prepare-workflow.mts` adds exact input/instruction pins, a prepared checkpoint, bounded explicit retries and read-only verification of retained outputs. Require `deterministic_workflow.status: compatible` and follow [deterministic preparation](skills/keyspilli-song/references/deterministic-preparation.md). This separate prototype reuses ordinary six-tier preparation and isolated bundle imports. The experimental decision/selection driver has its own compatibility check. Checkpoint completion leaves source, listening and musical acceptance provisional; the wrapper makes no model calls or cost-saving claim.
 
+The packaged `pin_preparation_request.py` helper constructs that native request from selected local files, computes their hashes and refuses source-pin mismatches or existing outputs. It does not execute preparation or decide source/plan authority. Use the returned request path, then let the compatible host perform full admission.
+
 No MCP server, daemon or deployment hook is included. Import commands prepare isolated offline catalogs; live publication still requires the user's authorization.
 
+The optional [complete delivery procedure](skills/keyspilli-song/references/complete-delivery.md)
+connects ordinary preparation to both checked WAV previews, matching exports,
+all six Original variants and a relocatable playback index. Rendering failure
+keeps the prepared bundle and usable mode; retry delivery to a new directory,
+not source acquisition. Discover the actual CLI before using the new flags.
+This is provisional software-checked delivery, not musical approval or release.
+
 ## Maintain
+
+The 20261016 chord-led candidate refuses a raw source-backed preview when a
+shared note also carries a declared melody or hook. The ordinary chordal route
+remains available from the same input in a new run; Original is unchanged by
+this refusal. This corrects a mode-boundary failure, not musical acceptance.
+
+The earlier 20261014 source-backing candidate adds an opt-in from a pinned Advanced
+PhrasePlan and preserves explicitly selected rests when a permitted optional
+tail can be shortened. All six Original variants still ship; only targeted
+tiers have exact phrase protections. This is a provisional source candidate,
+with musical/keyboard review, inexpensive-model comparison and installed
+adoption recorded separately. It has not been published or installed.
 
 Edit this plugin's `skills/keyspilli-song/` as the canonical source and commit reviewed changes to Git. Installed plugin caches are release snapshots. Packaging and compatibility checks do not install or release a version. Version bumps, installed adoption and distribution require the relevant separate authorization; do not maintain a second independent skill copy.
 
@@ -55,8 +76,9 @@ python3 skills/keyspilli-song/scripts/prepare_syntheory.py --self-test
 python3 skills/keyspilli-song/scripts/check_tutorial_delivery.py --self-test
 python3 skills/keyspilli-song/scripts/normalize_ug_score.py --self-test
 python3 skills/keyspilli-song/scripts/recover_vocal.py --self-test
+python3 skills/keyspilli-song/scripts/pin_preparation_request.py --self-test
 ```
 
-From the repository root, run `python3 -B scripts/check-keyspilli-plugin.py --source plugins/keyspilli --checkout . --node /absolute/compatible/node --report /absolute/new-check.json`. This builds and extracts a candidate archive, validates the plugin/skill metadata and every packaged reference, runs every packaged helper's offline help/self-test, probes implemented host capabilities and completes a synthetic ordinary preparation in fresh temporary catalogs. The report pins archive/source-tree hashes, the selected runtime, capabilities and test results. It does not render a sampled piano or contact a provider. Synthetic controls remain software evidence and never grant listening, source or publication approval.
+From the repository root, run `python3 -B scripts/check-keyspilli-plugin.py --source plugins/keyspilli --checkout . --node /absolute/compatible/node --report /absolute/new-check.json`. This builds and extracts a candidate archive, validates the plugin/skill metadata and every packaged reference, runs every packaged helper's offline help/self-test, probes implemented host capabilities and completes a synthetic ordinary preparation in fresh temporary catalogs. When the deterministic host is compatible, it also constructs a request with the extracted helper and verifies that the actual TypeScript host admits those same input bytes. The report pins archive/source-tree hashes, the selected runtime, capabilities and test results. It does not render a sampled piano or contact a provider. Synthetic controls remain software evidence and never grant listening, source or publication approval.
 
 The tracked `plugins/keyspilli` tree in Keyspilli is the release source for this candidate. Canonical and installed copies retain their previous versions until explicit adoption. Build with `scripts/package-keyspilli-plugin.py`; the sorted source inventory pins every source member.

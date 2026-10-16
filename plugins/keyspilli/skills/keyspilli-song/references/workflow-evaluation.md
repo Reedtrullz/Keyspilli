@@ -4,6 +4,22 @@ This is an evaluation protocol, not a capability or a completed model benchmark.
 First-wave checks are deterministic and offline. Obtain separate authorization
 before paid inference, provider experiments or external musical qualification.
 
+The authorized local API trial uses the existing exact-account
+`main/gpt-6-luna` selector with verified included main-account quota and low
+reasoning, and `B.AI/mimo-v2.6-flash` with its native default reasoning. Both use
+streaming through OCX; accumulated content, tool arguments, reasoning and final
+usage are validated within the existing response and absolute session bounds.
+OCX's native Chat path drops `thinking.type`, so it cannot establish a requested
+disabled-thinking configuration on this runtime. These are
+explicit protocol configurations, distinct from native Codex adoption. The
+shared $5 campaign ledger retains earlier failed calls and unknown-use ceilings.
+An explicit `--retry-blocked-route` admits a repaired-protocol trial only in that
+invocation; it never clears historical blocks, spending or a stopped budget.
+A validated response can record recovery for that same frozen experiment, tied
+to retained response bytes. That proof permits the ordinary four-cell-to-96-cell
+resume, and altered proof bytes or later quota/auth errors stop that route again.
+Revised source/protocol requires a new frozen experiment, with old results kept.
+
 Freeze the repository commit, plugin package/source-tree hashes, loaded files,
 source bytes, prompts, allowed tools, provider/model/effort and hard cost limit.
 Run each model in a fresh isolated workspace with the same accepted references.

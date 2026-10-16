@@ -17,6 +17,12 @@ and a fresh isolated installation. NEW_RUN_DIR must be new and inside this check
 
   --phrase-plan FILE   Optional source-bound protection plan, at most 2 MiB.
                        Requires exact source bytes/clock and at least one explicitly required event.
+  --source-backed-chords Use the plan's explicit backing roles with conservative harmony.
+                       Requires --phrase-plan targeting Advanced; roles remain provisional.
+  --previews           Also build a checked portable delivery in NEW_RUN_DIR/delivery.
+  --soundfont FILE     Explicit local piano bank for --previews.
+  --executable FILE    Explicit FluidSynth executable for --previews.
+  --level LEVEL        Original preview tier for --previews (default a).
   --help, -h           Show this help.
 
 Inspect source origins with phrase-plan.mts inspect before selecting protections. Role proposals
@@ -25,10 +31,16 @@ const hash = (bytes: string | Uint8Array) => createHash("sha256").update(bytes).
 
 async function main() {
   const { values, positionals, tokens } = parseArgs({ allowPositionals: true, tokens: true, options: {
-    "phrase-plan": { type: "string" }, help: { type: "boolean", short: "h" },
+    "phrase-plan": { type: "string" }, "source-backed-chords": { type: "boolean" }, previews: {type: "boolean"}, soundfont: {type: "string"}, executable: {type: "string"}, level: {type: "string"}, help: { type: "boolean", short: "h" },
   } });
   if (values.help) { console.log(usage); return; }
   assert(tokens.filter(token => token.kind === "option" && token.name === "phrase-plan").length <= 1, "--phrase-plan may be supplied only once");
+  for (const name of ["previews", "soundfont", "executable", "level", "source-backed-chords"])
+    assert(tokens.filter(t => t.kind === "option" && t.name === name).length <= 1, `--${name} may be supplied only once`);
+  assert(values.previews || (values.soundfont === undefined && values.executable === undefined && values.level === undefined), "renderer options require --previews");
+  assert(!values["source-backed-chords"] || values["phrase-plan"] !== undefined, "source-backed Chords requires an explicit phrase plan");
+  for (const value of [values.soundfont, values.executable]) assert(value === undefined || value.trim(), "renderer path must not be empty");
+  assert(values.level === undefined || ["a", "m", "e", "ve", "b", "vb"].includes(values.level), "invalid Original preview tier");
   assert(positionals.length === 4 && positionals.every(value => value.trim()), usage);
   const [inputArg, runArg, title, artist] = positionals as [string, string, string, string];
   const run = resolve(runArg), rel = relative(process.cwd(), run);
@@ -62,6 +74,8 @@ async function main() {
     const { canonicalPhrasePlan, compilePhrasePlan } = await import("@keyspilli/midi");
     // Refuse stale clocks/events and unselected proposals before creating any run output.
     compilePhrasePlan(parseSymbolicUploadSource(buf).parsed, phrasePlan, sourceSha256);
+    assert(!phrasePlan.chordsBridges?.length || values["source-backed-chords"], "source-gap bridges require --source-backed-chords");
+    assert(!values["source-backed-chords"] || phrasePlan.levels.includes("advanced"), "source-backed Chords requires Advanced phrase protection");
     const canonical = canonicalPhrasePlan(phrasePlan);
     assert(Buffer.byteLength(canonical) <= 2 * 1024 * 1024, "canonical phrase plan exceeds 2 MiB");
     phrasePlanPin = { schemaVersion: 1, path: join(run, "phrase-plan.json"), sha256: hash(canonical), fileSha256: hash(planBytes), sourceSha256 };
@@ -80,7 +94,7 @@ async function main() {
   const inventory = join(run, "inventory.json"), prepared = join(run, "prepared"), bundle = join(run, "bundle"), installed = join(run, "installed");
   writeFileSync(inventory, JSON.stringify([{ representative: { baseId, title, artist } }]), { flag: "wx" });
   const call = (script: string, args: string[], env = process.env) => execFileSync(process.execPath, ["--import", "tsx", `apps/web/scripts/${script}.mts`, ...args], { env, stdio: "inherit" });
-  call("prepare-catalog-chords", [inventory, prepared, "--repair"]);
+  call("prepare-catalog-chords", [inventory, prepared, values["source-backed-chords"] ? "--source-backed" : "--repair"]);
   call("song-bundle", ["pack", baseId, prepared, bundle]);
   call("song-bundle", ["install", bundle, installed]);
   call("song-bundle", ["install", bundle, installed]);
@@ -88,6 +102,12 @@ async function main() {
     ...(phrasePlanPin ? { phrasePlan: phrasePlanPin } : {}),
     checks: { freshImport: true, musicalIdempotence: true }, status: "provisional", remaining: "reference/audio assessment; not automatically musically approved" }, null, 2), { flag: "wx" });
   console.log(`Prepared both modes for ${title}: ${bundle}`);
+  if (values.previews) {
+    const { deliverSong } = await import("../src/lib/song-delivery.js");
+    const delivery = await deliverSong(run, join(run, "delivery"), values);
+    console.log(`Preview delivery ${delivery.status}: ${join(run, "delivery/index.html")}`);
+    if (delivery.status !== "complete-provisional") process.exitCode = 1;
+  }
 }
 
 try { await main(); }

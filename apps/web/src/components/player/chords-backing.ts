@@ -10,11 +10,18 @@ import {
 } from "@keyspilli/player-core";
 import { resolveChordSources, selectChordSource, type ChordSourceId, type ChordSourceResolution, type SelectedChordSource } from "./chord-sources";
 import { reviewedSourceBacking } from "./reviewed-source-backing";
+import { phrasePianoBacking } from "@keyspilli/midi";
 
 const clocksSourceFingerprint = "variant:coldplay-clocks:a:coldplay-clocks-a:6f318e8fcf70028535ded2b2509a0f4db10fa0b56a3987b469f760df582448fc:notes:053b40ebcf93fad16c80e470042cc1fa69b716c77a31f64a7cbb49ab77e90a51";
 const winnerSourceFingerprint = "variant:abba-the-winner-takes-it-all:a:abba-the-winner-takes-it-all-a:54fdc6dfba535308b19583a24ca6cb284813bb2ae84e42abe4cac8b062a57eb2:notes:9d9ae9b17b3bd10ebc973d549b12d1102606e66a9342a4702d449e7f73afd664";
 const journeySourceFingerprint = "variant:journey-dont-stop-believin:a:journey-dont-stop-believin-a:08a07ee27a19467cc7257f18cc0b67311bebc02a135c7b814b2ef798585ec717:notes:d4fe2e2e14bb77889a37f6fe37a040df8c470897270c128c09675ab21a04b354";
 const thoseDaysSourceFingerprint = "variant:mary-hopkin-those-were-the-days:a:mary-hopkin-those-were-the-days-a:28ad9166ff01da3b2b50ce23654ed7517154b0492af5d5d7931149fc5fc93945:notes:5b76fc45646effb0b6dd9382fe7481c8505647dffdb29be6be36215ba02c1545";
+
+export function accompanimentFallbackNotice(sourceId: string | undefined, style: string, detail: string): string {
+  if (style !== "bass-chords") return `Original passage retained — ${detail}`;
+  if (sourceId === "prepared-source-backed") return `Backing needs review — ${detail}`;
+  return `Backing unavailable — source melody omitted: ${detail}`;
+}
 
 function sourcePlayedVoicings(data: SongData, selected: readonly ChordLabel[], resolution: AccompanimentResolution): AccompanimentResolution {
   const clocks = data.sourceFingerprint === clocksSourceFingerprint;
@@ -128,9 +135,19 @@ export function bassChordsBackground(
   if (sourceBackingNotes) {
     return { style: "bass-chords", notes: sourceBackingNotes, chords: [], displayChords: [], guidanceNotes: sourceBackingNotes, fallbackSpans: [] };
   }
-  const resolution = sourcePlayedVoicings(data, chords, resolveAccompaniment(data.notes, chords, "bass-chords", {
+  const sourceBacked = data.chordProvenance?.sourceId === "prepared-source-backed";
+  const projection = sourceBacked ? phrasePianoBacking(data.notes, data.phraseProtection) : null;
+  if (projection?.unavailableReason) return { style: "bass-chords", notes: [], chords: [], displayChords: [], guidanceNotes: [],
+    fallbackSpans: [{ startBeat: 0, endBeat: arrangementEnd, reason: projection.unavailableReason }] };
+  const notes = projection?.notes ?? data.notes;
+  const resolution = sourcePlayedVoicings(data, chords, resolveAccompaniment(notes, chords, "bass-chords", {
     durationBeats: arrangementEnd, sourceRhythmMeasures: data.measures, ...options,
+    ...(sourceBacked ? { generatedHarmonyPolicy: "conservative-backing-v1" as const } : {}),
   }));
+  if (sourceBacked) {
+    return { ...resolution, notes, chords: [], guidanceNotes: notes,
+      ...(projection!.changes.length ? { sourceTransformations: projection!.changes } : {}) };
+  }
   if (data.sourceFingerprint === journeySourceFingerprint && data.chordProvenance?.provider !== "owner-candidate") {
     // This chordal RH phrase repeats exactly; the RH elsewhere carries the vocal line.
     const laterBassOnly = (beat: number) => (beat >= 244 && beat < 308) || beat >= 372;

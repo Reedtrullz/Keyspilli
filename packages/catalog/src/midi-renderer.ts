@@ -11,7 +11,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
-import { parseMidi, type ParsedMidi } from "@keyspilli/midi";
+import { parseMidi, midiBeatToNativeSeconds, type ParsedMidi } from "@keyspilli/midi";
 
 const execFileDefault = promisify(execFileCallback) as unknown as ExecFilePromise;
 const MAX_EXEC_OUTPUT = 16 * 1024 * 1024;
@@ -20,6 +20,8 @@ const DEFAULT_GAIN = 1;
 const DEFAULT_TARGET_PEAK = 0.95;
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 const DEFAULT_DURATION_TOLERANCE_SECONDS = 2;
+// A release tail may be longer than the score; missing source time is different.
+const MAX_DURATION_SHORTFALL_SECONDS = 0.01;
 const MIN_SAMPLE_RATE = 8_000;
 const MAX_SAMPLE_RATE = 192_000;
 
@@ -254,7 +256,11 @@ function midiExpectedDuration(parsed: ParsedMidi): number {
   if (!finite(parsed.tempoBpm) || parsed.tempoBpm <= 0 || !finite(parsed.durationBeats) || parsed.durationBeats < 0) {
     throw new MidiRendererError("INVALID_INPUT", "MIDI contains invalid tempo or duration metadata");
   }
-  return parsed.durationBeats * 60 / parsed.tempoBpm;
+  const seconds = midiBeatToNativeSeconds(parsed, parsed.durationBeats);
+  if (!finite(seconds) || seconds < 0) {
+    throw new MidiRendererError("INVALID_INPUT", "MIDI contains an invalid native playback clock");
+  }
+  return seconds;
 }
 
 function readAscii(view: DataView, offset: number, length: number): string {
@@ -376,16 +382,21 @@ function canonicalPcm16Wav(data: WavPcmData, targetPeak: number): { bytes: Uint8
   };
 }
 
-function durationValidation(expectedSeconds: number, renderedSeconds: number): MidiDurationValidation {
+export function validateMidiRenderDuration(expectedSeconds: number, renderedSeconds: number): MidiDurationValidation {
   const deltaSeconds = renderedSeconds - expectedSeconds;
-  const toleranceSeconds = Math.max(DEFAULT_DURATION_TOLERANCE_SECONDS, expectedSeconds * 0.05);
+  const shortfall = deltaSeconds < 0;
+  const toleranceSeconds = shortfall
+    ? MAX_DURATION_SHORTFALL_SECONDS
+    : Math.max(DEFAULT_DURATION_TOLERANCE_SECONDS, expectedSeconds * 0.05);
   const absolute = Math.abs(deltaSeconds);
+  // Avoid turning an exact 10 ms boundary into a failure through subtraction noise.
+  const withinTolerance = absolute <= toleranceSeconds + 1e-9;
   return {
     expectedSeconds: round(expectedSeconds),
     renderedSeconds: round(renderedSeconds),
     deltaSeconds: round(deltaSeconds),
     toleranceSeconds: round(toleranceSeconds),
-    status: absolute <= toleranceSeconds ? "pass" : absolute <= toleranceSeconds * 2 ? "warning" : "fail",
+    status: withinTolerance ? "pass" : !shortfall && absolute <= toleranceSeconds * 2 ? "warning" : "fail",
   };
 }
 
@@ -437,6 +448,9 @@ export function createFluidSynthRenderer(options: MidiRendererOptions = {}): Mid
         await execFile(config.executable, args, {
           shell: false,
           timeout: config.timeoutMs,
+          // A configured timeout must not wait indefinitely for a backend that
+          // handles TERM without exiting. This bounds the direct renderer process.
+          killSignal: "SIGKILL",
           maxBuffer: MAX_EXEC_OUTPUT,
           windowsHide: true,
         });
@@ -481,7 +495,7 @@ export function createFluidSynthRenderer(options: MidiRendererOptions = {}): Mid
         },
         soundfont: { path: soundfontPath, bytes: soundfont.size, sha256: soundfont.sha256 },
         wav: wavInfo,
-        duration: durationValidation(expectedSeconds, canonical.metrics.durationSeconds),
+        duration: validateMidiRenderDuration(expectedSeconds, canonical.metrics.durationSeconds),
       };
     },
   };

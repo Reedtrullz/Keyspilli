@@ -3,9 +3,10 @@ import { createHash } from "node:crypto";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { suggestPhrasePlan } from "@keyspilli/midi";
+import { suggestPhrasePlan, SOURCE_GAP_BRIDGE_CAPABILITY } from "@keyspilli/midi";
 
 const usage = `Usage: node --import tsx apps/web/scripts/phrase-plan.mts inspect INPUT NEW_PLAN_JSON --composition-id ID --performance-id ID
+       node --import tsx apps/web/scripts/phrase-plan.mts capabilities
 
 Inspect exact local MIDI, MusicXML or compressed MXL bytes and write a new phrase-plan JSON file.
 The output includes source SHA-256, native clock and real origin IDs. Role proposals are uncertain;
@@ -23,6 +24,10 @@ async function main() {
     "composition-id": { type: "string" }, "performance-id": { type: "string" }, help: { type: "boolean", short: "h" },
   } });
   if (values.help) { console.log(usage); return; }
+  if (positionals.length === 1 && positionals[0] === "capabilities") {
+    if (tokens.some(token => token.kind === "option")) throw new Error("capabilities accepts no options");
+    console.log(JSON.stringify(SOURCE_GAP_BRIDGE_CAPABILITY)); return;
+  }
   for (const name of ["composition-id", "performance-id"]) {
     if (tokens.filter(token => token.kind === "option" && token.name === name).length > 1) throw new Error(`--${name} may be supplied only once`);
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVariants, parseMidi, parseMusicXmlNotes, writeVariantArtifacts, type ParsedMidi } from "../src/index.js";
+import { applyPhrasePlan, buildVariants, compilePhrasePlan, parseMidi, parseMusicXmlNotes, writeVariantArtifacts, type ParsedMidi, type PhrasePlanV1 } from "../src/index.js";
 import corpus from "./fixtures/phrase-corpus.json";
 import * as midiApi from "../src/index.js";
 
@@ -33,6 +33,25 @@ const run = (source: ParsedMidi, plan: unknown, sourceSha256 = HASH) => buildVar
   { arrangementProfile: "source", maxDurBeats: null, normalizeRange: false, phrasePlan: plan, sourceSha256 } as Parameters<typeof buildVariants>[2]);
 
 describe("explicit source-bound phrase contract", () => {
+  it("shortens only a permitted optional reduction tail to preserve a source rest", () => {
+    const { source, plan } = fixture();
+    const compiled = compilePhrasePlan(source, plan as PhrasePlanV1, HASH);
+    const advanced = run(source, plan).find(v => v.level === "advanced")!;
+    const tail = advanced.notes.filter(n => n.sourceOrigins?.some(o => plan.phrases[0]!.events.some(e =>
+      e.sourceOriginId === o.id && !e.required))).at(-1)!;
+    expect(tail).toBeDefined();
+    const origin = tail.sourceOrigins![0]!.id;
+    tail.dur = 16.5 - tail.start;
+    const result = applyPhrasePlan([advanced], compiled)[0]!;
+    const reduced = result.notes.find(n => n.sourceOrigins?.some(o => o.id === origin))!;
+    expect(reduced.midi).toBe(tail.midi);
+    expect(reduced.start).toBe(tail.start);
+    expect(reduced.start + reduced.dur).toBe(16);
+    expect(result.notes.every(n => n.start + n.dur <= 16)).toBe(true);
+    const forbidden = structuredClone(plan) as PhrasePlanV1;
+    forbidden.phrases[0]!.events.find(e => e.sourceOriginId === origin)!.allowedTransformations = ["octave-displacement", "onset-change", "hand-reassignment", "velocity-change"];
+    expect(() => applyPhrasePlan([advanced], compilePhrasePlan(source, forbidden, HASH))).toThrow(/phrase/i);
+  });
   for (let index = 0; index < corpus.cases.length; index++) {
     it(`preserves exact selected events through all six tiers: ${corpus.cases[index]!.compositionId}`, () => {
       const { source, plan, item } = fixture(index);
@@ -223,6 +242,73 @@ describe("explicit source-bound phrase contract", () => {
     collision.sourceOrigins = [{ id: "unlisted-offset-attack", occurrence: 1 }];
     source.notes.push(collision);
     expect(() => run(source, plan)).toThrow(/incompatible unlisted merged source lineage/i);
+  });
+
+  it("restores a protected attack when every colliding optional source is explicitly permitted to be omitted", () => {
+    const { source, plan } = fixture();
+    source.notes = source.notes.filter(n => n.sourceOrigins![0]!.part === "identity");
+    plan.phrases[0]!.events = plan.phrases[0]!.events.filter(e => e.required);
+    const protectedNote = source.notes[0]!;
+    const collision = { ...structuredClone(protectedNote), dur: 8,
+      sourceOrigins: [{ id: "listed-optional-pad", occurrence: 1 as const, part: "harmony" }] };
+    source.notes.push(collision);
+    const optional = { id: "optional-pad", sourceOriginId: "listed-optional-pad", sourceOccurrence: 1 as const,
+      role: "harmony", priority: 10, expected: { midi: collision.midi, startBeat: collision.start, durationBeats: collision.dur, hand: collision.hand },
+      required: false, allowedTransformations: ["omit"] };
+    plan.phrases[0]!.events.push(optional);
+    for (const variant of run(source, plan)) {
+      expect(variant.notes.find(n => n.sourceOrigins?.some(o => o.id === protectedNote.sourceOrigins![0]!.id))).toMatchObject({
+        midi: protectedNote.midi, start: protectedNote.start, dur: protectedNote.dur });
+      expect(variant.notes.some(n => n.sourceOrigins?.some(o => o.id === "listed-optional-pad"))).toBe(false);
+      expect(variant.phraseProtection!.changes).toContainEqual(expect.objectContaining({ eventId: "optional-pad", operation: "permitted-transformation", after: [] }));
+    }
+    optional.allowedTransformations = [];
+    expect(() => run(source, plan)).toThrow(/incompatible unlisted merged source lineage/i);
+  });
+
+  it("shortens a permitted optional physical hold before a restored required attack", () => {
+    const { source, plan } = fixture();
+    const protectedNote = source.notes[0]!;
+    const pad = { ...structuredClone(protectedNote), start: 0, dur: 8,
+      sourceOrigins: [{ id: "earlier-optional-pad", occurrence: 1 as const }] };
+    source.notes.push(pad);
+    plan.phrases[0]!.events.push({ id: "earlier-pad", sourceOriginId: "earlier-optional-pad", sourceOccurrence: 1,
+      role: "harmony", priority: 10, expected: { midi: pad.midi, startBeat: 0, durationBeats: 8, hand: pad.hand },
+      required: false, allowedTransformations: ["release-change"] });
+    const compiled = compilePhrasePlan(source, plan as PhrasePlanV1, HASH);
+    const advanced = buildVariants(fixture().source, meta, { arrangementProfile: "source", maxDurBeats: null }).at(-1)!;
+    advanced.notes.push(pad);
+    const original = structuredClone(advanced);
+    const result = applyPhrasePlan([advanced], compiled)[0]!;
+    expect(result.notes.find(n => n.sourceOrigins?.some(o => o.id === "earlier-optional-pad"))).toMatchObject({
+      midi: pad.midi, start: 0, dur: protectedNote.start });
+    expect(result.notes.find(n => n.sourceOrigins?.some(o => o.id === protectedNote.sourceOrigins![0]!.id))).toMatchObject(protectedNote);
+    expect(result.phraseProtection!.changes).toContainEqual(expect.objectContaining({ eventId: "earlier-pad",
+      after: [expect.objectContaining({ start: 0, dur: protectedNote.start })] }));
+    expect(advanced).toEqual(original);
+    plan.phrases[0]!.events.at(-1)!.allowedTransformations = [];
+    expect(() => applyPhrasePlan([advanced], compilePhrasePlan(source, plan as PhrasePlanV1, HASH))).toThrow(/overlapping MIDI/);
+    plan.phrases[0]!.events.pop();
+    expect(() => applyPhrasePlan([advanced], compilePhrasePlan(source, plan as PhrasePlanV1, HASH))).toThrow(/overlapping MIDI/);
+  });
+
+  it("shortens a permitted optional hold before another explicitly selected source attack", () => {
+    const { source, plan } = fixture();
+    const backing = source.notes[1]!;
+    const repeated = { ...structuredClone(backing), start: 0.5, dur: 0.25,
+      sourceOrigins: [{ id: "optional-repeated-key", occurrence: 1 as const }] };
+    source.notes.push(repeated);
+    plan.phrases[0]!.events.push({ id: "optional-repeated-key", sourceOriginId: "optional-repeated-key", sourceOccurrence: 1,
+      role: "harmony", priority: 10, expected: { midi: repeated.midi, startBeat: repeated.start, durationBeats: repeated.dur, hand: repeated.hand },
+      required: false, allowedTransformations: [] });
+    const advanced = buildVariants(fixture().source, meta, { arrangementProfile: "source", maxDurBeats: null }).at(-1)!;
+    advanced.notes = advanced.notes.filter(n => !n.sourceOrigins?.some(o => o.id === backing.sourceOrigins![0]!.id));
+    advanced.notes.push(backing, repeated);
+    const result = applyPhrasePlan([advanced], compilePhrasePlan(source, plan as PhrasePlanV1, HASH))[0]!;
+    expect(result.notes.find(n => n.sourceOrigins?.some(o => o.id === backing.sourceOrigins![0]!.id))).toMatchObject({ start: 0, dur: 0.5 });
+    expect(result.notes.find(n => n.sourceOrigins?.some(o => o.id === "optional-repeated-key"))).toMatchObject(repeated);
+    plan.phrases[0]!.events.find(e => e.sourceOriginId === backing.sourceOrigins![0]!.id)!.allowedTransformations = [];
+    expect(() => applyPhrasePlan([advanced], compilePhrasePlan(source, plan as PhrasePlanV1, HASH))).toThrow(/overlapping MIDI/);
   });
 
   it("addresses distinct repeat occurrences of the same origin independently", () => {

@@ -106,7 +106,7 @@ import { OwnerMetadata } from "../OwnerMetadata";
 import { SheetMusicView, type SheetReaderPosition } from "./SheetMusicView";
 import { SoundControls, type MelodyAuditionRole, type MelodyPhraseOverrideAction, type MelodyPreviewStatus } from "./SoundControls";
 import { reviewedSourceBacking } from "./reviewed-source-backing";
-import { bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
+import { accompanimentFallbackNotice, bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
 import { melodyArrangementOutcome } from "./melody-arrangement-status";
 import { usePianoInput } from "./usePianoInput";
 import { createHeldInput } from "./held-input";
@@ -1174,6 +1174,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         // PlaybackEngine stops and seeks to zero when a song reaches its end.
         // Mirror that terminal state in React so the canvas animation loop is
         // also torn down instead of continuing after transport has stopped.
+        setTime(eng.time);
         setPlaying(false);
       }
     };
@@ -2095,6 +2096,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
   const accompanimentFallbackDetail = activeAccompanimentFallback
     ? ({
       "no source notes": "no source notes are available here.",
+      "shared melody/hook lineage": "selected parts include the lead melody or riff; this backing is unavailable.",
       "unsupported chord": "this chord symbol is not supported.",
       "explicit no-chord": selectedChordSource.source?.chords.find(chord => chord.reviewReason
         && currentBeat >= chord.beat && currentBeat < chord.beat + (chord.durationBeats ?? 0))?.reviewReason
@@ -2111,13 +2113,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     } as Record<string, string>)[activeAccompanimentFallback.reason]
     : null;
   const accompanimentFallbackMessage = accompanimentFallbackDetail
-    ? settings.accompanimentStyle === "bass-chords"
-      ? `Backing unavailable — source melody omitted: ${accompanimentFallbackDetail}`
-      : `Original passage retained — ${accompanimentFallbackDetail}`
+    ? accompanimentFallbackNotice(activeData.chordProvenance?.sourceId, settings.accompanimentStyle, accompanimentFallbackDetail)
     : null;
-  const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? (settings.accompanimentStyle === "bass-chords"
-    ? "Backing unavailable — source melody omitted: accompaniment fallback requires review."
-    : "Original passage retained — accompaniment fallback requires review.");
+  const accompanimentFallbackSlotMessage = accompanimentFallbackMessage ?? accompanimentFallbackNotice(
+    activeData.chordProvenance?.sourceId, settings.accompanimentStyle, "accompaniment fallback requires review.");
   const hasAccompanimentFallbackSlot = settings.backgroundMode === "chord" && accompaniment.fallbackSpans.length > 0;
   const melodyArrangementState = melodyArrangementFailed ? "failed" : melodyArrangementPending ? "pending" : "ready";
   const melodyArrangementOutcomeText = melodyArrangementOutcome(melodyArrangementState, melodyArrangement);
@@ -2337,6 +2336,13 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         </div>
       )}
 
+      {settings.backgroundMode === "chord" && !!accompaniment.sourceTransformations?.length && (
+        <p className="mb-3 text-sm text-zinc-600" data-testid="source-backed-register-treatment">
+          {accompaniment.sourceTransformations?.some(change => change.operation === "source-gap-bridge")
+            ? "Selected source-note links connect short backing gaps while keeping the song’s breaths."
+            : "Optional bass and low support use separate piano registers where permitted. Shared backing attacks are retained; protected notes stay fixed."}
+        </p>
+      )}
       {hasAccompanimentFallbackSlot && (
         <div className="player-fallback-slot mb-3" data-testid="accompaniment-fallback-slot">
           <div
