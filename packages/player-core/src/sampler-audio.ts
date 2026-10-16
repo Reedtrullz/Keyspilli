@@ -25,12 +25,16 @@ function sharedPianoLoader(ctx: AudioContext): SampleLoader {
           const missing = [...new Set(preset.groups.flatMap(group => group.regions.map(region => region.sample)))].filter(sample => !entry.buffers.has(sample));
           // Bound the entire fetch/decode job, not just the network request.
           // Otherwise network idle can leave hundreds of decodes queued.
-          for (let offset = 0; offset < missing.length; offset += 8) {
-            const samples = new Set(missing.slice(offset, offset + 8));
-            const batch = { ...preset, groups: preset.groups.map(group => ({ ...group, regions: group.regions.filter(region => samples.has(region.sample)) })) };
-            const buffers = await loader.load(batch, { buffers: entry.buffers });
-            for (const [sample, buffer] of buffers) entry.buffers.set(sample, buffer);
-          }
+          let next = 0;
+          await Promise.all(Array.from({ length: Math.min(8, missing.length) }, async () => {
+            while (next < missing.length) {
+              const sample = missing[next++];
+              if (sample === undefined) throw new Error("Missing piano sample in load queue");
+              const part = { ...preset, groups: preset.groups.map(group => ({ ...group, regions: group.regions.filter(region => region.sample === sample) })) };
+              const buffers = await loader.load(part, { buffers: entry.buffers });
+              for (const [sample, buffer] of buffers) entry.buffers.set(sample, buffer);
+            }
+          }));
           if (preset.groups.some(group => group.regions.some(region => !entry.buffers.has(region.sample)))) throw new Error("Piano samples are incomplete. Retry or choose synthesis fallback.");
           return entry.buffers;
         })().catch(error => { entry.promise = null; throw error; });

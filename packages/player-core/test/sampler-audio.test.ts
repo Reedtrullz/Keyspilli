@@ -89,11 +89,17 @@ describe("SamplerAudioEngine", () => {
     const { SamplerAudioEngine } = await import("../src/sampler-audio.js");
     const engine = new SamplerAudioEngine();
     engine.ensure();
+    const context = FakeAudioContext.last;
     try {
       await vi.waitFor(() => expect(pending.length).toBeGreaterThan(0));
       expect(pending.length).toBeLessThanOrEqual(8);
       expect(fetchSample.mock.calls.length).toBeLessThanOrEqual(8);
-      let completed = 0;
+      const completeOne = pending.shift();
+      if (!completeOne) throw new Error("No pending piano decode");
+      completeOne();
+      await vi.waitFor(() => expect(fetchSample.mock.calls.length).toBe(9));
+      expect(engine.readiness).toBe("loading");
+      let completed = 1;
       while (completed < 226) {
         expect(engine.readiness).toBe("loading");
         await vi.waitFor(() => expect(pending.length).toBeGreaterThan(0));
@@ -107,7 +113,10 @@ describe("SamplerAudioEngine", () => {
       expect(FakeAudioContext.last.decodes).toBe(226);
       expect(peak).toBeLessThanOrEqual(8);
     } finally {
-      pending.splice(0).forEach(resolve => resolve());
+      for (let pass = 0; pass < 226 && (context.decodes < 226 || pending.length); pass++) {
+        pending.splice(0).forEach(resolve => resolve());
+        await new Promise<void>(resolve => setImmediate(resolve));
+      }
       engine.dispose();
     }
   });
