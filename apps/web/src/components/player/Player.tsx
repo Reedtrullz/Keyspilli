@@ -2338,7 +2338,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
 
       {settings.backgroundMode === "chord" && !!accompaniment.sourceTransformations?.length && (
         <p className="mb-3 text-sm text-zinc-600" data-testid="source-backed-register-treatment">
-          Optional bass and low support use separate piano registers where permitted. Shared backing attacks are retained; protected notes stay fixed.
+          {accompaniment.sourceTransformations?.some(change => change.operation === "source-gap-bridge")
+            ? "Selected source-note links connect short backing gaps while keeping the song’s breaths."
+            : "Optional bass and low support use separate piano registers where permitted. Shared backing attacks are retained; protected notes stay fixed."}
         </p>
       )}
       {hasAccompanimentFallbackSlot && (

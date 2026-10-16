@@ -122,7 +122,7 @@ export function SoundControls({
               : sourceBacking && settings.accompanimentStyle === "bass-chords"
                 ? "Backing-only preview. No separate vocal melody is added."
               : settings.accompanimentStyle === "bass-chords"
-                ? "Backing only: generated bass and chords play where the chart is supported; source melody is omitted and unsupported spans are silent."
+                ? "Backing only: uses the selected accompaniment, with brief source-note links where prepared. Continuous lead lines are omitted; unsupported passages without selected backing stay silent."
                 : "A selected melody is retained while sparse harmonic support is generated"}
           </p>
           {settings.backgroundMode === "chord" && (
@@ -147,7 +147,7 @@ export function SoundControls({
               </div>
           <p className="text-[11px] text-zinc-600 mt-2">
             {settings.accompanimentStyle === "bass-chords"
-              ? "Backing only for accompanying singing or another musician: source melody is omitted; unsupported chart spans are silent and marked unavailable."
+              ? "For accompanying singing or another musician. Prepared source-note links can connect short gaps without copying the continuous lead; unsupported passages remain marked for review."
               : "Keeps the selected melody and adds sparse support. Original passage is retained where the chart is unavailable."}
           </p>
           <details data-testid="advanced-arrangement-controls" className="mt-3">
