@@ -22,11 +22,17 @@ describe("Darwin process-group observation", () => {
   it("requires a complete successful snapshot to establish absence within the supplied budget", () => {
     vi.mocked(childProcess.spawnSync).mockReturnValue(snapshot());
     expect(darwinGroupPresent(456, 17)).toBe(false);
-    expect(childProcess.spawnSync).toHaveBeenCalledWith("/bin/ps", ["-A", "-o", "pid=,pgid="], {
+    expect(childProcess.spawnSync).toHaveBeenCalledWith("/bin/sh", ["-c",
+      'exec /bin/ps -g "$1" -p "$2,$$" -o pid=,pgid=', "keyspilli-group", "456", String(process.pid)], {
       env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C", NODE_ENV: "production" },
       encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1024 * 1024,
       timeout: 17, killSignal: "SIGKILL",
     });
+  });
+
+  it("refuses rows outside the owned group and the two observation sentinels", () => {
+    vi.mocked(childProcess.spawnSync).mockReturnValue(snapshot(`${observer} 42\n${process.pid} 42\n${process.pid + 2} 789\n`));
+    expect(() => darwinGroupPresent(456)).toThrow();
   });
 
   for (const stdout of ["", "\n", "123 42", "PID PGID\n", `123 42\n${process.pid}\n`, "123 42\n",

@@ -91,9 +91,12 @@ reproduced the exact failure; these overlapping runs do not replace the latest
 full-suite result or qualify every macOS process environment. Linux CI and stock
 tini qualification remain separate applicable receipts.
 
-The preparation host now observes Darwin group membership through stock
-`/bin/ps -A -o pid=,pgid=` rather than using group signalling as its presence
-probe. Any matching member, including a zombie, keeps the group present until
+The preparation host observes Darwin group membership through stock
+`/bin/ps -g <owned-group> -p <caller>,<observer> -o pid=,pgid=`. A fixed `/bin/sh`
+command uses `exec` to retain the observer PID and passes numeric selectors as
+positional arguments. Targeted selection avoids whole-table output; the
+whole-table query previously exceeded its 250 ms cap during native
+tests. Any matching member, including a zombie, keeps the group present until
 reaped. Absence requires a successful, bounded, strictly parsed process-table
 snapshot containing both the observer and caller. A failed query, stderr warning,
 truncated/malformed output or missing sentry remains sticky uncertainty. There
@@ -115,6 +118,13 @@ then observes absence. This validates the changed observation mechanism; it is
 not a guarantee about escaped descendant trees or silently restricted OS process
 visibility. Existing cancellation, late-observation, unknown-probe and signal-error
 assertions remain required.
+
+Private-edge CI pulls the official Caddy 2.6.2 image from Docker Hub by immutable
+index digest. The web build and isolated restore prefetch use Docker Hub with the
+existing Node 22.22.3 image digest unchanged. ECR Public's anonymous data-transfer
+quota produced `Data limit exceeded` across both retained runner attempts; the
+existing bounded retries cannot clear that quota. Registry acquisition does not
+skip the edge, restore, browser or image checks.
 
 ## Acceptance scope
 

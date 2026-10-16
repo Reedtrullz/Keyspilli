@@ -3,7 +3,8 @@ import { spawnSync } from "node:child_process";
 /** Darwin kill(2) can return EPERM for a zombie-only group. Observe its
  * process-table membership instead; zombies remain present until reaped. */
 export function darwinGroupPresent(group: number, timeoutMs = 250): boolean {
-  const snapshot = spawnSync("/bin/ps", ["-A", "-o", "pid=,pgid="], {
+  const snapshot = spawnSync("/bin/sh", ["-c",
+    'exec /bin/ps -g "$1" -p "$2,$$" -o pid=,pgid=', "keyspilli-group", String(group), String(process.pid)], {
     env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C", NODE_ENV: "production" },
     encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1024 * 1024,
     timeout: Math.max(1, Math.ceil(timeoutMs)), killSignal: "SIGKILL",
@@ -20,9 +21,12 @@ export function darwinGroupPresent(group: number, timeoutMs = 250): boolean {
     if (!Number.isSafeInteger(pid) || pid < 1 || !Number.isSafeInteger(pgid) || processes.has(pid)) {
       throw new Error("invalid Darwin process-group identity");
     }
+    if (pgid !== group && pid !== snapshot.pid && pid !== process.pid) {
+      throw new Error("unexpected Darwin process-group observation");
+    }
     processes.set(pid, pgid);
   }
-  // Both observer and caller must be visible; empty/filtered output is not absence.
+  // exec preserves the observer PID; both sentinels must survive group selection.
   if (!processes.has(snapshot.pid) || !processes.has(process.pid)) throw new Error("incomplete Darwin process-group observation");
   return [...processes.values()].includes(group);
 }
