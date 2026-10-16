@@ -20,7 +20,19 @@ function sharedPianoLoader(ctx: AudioContext): SampleLoader {
       if (!entry.promise) {
         // Deselection may finish warming this one set; no disposed instrument is installed.
         const signal = AbortSignal.timeout(30_000);
-        const loader = SampleLoader(ctx, { storage: { fetch: url => fetch(url, { signal }).catch(() => new Response(null, { status: 503 })) } });
+        let decodeTail = Promise.resolve();
+        const decodeContext = new Proxy(ctx, {
+          get(target, key) {
+            if (key === "decodeAudioData") return (data: ArrayBuffer) => {
+              const task = decodeTail.then(() => target.decodeAudioData(data));
+              decodeTail = task.then(() => undefined, () => undefined);
+              return task;
+            };
+            const value = Reflect.get(target, key, target);
+            return typeof value === "function" ? value.bind(target) : value;
+          },
+        });
+        const loader = SampleLoader(decodeContext, { storage: { fetch: url => fetch(url, { signal }).catch(() => new Response(null, { status: 503 })) } });
         entry.promise = (async () => {
           const missing = [...new Set(preset.groups.flatMap(group => group.regions.map(region => region.sample)))].filter(sample => !entry.buffers.has(sample));
           // Hold each slot through decoding: a fetch-only limit still queues the entire bank.
