@@ -68,7 +68,8 @@ describe("SoundControls accompaniment styles", () => {
     const bass = render();
     expect(bass).toContain("Bass + chords");
     expect(bass).toContain("Backing only");
-    expect(bass).toContain("source melody is omitted");
+    expect(bass).toContain("Continuous lead lines are omitted");
+    expect(bass).toContain("brief source-note links where prepared");
     expect(bass).toMatch(/Bass \+ chords[\s\S]*aria-checked="true"/);
   });
 
