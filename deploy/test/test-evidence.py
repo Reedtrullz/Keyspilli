@@ -431,6 +431,41 @@ class Lifecycle(unittest.TestCase):
             with self.assertRaises(ValueError):
                 store.guard(doc["id"])
 
+    def test_live_accounting_tolerates_unlinked_chromium_temps_but_not_inspection_errors(self):
+        module = self.module()
+        store = module.Store(self.root)
+        doc = store.begin(1048576, self.dead_pid)
+        scratch = self.root / "scratch" / doc["id"]
+        stable = scratch / "recording.wav"
+        stable.write_bytes(b"unique-recording")
+        transient = scratch / ".org.chromium.Chromium.transient"
+        transient.mkdir()
+        lstat = Path.lstat
+
+        def disappearing(path, *args, **kwargs):
+            if path == transient:
+                transient.rmdir()
+            return lstat(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "lstat", disappearing):
+            store.guard(doc["id"])
+        self.assertEqual(stable.read_bytes(), b"unique-recording")
+
+        def inaccessible(path, *args, **kwargs):
+            if path == stable:
+                raise PermissionError("injected inspection failure")
+            return lstat(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "lstat", inaccessible), self.assertRaises(PermissionError):
+            store.guard(doc["id"])
+        with mock.patch.object(os, "scandir", side_effect=PermissionError("injected directory inspection failure")):
+            with self.assertRaises(PermissionError):
+                store.guard(doc["id"])
+            with self.assertRaises(PermissionError):
+                module.files(scratch)
+        store.finish(doc["id"], "success")
+        self.assertEqual((self.root / "evidence" / doc["id"] / "files/recording.wav").read_bytes(), b"unique-recording")
+
     def test_private_builder_config_survives_a_different_finalizer_home(self):
         fake = self.root.parent / "fake-docker"
         fake.write_text('#!' + sys.executable + '\n' +

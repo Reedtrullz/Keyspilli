@@ -109,11 +109,20 @@ def regular(path):
     return s
 
 
+def walk_error(error):
+    raise error
+
+
+def accounting_error(error):
+    if not isinstance(error, FileNotFoundError):
+        raise error
+
+
 def files(root):
     if not root.exists():
         return []
     result = []
-    for parent, directories, names in os.walk(root, followlinks=False):
+    for parent, directories, names in os.walk(root, followlinks=False, onerror=walk_error):
         for name in directories:
             if (Path(parent) / name).is_symlink():
                 raise ValueError("symlink directory in managed storage")
@@ -126,9 +135,12 @@ def files(root):
 
 def bytes_used(root):
     total = 0
-    for parent, directories, names in os.walk(root, followlinks=False):
+    for parent, directories, names in os.walk(root, followlinks=False, onerror=accounting_error):
         for name in [*directories, *names]:
-            info = (Path(parent) / name).lstat()
+            try:
+                info = (Path(parent) / name).lstat()
+            except FileNotFoundError:
+                continue
             total += max(info.st_size, info.st_blocks * 512)
     return total
 
@@ -228,7 +240,7 @@ class Store:
         managed_growth = self.usage() - doc.get("managedBytesAtStart", 0)
         docker_growth = doc["availableAtStart"] - available if doc["resources"] else 0
         spent = max(managed_growth, docker_growth)
-        entries = sum(len(directories) + len(names) for _, directories, names in os.walk(self.root, followlinks=False))
+        entries = sum(len(directories) + len(names) for _, directories, names in os.walk(self.root, followlinks=False, onerror=accounting_error))
         entries += helper("evidence_external").entries(self, doc)
         if available < self.reserve + doc.get("bundleReserveBytes", 0) + additional or spent + additional > doc["peakBytes"] or entries > self.max_entries:
             raise ValueError(f"storage reservation exceeded; stopping writer: spent={spent} peak={doc['peakBytes']} free={available} exportReserve={doc.get('bundleReserveBytes', 0)} entries={entries}")
