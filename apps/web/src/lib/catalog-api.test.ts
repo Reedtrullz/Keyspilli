@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
-import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
+import { mkdir, rm, stat, utimes, writeFile, readFile } from "node:fs/promises";
 import filesystem from "node:fs";
 import { syncBuiltinESMExports } from "node:module";
 import { mkdtempSync } from "node:fs";
@@ -768,10 +768,15 @@ describe("catalog artifact export validation", () => {
 
     // Keep the same path and byte shape while changing the rendered note. The
     // signature must notice the write instead of serving the prior validated
-    // bytes from the bounded process-local cache.
+    // bytes from the bounded process-local cache. Restoring the original
+    // timestamps forces the same-tick case deterministically: only the content
+    // hash in fileFingerprint can see this edit.
+    const dir = join(dataRoot, "artifacts", "catalog-api-song", "a");
+    const before = await Promise.all(["notes.json", "variant.mid", "variant.xml"].map(async (name) => [name, await stat(join(dir, name))] as const));
     await writeExportFixture({
       midiNotes: [{ midi: 62, start: 1, dur: 2, vel: 90, hand: "R" }],
     });
+    for (const [name, previous] of before) await utimes(join(dir, name), previous.atime, previous.mtime);
     await expect(getArtifactFile(song().id, "variant.mid")).resolves.toBeNull();
   });
 
@@ -781,9 +786,13 @@ describe("catalog artifact export validation", () => {
     const midiPath = join(dataRoot, "artifacts", song().baseId, song().level, "variant.mid");
     const original = filesystem.statSync;
     let swapped = false;
+    let midiStats = 0;
+    // The cache key fingerprints (and, for small files, hashes) variant.mid on
+    // its first stat, so land the swap on the second stat: after the key has
+    // produced a cache hit but before the metadata re-check.
     const barrier = vi.spyOn(filesystem, "statSync").mockImplementation(((path: filesystem.PathLike, options?: unknown) => {
       const result = original(path, options as never);
-      if (String(path) === midiPath && !swapped) { swapped = true; filesystem.writeFileSync(midiPath, Buffer.from("MThd-corrupt replacement")); }
+      if (String(path) === midiPath && ++midiStats === 2 && !swapped) { swapped = true; filesystem.writeFileSync(midiPath, Buffer.from("MThd-corrupt replacement")); }
       return result;
     }) as typeof filesystem.statSync);
     syncBuiltinESMExports();
