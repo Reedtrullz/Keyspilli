@@ -8,7 +8,8 @@
  * directory. Freshly fetched entries win on id collisions because they carry
  * the current upstream metadata.
  */
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { fileFingerprint } from "./file-fingerprint.js";
 import { join } from "node:path";
 import { ROOT, dataDir } from "./paths.js";
 
@@ -24,10 +25,9 @@ let disabledIds = new Set<string>();
 let disabledError: Error | undefined;
 
 function manifestSignature(path: string): string {
-  const stat = statSync(path);
-  // Include inode and mtime so an atomic replacement at the same pathname
-  // invalidates the in-process cache immediately.
-  return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}`;
+  // Includes inode, size, timestamps and (for small files) a content hash so
+  // both atomic replacement and in-place edits invalidate the cache.
+  return fileFingerprint(path);
 }
 
 /**

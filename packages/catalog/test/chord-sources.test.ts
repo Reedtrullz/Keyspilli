@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chordPitchClasses } from "@keyspilli/midi";
 import {
@@ -604,8 +604,13 @@ describe("catalog chord source plumbing", () => {
       expect(second).toBe(first);
       expect(first?.timeline.chords[0]?.name).toBe("C");
 
+      // Worst case for stat-only signatures: the replacement has the same size,
+      // may reuse the freed inode, and carries the original mtime. The content
+      // hash in fileFingerprint must still observe the new notes.
+      const published = await stat(notesPath);
       await rm(notesPath, { force: true });
       await writeNotes("D", [50, 54, 57]);
+      await utimes(notesPath, published.atime, published.mtime);
       const republished = await resolveChordTimeline(baseId, { mappingPath, catalogRoot: root, runtimeDataDir: root });
       expect(republished).not.toBe(first);
       expect(republished?.timeline.chords[0]?.name).toBe("D");

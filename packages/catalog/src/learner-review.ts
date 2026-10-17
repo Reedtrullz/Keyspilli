@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { fileFingerprint } from "./file-fingerprint.js";
 import { join } from "node:path";
 import { ROOT, dataDir } from "./paths.js";
 
@@ -10,12 +11,7 @@ let cachedSignature: string | undefined;
 let cachedBlocked: ReadonlySet<string> | null = null;
 
 function fileSignature(path: string): string {
-  try {
-    const stat = statSync(path, { bigint: true });
-    return `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}:${stat.ctimeNs}`;
-  } catch {
-    return `${path}:missing`;
-  }
+  return fileFingerprint(path);
 }
 
 /**

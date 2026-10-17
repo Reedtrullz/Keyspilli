@@ -2,6 +2,7 @@ import type { SourceArrangement } from "@keyspilli/catalog/src/source-arrangemen
 import { readFile } from "node:fs/promises";
 import { existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { fileFingerprint } from "@keyspilli/catalog/src/file-fingerprint.js";
 import { join } from "node:path";
 import { cache } from "react";
 import {getPlayerVersions,type PlayerVersion} from './player-versions';
@@ -420,15 +421,11 @@ const artifactCache = new Map<string, ArtifactCacheEntry>();
 let artifactCacheBytes = 0;
 
 function artifactFileSignature(path: string): string {
-  try {
-    const stat = statSync(path, { bigint: true });
-    // Artifact publication replaces files atomically. Device/inode catches a
-    // same-size replacement while mtime/size also detect in-place edits.
-    return `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
-  } catch {
-    // Missing files must be part of the key so a later publish is observable.
-    return `${path}:missing`;
-  }
+  // Artifact publication replaces files atomically. Device/inode catches a
+  // same-size replacement; size, timestamps and a content hash for small
+  // files detect in-place edits even within one timestamp tick. Missing files
+  // are part of the key so a later publish is observable.
+  return fileFingerprint(path);
 }
 
 function artifactCacheKey(song: SongRow): string {
@@ -817,10 +814,9 @@ export async function getArtifactFileWithMetadata(
       const stat = statSync(path, { bigint: true });
       const after = artifactFileSignature(path);
       if (before !== after) throw new PublicationRevisionConflictError();
-      const fingerprint = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
       return {
         data: loaded.data,
-        etag: `"${createHash("sha256").update(fingerprint).digest("hex")}"`,
+        etag: `"${createHash("sha256").update(after).digest("hex")}"`,
         lastModified: new Date(Number(stat.mtimeMs)).toUTCString(),
       };
     } catch (error) {
