@@ -471,7 +471,7 @@ function playability(notes: readonly Note[]): HarmonyPlayabilityMetrics {
   };
 }
 
-function unavailableMetrics(status: HarmonyAvailability, diagnostics: string[] = []): HarmonyWindowMetrics {
+function unavailableMetrics(status: HarmonyAvailability, _diagnostics: string[] = []): HarmonyWindowMetrics {
   return {
     chromaAgreement: null, rootAgreement: null, bassAgreement: null, chordAgreement: null, qualityAgreement: null,
     changeTiming: { expected: 0, observed: 0, matched: 0, unsupported: 0, medianErrorBeats: null, p95ErrorBeats: null },

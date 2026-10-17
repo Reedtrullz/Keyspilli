@@ -11,12 +11,12 @@ function fakeToolkit() {
       loadedXml = xml;
       return true;
     },
-    renderToSVG: (page?: number) => {
+    renderToSVG: (_page?: number) => {
       calls.push("renderToSVG");
       return `<svg width="640px" height="880px" viewBox="0 0 640 880"><g><path d="M0 0h1"/></g></svg>`;
     },
     getPageCount: () => 1,
-    setOptions: (o: Record<string, unknown>) => {
+    setOptions: (_o: Record<string, unknown>) => {
       calls.push("setOptions");
     },
   };

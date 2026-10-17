@@ -432,13 +432,6 @@ export function shadowItemToMetalStems(item: ShadowCorpusItemInput): { stems: Me
   return { stems, input: extracted.roles, reference: extracted.reference, failures: extracted.failures };
 }
 
-function onsetStarts(notes: readonly Note[], tolerance = 0.08): number[] {
-  const starts: number[] = [];
-  for (const note of [...notes].filter(finiteNote).sort(noteSort)) {
-    if (!starts.length || note.start - starts[starts.length - 1]! > tolerance + EPS) starts.push(note.start);
-  }
-  return starts;
-}
 
 function onsetGroups(notes: readonly Note[], tolerance = 0.08): Note[][] {
   const groups: Note[][] = [];

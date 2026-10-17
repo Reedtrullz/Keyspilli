@@ -40,7 +40,6 @@ import {
   type ScoreCorpusSong,
   type ScoreListeningPack,
 } from "../src/score-listening-pack.js";
-import { sha256Hex } from "../src/fixture-evidence.js";
 import {
   runBenchmarkScore,
   assertOutsideRepository,
@@ -309,15 +308,6 @@ function scoreDurationSeconds(report: ScoreValidationReport): number | null {
   return round((beats * 60) / tempo, 3);
 }
 
-async function readHash(path: string | undefined): Promise<{ bytes: number; sha256: string } | null> {
-  if (!path) return null;
-  try {
-    const bytes = new Uint8Array(await readFile(path));
-    return { bytes: bytes.byteLength, sha256: sha256Hex(bytes) };
-  } catch {
-    return null;
-  }
-}
 
 async function writeResearchArtifacts(
   songOut: string,

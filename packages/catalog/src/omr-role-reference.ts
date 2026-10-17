@@ -198,7 +198,7 @@ function safeRoleState(value: unknown): { state: OmrTrustState | null; confidenc
   return { state, confidence: finite(candidate.confidence) ? rounded(candidate.confidence) : null };
 }
 
-function safeEvent(value: unknown, fallbackMeasureId: string, fallbackMeasureIndex: number, index: number): OmrNormalizedEvent | null {
+function safeEvent(value: unknown, fallbackMeasureId: string, fallbackMeasureIndex: number, _index: number): OmrNormalizedEvent | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const candidate = value as Partial<OmrNormalizedEvent>;
   if (typeof candidate.id !== "string" || !candidate.id || !finite(candidate.onset) || candidate.onset < 0 || !finite(candidate.duration) || candidate.duration <= 0 || !finite(candidate.pitch) || !Number.isInteger(candidate.pitch) || candidate.pitch < 0 || candidate.pitch > 127) return null;
@@ -567,7 +567,7 @@ function buildMeasureRegion(report: OmrConsensusReport, context: MeasureContext)
       .map((event) => projectEvent(measure, event, role));
     const state = measure.roles[role].state;
     const isTrusted = trustedState(state) && roleEvents.length > 0 && context.alignmentStatus !== "ambiguous" && context.alignmentStatus !== "unmatched";
-    const reason = unknownReason(measure, role, roleUnassigned, context.alignmentStatus);
+    const _reason = unknownReason(measure, role, roleUnassigned, context.alignmentStatus);
     const provenance = isTrusted ? roleProvenance(report, measure, role) : { kind: "unknown", engineIds: [], versions: [], independenceGroups: [], sourceSha256: null } satisfies RoleProvenance;
     const laneEvents = isTrusted ? roleEvents : [];
     events[role] = laneEvents;

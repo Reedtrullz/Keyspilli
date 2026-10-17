@@ -657,7 +657,7 @@ async function inspectArtifact(
   let info;
   try {
     info = await stat(physicalPath);
-  } catch (error) {
+  } catch (_error) {
     return { evidence: null, rejected: { id, reason: "artifact is not a regular file" } };
   }
   if (!info.isFile()) return { evidence: null, rejected: { id, reason: "artifact is not a regular file" } };
@@ -700,7 +700,7 @@ async function inspectArtifact(
       },
       rejected: null,
     };
-  } catch (error) {
+  } catch (_error) {
     return { evidence: null, rejected: { id, reason: "artifact is not a regular file" } };
   }
 }
