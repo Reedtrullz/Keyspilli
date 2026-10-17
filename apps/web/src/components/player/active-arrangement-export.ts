@@ -5,6 +5,18 @@ import {selectChordSource,melodyHarmonicSupportPolicy,type ChordSourceId} from "
 import {reviewedSourceBacking} from "./reviewed-source-backing";
 import {buildMelodyArrangementOptions} from "./melody-arrangement-runtime";
 export class ActiveExportUnsupportedError extends Error {}
+function orderedSource(value: unknown): unknown {
+ if(Array.isArray(value))return value.map(orderedSource);
+ if(value!==null&&typeof value==="object"){
+  const fields=value as Record<string,unknown>;
+  return Object.fromEntries(Object.keys(fields).sort().map(key=>[key,orderedSource(fields[key])]));
+ }
+ return value;
+}
+export async function activeExportSourceFingerprint(data:SongData):Promise<string> {
+ const bytes=new TextEncoder().encode(JSON.stringify(orderedSource(data)));
+ return "active-source-v1:"+Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map(n=>n.toString(16).padStart(2,"0")).join("");
+}
 export interface ActiveExportSelection {
  backgroundMode:PlayerSettings["backgroundMode"];accompanimentStyle:PlayerSettings["accompanimentStyle"];hand:PlayerSettings["hand"];
  audibleSupport:boolean;speed:number;transpose:number;renderedExpression:"source"|"meter-accents";chordSource:ChordSourceId;

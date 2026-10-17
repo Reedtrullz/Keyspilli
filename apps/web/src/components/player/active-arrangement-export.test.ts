@@ -1,9 +1,18 @@
 import {it,expect} from "vitest";
 import {keySignature,parseMidi,parseMusicXmlNotes,validateArtifactFiles,writeMidi,writeMusicXml,type Variant} from "@keyspilli/midi";
 import {DEFAULT_SETTINGS,PlaybackEngine,type AudioLike,type SongData} from "@keyspilli/player-core";
-import {activeExportDigest,activeExportVariant,resolveActiveExport,validActiveExportSelection,type ActiveExportSelection} from "./active-arrangement-export";
+import {activeExportDigest,activeExportSourceFingerprint,activeExportVariant,resolveActiveExport,validActiveExportSelection,type ActiveExportSelection} from "./active-arrangement-export";
 const data:SongData={notes:[{midi:60,start:0,dur:2,vel:80,hand:"R"},{midi:48,start:2,dur:1,vel:90,hand:"L"}],chords:[{beat:0,name:"C/E",notes:[40,48,52,55],durationBeats:2,sourceKind:"authored"},{beat:2,name:"N.C.",notes:[],durationBeats:2,sourceKind:"authored"}],key:"C",tempoBpm:120,timeSig:[4,4],measures:[{index:0,startBeat:0,endBeat:4}],sourceFingerprint:"fixture-source"};
 const selection:ActiveExportSelection={backgroundMode:"piano",accompanimentStyle:"bass-chords",hand:"R",audibleSupport:false,speed:.5,transpose:2,renderedExpression:"source",chordSource:"auto",melodySelection:"automatic",sourceBackingMode:"default",phraseOverrides:[]};
+it("binds the complete source without changing musical fingerprints and ignores JSON key order",async()=>{
+ const before=structuredClone(data),fingerprint=await activeExportSourceFingerprint(data);
+ expect(fingerprint).toMatch(/^active-source-v1:[a-f0-9]{64}$/);
+ expect(await activeExportSourceFingerprint(Object.fromEntries(Object.entries(data).reverse()) as SongData)).toBe(fingerprint);
+ expect(await activeExportSourceFingerprint({...data,notes:data.notes.map(n=>({...n,midi:n.midi+1}))})).not.toBe(fingerprint);
+ expect(await activeExportSourceFingerprint({...data,chords:data.chords.map(c=>({...c,name:"D"}))})).not.toBe(fingerprint);
+ expect(data).toEqual(before);
+ expect(data.sourceFingerprint).toBe("fixture-source");
+});
 function artifacts(v:Variant){const sig=keySignature(v.key);return {midi:writeMidi(v.notes,{tempoBpm:v.tempoBpm,timeSig:v.timeSig,keySig:sig.fifths,keyMode:sig.mode,chordMarkers:v.chords}),xml:writeMusicXml(v,"Private synthetic export","Author",{chordWords:true})};}
 it("active symbolic exports preserve selected pitches, endpoints, source choices, key and chord text without changing Original",async()=>{
  const before=JSON.stringify(data),stored=writeMusicXml({...data,level:"advanced",difficultyScore:0,bassPattern:"block"},"Original","Author");

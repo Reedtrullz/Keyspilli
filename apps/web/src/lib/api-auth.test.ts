@@ -1,9 +1,50 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { requireBearer, verifyBearer } from "./api-auth";
+import { checkMutationAuth } from "./mutation-auth";
 
 const request = (headers: Record<string, string> = {}) => new Request("http://127.0.0.1/api/test", { method: "POST", headers });
+
+async function guardsMutation(body: string): Promise<boolean> {
+  const exports: Record<string, unknown> = {};
+  let guardCalls = 0;
+  const bearerBoundary = (req: Request) => { guardCalls += 1; return requireBearer(req); };
+  const mutationBoundary = (req: Request) => { guardCalls += 1; return checkMutationAuth(req); };
+  const code = ts.transpileModule(body, { compilerOptions: {
+    target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS,
+  } }).outputText;
+  runInNewContext(code, {
+    exports, requireBearer: bearerBoundary, checkMutationAuth: mutationBoundary, Response,
+    tutorialImportsEnabled: () => true,
+    require: (specifier: string) => {
+      if (specifier.endsWith("/mutation-auth")) return { checkMutationAuth: mutationBoundary };
+      throw new Error(`Unauthorized handler reached dependency: ${specifier}`);
+    },
+  }, { timeout: 1000 });
+  const handlers = Object.values(exports).filter(value => typeof value === "function");
+  if (handlers.length !== 1) throw new Error("Expected exactly one isolated API handler");
+  const handler = handlers[0];
+  if (typeof handler !== "function") throw new Error("API handler is missing");
+  const result: unknown = await handler(request({ authorization: "Bearer invalid" }), {
+    params: Promise.resolve({ id: "unauthorized-test" }),
+  });
+  return guardCalls > 0 && result instanceof Response && result.status === 401 &&
+    (await result.json()).error === "unauthorized";
+}
+
+describe("route auth coverage rejects ineffective guards", () => {
+  it.each([
+    "export async function POST(req: Request) { /* requireBearer(req) */ return new Response('ok'); }",
+    "export async function POST(req: Request) { if (false) requireBearer(req); return new Response('ok'); }",
+    "export async function POST(req: Request) { requireBearer(req); return new Response('ok'); }",
+    "export async function POST(req: Request) { return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 }); }",
+  ])("rejects a handler that can return success without authorization", async body => {
+    await expect(guardsMutation(body)).resolves.toBe(false);
+  });
+});
 
 describe("verifyBearer", () => {
   it("accepts the exact bearer value from Authorization or the transport alias", () => {
@@ -22,6 +63,16 @@ describe("verifyBearer", () => {
     expect(verifyBearer(request({ authorization: "Bearer " }), "")).toBe(false);
     expect(verifyBearer(request({ authorization: "Bearer undefined" }), undefined)).toBe(false);
   });
+
+  it("keeps Authorization authoritative when the transport alias conflicts", () => {
+    expect(verifyBearer(request({ authorization: "Bearer wrong", "x-keyspilli-api-token": "Bearer secret" }), "secret")).toBe(false);
+    expect(verifyBearer(request({ authorization: "Bearer secret", "x-keyspilli-api-token": "Bearer wrong" }), "secret")).toBe(true);
+  });
+
+  it("rejects oversized and non-ASCII lookalike values without throwing", () => {
+    expect(verifyBearer(request({ authorization: "Bearer " + "x".repeat(65536) }), "secret")).toBe(false);
+    expect(verifyBearer(request({ authorization: "Bearer sécret" }), "secret")).toBe(false);
+  });
 });
 
 describe("requireBearer", () => {
@@ -32,11 +83,15 @@ describe("requireBearer", () => {
     else process.env.KEYSPILLI_API_TOKEN = previous;
   });
 
-  it("allows the configured token, rejects others with 401 and fails closed with 503", () => {
+  it("allows the configured token, rejects others with 401 and fails closed with 503", async () => {
     expect(requireBearer(request({ authorization: "Bearer secret" }))).toBeNull();
-    expect(requireBearer(request({ authorization: "Bearer nope" }))?.status).toBe(401);
+    const unauthorized = requireBearer(request({ authorization: "Bearer nope" }));
+    expect(unauthorized?.status).toBe(401);
+    expect(await unauthorized?.json()).toEqual({ error: "unauthorized" });
     delete process.env.KEYSPILLI_API_TOKEN;
-    expect(requireBearer(request({ authorization: "Bearer secret" }))?.status).toBe(503);
+    const unavailable = requireBearer(request({ authorization: "Bearer secret" }));
+    expect(unavailable?.status).toBe(503);
+    expect(await unavailable?.json()).toEqual({ error: "server authentication is not configured" });
   });
 });
 
@@ -46,6 +101,12 @@ describe("requireBearer", () => {
  * (token or same-origin browser), which itself uses `verifyBearer`.
  */
 describe("API route auth coverage", () => {
+  const previousToken = process.env.KEYSPILLI_API_TOKEN;
+  beforeEach(() => { process.env.KEYSPILLI_API_TOKEN = "route-test-token"; });
+  afterEach(() => {
+    if (previousToken === undefined) delete process.env.KEYSPILLI_API_TOKEN;
+    else process.env.KEYSPILLI_API_TOKEN = previousToken;
+  });
   const apiRoot = join(__dirname, "..", "app", "api");
   // Handlers that intentionally rely on the private edge alone. Each entry
   // needs a reason; a new mutating handler must not be added here casually.
@@ -62,7 +123,7 @@ describe("API route auth coverage", () => {
     const source = readFileSync(path, "utf8");
     const file = relative(apiRoot, path).split("\\").join("/");
     const matches = [...source.matchAll(/export\s+(?:async\s+function|const)\s+(POST|PUT|PATCH|DELETE)\b/g)];
-    return matches.map((match, index) => {
+    return matches.map((match) => {
       const end = source.slice(match.index! + match[0].length).search(/\nexport\s/);
       const body = end < 0 ? source.slice(match.index!) : source.slice(match.index!, match.index! + match[0].length + end);
       return { id: `${file} ${match[1]}`, source, body };
@@ -73,9 +134,9 @@ describe("API route auth coverage", () => {
     expect(handlers.length).toBeGreaterThan(10);
   });
 
-  it.each(handlers.map((handler) => [handler.id, handler] as const))("%s uses the shared auth boundary", (id, handler) => {
+  it.each(handlers.map((handler) => [handler.id, handler] as const))("%s uses the shared auth boundary", async (id, handler) => {
     if (EDGE_ONLY[id]) return;
-    expect(handler.body).toMatch(/\b(requireBearer|checkMutationAuth)\(/);
+    await expect(guardsMutation(handler.body)).resolves.toBe(true);
   });
 
   it("has no route-local bearer comparisons", () => {
