@@ -28,12 +28,20 @@ interface Row {
 
 const HTML_ENTITIES: Readonly<Record<string, string>> = { nbsp: " ", amp: "&", ndash: "-" };
 
-/** Plain text of a listing cell: tags and stray angle brackets removed, entities decoded once. */
+/** Remove markup tags, repeating until none are left so a nested or split tag cannot survive. */
+function stripTags(value: string): string {
+  let previous: string;
+  let current = value;
+  do {
+    previous = current;
+    current = current.replace(/<[^>]*>/g, "");
+  } while (current !== previous);
+  return current;
+}
+
+/** Plain text of a listing cell: tags removed, entities decoded once. */
 function strip(s: string): string {
-  return s
-    .replace(/<[^>]*>/g, "")
-    // Whatever is left of a broken or nested tag cannot form markup.
-    .replace(/[<>]/g, "")
+  return stripTags(s)
     // One pass, so "&amp;ndash;" stays the literal text "&ndash;".
     .replace(/&(nbsp|amp|ndash);/g, (_match, name: string) => HTML_ENTITIES[name]!)
     .replace(/\s+/g, " ")
