@@ -123,6 +123,20 @@ class GapChoiceGraderTests(unittest.TestCase):
         bad = dict(ok, chordsBridges=self.good["chordsBridges"])
         self.assertFalse(self.grade(bad, "capability-missing")["no_bridge_declared"])
 
+    def test_unavailable_from_a_wrong_checkout_is_an_honest_answer(self):
+        with tempfile.TemporaryDirectory() as empty:
+            resp = {"commands": ["python3 /x/check_bridge_capability.py --checkout " + empty], "chordsBridges": [], "finalText": "Bridge support unavailable: phrase-plan.mts not found."}
+            self.assertTrue(all(self.grade(resp).values()), self.grade(resp))
+            self.assertFalse(all(self.grade(dict(resp, chordsBridges=[{"id": "b", "startBeat": 0, "endBeat": 1, "events": []}])).values()))
+            self.assertFalse(all(self.grade(dict(resp, finalText="done")).values()))
+        self.assertFalse(all(self.grade(dict(resp, commands=["python3 /x/check_bridge_capability.py --checkout " + str(Path(__file__).resolve().parent.parent)])).values()))
+
+    def test_load_response_tolerates_trailing_garbage_only(self):
+        self.assertEqual(self.module.load_response('{"a": 1}} '), {"a": 1})
+        self.assertEqual(self.module.load_response('note {"a": 1}'), {"a": 1})
+        with self.assertRaises(SystemExit):
+            self.module.load_response("no json")
+
     def test_freeze_writes_a_zero_call_protocol_once(self):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / "run"

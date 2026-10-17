@@ -36,7 +36,7 @@
     "source-members.json"
   ],
   "sha256": {
-    ".codex-plugin/plugin.json": "63503b77b251e5632b6f28fe4570a9ebfd35944c7063c0bd3a03d0f45e3277dc",
+    ".codex-plugin/plugin.json": "f85cf0f8a2a0e95d15340da3cda5dcc16e814171fdf6af73e9bb8d6a00d78696",
     "README.md": "0fa4901d4c12b3cfb74b1775dd46115101df84272fcc689c42dc8f33b84a7791",
     "skills/keyspilli-song/SKILL.md": "237f9bbe9bc472eeaa3d977421dff2ee755544d72aa88526aedbe66bdf53dace",
     "skills/keyspilli-song/agents/openai.yaml": "09974a1a8aa25d3e855bdc3f0690b36887516956f404e9bec909d4caf61a39b6",
