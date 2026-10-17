@@ -161,6 +161,23 @@ class BridgePlannerTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("not found", detail)
 
+    def test_planner_refuses_when_capability_check_fails(self):
+        planner = self.load("plan_chords_bridges")
+        with tempfile.TemporaryDirectory() as folder:
+            out = planner.guarded_plan("o", "c", "e", folder, "node")
+        self.assertEqual(out["chordsBridges"], [])
+        self.assertTrue(out["bridgeSupport"].startswith("Bridge support unavailable: "))
+
+    def test_checkout_is_found_from_a_subfolder(self):
+        cap = self.load("check_bridge_capability")
+        with tempfile.TemporaryDirectory() as folder:
+            script = Path(folder, "repo", cap.SCRIPT)
+            script.parent.mkdir(parents=True)
+            script.write_text("")
+            deep = Path(folder, "repo/plugins/x")
+            deep.mkdir(parents=True)
+            self.assertEqual(cap.find_checkout(deep), Path(folder, "repo").resolve())
+
 
 if __name__ == "__main__":
     unittest.main()
