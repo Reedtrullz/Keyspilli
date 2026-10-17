@@ -124,9 +124,9 @@ coverage and the 20-song replay were not run. The subsequent local credential
 canary found the designated Keychain item, but its single Brave probe returned
 non-transient HTTP 422; the frozen replay was withheld and no retry/tuning was
 performed. See the fail-closed report
-`docs/research/keyspilli-evidence/production-search-provider-credential-canary-2026-09-05.json`.
+`evidence/research/production-search-provider-credential-canary-2026-09-05.json`.
 The provider comparison and implementation evidence are recorded in
-`docs/research/keyspilli-evidence/production-generic-source-search-provider-2026-09-05.json`.
+`evidence/research/production-generic-source-search-provider-2026-09-05.json`.
 
 A later operator credential update was accepted by the same Brave endpoint:
 the probe returned HTTP 200 with 10 results, and the frozen 20-song metadata
@@ -135,7 +135,7 @@ replay returned candidates for 20/20 targets. It used 82 provider requests
 one-retry policy). No result pages or source bytes were fetched. This validates
 the local provider canary only; the credential remains out of production, and
 all remote metadata remains user-mediated. See
-`docs/research/keyspilli-evidence/production-search-provider-credential-canary-rerun-2026-09-05.json`.
+`evidence/research/production-search-provider-credential-canary-rerun-2026-09-05.json`.
 
 The closeout replay was required because the earlier successful canary retained
 aggregate counts but not per-result metadata. One unchanged-policy replay
@@ -148,7 +148,7 @@ not proof that a file exists or is licensed. All 20 had a
 candidate reached the existing server-owned handoff contract in
 `AWAITING_USER_FILE` state with `UNKNOWN_RIGHTS` and `UNKNOWN_TIMING`. No
 candidate page or byte was fetched. The closeout report is
-`docs/research/keyspilli-evidence/production-search-provider-canary-closeout-2026-09-05.json`.
+`evidence/research/production-search-provider-canary-closeout-2026-09-05.json`.
 
 ### Bounded MVP release-candidate scope and deployment gate
 
@@ -208,9 +208,9 @@ The remote Compose topology passed; local Compose was not run because the
 local plugin is unavailable. No generated musical bytes or policy changed.
 
 For a future deploy, use the release manifest
-`docs/research/keyspilli-evidence/bounded-mvp-deployment-canary-2026-09-04.json`
+`evidence/research/bounded-mvp-deployment-canary-2026-09-04.json`
 and the evidence entry in
-`docs/research/keyspilli-evidence/KEYSPILLI_PRODUCT_PIPELINE_STATUS_2026_09.md`.
+`evidence/research/KEYSPILLI_PRODUCT_PIPELINE_STATUS_2026_09.md`.
 
 Future explicitly authorized deployment checklist:
 
@@ -277,7 +277,7 @@ operations checker below makes local failures visible through systemd and the
 journal without adding another credential or service.
 
 The path-free audit record is
-`docs/research/keyspilli-evidence/bounded-mvp-post-deploy-operations-2026-09-04.json`.
+`evidence/research/bounded-mvp-post-deploy-operations-2026-09-04.json`.
 
 ## Adding songs from the Ultimate Guitar list
 
@@ -863,7 +863,7 @@ exercise. Report blocking, confusing, failed, or unexpectedly slow product
 interactions using `docs/private-alpha-feedback-guide.md`; do not include
 credentials, private paths, or source bytes by default. The objective local
 usage matrix and short read-only live baseline are recorded in
-`docs/research/keyspilli-evidence/private-alpha-usage-feedback-phase-2026-09-05.json`.
+`evidence/research/private-alpha-usage-feedback-phase-2026-09-05.json`.
 
 
 ## Live catalog verification (F07)
@@ -1256,7 +1256,7 @@ Source-aware playback disables simulated background sustain, reconstructs only s
 
 Run `python3 deploy/measure-worker-resources.py --image EXISTING_IMAGE --output FRESH_RECEIPT.json` only on an idle isolated Docker host. It pulls no images, mounts no owner media, runs generated 3/30/90-second decoder fixtures, then deliberately triggers memory and PID caps. Each owned container must be removed and absent from a successful Docker inventory before evidence is written. Capability dropping, no-new-privileges, read-only root and writable temporary space were checked for the decoder probe; they have not qualified the full worker, which uses model caches and the existing host-network relay.
 
-The 2026-10-02 local receipt `docs/research/2026-10-02-local-decoder-resource-probe-3.json` records an amd64 image under aarch64 emulation, 1 CPU/384 MiB/64 PID decoder ceilings, child RSS around 77.4 MB, eight sampled PIDs and 1.29/5.97/15.78 seconds latency. The 64 MiB deliberate cap reports an actual OOM kill; the 16 PID cap produces process-capacity refusal. These timings/RSS are not native-production budgets, full-job peak usage or web headroom evidence. Separate deployed-limit/read-only-path/health/lease-recovery acceptance remains required.
+The 2026-10-02 local receipt `evidence/research/2026-10-02-local-decoder-resource-probe-3.json` records an amd64 image under aarch64 emulation, 1 CPU/384 MiB/64 PID decoder ceilings, child RSS around 77.4 MB, eight sampled PIDs and 1.29/5.97/15.78 seconds latency. The 64 MiB deliberate cap reports an actual OOM kill; the 16 PID cap produces process-capacity refusal. These timings/RSS are not native-production budgets, full-job peak usage or web headroom evidence. Separate deployed-limit/read-only-path/health/lease-recovery acceptance remains required.
 
 Failed subprocesses with increased cgroup v2 `oom`, `oom_kill` or `pids.events:max`, or native ENOMEM/EAGAIN, stop as `RESOURCE_BLOCKED`. This proves runtime capacity pressure, not the responsible child. Cancellation/timeouts keep their own classification; SIGKILL/137 alone does not establish OOM. [Linux cgroup v2 event semantics](https://docs.kernel.org/admin-guide/cgroup-v2.html) define the counters. Unknown/unavailable counters stay unknown. A killed entire worker cannot write its own error; existing lease recovery and Docker OOM state must be assessed by operations. Resource failures do not automatically retry, switch transcription routes or publish partial output. The private jobs view offers an explicit capacity state; an operator can recover after reviewing limits.
 

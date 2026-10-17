@@ -16,7 +16,7 @@ Cold/warm navigation means browser cache state; it does not prove worker layout
 reuse across a full navigation. First scheduled audio excludes speaker/device
 latency. The upload currently has one sample, clearly marked in the JSON.
 
-The retained checked receipt is `performance-baseline-2026-10-02.json`.
+The retained checked receipt is `evidence/performance/performance-baseline-2026-10-02.json`.
 After the Verovio 6.3.0 upgrade, three runs observed cold Home 123–227 ms, warm Home 93–151 ms,
 first scheduled note 234–496 ms, sheet readiness 1130–2182 ms and PDF
 1155–1307 ms. These are local timings, not production thresholds or speedup
@@ -29,7 +29,7 @@ No new cache or latency budget is justified by this small baseline. The current
 five-page window bounds both renderer paths after PR-23; main-thread fallback
 holds its toolkit and generates only requested pages. Native/WASM toolkit memory
 remains outside the retained-string estimate. Generated decoder CPU/RSS/PID probes
-are recorded separately in `docs/research/2026-10-02-local-decoder-resource-probe-3.json`;
+are recorded separately in `evidence/research/2026-10-02-local-decoder-resource-probe-3.json`;
 they do not qualify full-worker or deployed limits. Owner-device, speaker/keyboard,
 musical, screen-reader and disaster-recovery acceptance remain separate.
 
@@ -49,7 +49,7 @@ measurements remain separate. Stress waits are bounded at 40 seconds; the ordina
 small-fixture five-second wait is not a product performance budget. PDF rendering
 retains its production deadline. No arbitrary device thresholds are adopted.
 
-The retained stress receipt is `performance-stress-2026-10-02.json` (six samples,
+The retained stress receipt is `evidence/performance/performance-stress-2026-10-02.json` (six samples,
 no pre-warmed export request). Worker sheet readiness ranged 3.01–13.81 seconds
 and fallback 2.66–12.37 seconds; classic PDF ranged 4.15–5.23 seconds across both.
 Both paths retained at most five interactive SVG pages within the 4 MiB ceiling.
@@ -58,7 +58,7 @@ production or owner-device latency promise. The earlier five-second measurement
 timeout triggered cleanup while a sheet read was pending; the resulting stale
 pin was a cleanup consequence, not proof of a publication race.
 
-The second retained receipt is `performance-span-2026-10-02.json` (six samples).
+The second retained receipt is `evidence/performance/performance-span-2026-10-02.json` (six samples).
 Worker sheet readiness ranged 5.03–8.77 seconds, main-thread fallback 3.91–6.66
 seconds, and classic PDF 5.18–8.35 seconds. Both paths retained at most five pages
 and stayed within the same 4 MiB interactive string ceiling. This reaches the

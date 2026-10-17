@@ -191,7 +191,7 @@ test("practice setup preserves the selected position", async ({ page }) => {
 
 ## Task 6: Integrated acceptance and handoff
 
-**Files:** Update this plan's checkboxes and add `docs/research/keyspilli-evidence/player-polish-2026-09-08.md` with actual execution date, commits, screenshots, checks, and limits.
+**Files:** Update this plan's checkboxes and add `evidence/research/player-polish-2026-09-08.md` with actual execution date, commits, screenshots, checks, and limits.
 
 - [x] Use the project's installed Node 22 binary, not an unverified global node shim.
 - [x] Run targeted tests after each behavior change, then the integrated checks once:
@@ -227,7 +227,7 @@ Explicit exclusions: catalogue quality repair, clef/engraving correction, new gr
 
 ## Execution record — 08-09-2026
 
-Implemented on `codex/player-polish` in `/Users/reidar/Projectos/.keyspilli-worktrees/player-polish`, based on `origin/main` `0d5f78a`; application commit `04ce0e6`. Original `codex/organ` checkout and unrelated WIP preserved. See [evidence and screenshots](../../research/keyspilli-evidence/player-polish-2026-09-08.md).
+Implemented on `codex/player-polish` in `/Users/reidar/Projectos/.keyspilli-worktrees/player-polish`, based on `origin/main` `0d5f78a`; application commit `04ce0e6`. Original `codex/organ` checkout and unrelated WIP preserved. See [evidence and screenshots](../../../evidence/research/player-polish-2026-09-08.md).
 
 Execution variations: reused the accepted live review as the visual baseline plus one local integration baseline; did not recreate all four baseline viewports before component edits. Final primary-stage checks cover all four requested sizes. The production preview ID was absent in the private copied catalogue, so exact preview recapture was unavailable; source-notice warnings have component coverage. Changes were committed as one cohesive player patch because the control and grading changes share Player ownership. Focus uses CSS flex allocation; short windows retain document scroll. Native dialog tabbing can expose browser chrome, while underlying page controls stay inert. Zoom verification used 200% CSS zoom, not OS/browser magnification. Real MIDI/microphone and engraving review remain explicit acceptance limits, not claimed checks.
 

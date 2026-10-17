@@ -90,5 +90,5 @@ Five post-review timing controls have zero wrong-harmony duration after the
 correction; two had 0.07 and 0.49 wrong beats before it. The 48 original
 corpus/policy results remain byte-identical but are now explicitly regression
 evidence. See the separate revision 2 report in
-`docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/` for exact pins,
+`evidence/research/ks09-harmony-pilot-2026-10-12/` for exact pins,
 before/after realized events, test counts and residual admission limits.
