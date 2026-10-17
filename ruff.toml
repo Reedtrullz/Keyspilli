@@ -1,0 +1,22 @@
+# Python lint for deploy/, scripts/ and services/transcribe.
+# Run: ruff check .   (CI pins the version in .github/requirements-lint.txt)
+target-version = "py311"
+extend-exclude = ["docs", "output", "data", "node_modules", ".transcribe-test-venv"]
+
+[lint]
+# Real-bug rules: syntax/runtime errors (E9, F), import and statement
+# hygiene (E4, E7) and common bug patterns (B).
+select = ["E4", "E7", "E9", "F", "B"]
+ignore = [
+  # House style: compact one-line statements are used deliberately.
+  "E701", "E702", "E401", "E731", "E741",
+  # Baseline: existing violations on main. Remove an entry once its count
+  # reaches zero so the rule starts protecting new code.
+  "B905",  # zip() without strict=  (45)
+  "B023",  # closure uses loop variable (28)
+  "F401",  # unused import (10)
+  "B904",  # raise without from inside except (5)
+  "F841",  # unused local variable (3)
+  "F402",  # import shadowed by loop variable (1)
+  "B007",  # unused loop control variable (1)
+]

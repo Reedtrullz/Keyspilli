@@ -11,6 +11,8 @@
     "dev": "npm run dev -w @keyspilli/web",
     "build": "npm run build -w @keyspilli/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "lint:py": "ruff check .",
     "test": "npm run test --workspaces --if-present",
     "verify-catalog": "npm run verify-catalog -w @keyspilli/catalog",
     "migrate-artifacts": "npm run migrate-artifacts -w @keyspilli/catalog --",
@@ -40,7 +42,12 @@
     "preflight": "node --import tsx apps/web/scripts/runtime-preflight.ts"
   },
   "devDependencies": {
-    "tsx": "^4.23.15"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "tsx": "^4.23.15",
+    "typescript-eslint": "^8.71.2"
   },
   "engines": {
     "node": ">=22.22.3 <23"
