@@ -24,6 +24,10 @@ concurrency:
 
 jobs:
   rehearsal:
+    defaults:
+      run:
+        shell: >-
+          python3 -c "import os,runpy;runpy.run_path(os.path.join(os.environ['GITHUB_WORKSPACE'],'deploy/evidence-step.py'),run_name='__main__')" {0}
     name: Native amd64 restore and canary on the public seed catalog (no production access)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -34,18 +38,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Require native amd64, exact commit and disk headroom
+      - name: Require native amd64 and exact commit
         run: |
           test "$(uname -m)" = x86_64
           [[ "$EXPECTED_COMMIT" =~ ^[a-f0-9]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
-          test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+
+      - name: Reserve owned test resources
+        run: python3 deploy/evidence-job.py begin
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
@@ -106,7 +112,8 @@ jobs:
           source = Path("data").resolve()
           for name in ("manifest.json", "learner-review.json"):
               shutil.copyfile(Path("catalog") / name, source / name)
-          root = Path("rehearsal-out").resolve()
+          root = Path(os.environ["KEYSPILLI_SCRATCH"]) / "rehearsal"
+          root.mkdir()
           env = {**os.environ, "KEYSPILLI_DATA_DIR": str(source), "KEYSPILLI_BACKUP_DIR": str(root / "backups")}
           subprocess.run(["bash", "deploy/backup.sh"], env=env, check=True, timeout=120)
           manifests = list((root / "backups").glob("backup-manifest-*.json"))
@@ -115,6 +122,7 @@ jobs:
                           "--verify-app", env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["KEYSPILLI_BACKUP_WEB_REVISION"],
                           env["RESTORE_SONG_ID"]], check=True, timeout=420)
           report = json.loads((root / "restored" / "restore-report.json").read_text())
+          shutil.copyfile(root / "restored" / "restore-report.json", Path("rehearsal-out/restore-report.json"))
           assert report["applicationVerification"] == "passed"
           assert report["restoredRevision"] == env["KEYSPILLI_BACKUP_WEB_REVISION"]
           assert report["webImageId"] == env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"]
@@ -127,7 +135,7 @@ jobs:
           import hashlib, json, os, platform
           from pathlib import Path
           out = Path("rehearsal-out")
-          report = json.loads((out / "restored" / "restore-report.json").read_text())
+          report = json.loads((out / "restore-report.json").read_text())
           receipt = {
               "kind": "keyspilli-runtime-rehearsal",
               "runtimeScope": "isolated-candidate-rehearsal",
@@ -151,6 +159,7 @@ jobs:
           PY
 
       - name: Upload receipt
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: runtime-rehearsal-receipt-${{ env.EXPECTED_COMMIT }}
@@ -158,3 +167,20 @@ jobs:
             rehearsal-out/runtime-rehearsal-receipt.json
             rehearsal-out/runtime-rehearsal-receipt.sha256
           if-no-files-found: error
+
+      - name: Release owned test resources
+        if: always()
+        env:
+          KEYSPILLI_EVIDENCE_FINISHING: "1"
+          JOB_STATUS: ${{ job.status }}
+        run: sudo --preserve-env=RUNNER_TEMP,KEYSPILLI_EVIDENCE_ROOT,KEYSPILLI_EVIDENCE_RUN,KEYSPILLI_REAL_DOCKER,JOB_STATUS python3 deploy/evidence-job.py finish
+
+      - name: Retain raw results and reconstruction maps
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: runtime-rehearsal-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/keyspilli-evidence.tar.gz
+            rehearsal-out
+          retention-days: 90

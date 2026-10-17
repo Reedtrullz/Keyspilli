@@ -33,5 +33,5 @@ try {
   assert(!seeded.has("performance-baseline.spec.ts"), "Performance measurements require explicit opt-in");
   console.log(`E2E routing passed: ${seeded.size} seeded files, ${roadmap.size} isolated roadmap files, ${playerUI.size} player UI files`);
 } finally {
-  rmSync(scratch, { recursive: true, force: true });
+  if (!process.env.KEYSPILLI_EVIDENCE_RUN) rmSync(scratch, { recursive: true, force: true });
 }

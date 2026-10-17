@@ -1,0 +1,11 @@
+[Unit]
+Description=Recover abandoned Keyspilli test resources after boot and hourly
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=1h
+Persistent=true
+RandomizedDelaySec=1m
+
+[Install]
+WantedBy=timers.target

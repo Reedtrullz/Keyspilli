@@ -1,5 +1,9 @@
 # Local storage policy
 
+Test/restore scratch and experimental Docker resources have a separate
+[owned lifecycle](ops/evidence-lifecycle.md), including reconstruction,
+cancellation recovery and bounded admission. Legacy recovery trees are excluded.
+
 The host keeps the **two newest complete, verified Keyspilli artifact cohorts**.
 Each cohort includes a SQLite snapshot, artifacts/source archive and completion
 manifest. Timestamp order determines retention; file mtime and a failed new

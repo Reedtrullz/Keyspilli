@@ -15,7 +15,7 @@ const fontHash = hash(process.env.KEYSPILLI_SOUNDFONT), rendererHash = hash(new 
 const validationHash = hash(new URL("../src/lib/preview-validation.ts", import.meta.url).pathname);
 const rows = JSON.parse(readFileSync(join(root, "ledger.json"), "utf8")).filter((r: any) => !baseId || r.baseId === baseId);
 assert(rows.length, "no matching songs");
-const results = [], scratch = mkdtempSync(join(root, ".render-"));
+const results = [], scratch = mkdtempSync(join(process.env.KEYSPILLI_SCRATCH ?? root, ".render-"));
 try {
   for (const row of rows) {
     const dir = join(root, row.baseId), midi = join(dir, "chords.mid"), receiptPath = join(dir, "audio.json"), mp3 = join(dir, "preview.mp3");
@@ -26,8 +26,9 @@ try {
       const prior = existsSync(receiptPath) ? JSON.parse(readFileSync(receiptPath, "utf8")) : null;
       if (prior?.validationHash === validationHash && prior?.rendererHash === rendererHash && prior?.midiHash === midiHash && prior.fontHash === fontHash && existsSync(mp3) && prior.mp3Hash === hash(mp3)) { results.push(prior); continue; }
       let result;
-      const wav = join(scratch, "preview.wav");
+      let wav = join(scratch, "preview.wav");
       for (const gain of [0.2, 0.05, 0.0125]) {
+        if (process.env.KEYSPILLI_EVIDENCE_RUN) wav = join(scratch, `${results.length}-${gain}.wav`);
         result = await renderMidiToWav({ midiPath: midi, outputPath: wav, gain, sampleRate: 22050 });
         if (!result.wav.rawClippingCount) break;
       }
@@ -42,6 +43,6 @@ try {
       console.log(`${results.length}/${rows.length} ${row.baseId}: full duration, raw clipping=${result.wav.rawClippingCount}`);
     } catch (error) { results.push({ baseId: row.baseId, error: String(error) }); console.error(row.baseId, String(error)); }
   }
-} finally { rmSync(scratch, { recursive: true, force: true }); }
+} finally { if (!process.env.KEYSPILLI_EVIDENCE_RUN) rmSync(scratch, { recursive: true, force: true }); }
 writeFileSync(join(root, baseId ? `${baseId}-audio-result.json` : "audio-ledger.json"), JSON.stringify(results, null, 2));
 assert(!results.some((r: any) => r.error), "audio render incomplete");

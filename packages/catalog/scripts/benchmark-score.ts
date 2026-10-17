@@ -1537,7 +1537,7 @@ export async function runBenchmarkScore(options: ScoreBenchmarkOptions): Promise
       if (report.artifacts.notation.status === "FAILED") addWarning(report.warnings, { code: "notation-render-failed", severity: "warning", message: report.artifacts.notation.reason ?? "notation render failed" });
       report.status = statusFor(report.errors, report.warnings);
     } finally {
-      await rm(scratch, { recursive: true, force: true });
+      if (!process.env.KEYSPILLI_EVIDENCE_RUN) await rm(scratch, { recursive: true, force: true });
     }
   } catch (error) {
     report.omr = { backend: "Audiveris", version: null, status: "FAILED", reason: safeError(error, "Audiveris conversion failed") };

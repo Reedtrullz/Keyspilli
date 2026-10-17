@@ -2,9 +2,17 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+if [[ -z "${KEYSPILLI_EVIDENCE_RUN:-}" ]]; then
+  managed_root="${KEYSPILLI_EVIDENCE_ROOT:-$root_dir/output/edge-evidence}"
+  if [[ "$(uname -s)" == Linux && -d /var/lib/keyspilli-evidence ]]; then
+    managed_root="${KEYSPILLI_EVIDENCE_ROOT:-/var/lib/keyspilli-evidence/managed-v1}"
+  fi
+  exec python3 "$root_dir/deploy/keyspilli-evidence.py" --root "$managed_root" \
+    run --peak-bytes 1073741824 -- bash "$0" "$@"
+fi
 # Colima/Docker Desktop cannot always mount the host's system temp directory;
 # keep this run-local directory under the checkout and remove it on exit.
-scratch_dir="$root_dir/.tmp-edge-test.$$"
+scratch_dir="$KEYSPILLI_SCRATCH/edge"
 mkdir -p "$scratch_dir"
 container_name="keyspilli-edge-test-$$"
 port="${KEYSPILLI_EDGE_TEST_PORT:-38199}"
@@ -19,7 +27,6 @@ cleanup() {
     kill "$backend_pid" >/dev/null 2>&1 || true
     wait "$backend_pid" >/dev/null 2>&1 || true
   fi
-  rm -rf "$scratch_dir"
 }
 trap cleanup EXIT
 

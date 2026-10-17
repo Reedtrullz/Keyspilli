@@ -282,6 +282,10 @@ def check(source, checkout, node, report):
                 value['renderMidi'] = {'status': 'help-verified', 'renderedAudio': False, 'capabilitiesQueried': False}
                 with tempfile.TemporaryDirectory(prefix='keyspilli-plugin-smoke-', dir=checkout) as temporary:
                     smoke = Path(temporary)
+                    if os.environ.get('KEYSPILLI_EVIDENCE_RUN'):
+                        lifecycle_env = {key: os.environ[key] for key in ('PATH', 'KEYSPILLI_EVIDENCE_ROOT', 'KEYSPILLI_EVIDENCE_RUN')}
+                        subprocess.run([sys.executable, '-B', str(checkout / 'deploy/keyspilli-evidence.py'),
+                                        'register-external', str(smoke)], env=lifecycle_env, check=True, timeout=15)
                     source_bytes = synthetic_midi()
                     input_path = smoke / 'synthetic.mid'
                     input_path.write_bytes(source_bytes)
