@@ -154,6 +154,7 @@ function redact(value: string): string {
   return value
     .replace(/https?:\/\/[^\s"']+/gi, "[redacted-url]")
     .replace(/(?:file:\/\/)?(?:\/(?:Users|private|tmp|var|home|Volumes|root|opt|mnt|workspace|data|srv|etc)\/[^\s"'<>;,)]*|[A-Za-z]:[\\/][^\s"'<>;,)]*)/gi, "[redacted-path]")
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

@@ -19,7 +19,7 @@ let browser:Browser|undefined;let blocked:string|null=null;
 try {
  browser=await chromium.launch({headless:true});const context=await browser.newContext({serviceWorkers:'block'});
  await context.route('**/*',async route=>{const url=route.request().url();if(url.startsWith(origin+'/'))return route.continue();const body=local.assets.get(url);if(!body){blocked=url;return route.abort();}return route.fulfill({status:200,contentType:'audio/ogg',body});});
- await context.addInitScript('globalThis.__name = (fn, name) => Object.defineProperty(fn, \"name\", { value: name, configurable: true });');
+ await context.addInitScript('globalThis.__name = (fn, name) => Object.defineProperty(fn, "name", { value: name, configurable: true });');
  const page=await context.newPage();page.setDefaultTimeout(30000);await page.goto(origin);
  await page.evaluate(async ()=>{const dynamicImport=new Function('path','return import(path)');const module=await dynamicImport('/smplr.mjs');const ctx=new OfflineAudioContext(2,4410,44100);let buffers:unknown;const piano=module.SplendidGrandPiano(ctx,{loader:{async load(preset:unknown){buffers=await module.SampleLoader(ctx).load(preset);return buffers;}}});await piano.ready;piano.dispose();(window as any).__playerBank={module,buffers};});
  if(blocked)throw new Error('unregistered asset refused: '+blocked);

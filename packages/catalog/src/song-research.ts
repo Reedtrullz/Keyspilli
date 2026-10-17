@@ -545,7 +545,7 @@ function isLogicalSourceRef(value: string): boolean {
 function isPathLikeSourceRef(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed || isLogicalSourceRef(trimmed)) return false;
-  return /^(?:file:|[~.]?[\/]|[A-Za-z]:[\\/])/.test(trimmed)
+  return /^(?:file:|[~.]?[/]|[A-Za-z]:[\\/])/.test(trimmed)
     || /[\\/]/.test(trimmed)
     || /[?#@]/.test(trimmed)
     || /\.(?:mid|midi|musicxml|xml|gp|gpx|mp3|wav|flac|json)$/i.test(trimmed);

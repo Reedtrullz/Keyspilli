@@ -202,6 +202,7 @@ function ascii(bytes: Uint8Array): string {
 }
 
 function text(bytes: Uint8Array): string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   return new TextDecoder("utf-8", { fatal: false }).decode(bytes).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
 }
 
