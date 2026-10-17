@@ -12,7 +12,9 @@ function OfflinePlayer(){
  useEffect(()=>{
   let live=true;async function load(){const turn=++generation.current;lock();setPack(null);try{const value=await loadOfflinePack();if(live&&generation.current===turn){setPack(value);setNotice(value?"Local screen lock. Unlock only on your private device.":"No selected pack. Prepare one online; uncached songs require network.");}}catch(error){if(live&&generation.current===turn)setNotice(error instanceof Error?error.message:"Offline storage unavailable.");}}
   void load();const channel=typeof BroadcastChannel!=="undefined"?new BroadcastChannel("keyspilli.offline"):null;if(channel)channel.onmessage=()=>void load();const hidden=()=>{if(document.hidden)lock();};const leaving=()=>lock();document.addEventListener("visibilitychange",hidden);window.addEventListener("pagehide",leaving);window.addEventListener("blur",leaving);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- generation counter, not a DOM ref: unmount must bump the live value
   return ()=>{live=false;generation.current++;channel?.close();document.removeEventListener("visibilitychange",hidden);window.removeEventListener("pagehide",leaving);window.removeEventListener("blur",leaving);};
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only loader; lock only touches refs and state setters
  },[]);
  useEffect(()=>{
   if(!pack||!unlocked)return;
@@ -22,6 +24,7 @@ function OfflinePlayer(){
   const interrupt=()=>{if(owner.playing||owner.grader){stop();setNotice("Playback interrupted. Restart deliberately; no device timing or mastery is measured.");}};audio.onStateChange=state=>{if(state!=="running")interrupt();};
   let frame=0,last=performance.now();const tick=(now:number)=>{const delta=(now-last)/1000;last=now;if(Date.now()>=Date.parse(pack.expiresAt)){lock();setPack(null);void removeOfflinePack().then(()=>setNotice("Expired pack removed."),()=>setNotice("Pack expired; storage removal failed. Retry Remove pack."));return;}if(delta>.3)interrupt();else owner.tick(delta);frame=requestAnimationFrame(tick);};frame=requestAnimationFrame(tick);
   return ()=>{cancelAnimationFrame(frame);keyboard.current?.releaseAll();keyboard.current=null;owner.onChange=null;audio.onStateChange=null;owner.finishGrading();owner.stop();audio.dispose();if(engine.current===owner)engine.current=null;};
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only for pack/unlock changes; lock only touches refs and state setters
  },[pack,unlocked]);
  async function remove(){lock();try{await removeOfflinePack();setPack(null);setNotice("Private pack removed from this browser. Downloaded copies are separate.");}catch{setNotice("Removal failed; close other offline tabs and retry.");}}
  async function stale(){if(!pack)return;setNotice("Checking current publication online…");try{const response=await fetch(`/api/songs/${encodeURIComponent(pack.variantId)}?revision=${encodeURIComponent(pack.revision)}`,{cache:"no-store",signal:AbortSignal.timeout(3000)});setNotice(response.status===409||response.status===404?"Stored pack is stale or no longer published. Remove it and prepare a fresh pack online.":response.ok?"Publication still matches this stored revision. Offline revocation of local copies is not promised.":"Current publication could not be checked. Stored snapshot remains local.");}catch{setNotice("Offline: current publication is unknown. This is the stored snapshot, not a freshness guarantee.");}}

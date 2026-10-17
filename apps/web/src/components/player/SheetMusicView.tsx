@@ -284,6 +284,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
       sessionRef.current = null;
       void session?.close();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on interaction.source/enabled, not the object identity
   }, [suspended, songId, publicationRevision, renderMode, interaction?.source, interaction?.enabled]);
 
   useEffect(() => {

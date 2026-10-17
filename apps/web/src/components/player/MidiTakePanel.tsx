@@ -13,8 +13,11 @@ export function MidiTakePanel({inputRef,target,revision,targets,startBeat,endBea
     const current=recorder.current;if(!current)return true;current.capture(on?'on':'off',identity,midi,event);if(!current.recording)finish(true);return true;},
    pedal(scope,event){if(phaseRef.current==='replay')return true;if(phaseRef.current!=='recording')return false;recorder.current?.capture('pedal',scope,64,event);if(recorder.current&&!recorder.current.recording)finish(true);return true;},interrupt(){if(phaseRef.current!=='idle')finish(true);}};
   return()=>{inputRef.current=null;recorder.current=null;stopAudio();onDone();};
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only input bridge; finish/onDone only touch refs and state setters
  },[inputRef]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- interrupt only when the take context changes, not when finish is recreated
  useEffect(()=>{if(phaseRef.current!=='idle')finish(true);setApproved(false);setSeek(0);},[target?.fingerprint,revision,startBeat,endBeat,bpm,speed,transpose,device,channel,disabled]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners read phaseRef; finish only touches refs and state setters
  useEffect(()=>{const blur=()=>{if(phaseRef.current!=='idle')finish(true);},hidden=()=>{if(document.hidden)blur();};window.addEventListener('blur',blur);document.addEventListener('visibilitychange',hidden);return()=>{window.removeEventListener('blur',blur);document.removeEventListener('visibilitychange',hidden);};},[]);
  const eligible=!!target&&!!revision&&!!device&&channel!==null&&!disabled;
  function record(){

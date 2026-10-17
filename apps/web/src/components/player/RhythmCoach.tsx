@@ -6,13 +6,16 @@ export function RhythmCoach({data,startBeat,endBeat,speed,disabled,onPrepare,onD
  const generation=useRef(0),frame=useRef(0),audio=useRef<AudioEngine|null>(null),run=useRef<{plan:RhythmPlan;grader:Grader;epoch:number;offset:number;nextCue:number;lastFrame:number;taps:number;context:{sourceFingerprint:string|null;startBeat:number;endBeat:number;bpm:number;speed:number};raw:{timestampMs:number;rawSec:number;adjustedSec:number;timingSource:string}[]} | null>(null);
  const lastRun=useRef<NonNullable<typeof run.current>|null>(null);
  function stop(reason:string,completed=false){generation.current++;cancelAnimationFrame(frame.current);const current=run.current;if(current)lastRun.current=current;run.current=null;audio.current?.dispose();audio.current=null;setRunning(false);onDone();setNotice(reason);if(completed&&current)setResult(current.grader.result());}
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- interrupt only when the passage context changes; stop only touches refs and state setters
  useEffect(()=>{if(running)stop('Rhythm attempt interrupted: passage, tempo or player state changed.');setResult(null);lastRun.current=null;},[data,startBeat,endBeat,speed,disabled]);
  useEffect(()=>{
   const interrupt=()=>{if(run.current||audio.current)stop('Rhythm attempt interrupted. Start again when ready.');};
   const navigate=(event:Event)=>{if((event as CustomEvent<boolean>).detail)interrupt();};
   const visibility=()=>{if(document.hidden)interrupt();};window.addEventListener('blur',interrupt);document.addEventListener('visibilitychange',visibility);
   window.addEventListener('keyspilli:navigation',navigate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- generation counter, not a DOM ref: unmount must bump the live value
   return()=>{generation.current++;cancelAnimationFrame(frame.current);audio.current?.dispose();audio.current=null;run.current=null;onDone();window.removeEventListener('blur',interrupt);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('keyspilli:navigation',navigate);};
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only listeners; stop/onDone only touch refs and state setters
  },[]);
  async function start(){
   if(disabled||running)return;setResult(null);lastRun.current=null;
