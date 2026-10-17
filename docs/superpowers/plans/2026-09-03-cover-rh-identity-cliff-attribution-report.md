@@ -137,7 +137,7 @@ npm run evaluate:cover-rh-cliff -- --revision=b4cf1ce1690b6a7455bd8fd488cf77734a
 The fresh full JSON report was rerun byte-identically. Its SHA-256 is
 `c12a7e782dfdfb1a9e9332995ebb017ba3a0adc1dacab7142c28e01d263628df`.
 The compact checked-in headline snapshot is
-`2026-09-03-cover-rh-identity-cliff-attribution-report.json`.
+`evidence/plans/2026-09-03-cover-rh-identity-cliff-attribution-report.json`.
 
 Trace instrumentation was verified not to change the six physical variant
 event digests. Focused diagnostic tests passed (catalog 2, MIDI 327); the full

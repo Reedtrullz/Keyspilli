@@ -130,13 +130,13 @@
         "packages/catalog/test/beginner-sparse-lh-promotion-control.test.ts",
         "packages/catalog/test/difficulty-ladder.test.ts",
         "packages/catalog/test/independent-current-evaluation.test.ts",
-        "docs/superpowers/plans/2026-09-02-difficulty-ladder-baseline.json",
+        "evidence/plans/2026-09-02-difficulty-ladder-baseline.json",
         "docs/superpowers/plans/2026-09-02-difficulty-ladder.md",
         "docs/superpowers/plans/2026-09-02-difficulty-ladder-results.md",
-        "docs/superpowers/plans/2026-09-02-easy-lineage-baseline.json",
-        "docs/superpowers/plans/2026-09-03-current-production-difficulty-differentiation-review.json",
+        "evidence/plans/2026-09-02-easy-lineage-baseline.json",
+        "evidence/plans/2026-09-03-current-production-difficulty-differentiation-review.json",
         "docs/superpowers/plans/2026-09-03-current-production-difficulty-differentiation-review.md",
-        "docs/superpowers/plans/beginner-sparse-lh-independent-current-eval-preregistration.json"
+        "evidence/plans/beginner-sparse-lh-independent-current-eval-preregistration.json"
       ],
       "contract": "Read-only diagnostics and evidence consume the six-level ladder; they do not alter production generation or public payloads."
     },

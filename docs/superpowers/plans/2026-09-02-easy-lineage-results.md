@@ -25,7 +25,7 @@ trusted fixture.
 The corpus is limited to the trusted `classical`, `cover`, and `pop` symbolic
 fixtures plus the existing project-owned `synthetic-full-band` shadow. Source
 hashes, output digests, and machine-readable counts are frozen in
-[`2026-09-02-easy-lineage-baseline.json`](./2026-09-02-easy-lineage-baseline.json).
+[`2026-09-02-easy-lineage-baseline.json`](../../../evidence/plans/2026-09-02-easy-lineage-baseline.json).
 
 No supplied/reference MIDI was read or copied. No audio, production replay,
 catalog mutation, AMT, Basic Pitch, GAPS, separation, routing, OMR, benchmark,

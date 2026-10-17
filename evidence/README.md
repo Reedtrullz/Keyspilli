@@ -6,8 +6,12 @@ Machine-written evidence lives here: captures, manifests, ledgers, freezes, fixt
 |---|---|
 | `evidence/research/` | `docs/research/keyspilli-evidence/` |
 | `evidence/superpowers/` | `docs/superpowers/evidence/` |
+| `evidence/plans/*.json` | `docs/superpowers/plans/*.json` (preregistrations, baselines and reports; the Markdown plans stay in `docs/`) |
+| `evidence/performance/` | `docs/performance-{baseline,span,stress}-2026-10-02.json` |
+| `evidence/ops/` | `docs/ops/music-review-results-2026-10-05.json` |
+| `evidence/research/2026-10-02-local-decoder-resource-probe-3.json` | `docs/research/2026-10-02-local-decoder-resource-probe-3.json` |
 
-Inside each folder the layout is unchanged, so relative references between evidence files still resolve. Every hash list (`*.sha256`, `SHA256SUMS.txt`) uses paths relative to its own folder and still verifies.
+Inside each moved folder the layout is unchanged, so relative references between evidence files still resolve. Every hash list (`*.sha256`, `SHA256SUMS.txt`) uses paths relative to its own folder and still verifies.
 
 ## Rules
 
@@ -18,9 +22,18 @@ Inside each folder the layout is unchanged, so relative references between evide
   - `apps/web/playwright.organ-gain.config.ts`
   - `apps/web/scripts/validate-chords-v2-t1-evidence.mjs`
   - `services/transcribe/scripts/evaluate-tutorial-pipeline.ts`
+  - `packages/catalog/scripts/evaluate-independent-current.ts`
 - Older evidence records (candidate freezes, packets) list implementation-file hashes from the day they were made. They were already stale before this move, and nothing checks them.
 
-## Not moved yet
+## Hash-pinned plan JSON
 
-- The JSON under `docs/superpowers/plans/`: preregistrations and baselines that sit next to their Markdown plans. Whether these move was left open in the proposal.
-- A few small loose files: `docs/ops/music-review-results-2026-10-05.json`, `docs/performance-*-2026-10-02.json` and `docs/research/2026-10-02-local-decoder-resource-probe-3.json`.
+These four files are pinned by SHA-256 in Markdown results or in `evidence/research/experiment-ledger.json`, so they were moved byte-for-byte and are never edited:
+
+- `2026-09-02-beginner-budget-revision-preregistration.json`
+- `2026-09-02-beginner-sparse-lh-promotion-evidence-repair-preregistration.json`
+- `2026-09-02-difficulty-ladder-baseline.json`
+- `2026-09-03-current-production-difficulty-differentiation-review.json`
+
+As a result, `2026-09-02-beginner-sparse-lh-promotion-evidence-repair-preregistration.json` still names its parent preregistration by the old `docs/superpowers/plans/...` path in `logicalRef`. Read that path as a historical record: the file now lives at `evidence/plans/2026-09-02-beginner-sparse-lh-production-preregistration.json`.
+
+Everything that was under `docs/` as JSON evidence has now moved.
