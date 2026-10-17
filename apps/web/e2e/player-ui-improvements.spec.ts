@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { openPlayerTool } from "./player-tools";
+import { capturePlayerClip } from "./player-audio-capture";
 
 const song = "/player/ui-fixture-m";
 const sheetXml = `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${Array.from({ length: 80 }, (_, i) => `<measure number="${i + 1}">${i === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>' : ""}<note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></measure>`).join("")}</part></score-partwise>`;
@@ -9,13 +10,18 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
-test("paused Grand Piano selection prepares one sample set and reuses it after a warm switch", async ({ page }) => {
+function pianoWavFixture() {
   const wav = Buffer.alloc(44 + 960);
   wav.write("RIFF", 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
   wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
   wav.writeUInt32LE(48000, 24); wav.writeUInt32LE(96000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
   wav.write("data", 36); wav.writeUInt32LE(960, 40);
   for (let i = 0; i < 480; i++) wav.writeInt16LE(Math.round(8000 * Math.sin(2 * Math.PI * 440 * i / 48000)), 44 + i * 2);
+  return wav;
+}
+
+test("paused Grand Piano selection prepares one sample set and reuses it after a warm switch", async ({ page }) => {
+  const wav = pianoWavFixture();
   let requests = 0, release!: () => void;
   const pending = new Promise<void>(resolve => { release = resolve; });
   await page.route("https://smpldsnds.github.io/**", async route => {
@@ -41,6 +47,50 @@ test("paused Grand Piano selection prepares one sample set and reuses it after a
     await expect(page.getByRole("status").filter({ hasText: "Samples:" })).toContainText("ready");
     expect(requests).toBe(226);
   } finally { release(); }
+});
+
+test("capture waits for all sample transfers across an idle preparation gap", async ({ page }) => {
+  const wav = pianoWavFixture();
+  await page.route("https://smpldsnds.github.io/**", route => route.fulfill({ contentType: "audio/wav", body: wav }));
+  await page.addInitScript(() => {
+    const native = window.fetch.bind(window);
+    let sampleGate: Promise<void> | undefined;
+    window.fetch = (input, options) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (!url.startsWith("https://smpldsnds.github.io/")) return native(input, options);
+      sampleGate ??= new Promise<void>(resolve => setTimeout(resolve, 7000));
+      return sampleGate.then(() => native(input, options));
+    };
+  });
+  const capture = await capturePlayerClip(page, { songId: "ui-fixture-m", mode: "original", durationMs: 1000, expectedAttackSeconds: [] });
+  expect(capture.sampleAssets).toHaveLength(226);
+  expect(new Set(capture.sampleAssets.map(asset => asset.url)).size).toBe(226);
+  expect(capture.samplerStarts.length).toBeGreaterThan(0);
+});
+
+test("capture preserves its original failure when a response rejects after page closure", async ({ page }) => {
+  const failure = new Error("Capture navigation failed"), navigate = page.goto.bind(page);
+  let rejectBody: ((error: Error) => void) | undefined;
+  const wav = pianoWavFixture();
+  await page.route("https://smpldsnds.github.io/**", route => route.fulfill({ contentType: "audio/wav", body: wav }));
+  page.on("response", response => {
+    if (rejectBody || !/\.(?:ogg|m4a)(?:\?|$)/.test(response.url())) return;
+    const pending = new Promise<Buffer>((_resolve, reject) => { rejectBody = reject; });
+    response.body = () => pending;
+  });
+  page.goto = async (url, options) => {
+    const response = page.waitForResponse(value => /\.(?:ogg|m4a)(?:\?|$)/.test(value.url()));
+    await navigate(url, options);
+    await response;
+    throw failure;
+  };
+  try {
+    await expect(capturePlayerClip(page, { songId: "ui-fixture-m", mode: "original", durationMs: 1000, expectedAttackSeconds: [] })).rejects.toBe(failure);
+    if (!rejectBody) throw new Error("Capture did not observe a sample response");
+    await page.close();
+    rejectBody(new Error("Target page has been closed"));
+    await new Promise<void>(resolve => setImmediate(resolve));
+  } finally { page.goto = navigate; }
 });
 
 test("natural completion rewinds the visible position between progress refreshes", async ({ page }) => {
