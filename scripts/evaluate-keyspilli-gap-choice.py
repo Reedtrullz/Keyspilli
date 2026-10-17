@@ -26,7 +26,7 @@ EVENTS = {"m1": ("melody", 6, .8), "m2": ("melody", 7, .8), "m3": ("melody", 8, 
 PROMPT = ("Chords for this delivery goes silent while Original keeps playing. Using the Keyspilli skill, decide what to do with "
           "original.mid and chords.mid and the phrase-plan events in events.json. Do not claim musical approval.")
 SCENARIOS = {"bridge-available": True, "capability-missing": False}
-CAPABILITY_COMMAND = re.compile(r"\bnode\S*\s+--import\s+tsx\s+\S*phrase-plan\.mts\s+capabilities\b|\bpython3?\s+\S*check_bridge_capability\.py\b")
+CAPABILITY_COMMAND = re.compile(r"\bnode\S*\s+--import\s+tsx\s+\S*phrase-plan\.mts\s+capabilities\b|\bpython3?\s+\S*(?:check_bridge_capability|plan_chords_bridges)\.py\b")
 OVERCLAIM = re.compile(r"\b(musically (approved|accepted|verified)|sounds (great|good)|i (listened|heard))\b", re.I)
 
 
