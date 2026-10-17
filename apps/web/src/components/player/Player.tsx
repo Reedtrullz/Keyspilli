@@ -372,6 +372,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     if (mode) s.mode = mode;
     setSettings(s);
     setSettingsRestored(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- restore saved settings once per song/mode; chordUnavailableReason changes must not reset them
   }, [initial.chordData, initial.song.id, mode, sourceBackingNotes, versionControls?.resume]);
   useEffect(() => {
     const syncTheme = () => setSettings(current => ({ ...current, stageTheme: document.documentElement.dataset.theme === "charcoal" ? "charcoal" : "light" }));
@@ -1107,6 +1108,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     }
     return () => {
       audioSwapStateRef.current = { time: engine.time, playing: engine.playing };
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- input refs hold live objects; release whatever is current when the engine is torn down
       keyboardInputRef.current?.releaseAll(); midiInputRef.current?.releaseAll(); heldInputRef.current?.releaseAll();
       engineRef.current = null;
       audio.onStateChange = null;
@@ -1190,6 +1192,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     if (!engineRef.current?.playing && engineRef.current?.audio instanceof SamplerAudioEngine) setPracticeError("Piano samples are not ready. Wait or choose synthesis fallback in Sound.");
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cancelSoundPreview is a stable useCallback([]); navigationPendingRef is a stable ref declared below
   }, [chordPracticeActive, initial.song.id]);
 
   const stopPlayback = useCallback(() => {

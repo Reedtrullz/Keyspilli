@@ -251,6 +251,7 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
         </div>
       );
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeIdx is applied imperatively by the effect below so items are not rebuilt every beat
     [chords, renderedIndices, showShapes],
   );
 

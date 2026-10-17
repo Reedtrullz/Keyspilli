@@ -106,6 +106,7 @@ export function SongBrowser() {
     if (!ready || input === query.q) return;
     const timer = setTimeout(() => filter({ q: input.slice(0, 256) }), 200);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- filter() only closes over query, which is already a dependency
   }, [input, ready, query]);
 
   useEffect(() => {

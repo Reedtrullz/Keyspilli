@@ -326,10 +326,12 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
 
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- generation counter, not a DOM ref: unmount must bump the live value
       discoveryGeneration.current++;
       searchAbortRef.current?.abort();
       uploadAbortRef.current?.abort();
       preflightAbortRef.current?.abort();
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- generation counter, not a DOM ref: unmount must bump the live value
       preflightGenerationRef.current++;
       const active = auditionRef.current;
       if (active) { clearTimeout(active.timer); active.engine.cancelAll(); active.engine.dispose(); auditionRef.current = null; }
