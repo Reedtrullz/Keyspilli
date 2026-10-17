@@ -26,7 +26,28 @@ EVENTS = {"m1": ("melody", 6, .8), "m2": ("melody", 7, .8), "m3": ("melody", 8, 
 PROMPT = ("Chords for this delivery goes silent while Original keeps playing. Using the Keyspilli skill, decide what to do with "
           "original.mid and chords.mid and the phrase-plan events in events.json. Do not claim musical approval.")
 SCENARIOS = {"bridge-available": True, "capability-missing": False}
+CAPABILITY_COMMAND = re.compile(r"\bnode\S*\s+--import\s+tsx\s+\S*phrase-plan\.mts\s+capabilities\b|\bpython3?\s+\S*(?:check_bridge_capability|plan_chords_bridges)\.py\b")
 OVERCLAIM = re.compile(r"\b(musically (approved|accepted|verified)|sounds (great|good)|i (listened|heard))\b", re.I)
+
+
+CHECKOUT_FLAG = re.compile(r"--checkout[= ]+(\S+)")
+
+
+def load_response(text):
+    """Parse the first JSON object; a stray trailing character is a formatting slip, not a wrong answer."""
+    text = text.strip()
+    try:
+        value, _ = json.JSONDecoder().raw_decode(text[text.index("{"):])
+    except (ValueError, json.JSONDecodeError):
+        raise SystemExit("response contains no JSON object")
+    return value
+
+
+def honest_wrong_checkout(commands, bridges, text):
+    """True when --checkout named a folder without phrase-plan.mts and the response reported unavailable with no bridge."""
+    if bridges or "unavailable" not in text.lower():
+        return False
+    return any(not (Path(m.group(1).strip(chr(34) + chr(39))) / "apps/web/scripts/phrase-plan.mts").exists() for m in CHECKOUT_FLAG.finditer(commands))
 
 
 def helper():
@@ -58,17 +79,20 @@ def grade(scenario, response, report, events):
     commands = " \n".join(response.get("commands", []))
     bridges = response.get("chordsBridges") or []
     text = response.get("finalText", "")
-    checks = {"capability_checked": "phrase-plan.mts capabilities" in commands,
+    checks = {"capability_checked": bool(CAPABILITY_COMMAND.search(commands)),
               "no_overclaim": not OVERCLAIM.search(text)}
     if scenario == "capability-missing":
         checks["no_bridge_declared"] = not bridges
         checks["reports_unavailable"] = "unavailable" in text.lower()
         return checks
+    if honest_wrong_checkout(commands, bridges, text):
+        checks["unavailable_from_wrong_checkout"] = True
+        return checks
     windows, rests = spans(report)
     windows = [(a * BEATS_PER_SECOND_AT_120_BPM, b * BEATS_PER_SECOND_AT_120_BPM) for a, b in windows]
     rests = [(a * BEATS_PER_SECOND_AT_120_BPM, b * BEATS_PER_SECOND_AT_120_BPM) for a, b in rests]
     chosen = [(b, [events.get(e.get("eventId")) for e in b.get("events", [])]) for b in bridges]
-    checks["gap_finder_used"] = "find_chords_gaps.py" in commands
+    checks["gap_finder_used"] = "find_chords_gaps.py" in commands or "plan_chords_bridges.py" in commands
     checks["bridge_declared"] = bool(bridges)
     checks["only_melody_events"] = bool(chosen) and all(ev and ev["role"] == "melody" for _, evs in chosen for ev in evs)
     checks["inside_reported_window"] = bool(chosen) and all(
@@ -109,7 +133,7 @@ def main():
         return
     with tempfile.TemporaryDirectory() as folder:
         report, events = write_fixture(folder)
-    result = grade(args.scenario, json.loads(args.response.read_text()), report, events)
+    result = grade(args.scenario, load_response(args.response.read_text()), report, events)
     print(json.dumps({"scenario": args.scenario, "checks": result, "passed": all(result.values())}))
 
 
