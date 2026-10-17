@@ -40,9 +40,11 @@ track number or highest/lowest pitch alone cannot establish a musical role.
 
 Order of work, every time Chords goes silent while Original continues:
 
-1. **Run the capability wrapper first**, before reading any gap report or choosing notes: `python3 scripts/check_bridge_capability.py --checkout CHECKOUT` (omit `--checkout` to use the current directory; add `--node NODE` if needed). It runs the real `node --import tsx apps/web/scripts/phrase-plan.mts capabilities` command and prints exactly one line.
+Throughout, SKILL_DIR is the directory that holds SKILL.md. Call the helpers by absolute path from your current working directory; do not cd into SKILL_DIR, because the checkout is found from where you run them.
+
+1. **Run the capability wrapper first**, before reading any gap report or choosing notes: `python3 SKILL_DIR/scripts/check_bridge_capability.py --checkout CHECKOUT` (omit `--checkout` to find the checkout from the current directory or `KEYSPILLI_CHECKOUT`; add `--node NODE` if needed). It runs the real `node --import tsx apps/web/scripts/phrase-plan.mts capabilities` command and prints exactly one line.
 2. If that line starts with "Bridge support unavailable", stop bridging: keep the existing backing, declare no `chordsBridges`, invent no chord and double no lead, and copy the line verbatim into your final answer. Do not paraphrase it and do not skip the wrapper. If it prints "Bridge support available", continue.
-3. Run `python3 scripts/plan_chords_bridges.py ORIGINAL.mid CHORDS.mid EVENTS.json` on the matching exports and the event map. It runs the gap finder, converts window seconds to quarter beats with the Original tempo map, keeps only melody events wholly inside a window as one non-overlapping voice, and computes `endBeat` as the last kept event's start plus duration. Event `startBeat` and `durationBeats` are already source quarter beats. You do not need the phrase-plan inspector to prove event IDs: the keys of the event map are the IDs.
+3. Run `python3 SKILL_DIR/scripts/plan_chords_bridges.py ORIGINAL.mid CHORDS.mid EVENTS.json` on the matching exports and the event map. It first runs the same capability check itself: if support is unavailable it prints an empty plan and a `bridgeSupport` line, which you copy verbatim, and exits non-zero. Otherwise it runs the gap finder, converts window seconds to quarter beats with the Original tempo map, keeps only melody events wholly inside a window as one non-overlapping voice, and computes `endBeat` as the last kept event's start plus duration. Event `startBeat` and `durationBeats` are already source quarter beats. You do not need the phrase-plan inspector to prove event IDs: the keys of the event map are the IDs.
 4. Use the printed `chordsBridges` block as is; do not recompute or edit its beats. If it is empty, declare no bridge and quote its `skipped` reasons. Never invent events it did not list.
 
 The manual rules below explain what the planner does and remain the reference if you must check its work.
@@ -61,7 +63,7 @@ melody as harmony to bypass exclusion, or invent another command/flag.
 Locate candidate gaps with the packaged helper instead of reading them off a waveform or guessing:
 
 ```sh
-python3 scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid --output gap-report.json
+python3 SKILL_DIR/scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid --output gap-report.json
 ```
 
 Run it on the delivery's matching Original and Chords exports, which must share a clock. A tempo-map warning means its seconds are on separate clocks, so do not bridge until they are reconciled. For each place where the backing stops and resumes between two entrances, the report lists:
