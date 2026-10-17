@@ -26,12 +26,24 @@ interface Row {
   midUrl: string;
 }
 
+const HTML_ENTITIES: Readonly<Record<string, string>> = { nbsp: " ", amp: "&", ndash: "-" };
+
+/** Remove markup tags, repeating until none are left so a nested or split tag cannot survive. */
+function stripTags(value: string): string {
+  let previous: string;
+  let current = value;
+  do {
+    previous = current;
+    current = current.replace(/<[^>]*>/g, "");
+  } while (current !== previous);
+  return current;
+}
+
+/** Plain text of a listing cell: tags removed, entities decoded once. */
 function strip(s: string): string {
-  return s
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&ndash;/g, "-")
+  return stripTags(s)
+    // One pass, so "&amp;ndash;" stays the literal text "&ndash;".
+    .replace(/&(nbsp|amp|ndash);/g, (_match, name: string) => HTML_ENTITIES[name]!)
     .replace(/\s+/g, " ")
     .trim();
 }

@@ -123,6 +123,17 @@ function accepted(tab: Tab, pageTitleText: string): boolean {
   return titleSim >= 0.55 && artistHit;
 }
 
+/** Remove markup tags, repeating until none are left so a nested or split tag cannot survive. */
+function stripTags(value: string): string {
+  let previous: string;
+  let current = value;
+  do {
+    previous = current;
+    current = current.replace(/<[^>]*>/g, "");
+  } while (current !== previous);
+  return current;
+}
+
 async function findMatch(tab: Tab): Promise<{ href: string; title: string } | null> {
   const queries = [`${tab.song} ${tab.artist}`, tab.song];
   for (const q of queries) {
@@ -130,7 +141,7 @@ async function findMatch(tab: Tab): Promise<{ href: string; title: string } | nu
     const results: { href: string; text: string }[] = [];
     const re = /<a[^>]+href="(\/[a-z0-9-]+-mid)"[^>]*>([\s\S]*?)<\/a>/g;
     for (const m of html.matchAll(re)) {
-      const text = (m[2] ?? "").replace(/<[^>]+>/g, "").trim();
+      const text = stripTags(m[2] ?? "").trim();
       if (text) results.push({ href: m[1]!, text });
     }
     if (results.length === 0) continue;
