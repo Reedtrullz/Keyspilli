@@ -477,9 +477,14 @@ class Lifecycle(unittest.TestCase):
         spec.loader.exec_module(checker)
         store = self.module().Store(self.root)
         doc = store.begin(1048576, self.dead_pid)
-        env = {**self.env, "KEYSPILLI_EVIDENCE_ROOT": str(self.root), "KEYSPILLI_EVIDENCE_RUN": doc["id"]}
+        env = {**self.env, **store.environment(doc["id"])}
         errors = []
         unlink = os.unlink
+        execute = subprocess.run
+
+        def lifecycle_command(argv, **kwargs):
+            self.assertEqual(kwargs["env"].get("KEYSPILLI_REAL_DOCKER"), env["KEYSPILLI_REAL_DOCKER"])
+            return execute(argv, **kwargs)
 
         def sample_after_marker_removal(path, *args, **kwargs):
             result = unlink(path, *args, **kwargs)
@@ -490,7 +495,7 @@ class Lifecycle(unittest.TestCase):
                     errors.append(type(error).__name__)
             return result
 
-        with mock.patch.dict(os.environ, env), mock.patch.object(os, "unlink", sample_after_marker_removal):
+        with mock.patch.dict(os.environ, env), mock.patch.object(os, "unlink", sample_after_marker_removal), mock.patch.object(subprocess, "run", lifecycle_command):
             with checker.smoke_directory(SCRIPT.parents[1]) as directory:
                 (directory / "synthetic.mid").write_bytes(b"unique-synthetic-control")
         self.assertEqual(errors, [])
@@ -517,6 +522,17 @@ class Lifecycle(unittest.TestCase):
         self.assertEqual((refused / "result.sqlite").read_bytes(), b"preserve-refused")
         marker.write_bytes(identity)
         store.finish(other["id"], "recovered")
+        rejected = []
+
+        def registration_failure(argv, **_kwargs):
+            rejected.append(Path(argv[-1]))
+            raise ValueError("injected registration failure before writes")
+
+        with mock.patch.dict(os.environ, env), mock.patch.object(subprocess, "run", registration_failure), self.assertRaises(ValueError):
+            with checker.smoke_directory(SCRIPT.parents[1]):
+                self.fail("registration failure must not start fixture writes")
+        self.assertEqual(len(rejected), 1)
+        self.assertFalse(rejected[0].exists())
 
     def test_private_builder_config_survives_a_different_finalizer_home(self):
         docker_peak = 1024 ** 3

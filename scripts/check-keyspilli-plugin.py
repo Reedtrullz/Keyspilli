@@ -230,9 +230,16 @@ def smoke_directory(checkout):
             yield Path(temporary)
         return
     smoke = Path(tempfile.mkdtemp(prefix='keyspilli-plugin-smoke-', dir=checkout))
+    created = smoke.stat()
     lifecycle_env = {key: os.environ[key] for key in ('PATH', 'KEYSPILLI_EVIDENCE_ROOT', 'KEYSPILLI_EVIDENCE_RUN')}
+    lifecycle_env['KEYSPILLI_REAL_DOCKER'] = os.environ.get('KEYSPILLI_REAL_DOCKER', shutil.which('docker') or 'docker')
     command = [sys.executable, '-B', str(checkout / 'deploy/keyspilli-evidence.py')]
-    subprocess.run([*command, 'register-external', str(smoke)], env=lifecycle_env, check=True, timeout=15)
+    try:
+        subprocess.run([*command, 'register-external', str(smoke)], env=lifecycle_env, check=True, timeout=15)
+    except BaseException:
+        if not smoke.is_symlink() and smoke.exists() and (smoke.stat().st_dev, smoke.stat().st_ino) == (created.st_dev, created.st_ino) and not any(smoke.iterdir()):
+            smoke.rmdir()
+        raise
     try:
         yield smoke
     finally:
