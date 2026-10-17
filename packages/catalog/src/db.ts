@@ -47,7 +47,7 @@ export function invalidateSongReadModel(): void {
 // files skip content hashing: `data_version` already tracks commits and the
 // WAL/SHM bytes change on every write.
 function fileSignature(path: string): string {
-  return fileFingerprint(path);
+  return fileFingerprint(path, { contentHashMaxBytes: Number.MAX_SAFE_INTEGER });
 }
 
 function sqliteFileSignature(path: string): string {

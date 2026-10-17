@@ -604,9 +604,6 @@ describe("catalog chord source plumbing", () => {
       expect(second).toBe(first);
       expect(first?.timeline.chords[0]?.name).toBe("C");
 
-      // Worst case for stat-only signatures: the replacement has the same size,
-      // may reuse the freed inode, and carries the original mtime. The content
-      // hash in fileFingerprint must still observe the new notes.
       const published = await stat(notesPath);
       await rm(notesPath, { force: true });
       await writeNotes("D", [50, 54, 57]);

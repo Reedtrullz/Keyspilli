@@ -27,7 +27,7 @@ let disabledError: Error | undefined;
 function manifestSignature(path: string): string {
   // Includes inode, size, timestamps and (for small files) a content hash so
   // both atomic replacement and in-place edits invalidate the cache.
-  return fileFingerprint(path);
+  return fileFingerprint(path, { contentHashMaxBytes: Number.MAX_SAFE_INTEGER });
 }
 
 /**

@@ -768,9 +768,7 @@ describe("catalog artifact export validation", () => {
 
     // Keep the same path and byte shape while changing the rendered note. The
     // signature must notice the write instead of serving the prior validated
-    // bytes from the bounded process-local cache. Restoring the original
-    // timestamps forces the same-tick case deterministically: only the content
-    // hash in fileFingerprint can see this edit.
+    // bytes from the bounded process-local cache.
     const dir = join(dataRoot, "artifacts", "catalog-api-song", "a");
     const before = await Promise.all(["notes.json", "variant.mid", "variant.xml"].map(async (name) => [name, await stat(join(dir, name))] as const));
     await writeExportFixture({

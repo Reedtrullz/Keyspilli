@@ -11,7 +11,7 @@ let cachedSignature: string | undefined;
 let cachedBlocked: ReadonlySet<string> | null = null;
 
 function fileSignature(path: string): string {
-  return fileFingerprint(path);
+  return fileFingerprint(path, { contentHashMaxBytes: Number.MAX_SAFE_INTEGER });
 }
 
 /**

@@ -685,6 +685,13 @@ async function loadSongDetailUncached(id: string, requiredRevision?: string | nu
  */
 export const getSongDetail = cache((id: string, revision?: string | null) => loadSongDetailUncached(id,revision));
 
+/** Export admission/final checks must reread even within one React request.
+ * An explicit null still requires an unpublished legacy artifact; it is not an unbounded read.
+ */
+export function getSongDetailForExport(id: string, revision: string | null) {
+  return loadSongDetailUncached(id, revision);
+}
+
 /** Owner-authorized inspection only; never used by public song/player routes. */
 export function getOwnerSongDetail(baseId: string, id: string, revision: string) {
   return loadSongDetailUncached(id,revision,baseId);

@@ -37,17 +37,13 @@ export function fileFingerprint(path: string, options: FileFingerprintOptions = 
   try {
     const stat = statSync(path, { bigint: true });
     meta = `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}:${stat.ctimeNs}`;
-    hashable = stat.isFile() && stat.size <= BigInt(hashLimit);
-  } catch {
-    return `${path}:missing`;
+    hashable = hashLimit > 0 && stat.isFile() && stat.size <= BigInt(hashLimit);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ENOTDIR")) {
+      return `${path}:missing`;
+    }
+    throw error;
   }
   if (!hashable) return meta;
-  try {
-    // A rewrite between the stat and this read produces a mixed signature
-    // that matches neither the old nor the new file, so the next call still
-    // invalidates; it can never make a changed file look unchanged.
-    return `${meta}:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
-  } catch {
-    return `${path}:missing`;
-  }
+  return `${meta}:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
 }
