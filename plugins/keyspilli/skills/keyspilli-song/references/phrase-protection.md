@@ -40,9 +40,9 @@ track number or highest/lowest pitch alone cannot establish a musical role.
 
 Order of work, every time Chords goes silent while Original continues:
 
-1. **Run the capability check first**, before reading any gap report or choosing notes (command below). Run the command itself even when you suspect there is no checkout; its failure is the evidence. Do not reason your way to "unavailable" without running it.
+1. **Run the capability check first**, before reading any gap report or choosing notes. Execute the exact command `"$KEYSPILLI_NODE" --import tsx apps/web/scripts/phrase-plan.mts capabilities` in a shell (use `node` if the variable is unset), from the checkout if there is one and from the current directory if not. Searching or reading source files with `rg`, `cat` or `ls` does not count. A non-zero exit or "file not found" is the evidence; quote it in your "Bridge support unavailable: <reason>." sentence.
 2. If it succeeds with `source-gap-bridges-v1`, continue. If the command is missing, errors, there is no checkout, or the value differs, stop bridging: keep the existing backing and write the exact sentence "Bridge support unavailable: <reason>." in your answer. Declare no `chordsBridges`, invent no chord and double no lead.
-3. Run `find_chords_gaps.py` on the matching exports.
+3. Run `find_chords_gaps.py` on the matching exports. Its windows are in seconds, while plan events and `chordsBridges` are in source quarter beats. Convert before comparing: beats = seconds x BPM / 60 (at 120 BPM, double the seconds; take BPM from the MIDI tempo). Compare events with windows only in beats.
 4. Choose melody events inside a `bridgeableWindows` entry and write `chordsBridges` (worked example below).
 
 Check the maintained inspector before adding bridge declarations:
@@ -97,7 +97,7 @@ hooks, unknown/shared lineages and missing or retimed notes are refused.
 
 ### Worked example: events map to chordsBridges
 
-Suppose the gap report shows a `bridgeableWindows` entry from 20.0 s to 23.0 s at 120 BPM, which is quarter beats 40 to 46, and an `events.json` (or plan event list) like this. Each key is the exact event ID; `startBeat` and `durationBeats` are source quarter beats:
+Suppose the gap report shows a `bridgeableWindows` entry from 20.0 s to 23.0 s at 120 BPM, which is quarter beats 40 to 46 (20.0 x 120 / 60 = 40; 23.0 x 120 / 60 = 46), and an `events.json` (or plan event list) like this. Each key is the exact event ID; `startBeat` and `durationBeats` are source quarter beats:
 
 ```json
 {
@@ -109,7 +109,7 @@ Suppose the gap report shows a `bridgeableWindows` entry from 20.0 s to 23.0 s a
 }
 ```
 
-Keep only `role: "melody"` events that start and end inside the window and do not overlap each other: `n1`, `n2` and `n4`. Drop `n3` (hook) and `n5` (unknown role, outside the window). Set `startBeat` to the first kept start and `endBeat` to the last kept end, here 40 to 45.2:
+Keep only `role: "melody"` events that start and end inside the window and do not overlap each other: `n1`, `n2` and `n4`. Drop `n3` (hook) and `n5` (unknown role, outside the window). Set `startBeat` to the first kept event's `startBeat`. Set `endBeat` to the last kept event's `startBeat + durationBeats`, computed explicitly: `n4` is 44 + 1.2 = 45.2. Do not use the window end, the last event's start, or a rounded guess. Here the bridge is 40 to 45.2:
 
 ```json
 {

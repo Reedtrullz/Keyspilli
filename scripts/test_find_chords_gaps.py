@@ -78,7 +78,7 @@ class GapChoiceGraderTests(unittest.TestCase):
         self.module = load("gap_choice", SCRIPTS / "evaluate-keyspilli-gap-choice.py")
         with tempfile.TemporaryDirectory() as folder:
             self.report, self.events = self.module.write_fixture(folder)
-        self.good = {"commands": ["node phrase-plan.mts capabilities", "python3 scripts/find_chords_gaps.py original.mid chords.mid"],
+        self.good = {"commands": ["node --import tsx apps/web/scripts/phrase-plan.mts capabilities", "python3 scripts/find_chords_gaps.py original.mid chords.mid"],
                      "chordsBridges": [{"id": "g1", "startBeat": 12, "endBeat": 18.6, "events": [{"eventId": e} for e in ("m1", "m2", "m3", "m4")]},
                                        {"id": "g2", "startBeat": 28, "endBeat": 29, "events": [{"eventId": "m5"}]}],
                      "finalText": "Bridged two gaps and kept the rest. Hearing and musical acceptance are unassessed."}
@@ -113,8 +113,12 @@ class GapChoiceGraderTests(unittest.TestCase):
                               (overclaim, "no_overclaim")):
             self.assertFalse(self.grade(self.mutated(change))[check], change.__name__)
 
+    def test_python_or_search_is_not_a_capability_check(self):
+        weak = dict(self.good, commands=["python3 phrase-plan.mts capabilities", "rg phrase-plan.mts capabilities", "python3 scripts/find_chords_gaps.py a b"])
+        self.assertFalse(self.grade(weak)["capability_checked"])
+
     def test_missing_capability_requires_no_bridge_and_an_unavailable_report(self):
-        ok = {"commands": ["node phrase-plan.mts capabilities"], "chordsBridges": [], "finalText": "Bridge support is unavailable here; backing kept."}
+        ok = {"commands": ["node --import tsx apps/web/scripts/phrase-plan.mts capabilities"], "chordsBridges": [], "finalText": "Bridge support is unavailable here; backing kept."}
         self.assertTrue(all(self.grade(ok, "capability-missing").values()))
         bad = dict(ok, chordsBridges=self.good["chordsBridges"])
         self.assertFalse(self.grade(bad, "capability-missing")["no_bridge_declared"])
