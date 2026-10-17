@@ -20,6 +20,16 @@ Record the actual user statement, song/base ID, approved modes and immutable man
 
 On publication approval, verify all pinned package files before mutation. If the audio or musical assets have changed, restore the approved bytes when available. Materially revised music needs its own surfaced previews and approval. Metadata-only operational changes do not require another listening session.
 
+## Record a waiver as a waiver
+
+The owner may waive a review gate, for example independent musical review, physical-keyboard assessment or a native screen-reader walkthrough. A waiver is a decision about the gate, not evidence that it passed.
+
+- Record the exact statement, date, named gates, song or release scope and the version or revision it applies to in the receipt. Mark each gate `waived`, never `passed`, `ready` or `approved`.
+- A waiver covers only the gates it names and only that scope. A changed revision, mode or song needs its own statement. Do not infer other waivers from it.
+- Technical findings, warnings and unverified claims stay visible. Musical status stays `agent-checked` or `provisional`. Do not promote it on the strength of a waiver, a test pass or favorable feedback.
+- Check that the repository's own release validator accepts `waived` as a distinct state before relying on it. If it does not, report that exact gap and do not rewrite the state as `passed`.
+- A waiver does not authorize merge, release, installation, deployment, spending above a stated cap or changes to approval pins. Those need their own authorization.
+
 ## Carry publication through
 
 1. Inspect the actual target version, catalog, supported import path and existing song identity. Reuse authorized browser/session, process-environment or host-managed access without reading `.env` or credential files. Same-title songs are not automatically safe to replace. Identical installed content is an idempotent success; preserve differing existing versions unless replacement was authorized.

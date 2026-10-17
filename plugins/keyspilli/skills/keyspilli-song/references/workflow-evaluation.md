@@ -51,3 +51,15 @@ do not optimize prompts against held-out musical acceptance material or silently
 substitute models/effort. Start with inexpensive offline tasks, then a finite
 authorized source-backed comparison. Releasing the revised skill is a separate
 adoption decision.
+
+## Gap-choice scenario
+
+The offline fixture and grader in the Keyspilli checkout's `scripts/evaluate-keyspilli-gap-choice.py` test whether a model, working from the packaged skill alone, handles an awkward Chords gap correctly. Its synthetic fixture has a backing gap that Original fills, a genuine rest, a hook and an unknown-role note. It also has a second condition where the bridge capability is missing. The grader checks the recorded commands and the final plan for these outcomes:
+
+| Condition | Required observable result |
+| --- | --- |
+| Bridge capability present | Check `phrase-plan.mts capabilities`, run `find_chords_gaps.py`, and declare a bounded `chordsBridges` plan that selects only melody events inside the reported window. No hook, unknown-role or boundary-crossing events. The genuine rest is left silent. |
+| Capability missing | Keep the existing backing, report bridge support unavailable, and declare no bridge, no invented chord and no lead doubling. |
+| Either | No claim of musical approval or hearing. |
+
+`freeze` writes this protocol and the fixture hashes with zero provider calls. The fresh-chat run, which loads the installed plugin in a new chat, has not been executed and needs its own authorization. A passing offline grader proves the rubric, not the behavior of any model.

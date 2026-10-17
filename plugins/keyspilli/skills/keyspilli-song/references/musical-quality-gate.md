@@ -33,6 +33,15 @@ A high absolute pitch-class/chroma match is only a sanity check. Before using an
 
 For each repair: name the issue and source span; save the previous candidate; change the smallest supported musical event(s); regenerate both modes if shared input changed; then replay the changed span, adjacent phrase entrances and full-song ending. Recheck clocks, note retention, melody leakage and import after a tempo or source change; slower tempos can push short ornaments below the importer's minimum duration in beats. Stop repeating a repair method when it cannot improve the evidence. Keep a rejection reason for candidates that make another passage worse.
 
+## Keep Chords chord-led across the whole timeline
+
+A Chords candidate can open as backing and turn into the Advanced lead later. In the D2 revision the first melody-labelled note entered at 11.64 seconds, and a check of the opening alone passed it. Check lead use over the full song, never only the first phrase:
+
+1. From the resolved Chords stream, count notes whose recorded role or source lineage is melody, hook, lead or unknown in each five-second window, and report the first such onset. Require zero outside explicitly selected, provenance-labelled [source-gap bridges](phrase-protection.md#short-source-gap-bridges).
+2. Run the packaged screen on the delivery's matching exports: `python3 scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid`. Its `leadShadow` section flags windows where Chords repeats Original's highest voice at the same onset. That is a proxy for locating spans to inspect. A suspect window is not a verdict, and a clean screen does not prove the absence of lead notes.
+3. For an actual Player capture, report backing-bus and lead-bus starts separately. The corrected D2 capture recorded 140 backing starts and zero lead starts. Lead starts must be zero except for declared bridges.
+4. When a candidate replaces an accepted Chords preview, keep the matched baseline and compare the two across the whole piece. If they read as different products, such as chord-like first and melodic later, the candidate fails this check. Preserve both.
+
 ## Record a decision the next agent can audit
 
 Keep a short `musical-assessment.md` beside the run's diagnosis and manifest. A table is enough: `mode | source span/hash | output span | issue or uncertainty | evidence actually checked (score/symbolic/audio) | edit and recheck | status`. Identify inspected sections and uninspected sections. Set each mode:
