@@ -519,6 +519,8 @@ class Lifecycle(unittest.TestCase):
         store.finish(other["id"], "recovered")
 
     def test_private_builder_config_survives_a_different_finalizer_home(self):
+        docker_peak = 1024 ** 3
+        self.env["KEYSPILLI_EVIDENCE_LIMIT_BYTES"] = str(2 * docker_peak)
         fake = self.root.parent / "fake-docker"
         fake.write_text('#!' + sys.executable + '\n' +
             'import os,pathlib,sys\n'
@@ -532,7 +534,7 @@ class Lifecycle(unittest.TestCase):
         fake.chmod(0o700)
         self.env["KEYSPILLI_REAL_DOCKER"] = str(fake)
         code = 'import subprocess; subprocess.run(["docker","build","-t","keyspilli-test:fixture","."],check=True)'
-        doc = json.loads(self.cli("begin", "--peak-bytes", "1048576", "--owner-pid", str(self.dead_pid)).stdout)
+        doc = json.loads(self.cli("begin", "--peak-bytes", str(docker_peak), "--owner-pid", str(self.dead_pid)).stdout)
         env = {**self.env, "KEYSPILLI_EVIDENCE_ROOT": str(self.root), "KEYSPILLI_EVIDENCE_RUN": doc["id"]}
         configured = json.loads(subprocess.check_output([sys.executable, str(SCRIPT), "environment"], env=env, text=True))
         result = subprocess.run([sys.executable, "-c", code], env={**env, **configured}, capture_output=True, text=True, timeout=15)
