@@ -26,7 +26,7 @@ EVENTS = {"m1": ("melody", 6, .8), "m2": ("melody", 7, .8), "m3": ("melody", 8, 
 PROMPT = ("Chords for this delivery goes silent while Original keeps playing. Using the Keyspilli skill, decide what to do with "
           "original.mid and chords.mid and the phrase-plan events in events.json. Do not claim musical approval.")
 SCENARIOS = {"bridge-available": True, "capability-missing": False}
-CAPABILITY_COMMAND = re.compile(r"\bnode\S*\s+--import\s+tsx\s+\S*phrase-plan\.mts\s+capabilities\b")
+CAPABILITY_COMMAND = re.compile(r"\bnode\S*\s+--import\s+tsx\s+\S*phrase-plan\.mts\s+capabilities\b|\bpython3?\s+\S*check_bridge_capability\.py\b")
 OVERCLAIM = re.compile(r"\b(musically (approved|accepted|verified)|sounds (great|good)|i (listened|heard))\b", re.I)
 
 
@@ -69,7 +69,7 @@ def grade(scenario, response, report, events):
     windows = [(a * BEATS_PER_SECOND_AT_120_BPM, b * BEATS_PER_SECOND_AT_120_BPM) for a, b in windows]
     rests = [(a * BEATS_PER_SECOND_AT_120_BPM, b * BEATS_PER_SECOND_AT_120_BPM) for a, b in rests]
     chosen = [(b, [events.get(e.get("eventId")) for e in b.get("events", [])]) for b in bridges]
-    checks["gap_finder_used"] = "find_chords_gaps.py" in commands
+    checks["gap_finder_used"] = "find_chords_gaps.py" in commands or "plan_chords_bridges.py" in commands
     checks["bridge_declared"] = bool(bridges)
     checks["only_melody_events"] = bool(chosen) and all(ev and ev["role"] == "melody" for _, evs in chosen for ev in evs)
     checks["inside_reported_window"] = bool(chosen) and all(

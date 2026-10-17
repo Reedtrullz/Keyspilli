@@ -53,16 +53,15 @@ MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recover
    exact authorized event with unchanged evidence pins. Preserve protected
    neighbors and retain failed candidates. Stop an unsupported repair method;
    obtain missing evidence or keep the result provisional.
-   For an awkward Chords gap, first run `phrase-plan.mts capabilities` and, if
-   it does not report `source-gap-bridges-v1` (run it even outside a checkout),
-   write "Bridge support unavailable: <reason>." and declare nothing. Then preserve any existing source-written
+   For an awkward Chords gap, first run `python3 scripts/check_bridge_capability.py` and copy its
+   "Bridge support unavailable" line verbatim if it fails, declaring nothing. Then preserve any existing source-written
    counterline or broken accompaniment. If Original continues while backing
    stops, prefer a brief, explicitly selected source-note bridge over invented
    chord hits or continuous lead doubling. Follow the [source-gap bridge
    procedure](references/phrase-protection.md#short-source-gap-bridges), including
    its capability check, gap bounds, provenance and genuine-rest protection.
    Find the gaps with `python3 scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid`
-   on the matching exports. Before calling Chords chord-led, run the
+   and build the bridge block with `python3 scripts/plan_chords_bridges.py ORIGINAL.mid CHORDS.mid EVENTS.json`. Before calling Chords chord-led, run the
    [whole-timeline lead check](references/musical-quality-gate.md#keep-chords-chord-led-across-the-whole-timeline):
    an opening-only check missed a lead that entered at 11.6 seconds.
 5. **Render and verify delivery.** Follow [delivery requirements](references/evaluation-and-repair.md#deliver-a-usable-package)
