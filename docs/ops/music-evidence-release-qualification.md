@@ -20,6 +20,15 @@ Before promotion, the detached release manifest must declare `runtimeScope: isol
 
 Ordinary pull requests, main pushes and non-promotional dispatches run `Automatic checks` only. Publication and deployment are reachable solely from an explicit main `workflow_dispatch` with `promote_reviewed=true` and `operation=deploy_only`; that invocation skips checks under the distinct `Promotion prerequisites` name, reads all paginated exact-head check-runs, and requires the existing four-gate manifest. A failed, missing, stale or newer nonpassing required check stops before image publication.
 
+Issue305 has an explicit owner exception for the remaining musical-listening
+and physical-keyboard production reviews. The musical gate remains labelled
+`waived` with a receipt hash and exact-commit `ownerWaiver` provenance, as
+specified in ADR0004. This is not a passing review. The validator checks the
+record's structure and scope; the operator must reverify the original owner
+message. All technical gates and separate publication/deployment authorization
+remain required. Preparing this record does not upload a repository variable
+or dispatch a release.
+
 ## One bounded next-model feasibility review
 
 The sole additional candidate reviewed is Kong's high-resolution piano transcription, exposed by [piano_transcription_inference](https://github.com/qiuqiangkong/piano_transcription_inference) at commit `0226e74cbc805660e34bbd6a8fed2083890ebb88`. Its [training implementation](https://github.com/bytedance/piano_transcription) is archived; development used Python 3.7/PyTorch 1.4.0. The inference package supports a CPU selection and uses mono 16 kHz input and ten-second segments.

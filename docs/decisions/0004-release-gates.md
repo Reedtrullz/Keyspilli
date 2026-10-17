@@ -94,5 +94,27 @@ guard requires the pre-promotion scope in the detached manifest.
 
 - Release checklists must explicitly reference which gate(s) were passed
 - CI handles structural gate automatically; source, musical, and runtime gates require human verification
-- A release candidate must not be promoted to production without all four gates passing
+- A release candidate must not be promoted to production without all four gates passing, except for the explicit owner waiver below
 - CI validation and production promotion are separate; only an explicit reviewed main dispatch may publish or deploy
+
+## Issue305 owner review waiver (17 October 2026)
+
+The repository owner explicitly waived the remaining musical and physical-keyboard
+production reviews for issue305 and requested deployment preparation only.
+Record these reviews as **waived**, never passed or performed. Retain the
+unperformed review requirements and all previous negative musical evidence.
+
+The detached manifest may set only the musical gate to `waived`, with its
+review receipt hash and an `ownerWaiver` record naming schemaVersion1, kind
+`keyspilli-production-review-waiver`, repository `Reedtrullz/Keyspilli`, issue305,
+the exact release commit, authority `repository-owner`, and exactly the reviews
+`musical-listening` and `physical-keyboard`. Its source must reference and quote
+the original owner user message. The operator must reverify that original
+authorization and its scope before use; these fields and receipt hashes are
+assertions, not an authentication mechanism.
+
+This exception does not waive source, structural, isolated-runtime, current-head
+CI, private access, backup/rollback or deployment authorization requirements.
+It does not change musical approval pins or approve new musical content.
+Publication and deployment still require a separately authorized explicit main
+`deploy_only` dispatch. The owner has not authorized that dispatch.
