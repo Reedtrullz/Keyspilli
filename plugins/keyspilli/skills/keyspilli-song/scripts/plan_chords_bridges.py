@@ -6,12 +6,14 @@ and an event map {EVENT_ID: {"role", "startBeat", "durationBeats"}} in source
 quarter beats. Window seconds are converted to quarter beats with the Original
 tempo map, and endBeat is computed here as the last kept event's start plus
 duration. Only melody events wholly inside a bridgeable window are kept, as one
-non-overlapping voice. Structural selection only: it validates no harmony, makes
+non-overlapping voice. It first runs the capability check (check_bridge_capability.py) and, when
+bridge support is unavailable, prints an empty plan with the unavailable line instead. Structural selection only: it validates no harmony, makes
 no musical claim and is not a substitute for the maintained phrase-plan inspector.
 """
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -97,6 +99,22 @@ def plan(original, chords, events_path):
     return result
 
 
+def guarded_plan(original, chords, events_path, checkout=None, node=None, verdict=None):
+    if verdict is None:
+        spec = importlib.util.spec_from_file_location('check_bridge_capability', Path(__file__).with_name('check_bridge_capability.py'))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        verdict, node = module.verdict, node or os.environ.get('KEYSPILLI_NODE') or 'node'
+    ok, detail = verdict(checkout, node)
+    if not ok:
+        return {'schemaVersion': 1, 'kind': 'keyspilli-chords-bridge-plan', 'chordsBridges': [], 'skipped': [],
+                'bridgeSupport': f'Bridge support unavailable: {detail}.',
+                'instruction': 'Declare no chordsBridges and copy the bridgeSupport line verbatim into your answer. Keep the existing backing.'}
+    result = plan(original, chords, events_path)
+    result['bridgeSupport'] = f'Bridge support available: {detail}'
+    return result
+
+
 def self_test():
     import tempfile
     with tempfile.TemporaryDirectory() as folder:
@@ -109,6 +127,10 @@ def self_test():
         out = plan(a, b, e)
         bridge = out['chordsBridges'][0]
         assert (bridge['startBeat'], bridge['endBeat'], [x['eventId'] for x in bridge['events']]) == (4.0, 7.0, ['a', 'b']), out
+        blocked = guarded_plan(a, b, e, verdict=lambda checkout, node: (False, 'no checkout'))
+        assert blocked['chordsBridges'] == [] and blocked['bridgeSupport'] == 'Bridge support unavailable: no checkout.', blocked
+        allowed = guarded_plan(a, b, e, verdict=lambda checkout, node: (True, 'source-gap-bridges-v1'))
+        assert allowed['chordsBridges'] and allowed['bridgeSupport'].startswith('Bridge support available'), allowed
     print(json.dumps({'selfTest': 'passed'}))
 
 
@@ -117,13 +139,18 @@ def main():
     parser.add_argument('original', nargs='?', help='Original MIDI export')
     parser.add_argument('chords', nargs='?', help='matching Chords MIDI export')
     parser.add_argument('events', nargs='?', help='event map JSON in source quarter beats')
+    parser.add_argument('--checkout', default=None, help='Keyspilli checkout for the capability check (default: KEYSPILLI_CHECKOUT, else the nearest parent of the current directory that contains it)')
+    parser.add_argument('--node', default=None)
     parser.add_argument('--self-test', action='store_true')
     args = parser.parse_args()
     if args.self_test:
         return self_test()
     if not (args.original and args.chords and args.events):
         parser.error('original, chords and events paths are required')
-    print(json.dumps(plan(args.original, args.chords, args.events), indent=2))
+    result = guarded_plan(args.original, args.chords, args.events, args.checkout, args.node)
+    print(json.dumps(result, indent=2))
+    if result['bridgeSupport'].startswith('Bridge support unavailable'):
+        sys.exit(1)
 
 
 if __name__ == '__main__':
