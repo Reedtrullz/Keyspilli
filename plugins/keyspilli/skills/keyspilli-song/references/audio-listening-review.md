@@ -98,6 +98,22 @@ An explicitly requested `gemini-3.8-flash-low` alias completed two integration j
 
 A separate frozen Player-pair study stopped at its first mandatory `g-missing-audio` gate. One provider POST returned a confident melody/harmony/rhythm/articulation/timbre comparison and “no audible defects” despite zero audio attachments. The native grade failed the gate and marked these audible claims unsupported. The remaining 31 planned requests were not sent. This route is unqualified for this study: do not retry or resume it, report a paired-comparison outcome, change the default prompt, or infer that empty findings mean approval. Only a fresh, separately authorized bounded calibration can reconsider the route. The prior synthetic adapter result above does not override this distinct failed gate. The selected Keyspilli checkout's `docs/ops/player-audio-qualification-study-stop.md` contains the raw response, grade, request ledger, protocol, and stop receipts. Retained local actual-Player packages support optional playback; their previews can reveal the construction key, and their browser proof covers media playback only, not musical acceptance. They assign no listening task in the automatic score-review workflow.
 
+### Gemini 3.8 and Luna qualification outcomes (2026-10-15 to 2026-10-16)
+
+No Anti route tried for Keyspilli has qualified for musical hearing. Retained outcomes, none of which is an acceptance of any song:
+
+- Six fixed Gemini 3.8 High controls: missing audio was handled correctly, but the model invented synth, drums and whistling on exact-zero recordings, and five responses violated the requested schema.
+- A revised Luna review praised an exactly silent clip and truncated two responses. An earlier Flash run invented sound on silence, and a Low control described a hum with no attachment.
+- Official free-tier API through Anti: the first silence control timed out at the local deadline. A deadline race in Anti was fixed locally, but the upstream stall remained. Minimal probes showed `generateContent` text returning `OK`, Interactions text returning 503 for high demand, and a one-second audio request timing out. A later bounded pass uploaded Q01 in 0.2 seconds, then waited for response headers until the 85-second limit and returned HTTP 504 with no acoustic answer.
+
+Rules that follow:
+
+1. Before any musical review, run a missing-audio control and an exact-silence control. A route that describes sound for either is unqualified for that study.
+2. Stop at the first failed or timed-out control. Do not retry, rescore, loosen the schema or move on to the musical jobs. Record the raw response and request ledger.
+3. A transport success, a schema-valid answer or a favorable summary is not hearing. Report hearing as unassessed.
+4. Do not call a different alias, endpoint or API of the same provider qualified from these results. Reconsider a route only through a new, separately authorized bounded calibration.
+5. When no route is qualified, do not turn the gap into a request for a listening pass. If the owner has already listened, record their feedback. Optionally offer a labelled baseline-versus-candidate pair and ask for better, equivalent or worse plus timestamps.
+
 The local demonstration generator is `apps/web/scripts/create-audio-review-demo.mts`. It writes a fixture manifest plus blind ascending/descending, repeated-attack, major/minor, silence and reversed-order controls under the ignored `output/song-prep/audio-review-demo-20261003/` path. The evaluator answer key is in a separate `controls/evaluator-only/` directory. These fixtures are synthetic software controls and receive no real-song calibration credit.
 
 For the frozen local pack and a paste-ready no-upload command, see the Keyspilli checkout's `docs/audio-review-demo.md`. Do not expose the evaluator-only answer key to a reviewer.

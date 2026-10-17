@@ -59,6 +59,10 @@ MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recover
    chord hits or continuous lead doubling. Follow the [source-gap bridge
    procedure](references/phrase-protection.md#short-source-gap-bridges), including
    its capability check, gap bounds, provenance and genuine-rest protection.
+   Find the gaps with `python3 scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid`
+   on the matching exports. Before calling Chords chord-led, run the
+   [whole-timeline lead check](references/musical-quality-gate.md#keep-chords-chord-led-across-the-whole-timeline):
+   an opening-only check missed a lead that entered at 11.6 seconds.
 5. **Render and verify delivery.** Follow [delivery requirements](references/evaluation-and-repair.md#deliver-a-usable-package)
    and the [musical gate](references/musical-quality-gate.md). Verify actual
    exports, hands, timing, full-duration sampled-piano previews and hashes.
@@ -66,7 +70,10 @@ MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recover
    not trigger another acquisition/preparation or a MIDI-only completion claim.
    Surface two labeled players for a song, or a verified playback index for a
    batch. State each mode's readiness and exact remaining blockers. Do not
-   assign the owner another listening pass or invent independent approval.
+   make an owner listening pass a gate or invent independent approval. When a
+   revised Chords preview materially changes an accepted one, surface the
+   labelled baseline and candidate together and offer an optional better,
+   equivalent or worse note with timestamps.
 6. **Apply existing authorization.** Follow [approval and publication](references/approval-and-publication.md).
    Bind approval to the identified versions. Preparation, a test pass, favorable
    feedback or advisory model output does not grant publication authorization.

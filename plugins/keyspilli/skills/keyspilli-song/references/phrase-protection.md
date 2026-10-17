@@ -49,6 +49,21 @@ rejects this command or omits the capability must retain its existing backing
 and report bridge support unavailable. Do not pass a bridge plan to it, relabel
 melody as harmony to bypass exclusion, or invent another command/flag.
 
+Locate candidate gaps with the packaged helper instead of reading them off a waveform or guessing:
+
+```sh
+python3 scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid --output gap-report.json
+```
+
+Run it on the delivery's matching Original and Chords exports, which must share a clock. A tempo-map warning means its seconds are on separate clocks, so do not bridge until they are reconciled. For each place where the backing stops and resumes between two entrances, the report lists:
+
+- `bridgeableWindows`: spans where Original sounds with no backing, with the exact candidate notes (start, duration, MIDI pitch) that lie wholly inside the gap.
+- `genuineRestSeconds`: spans where Original is also silent for at least 0.05 seconds. Silences of half a second or more split windows. Keep these as rests.
+- `withinBridgeBounds`, `gapSeconds` and `gapQuarterBeats`: the six-second and eight-quarter-beat limits below. Gaps beyond them are refused.
+- `originalNotesCrossingBoundary`: Original notes that run into the backing. They are not bridge candidates.
+
+The helper reports seconds and pitches only. It does not know roles and it does not choose notes. Map a chosen candidate to an exact retained melody event ID with the maintained inspector, name only those IDs in `chordsBridges`, and keep to one voice. Rerun it on the rebuilt exports. The gap should close, the genuine rest should remain, and the lead-leak check in the [musical gate](musical-quality-gate.md#keep-chords-chord-led-across-the-whole-timeline) must still pass. Intro and outro gaps are not reported because they are refused.
+
 In a new working copy of the source-pinned plan, add optional `chordsBridges`:
 
 ```json

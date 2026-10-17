@@ -59,6 +59,17 @@ shared note also carries a declared melody or hook. The ordinary chordal route
 remains available from the same input in a new run; Original is unchanged by
 this refusal. This corrects a mode-boundary failure, not musical acceptance.
 
+The 20261017 revision adds the packaged `find_chords_gaps.py` helper. From the
+delivery's matching Original and Chords exports it lists backing gaps that
+Original fills, genuine rests, and a lead-shadow screen for a Chords preview
+that turns into the melody later. It reports seconds and pitches only, chooses
+no bridge and establishes no role or musical quality. The musical gate now asks
+for a whole-timeline lead check, the audio-review reference records the Gemini
+3.8 qualification failures and a stop-on-first-failure rule, and the approval
+reference records an owner waiver as `waived`, never `passed`. The offline
+gap-choice grader in the checkout's `scripts/evaluate-keyspilli-gap-choice.py`
+has not been run against a fresh chat.
+
 The earlier 20261014 source-backing candidate adds an opt-in from a pinned Advanced
 PhrasePlan and preserves explicitly selected rests when a permitted optional
 tail can be shortened. All six Original variants still ship; only targeted
