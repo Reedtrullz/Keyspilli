@@ -14,7 +14,7 @@
  */
 
 import { readFile, realpath, stat } from "node:fs/promises";
-import { basename, extname, isAbsolute, relative, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import { parseMidi, type ParsedMidi } from "@keyspilli/midi";
 import type { ExternalRoleDiagnostic } from "./external-research.js";
 import { sha256Hex } from "./fixture-evidence.js";

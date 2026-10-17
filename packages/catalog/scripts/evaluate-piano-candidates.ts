@@ -10,7 +10,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
-import { parseMidi, type Note } from "@keyspilli/midi";
+import { type Note } from "@keyspilli/midi";
 import {
   canonicalPianoEvaluationJson,
   evaluatePianoCandidates,

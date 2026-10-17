@@ -14,7 +14,7 @@
  *     --pdf "/Users/reidar/Downloads/The Pretty Reckless - Kill Me.pdf" \
  *     --pdf "/Users/reidar/Downloads/Sleep Token - Take Me Back To Eden.pdf"
  */
-import { mkdir, readFile, realpath, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import {
   alignSymbolicScores,

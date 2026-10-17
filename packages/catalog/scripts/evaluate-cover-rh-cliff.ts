@@ -10,11 +10,9 @@ import {
   type MetalArrangementTraceEvent,
   type Note,
   type ParsedMidi,
-  type Variant,
 } from "@keyspilli/midi";
 import { sha256Hex } from "../src/fixture-evidence.js";
 import {
-  canonicalCoverRhCliffJson,
   evaluateCoverRhIdentityCliff,
   type CoverRhCliffReport,
 } from "../src/cover-rh-cliff.js";

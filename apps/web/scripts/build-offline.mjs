@@ -1,5 +1,5 @@
 import {build} from "esbuild";
-import {mkdir,writeFile,readFile,readdir,unlink} from "node:fs/promises";
+import {mkdir,writeFile,readdir,unlink} from "node:fs/promises";
 import {createHash} from "node:crypto";
 import {fileURLToPath} from "node:url";
 import {join} from "node:path";

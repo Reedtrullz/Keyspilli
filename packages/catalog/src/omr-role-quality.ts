@@ -10,8 +10,6 @@
 import {
   evaluateOmrQuality,
   type OmrQualityCategory,
-  type OmrQualityCategories,
-  type OmrQualityInput,
   type OmrQualityMeasure,
   type OmrQualityReport,
   type OmrQualityThresholds,
