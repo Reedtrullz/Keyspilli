@@ -132,5 +132,35 @@ class GapChoiceGraderTests(unittest.TestCase):
                 self.module.freeze(target)
 
 
+class BridgePlannerTests(unittest.TestCase):
+    scripts = Path(__file__).resolve().parent.parent / "plugins/keyspilli/skills/keyspilli-song/scripts"
+
+    def load(self, name):
+        spec = importlib.util.spec_from_file_location(name, self.scripts / (name + ".py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_planner_output_passes_the_grader(self):
+        grader = importlib.util.spec_from_file_location("g", Path(__file__).with_name("evaluate-keyspilli-gap-choice.py"))
+        g = importlib.util.module_from_spec(grader)
+        grader.loader.exec_module(g)
+        planner = self.load("plan_chords_bridges")
+        with tempfile.TemporaryDirectory() as folder:
+            report, events = g.write_fixture(folder)
+            out = planner.plan(Path(folder, "original.mid"), Path(folder, "chords.mid"), Path(folder, "events.json"))
+        self.assertEqual([[e["eventId"] for e in b["events"]] for b in out["chordsBridges"]], [["m1", "m2", "m3", "m4"], ["m5"]])
+        self.assertEqual(out["chordsBridges"][0]["endBeat"], 18.6)
+        response = {"commands": ["python3 check_bridge_capability.py", "python3 plan_chords_bridges.py a b c"], "chordsBridges": out["chordsBridges"][:1], "finalText": "ok"}
+        self.assertTrue(all(g.grade("bridge-available", response, report, events).values()))
+
+    def test_capability_wrapper_reports_unavailable_outside_a_checkout(self):
+        cap = self.load("check_bridge_capability")
+        with tempfile.TemporaryDirectory() as folder:
+            ok, detail = cap.verdict(folder, "node")
+        self.assertFalse(ok)
+        self.assertIn("not found", detail)
+
+
 if __name__ == "__main__":
     unittest.main()
