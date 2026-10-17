@@ -15,7 +15,24 @@ SCRIPT = 'apps/web/scripts/phrase-plan.mts'
 WANTED = 'source-gap-bridges-v1'
 
 
+def find_checkout(start=None):
+    """Explicit KEYSPILLI_CHECKOUT, else the nearest parent of start (default: current directory) that holds the script."""
+    env = os.environ.get('KEYSPILLI_CHECKOUT')
+    if env and (Path(env) / SCRIPT).is_file():
+        return Path(env).resolve()
+    here = Path(start or '.').resolve()
+    for folder in (here, *here.parents):
+        if (folder / SCRIPT).is_file():
+            return folder
+    return None
+
+
 def verdict(checkout, node):
+    if checkout is None:
+        found = find_checkout()
+        if found is None:
+            return False, f'{SCRIPT} not found in {Path.cwd()} or any parent directory'
+        checkout = found
     root = Path(checkout).resolve()
     if not (root / SCRIPT).is_file():
         return False, f'{SCRIPT} not found in {root}'
@@ -39,6 +56,15 @@ def self_test():
     import tempfile
     with tempfile.TemporaryDirectory() as folder:
         assert verdict(folder, 'node')[0] is False
+        nested = Path(folder, 'repo/apps/web/scripts');nested.mkdir(parents=True);Path(nested, 'phrase-plan.mts').write_text('')
+        deep = Path(folder, 'repo/plugins/x');deep.mkdir(parents=True)
+        saved = os.environ.pop('KEYSPILLI_CHECKOUT', None)
+        try:
+            assert find_checkout(deep) == Path(folder, 'repo').resolve()
+            assert find_checkout(Path(folder, 'repo/..')) is None
+        finally:
+            if saved is not None:
+                os.environ['KEYSPILLI_CHECKOUT'] = saved
         script = Path(folder, SCRIPT)
         script.parent.mkdir(parents=True)
         script.write_text('')
@@ -53,7 +79,7 @@ def self_test():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--checkout', default='.', help='Keyspilli checkout (default: current directory)')
+    parser.add_argument('--checkout', default=None, help='Keyspilli checkout (default: KEYSPILLI_CHECKOUT, else the nearest parent of the current directory that contains it)')
     parser.add_argument('--node', default=os.environ.get('KEYSPILLI_NODE') or 'node')
     parser.add_argument('--self-test', action='store_true')
     args = parser.parse_args()
