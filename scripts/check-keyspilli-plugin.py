@@ -20,8 +20,8 @@ import time
 import zipfile
 
 
-HELPERS = ('check_checkout.py', 'check_tutorial_delivery.py', 'find_chords_gaps.py', 'normalize_ug_score.py',
-           'pin_preparation_request.py', 'prepare_syntheory.py', 'recover_vocal.py')
+HELPERS = ('check_bridge_capability.py', 'check_checkout.py', 'check_tutorial_delivery.py', 'find_chords_gaps.py', 'normalize_ug_score.py',
+           'pin_preparation_request.py', 'plan_chords_bridges.py', 'prepare_syntheory.py', 'recover_vocal.py')
 LEVELS = ('a', 'b', 'e', 'm', 'vb', 've')
 ARTIFACTS = ('manifest.json', *[f'{level}/{name}' for level in LEVELS for name in ('notes.json', 'variant.mid', 'variant.xml')])
 BUNDLE_FILES = (*['artifacts/' + name for name in ARTIFACTS], 'rows.json', 'timeline.json', 'playback.json', 'chords.mid', 'chords.musicxml')
