@@ -38,7 +38,9 @@ async function holdHome(page: Page, pathname = "/") {
   let release!: () => void, requests = 0;
   const pending = new Promise<void>(resolve => { release = resolve; });
   await page.route(url => url.pathname === pathname && url.searchParams.has("_rsc"), async route => {
-    requests++; await pending; await route.continue();
+    // Count navigations only: Next 16 issues separate segment prefetches for the same URL.
+    if (!route.request().headers()["next-router-prefetch"]) requests++;
+    await pending; await route.continue();
   });
   return { release, requests: () => requests };
 }
