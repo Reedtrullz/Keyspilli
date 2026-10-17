@@ -38,6 +38,13 @@ instrumental linking voice. Keep genuine whole-source rests, pickups, endings
 and singing space; do not copy the continuous Advanced lead. A physical hand,
 track number or highest/lowest pitch alone cannot establish a musical role.
 
+Order of work, every time Chords goes silent while Original continues:
+
+1. **Run the capability check first**, before reading any gap report or choosing notes (command below). Run the command itself even when you suspect there is no checkout; its failure is the evidence. Do not reason your way to "unavailable" without running it.
+2. If it succeeds with `source-gap-bridges-v1`, continue. If the command is missing, errors, there is no checkout, or the value differs, stop bridging: keep the existing backing and write the exact sentence "Bridge support unavailable: <reason>." in your answer. Declare no `chordsBridges`, invent no chord and double no lead.
+3. Run `find_chords_gaps.py` on the matching exports.
+4. Choose melody events inside a `bridgeableWindows` entry and write `chordsBridges` (worked example below).
+
 Check the maintained inspector before adding bridge declarations:
 
 ```sh
@@ -87,6 +94,36 @@ selection window and the entire backing gap are bounded by eight source quarter
 beats; the gap must also fit six native seconds. Bridge windows cannot cross a
 declared whole-source rest. They stop before backing returns. Intro/outro gaps,
 hooks, unknown/shared lineages and missing or retimed notes are refused.
+
+### Worked example: events map to chordsBridges
+
+Suppose the gap report shows a `bridgeableWindows` entry from 20.0 s to 23.0 s at 120 BPM, which is quarter beats 40 to 46, and an `events.json` (or plan event list) like this. Each key is the exact event ID; `startBeat` and `durationBeats` are source quarter beats:
+
+```json
+{
+  "n1": { "role": "melody", "startBeat": 40, "durationBeats": 1 },
+  "n2": { "role": "melody", "startBeat": 42, "durationBeats": 1 },
+  "n3": { "role": "hook", "startBeat": 42.4, "durationBeats": 0.5 },
+  "n4": { "role": "melody", "startBeat": 44, "durationBeats": 1.2 },
+  "n5": { "role": "unknown", "startBeat": 60, "durationBeats": 0.4 }
+}
+```
+
+Keep only `role: "melody"` events that start and end inside the window and do not overlap each other: `n1`, `n2` and `n4`. Drop `n3` (hook) and `n5` (unknown role, outside the window). Set `startBeat` to the first kept start and `endBeat` to the last kept end, here 40 to 45.2:
+
+```json
+{
+  "chordsBridges": [{
+    "id": "gap-1-link",
+    "startBeat": 40,
+    "endBeat": 45.2,
+    "basis": "Source-linked instrumental connecting voice; arrangement selection, not validated harmony",
+    "events": [{ "eventId": "n1" }, { "eventId": "n2" }, { "eventId": "n4" }]
+  }]
+}
+```
+
+When the map lists beats and roles keyed by name, the keys are the event IDs; name them as they appear. Leave any gap beyond six seconds or eight beats, and any genuine rest, unbridged.
 
 Use exact source attacks, releases, pitches, velocity and hands. An individual
 selection may specify `octaveShift` of -24, -12, 12 or 24 only when that optional
