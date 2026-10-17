@@ -333,7 +333,7 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
  * levels attached. Filters match any variant of a song.
  */
 export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
-  let grouped = groupedSongsForFilters(f);
+  const grouped = groupedSongsForFilters(f);
   const order = groupedOrder(f);
   grouped.sort(order);
   const { limit, offset } = pagination(f, 2000);

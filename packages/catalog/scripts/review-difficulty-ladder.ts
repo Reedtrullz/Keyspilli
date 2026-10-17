@@ -20,7 +20,6 @@ import {
   evaluateDifficultyLadder,
   type DifficultyLadderClassification,
   type DifficultyLadderEvaluation,
-  type DifficultyLadderLevelMetrics,
 } from "../src/arrangement-evaluation.js";
 import { ROOT } from "../src/paths.js";
 

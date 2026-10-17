@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { buildVariants, type Note, type ParsedMidi } from "@keyspilli/midi";
+import { type Note, type ParsedMidi } from "@keyspilli/midi";
 import {
   DECLARED_RELEASE_GATES,
   applyCollisionAwareSparseLh,
