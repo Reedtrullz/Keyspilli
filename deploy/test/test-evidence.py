@@ -466,6 +466,58 @@ class Lifecycle(unittest.TestCase):
         store.finish(doc["id"], "success")
         self.assertEqual((self.root / "evidence" / doc["id"] / "files/recording.wav").read_bytes(), b"unique-recording")
 
+    def test_actual_plugin_fixture_closes_its_lease_before_teardown(self):
+        checker_path = SCRIPT.parents[1] / "scripts/check-keyspilli-plugin.py"
+        if not checker_path.exists():
+            self.skipTest("plugin checker absent from code-only native fixture")
+        spec = importlib.util.spec_from_file_location("plugin_fixture_test", checker_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("plugin checker missing")
+        checker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(checker)
+        store = self.module().Store(self.root)
+        doc = store.begin(1048576, self.dead_pid)
+        env = {**self.env, "KEYSPILLI_EVIDENCE_ROOT": str(self.root), "KEYSPILLI_EVIDENCE_RUN": doc["id"]}
+        errors = []
+        unlink = os.unlink
+
+        def sample_after_marker_removal(path, *args, **kwargs):
+            result = unlink(path, *args, **kwargs)
+            if Path(path).name == ".keyspilli-evidence-owner.json":
+                try:
+                    store.guard(doc["id"])
+                except OSError as error:
+                    errors.append(type(error).__name__)
+            return result
+
+        with mock.patch.dict(os.environ, env), mock.patch.object(os, "unlink", sample_after_marker_removal):
+            with checker.smoke_directory(SCRIPT.parents[1]) as directory:
+                (directory / "synthetic.mid").write_bytes(b"unique-synthetic-control")
+        self.assertEqual(errors, [])
+        self.assertFalse(directory.exists())
+        moved = self.root / "scratch" / doc["id"] / "external-fixtures" / directory.name
+        self.assertEqual((moved / "synthetic.mid").read_bytes(), b"unique-synthetic-control")
+        store.finish(doc["id"], "success")
+        retained = self.root / "evidence" / doc["id"] / "files/external-fixtures" / directory.name
+        self.assertEqual((retained / "synthetic.mid").read_bytes(), b"unique-synthetic-control")
+
+        other = store.begin(1048576, self.dead_pid)
+        env["KEYSPILLI_EVIDENCE_RUN"] = other["id"]
+        refused: Path | None = None
+        marker: Path | None = None
+        identity: bytes | None = None
+        with mock.patch.dict(os.environ, env), self.assertRaises(subprocess.CalledProcessError):
+            with checker.smoke_directory(SCRIPT.parents[1]) as refusing_dir:
+                refused = Path(refusing_dir)
+                marker = refused / ".keyspilli-evidence-owner.json"
+                identity = marker.read_bytes()
+                marker.unlink()
+                (refused / "result.sqlite").write_bytes(b"preserve-refused")
+        assert refused is not None and marker is not None and identity is not None
+        self.assertEqual((refused / "result.sqlite").read_bytes(), b"preserve-refused")
+        marker.write_bytes(identity)
+        store.finish(other["id"], "recovered")
+
     def test_private_builder_config_survives_a_different_finalizer_home(self):
         fake = self.root.parent / "fake-docker"
         fake.write_text('#!' + sys.executable + '\n' +
@@ -551,6 +603,8 @@ class Lifecycle(unittest.TestCase):
         store.register_external(doc["id"], directory)
         (directory / "result.sqlite").write_bytes(b"unique-crash-result")
         self.cli("pin", doc["id"], "active candidate")
+        with self.assertRaises(ValueError):
+            store.collect_external(doc["id"], directory)
         store.finish(doc["id"], "abandoned", recovering=True)
         self.assertTrue(directory.exists())
         self.cli("unpin", doc["id"])
@@ -573,6 +627,32 @@ class Lifecycle(unittest.TestCase):
         original.rename(directory)
         shutil.rmtree(directory)
         store.finish(other["id"], "success")
+
+    def test_atomic_lease_collection_and_repeated_calls_preserve_bytes(self):
+        store = self.module().Store(self.root)
+        doc = store.begin(1048576, self.dead_pid)
+        directory = self.root.parent / "keyspilli-plugin-smoke-atomic"
+        directory.mkdir()
+        store.register_external(doc["id"], directory)
+        (directory / "control.mid").write_bytes(b"control-bytes")
+        rename = os.rename
+        samples = []
+
+        def moved(source, destination):
+            result = rename(source, destination)
+            if Path(source) == directory:
+                store.guard(doc["id"])
+                samples.append("old lease absent, complete directory inside scratch")
+            return result
+
+        with mock.patch.object(os, "rename", moved):
+            store.collect_external(doc["id"], directory)
+        self.assertEqual(len(samples), 1)
+        store.collect_external(doc["id"], directory)
+        store.finish(doc["id"], "success")
+        store.collect_external(doc["id"], directory)
+        self.assertFalse(directory.exists())
+        self.assertEqual((self.root / "evidence" / doc["id"] / "files/external-fixtures" / directory.name / "control.mid").read_bytes(), b"control-bytes")
 
     def test_job_shell_supervises_steps_and_retains_failure_and_budget_results(self):
         doc = json.loads(self.cli("begin", "--peak-bytes", "1048576", "--owner-pid", str(self.dead_pid)).stdout)

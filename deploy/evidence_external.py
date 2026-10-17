@@ -23,17 +23,20 @@ class Lease:
         return cls(path, value["device"], value["inode"])
 
     def present(self, store, doc):
-        if not self.path.exists() and not self.path.is_symlink():
-            return False
-        info = self.path.lstat()
-        if self.path.resolve() != self.path or not stat.S_ISDIR(info.st_mode) or (info.st_dev, info.st_ino) != (self.device, self.inode):
-            raise ValueError("external fixture identity changed")
-        marker = self.path / MARKER
-        marker_info = marker.lstat()
-        if not stat.S_ISREG(marker_info.st_mode) or marker_info.st_nlink != 1:
-            raise ValueError("linked/nonregular fixture marker")
-        if json.loads(marker.read_text()) != dict(root=str(store.root), run=doc["id"], device=self.device, inode=self.inode):
-            raise ValueError("external fixture ownership changed")
+        try:
+            info = self.path.lstat()
+            if self.path.resolve() != self.path or not stat.S_ISDIR(info.st_mode) or (info.st_dev, info.st_ino) != (self.device, self.inode):
+                raise ValueError("external fixture identity changed")
+            marker = self.path / MARKER
+            marker_info = marker.lstat()
+            if not stat.S_ISREG(marker_info.st_mode) or marker_info.st_nlink != 1:
+                raise ValueError("linked/nonregular fixture marker")
+            if json.loads(marker.read_text()) != dict(root=str(store.root), run=doc["id"], device=self.device, inode=self.inode):
+                raise ValueError("external fixture ownership changed")
+        except FileNotFoundError:
+            if not self.path.exists() and not self.path.is_symlink():
+                return False
+            raise
         return True
 
 
@@ -64,8 +67,18 @@ def entries(store, doc):
     return sum(len(dirs) + len(names) for path in paths(store, doc) for _, dirs, names in os.walk(path, followlinks=False))
 
 
-def collect(store, doc, durable_directory, sync_directory):
-    for path in paths(store, doc):
+def collect(store, doc, durable_directory, sync_directory, directory=None):
+    records = doc.get("externalScratch", [])
+    selected = [value for value in records if directory is None or Lease.decode(value).path == directory]
+    if directory is not None and not selected:
+        if any(Lease.decode(value).path == directory for value in doc.get("collectedExternalScratch", [])):
+            return
+        raise ValueError("external fixture is not registered")
+    for value in selected:
+        lease = Lease.decode(value)
+        if not lease.present(store, doc):
+            continue
+        path = lease.path
         store.external_users(path)
         destination = store.root / "scratch" / doc["id"] / "external-fixtures" / path.name
         durable_directory(destination.parent)
@@ -74,4 +87,5 @@ def collect(store, doc, durable_directory, sync_directory):
         os.rename(path, destination)
         sync_directory(destination.parent)
         sync_directory(path.parent)
-    doc.setdefault("collectedExternalScratch", []).extend(doc.pop("externalScratch", []))
+    doc["externalScratch"] = [value for value in records if value not in selected]
+    doc.setdefault("collectedExternalScratch", []).extend(selected)

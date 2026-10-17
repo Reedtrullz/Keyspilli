@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check an extracted plugin and real ordinary preparation offline; never install or release it."""
 import argparse
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 import hashlib
 import importlib.util
@@ -223,6 +223,22 @@ def inspect_preparation(run, source_sha):
             'scope': 'Real ordinary prepare, fresh six-row import and repeated exact bundle install; no musical approval.'}
 
 
+@contextmanager
+def smoke_directory(checkout):
+    if not os.environ.get('KEYSPILLI_EVIDENCE_RUN'):
+        with tempfile.TemporaryDirectory(prefix='keyspilli-plugin-smoke-', dir=checkout) as temporary:
+            yield Path(temporary)
+        return
+    smoke = Path(tempfile.mkdtemp(prefix='keyspilli-plugin-smoke-', dir=checkout))
+    lifecycle_env = {key: os.environ[key] for key in ('PATH', 'KEYSPILLI_EVIDENCE_ROOT', 'KEYSPILLI_EVIDENCE_RUN')}
+    command = [sys.executable, '-B', str(checkout / 'deploy/keyspilli-evidence.py')]
+    subprocess.run([*command, 'register-external', str(smoke)], env=lifecycle_env, check=True, timeout=15)
+    try:
+        yield smoke
+    finally:
+        subprocess.run([*command, 'collect-external', str(smoke)], env=lifecycle_env, check=True, timeout=15)
+
+
 def check(source, checkout, node, report):
     # Resolve report aliases before either mkdir or file reservation can alter source.
     source, checkout, report = Path(source), Path(checkout).resolve(), Path(report).resolve()
@@ -280,12 +296,7 @@ def check(source, checkout, node, report):
                 if 'Usage: render-midi.ts --input FILE --output FILE' not in help_text or '--soundfont' not in help_text:
                     raise ValueError('implemented render-midi CLI help is unavailable')
                 value['renderMidi'] = {'status': 'help-verified', 'renderedAudio': False, 'capabilitiesQueried': False}
-                with tempfile.TemporaryDirectory(prefix='keyspilli-plugin-smoke-', dir=checkout) as temporary:
-                    smoke = Path(temporary)
-                    if os.environ.get('KEYSPILLI_EVIDENCE_RUN'):
-                        lifecycle_env = {key: os.environ[key] for key in ('PATH', 'KEYSPILLI_EVIDENCE_ROOT', 'KEYSPILLI_EVIDENCE_RUN')}
-                        subprocess.run([sys.executable, '-B', str(checkout / 'deploy/keyspilli-evidence.py'),
-                                        'register-external', str(smoke)], env=lifecycle_env, check=True, timeout=15)
+                with smoke_directory(checkout) as smoke:
                     source_bytes = synthetic_midi()
                     input_path = smoke / 'synthetic.mid'
                     input_path.write_bytes(source_bytes)
@@ -333,7 +344,7 @@ def check(source, checkout, node, report):
             value['temporaryCatalogsRemoved'] = True
             value['temporaryPackageRemoved'] = True
             value['status'] = 'passed'
-        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error, zipfile.BadZipFile) as error:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error, zipfile.BadZipFile, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
             value['error'] = f'{type(error).__name__}: {error}'
         output.write(json.dumps(value, indent=2, sort_keys=True) + '\n')
     return value

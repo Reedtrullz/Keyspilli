@@ -234,6 +234,14 @@ class Store:
     def external_paths(self, run):
         return helper("evidence_external").paths(self, self.path(run)[1])
 
+    def collect_external(self, run, directory):
+        with self.lock():
+            path, doc = self.path(run)
+            if doc["pins"] or (doc["state"] != "running" and doc.get("externalScratch")):
+                raise ValueError("external fixture collection is pinned or not writable")
+            helper("evidence_external").collect(self, doc, durable_directory, sync_directory, Path(directory).absolute())
+            save(path, doc)
+
     def admit_run_bytes(self, run, additional):
         _, doc = self.path(run)
         available = shutil.disk_usage(self.root).free
@@ -896,6 +904,8 @@ def main():
     commands.add_parser("environment")
     sub = commands.add_parser("register-external")
     sub.add_argument("directory")
+    sub = commands.add_parser("collect-external")
+    sub.add_argument("directory")
     for name in ("bundle", "import-bundle"):
         sub = commands.add_parser(name)
         sub.add_argument("file")
@@ -925,6 +935,8 @@ def main():
         store.copy(os.environ["KEYSPILLI_EVIDENCE_RUN"], args.source, args.relative)
     elif args.command == "register-external":
         store.register_external(os.environ["KEYSPILLI_EVIDENCE_RUN"], args.directory)
+    elif args.command == "collect-external":
+        store.collect_external(os.environ["KEYSPILLI_EVIDENCE_RUN"], args.directory)
     elif args.command == "register-restore":
         store.register_restore(os.environ["KEYSPILLI_EVIDENCE_RUN"], args.destination, args.manifest)
     elif args.command == "restore":
