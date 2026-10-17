@@ -219,6 +219,9 @@ class Store:
             helper("evidence_external").register(self, doc, directory, save, PROTECTED)
             save(path, doc)
 
+    def external_paths(self, run):
+        return helper("evidence_external").paths(self, self.path(run)[1])
+
     def admit_run_bytes(self, run, additional):
         _, doc = self.path(run)
         available = shutil.disk_usage(self.root).free
@@ -270,6 +273,7 @@ class Store:
             if not destination.is_relative_to(base):
                 raise ValueError("restore destination escapes owned scratch")
             manifest_path, manifest = committed_restore(manifest_path)
+            self.preserve_recovery_reference(run, manifest_path)
             archive = manifest_path.parent / manifest["archiveFile"]
             if digest(archive) != manifest["archiveSha256"]:
                 raise ValueError("restore archive checksum mismatch")
@@ -317,7 +321,9 @@ class Store:
             path, doc = self.path(run)
             if doc["state"] != "running":
                 raise ValueError("run is not writable")
-            source = self.acquire(Path(source).resolve(), run)
+            source = Path(source).resolve()
+            self.preserve_recovery_reference(run, source)
+            source = self.acquire(source, run)
             target = self.root / "scratch" / run / relative
             scratch = self.root / "scratch" / run
             if not target.resolve().is_relative_to(scratch) or target.resolve() == scratch:
@@ -333,6 +339,19 @@ class Store:
                 shutil.copyfileobj(src, dst)
             if digest(target) != sha or digest(source) != sha:
                 raise ValueError("input changed during copy")
+
+    def preserve_recovery_reference(self, run, source):
+        if not re.fullmatch(r"backup-manifest-.*\.json", source.name):
+            return
+        if regular(source).st_size > 32768:
+            raise ValueError("oversized recovery reference")
+        payload = source.read_bytes()
+        sha = hashlib.sha256(payload).hexdigest()
+        destination = self.root / "evidence" / run / "recovery-references" / sha / source.name
+        self.admit_run_bytes(run, len(payload))
+        durable_bytes(destination, payload)
+        if digest(source) != sha:
+            raise ValueError("recovery reference changed during acquisition")
 
     def acquire(self, source, run):
         regular(source)
@@ -450,6 +469,8 @@ class Store:
             if path.exists():
                 if not stat.S_ISREG(path.lstat().st_mode):
                     raise ValueError("nonregular recovery reference")
+                if path.parent.parent.name == "recovery-references" and digest(path) != path.parent.name:
+                    raise ValueError("acquired recovery reference checksum mismatch")
                 value = json.loads(path.read_text())
                 if any(reference in json.dumps(value) for reference in (image, *aliases)):
                     return str(path)
@@ -470,7 +491,7 @@ class Store:
                     document = helper("keyspilli-storage").manifest_document(path)
                     images = document.get("images")
                     if not isinstance(images, dict) or any(not isinstance(images.get(role), dict) or not isinstance(images[role].get("id"), str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", images[role]["id"]) for role in ("web", "worker")):
-                        raise ValueError("malformed backup image references")
+                        raise ValueError("unresolved backup image references; image retirement held")
         return None
 
     def cleanup_resources(self, doc):
@@ -501,19 +522,7 @@ class Store:
                     raise
                 self.docker("rm", "--volumes", ids[0])
             elif kind == "builder":
-                volume = "buildx_buildkit_" + name + "0_state"
-                users = self.docker("ps", "-aq", "--filter", "volume=" + volume).split()
-                if users:
-                    expected = "/buildx_buildkit_" + name + "0"
-                    if any(line != expected for line in self.docker("inspect", "--format", "{{.Name}}", *users).splitlines()):
-                        raise ValueError("builder state is referenced by another container")
-                names = self.docker("buildx", "ls", "--format", "{{.Name}}", buildx_run=run).split()
-                if name in names:
-                    self.docker("buildx", "rm", name, buildx_run=run)
-                if volume in self.docker("volume", "ls", "-q", "--filter", "name=" + volume).split():
-                    if self.docker("ps", "-aq", "--filter", "volume=" + volume).strip():
-                        raise ValueError("builder state volume remains in use")
-                    self.docker("volume", "rm", volume)
+                model.close_builder(self, doc, name, lambda: save(self.path(run)[0], doc))
             elif kind == "image":
                 ids = self.docker("image", "ls", "-q", "--no-trunc", name).split()
                 if not ids:
@@ -550,6 +559,8 @@ class Store:
                 return doc
             if recovering and self.active(doc):
                 return doc
+            if not recovering and doc.get("childPid") and doc.get("childIdentity") and process_identity(doc["childPid"]) == doc["childIdentity"]:
+                raise ValueError("active child still owns this run")
             if recovering:
                 self.close_abandoned_child(doc)
             evidence = self.root / "evidence" / run

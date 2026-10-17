@@ -113,6 +113,8 @@ class Lifecycle(unittest.TestCase):
         run = self.documents()[0]["id"]
         self.cli("recover")
         self.assertTrue((self.root / "scratch" / run).exists())
+        self.assertNotEqual(self.cli("finish", run, check=False).returncode, 0)
+        self.assertTrue((self.root / "scratch" / run).exists())
         self.assertNotEqual(self.cli(*self.worker("pass"), check=False).returncode, 0)
         proc.send_signal(signal.SIGTERM)
         proc.communicate(timeout=5)
@@ -339,6 +341,49 @@ class Lifecycle(unittest.TestCase):
             self.assertEqual(len(builder_removals), 1)
             self.assertFalse((self.root / "scratch" / run).exists())
 
+    def test_copied_manifest_keeps_semantic_image_pins_after_seal_and_reconstruction(self):
+        module = self.module()
+        store = module.Store(self.root)
+        doc = store.begin(1048576, self.dead_pid)
+        image = "sha256:" + "e" * 64
+        stamp = "2026-10-17-000003"
+        source = self.root.parent / f"backup-manifest-{stamp}.json"
+        source.write_text(json.dumps(dict(schemaVersion=1, complete=True, stamp=stamp, dbFile=f"db-{stamp}.sqlite", archiveFile=f"artifacts-{stamp}.tar.gz",
+            dbBytes=0, archiveBytes=0, dbSha256="a" * 64, archiveSha256="b" * 64, images={"web": {"id": image}, "worker": {"id": "sha256:" + "f" * 64}})))
+        store.copy(doc["id"], source, "renamed-input.json")
+        self.assertIsNotNone(store.image_pins(image))
+        store.finish(doc["id"], "success")
+        source.unlink()
+        for _ in range(2):
+            self.assertIsNotNone(store.image_pins(image))
+            store.finish(doc["id"], "abandoned", recovering=True)
+        destination = self.root.parent / "manifest-reconstruction"
+        store.reconstruct(doc["id"], destination)
+        self.assertEqual(json.loads((destination / "renamed-input.json").read_text())["images"]["web"]["id"], image)
+
+    def test_bundle_refuses_an_uncollected_external_lease_then_reconstructs_collected_bytes(self):
+        module = self.module()
+        store = module.Store(self.root)
+        doc = store.begin(1048576, self.dead_pid)
+        directory = self.root.parent / "keyspilli-plugin-smoke-export"
+        directory.mkdir()
+        store.register_external(doc["id"], directory)
+        (directory / "unique.sqlite").write_bytes(b"unique-fixture")
+        self.cli("pin", doc["id"], "candidate")
+        bundle = self.root.parent / "leased.tar.gz"
+        with self.assertRaises(ValueError):
+            module.helper("evidence_bundle").export_bundle(store, bundle)
+        self.assertFalse(bundle.exists())
+        self.assertEqual((directory / "unique.sqlite").read_bytes(), b"unique-fixture")
+        self.cli("unpin", doc["id"])
+        store.finish(doc["id"], "recovered")
+        module.helper("evidence_bundle").export_bundle(store, bundle)
+        imported = module.Store(self.root.parent / "imported-lease")
+        module.helper("evidence_bundle").import_bundle(imported, bundle)
+        destination = self.root.parent / "reconstructed-lease"
+        imported.reconstruct(doc["id"], destination)
+        self.assertEqual((destination / "external-fixtures" / directory.name / "unique.sqlite").read_bytes(), b"unique-fixture")
+
     def test_export_capacity_is_reserved_before_admitting_a_hosted_writer(self):
         module = self.module()
         mib = 1024 ** 2
@@ -409,6 +454,53 @@ class Lifecycle(unittest.TestCase):
         self.cli("finish", doc["id"])
         self.assertFalse((self.root / "scratch" / doc["id"]).exists())
         self.assertIn("build-result", "".join(p.read_text() for p in (self.root / "evidence" / doc["id"]).glob("docker-*.log")))
+
+    def test_builder_teardown_converges_only_for_its_recorded_container(self):
+        module = self.module()
+        for scenario in ("delayed", "foreign", "replaced"):
+            with self.subTest(scenario=scenario):
+                store = module.Store(self.root / scenario)
+                doc = store.begin(1048576, self.dead_pid)
+                name = f"keyspilli-evidence-{doc['id']}"
+                volume = "buildx_buildkit_" + name + "0_state"
+                store.resource(doc["id"], "builder", name)
+                state = dict(removed=False, polls=0, volumeRemoved=False)
+
+                def docker(*args, **_options):
+                    if args[0] == "ps":
+                        if state["removed"]:
+                            state["polls"] += 1
+                            if scenario == "replaced":
+                                return "b" * 64
+                            if state["polls"] > 2:
+                                return ""
+                        return "a" * 64
+                    if args[0] == "inspect":
+                        return json.dumps([dict(Id=args[1], Name="/foreign" if scenario == "foreign" else "/buildx_buildkit_" + name + "0",
+                                                Mounts=[dict(Type="volume", Name=volume)])])
+                    if args[:2] == ("buildx", "ls"):
+                        return name
+                    if args[:2] == ("buildx", "rm"):
+                        state["removed"] = True
+                        return ""
+                    if args[:2] == ("volume", "ls"):
+                        return volume
+                    if args[:2] == ("volume", "rm"):
+                        state["volumeRemoved"] = True
+                        return ""
+                    raise AssertionError(args)
+
+                with mock.patch.object(store, "docker", docker):
+                    if scenario == "delayed":
+                        store.cleanup_resources(store.path(doc["id"])[1])
+                        self.assertTrue(state["volumeRemoved"])
+                        self.assertEqual(store.path(doc["id"])[1]["builderContainers"][name], ["a" * 64])
+                    else:
+                        with self.assertRaises(ValueError):
+                            store.cleanup_resources(store.path(doc["id"])[1])
+                        self.assertFalse(state["volumeRemoved"])
+                        if scenario == "foreign":
+                            self.assertFalse(state["removed"])
 
     def test_checkout_fixture_lease_recovers_only_its_exact_directory(self):
         store = self.module().Store(self.root)

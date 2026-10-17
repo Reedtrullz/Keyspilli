@@ -97,6 +97,12 @@ available. These inputs are durable reconstruction pins and count against the
 16 GiB budget. Retained experimental images referenced by recovery metadata are
 reported as `retainedResources` and count at conservative uncompressed size;
 periodic recovery rechecks them after the reference is explicitly retired.
+Recognized backup manifests copied or used for a restore also receive a small
+named snapshot under `evidence/ID/recovery-references/SHA/`. Its checksum is
+verified at image retirement, so deduplicating or renaming a scratch manifest
+cannot hide its image pins. These reference snapshots have no automatic expiry.
+Unresolved image IDs hold image retirement; a data-only backup remains usable
+for restoration. Native rehearsal records both actual web and worker IDs.
 
 Scratch has zero retention after sealing. Unique data and reconstruction maps
 have **no automatic expiry**. They count against admission, so repeated unique
@@ -144,7 +150,9 @@ unsafe link/special-file entries remain diagnostic records rather than being
 followed or activated. Import does not claim ownership of the origin host's
 Docker resources or checkout-local fixture leases. Keep matching application images separately for an app replay.
 CI attempts this preservation in `finally`, even when sealing fails; the job
-remains failed. Native run records/maps/payloads use file and directory fsync
+remains failed. Export refuses to omit an uncollected checkout-local lease,
+identifies its path, and leaves the original untouched; finish/recover it before
+creating a portable bundle. Native run records/maps/payloads use file and directory fsync
 ordering; tests simulate interrupted sealing, not physical power loss.
 
 Cleanup and pin updates share one nonblocking flock. Managed VPS operations

@@ -11,6 +11,10 @@ def export_bundle(store, destination):
     if destination.is_relative_to(store.root) or destination.exists():
         raise ValueError("bundle requires a fresh path outside managed storage")
     with store.lock():
+        uncovered = [str(path) for record in (store.root / "runs").glob("*/run.json")
+                     for path in store.external_paths(record.parent.name)]
+        if uncovered:
+            raise ValueError("bundle would omit uncollected external fixtures: " + ", ".join(uncovered))
         estimated = sum(p.lstat().st_size for p in store.root.rglob("*") if p.is_file() and not p.is_symlink())
         if shutil.disk_usage(destination.parent).free < estimated + store.reserve:
             raise ValueError("insufficient bundle destination space")

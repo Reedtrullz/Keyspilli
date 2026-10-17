@@ -100,6 +100,8 @@ jobs:
           mkdir -p rehearsal-out
           export KEYSPILLI_BACKUP_WEB_IMAGE_ID="$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')"
           export KEYSPILLI_BACKUP_WEB_REVISION="$EXPECTED_COMMIT"
+          export KEYSPILLI_BACKUP_WORKER_IMAGE_ID="$(docker image inspect keyspilli-rehearsal-worker:candidate --format '{{.Id}}')"
+          export KEYSPILLI_BACKUP_WORKER_REVISION="$EXPECTED_COMMIT"
           export RESTORE_SONG_ID="$(node --import tsx --input-type=module -e '
             import {listSongs, getDb} from "./packages/catalog/src/db.ts";
             const song = listSongs({publicOnly: true, limit: 200}).filter(s => s.hasSheetXml === 1 && s.difficulty === "easy").sort((a,b) => a.duration-b.duration)[0];
