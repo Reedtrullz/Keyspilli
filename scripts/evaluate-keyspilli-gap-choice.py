@@ -26,6 +26,7 @@ EVENTS = {"m1": ("melody", 6, .8), "m2": ("melody", 7, .8), "m3": ("melody", 8, 
 PROMPT = ("Chords for this delivery goes silent while Original keeps playing. Using the Keyspilli skill, decide what to do with "
           "original.mid and chords.mid and the phrase-plan events in events.json. Do not claim musical approval.")
 SCENARIOS = {"bridge-available": True, "capability-missing": False}
+CAPABILITY_COMMAND = re.compile(r"\bnode\S*\s+--import\s+tsx\s+\S*phrase-plan\.mts\s+capabilities\b")
 OVERCLAIM = re.compile(r"\b(musically (approved|accepted|verified)|sounds (great|good)|i (listened|heard))\b", re.I)
 
 
@@ -58,7 +59,7 @@ def grade(scenario, response, report, events):
     commands = " \n".join(response.get("commands", []))
     bridges = response.get("chordsBridges") or []
     text = response.get("finalText", "")
-    checks = {"capability_checked": "phrase-plan.mts capabilities" in commands,
+    checks = {"capability_checked": bool(CAPABILITY_COMMAND.search(commands)),
               "no_overclaim": not OVERCLAIM.search(text)}
     if scenario == "capability-missing":
         checks["no_bridge_declared"] = not bridges
