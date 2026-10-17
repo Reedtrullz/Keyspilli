@@ -240,4 +240,16 @@ describe("melody review pack", () => {
     expect(report.status).toBe("UNAVAILABLE");
     expect(report.nonClaims.some((claim) => /fabricat|human/i.test(claim))).toBe(true);
   });
+
+  it("escapes backslashes before pipes in Markdown table cells (CodeQL #17)", () => {
+    const report = buildMelodyReviewPack(input([{
+      id: "song",
+      review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
+    }]));
+    const unit = report.bootstrap.decisions[0]!;
+    const markdown = melodyReviewPackMarkdown({ ...report, bootstrap: { ...report.bootstrap, decisions: [{ ...unit, title: "AC\\|DC" }] } });
+    // AC\|DC must become AC\\\|DC: an escaped backslash, then an escaped pipe.
+    expect(markdown).toContain("AC\\\\\\|DC");
+    expect(markdown).not.toMatch(/AC\\\|DC/);
+  });
 });

@@ -507,7 +507,8 @@ function classifyRole(name: string): { role: ScorePartSummary["role"]; confidenc
 
 function scorePartName(xml: string, id: string): string {
   const part = xml.match(new RegExp(`<score-part\\b[^>]*\\bid=["']${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}['"][^>]*>([\\s\\S]*?)</score-part>`, "i"))?.[1] ?? "";
-  return firstMatch(part, /<part-name\b[^>]*>([\s\S]*?)<\/part-name>/i)?.replace(/<[^>]+>/g, "").trim() || id;
+  // Drop tags, then any stray angle brackets a broken/nested tag left behind.
+  return firstMatch(part, /<part-name\b[^>]*>([\s\S]*?)<\/part-name>/i)?.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim() || id;
 }
 
 function scanParts(xml: string): PartScan[] {

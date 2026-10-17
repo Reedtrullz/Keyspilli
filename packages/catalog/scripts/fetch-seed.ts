@@ -26,12 +26,16 @@ interface Row {
   midUrl: string;
 }
 
+const HTML_ENTITIES: Readonly<Record<string, string>> = { nbsp: " ", amp: "&", ndash: "-" };
+
+/** Plain text of a listing cell: tags and stray angle brackets removed, entities decoded once. */
 function strip(s: string): string {
   return s
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&ndash;/g, "-")
+    .replace(/<[^>]*>/g, "")
+    // Whatever is left of a broken or nested tag cannot form markup.
+    .replace(/[<>]/g, "")
+    // One pass, so "&amp;ndash;" stays the literal text "&ndash;".
+    .replace(/&(nbsp|amp|ndash);/g, (_match, name: string) => HTML_ENTITIES[name]!)
     .replace(/\s+/g, " ")
     .trim();
 }
