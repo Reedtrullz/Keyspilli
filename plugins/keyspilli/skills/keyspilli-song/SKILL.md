@@ -53,7 +53,9 @@ MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recover
    exact authorized event with unchanged evidence pins. Preserve protected
    neighbors and retain failed candidates. Stop an unsupported repair method;
    obtain missing evidence or keep the result provisional.
-   For an awkward Chords gap, first preserve any existing source-written
+   For an awkward Chords gap, first run `phrase-plan.mts capabilities` and, if
+   it does not report `source-gap-bridges-v1` (run it even outside a checkout),
+   write "Bridge support unavailable: <reason>." and declare nothing. Then preserve any existing source-written
    counterline or broken accompaniment. If Original continues while backing
    stops, prefer a brief, explicitly selected source-note bridge over invented
    chord hits or continuous lead doubling. Follow the [source-gap bridge
