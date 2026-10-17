@@ -40,10 +40,14 @@ track number or highest/lowest pitch alone cannot establish a musical role.
 
 Order of work, every time Chords goes silent while Original continues:
 
-1. **Run the capability check first**, before reading any gap report or choosing notes (command below). Run the command itself even when you suspect there is no checkout; its failure is the evidence. Do not reason your way to "unavailable" without running it.
-2. If it succeeds with `source-gap-bridges-v1`, continue. If the command is missing, errors, there is no checkout, or the value differs, stop bridging: keep the existing backing and write the exact sentence "Bridge support unavailable: <reason>." in your answer. Declare no `chordsBridges`, invent no chord and double no lead.
-3. Run `find_chords_gaps.py` on the matching exports.
-4. Choose melody events inside a `bridgeableWindows` entry and write `chordsBridges` (worked example below).
+Throughout, SKILL_DIR is the directory that holds SKILL.md. Call the helpers by absolute path from your current working directory; do not cd into SKILL_DIR, because the checkout is found from where you run them.
+
+1. **Run the capability wrapper first**, before reading any gap report or choosing notes: `python3 SKILL_DIR/scripts/check_bridge_capability.py --checkout CHECKOUT` (omit `--checkout` to find the checkout from the current directory or `KEYSPILLI_CHECKOUT`; add `--node NODE` if needed). It runs the real `node --import tsx apps/web/scripts/phrase-plan.mts capabilities` command and prints exactly one line.
+2. If that line starts with "Bridge support unavailable", stop bridging: keep the existing backing, declare no `chordsBridges`, invent no chord and double no lead, and copy the line verbatim into your final answer. Do not paraphrase it and do not skip the wrapper. If it prints "Bridge support available", continue.
+3. Run `python3 SKILL_DIR/scripts/plan_chords_bridges.py ORIGINAL.mid CHORDS.mid EVENTS.json` on the matching exports and the event map. It first runs the same capability check itself: if support is unavailable it prints an empty plan and a `bridgeSupport` line, which you copy verbatim, and exits non-zero. Otherwise it runs the gap finder, converts window seconds to quarter beats with the Original tempo map, keeps only melody events wholly inside a window as one non-overlapping voice, and computes `endBeat` as the last kept event's start plus duration. Event `startBeat` and `durationBeats` are already source quarter beats. You do not need the phrase-plan inspector to prove event IDs: the keys of the event map are the IDs.
+4. Use the printed `chordsBridges` block as is; do not recompute or edit its beats. If it is empty, declare no bridge and quote its `skipped` reasons. Never invent events it did not list.
+
+The manual rules below explain what the planner does and remain the reference if you must check its work.
 
 Check the maintained inspector before adding bridge declarations:
 
@@ -59,7 +63,7 @@ melody as harmony to bypass exclusion, or invent another command/flag.
 Locate candidate gaps with the packaged helper instead of reading them off a waveform or guessing:
 
 ```sh
-python3 scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid --output gap-report.json
+python3 SKILL_DIR/scripts/find_chords_gaps.py ORIGINAL.mid CHORDS.mid --output gap-report.json
 ```
 
 Run it on the delivery's matching Original and Chords exports, which must share a clock. A tempo-map warning means its seconds are on separate clocks, so do not bridge until they are reconciled. For each place where the backing stops and resumes between two entrances, the report lists:
@@ -69,7 +73,7 @@ Run it on the delivery's matching Original and Chords exports, which must share 
 - `withinBridgeBounds`, `gapSeconds` and `gapQuarterBeats`: the six-second and eight-quarter-beat limits below. Gaps beyond them are refused.
 - `originalNotesCrossingBoundary`: Original notes that run into the backing. They are not bridge candidates.
 
-The helper reports seconds and pitches only. It does not know roles and it does not choose notes. Map a chosen candidate to an exact retained melody event ID with the maintained inspector, name only those IDs in `chordsBridges`, and keep to one voice. Rerun it on the rebuilt exports. The gap should close, the genuine rest should remain, and the lead-leak check in the [musical gate](musical-quality-gate.md#keep-chords-chord-led-across-the-whole-timeline) must still pass. Intro and outro gaps are not reported because they are refused.
+The helper reports seconds and pitches only. It does not know roles and it does not choose notes. Name events only by IDs the supplied plan or event map already lists (for a map keyed by name, the keys are the IDs); you do not need to run the inspector to prove them, and a read-only run that cannot write its output is not a reason to withhold a bridge. When no event map exists, declare no bridge and say so. Keep to one voice. Rerun the helper on the rebuilt exports once a plan is built: the gap should close, the genuine rest should remain, and the lead-leak check in the [musical gate](musical-quality-gate.md#keep-chords-chord-led-across-the-whole-timeline) must still pass. Intro and outro gaps are not reported because they are refused.
 
 In a new working copy of the source-pinned plan, add optional `chordsBridges`:
 
@@ -95,9 +99,9 @@ beats; the gap must also fit six native seconds. Bridge windows cannot cross a
 declared whole-source rest. They stop before backing returns. Intro/outro gaps,
 hooks, unknown/shared lineages and missing or retimed notes are refused.
 
-### Worked example: events map to chordsBridges
+### Worked example: what the planner computes
 
-Suppose the gap report shows a `bridgeableWindows` entry from 20.0 s to 23.0 s at 120 BPM, which is quarter beats 40 to 46, and an `events.json` (or plan event list) like this. Each key is the exact event ID; `startBeat` and `durationBeats` are source quarter beats:
+Suppose the gap report shows a `bridgeableWindows` entry from 20.0 s to 23.0 s at 120 BPM, which is quarter beats 40 to 46 (20.0 x 120 / 60 = 40; 23.0 x 120 / 60 = 46), and an `events.json` (or plan event list) like this. Each key is the exact event ID; `startBeat` and `durationBeats` are source quarter beats:
 
 ```json
 {
@@ -109,7 +113,7 @@ Suppose the gap report shows a `bridgeableWindows` entry from 20.0 s to 23.0 s a
 }
 ```
 
-Keep only `role: "melody"` events that start and end inside the window and do not overlap each other: `n1`, `n2` and `n4`. Drop `n3` (hook) and `n5` (unknown role, outside the window). Set `startBeat` to the first kept start and `endBeat` to the last kept end, here 40 to 45.2:
+Keep only `role: "melody"` events that start and end inside the window and do not overlap each other: `n1`, `n2` and `n4`. Drop `n3` (hook) and `n5` (unknown role, outside the window). Set `startBeat` to the first kept event's `startBeat`. Set `endBeat` to the last kept event's `startBeat + durationBeats`, computed explicitly: `n4` is 44 + 1.2 = 45.2. Do not use the window end, the last event's start, or a rounded guess. Here the bridge is 40 to 45.2:
 
 ```json
 {
