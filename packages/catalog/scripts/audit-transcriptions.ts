@@ -27,6 +27,7 @@ const STOP = new Set([
   "and", "the", "of", "for", "official", "sheet", "music",
 ]);
 const slug = (s: string) =>
+  // eslint-disable-next-line no-control-regex -- matches every non-ASCII character (the range starts at NUL) to build ASCII-only slugs
   s.toLowerCase().normalize("NFKD").replace(/[^\x00-\x7f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 const tokens = (s: string) => new Set(slug(s).split("-").filter((t) => t.length > 1 && !STOP.has(t)));
 

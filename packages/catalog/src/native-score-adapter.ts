@@ -166,6 +166,7 @@ function compareText(left: string, right: string): number {
 
 function safeLogicalText(value: unknown, max = 240): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const text = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
   if (!text || text.includes("/") || text.includes("\\") || /^file:/i.test(text)) return null;
   return text;
@@ -192,6 +193,7 @@ function safeVersion(value: unknown): string | null {
 
 function safeRootFile(value: unknown): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const text = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
   if (!text || text.startsWith("/") || text.includes("\\")) return null;
   const segments = text.split("/");
@@ -204,6 +206,7 @@ function safeError(error: unknown): string {
   const sanitized = message
     .replace(/file:\/\/[^\s]+/gi, "[redacted-path]")
     .replace(/(?:^|[\s(=:])\/(?:[^\s/]+\/)*(?:Users|private|tmp|var|home|root|opt|mnt|workspace|data|srv|etc)\/[^\s)]*/gi, "$1[redacted-path]")
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -324,12 +327,14 @@ function parseNativeMidi(data: Uint8Array, options: NativeSymbolicAdapterOptions
         if (position + payloadLength > end) throw new NativeScoreAdapterError("truncated MIDI meta payload");
         const payload = data.slice(position, position + payloadLength);
         if (type === 0x03) {
+          // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
           const name = String.fromCharCode(...payload).replace(/[\u0000-\u001f\u007f]/g, " ").trim();
           if (name) {
             trackName = name.slice(0, 240);
             trackNames.push(trackName);
           }
         } else if ((type === 0x01 || type === 0x02) && !title) {
+          // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
           const text = String.fromCharCode(...payload).replace(/[\u0000-\u001f\u007f]/g, " ").trim();
           if (text) title = text.slice(0, 240);
         } else if (type === 0x51 && payloadLength === 3) {

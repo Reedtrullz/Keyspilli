@@ -554,8 +554,8 @@ function variantsByRequiredLevel(variants: readonly Variant[]): { advanced?: Var
 }
 
 const PATH_KEY = /(?:^|[_-])(?:absolute|physical|local|source)?path$|(?:^|[_-])(?:file|filename|locator|artifact|source)(?:ref|path|name)?$/i;
-const ABSOLUTE_PATH = /(?:file:\/\/|(?:^|[\s("'=,;\[\]])\/(?:Users|private|tmp|var|home|Volumes|opt|etc|System|Applications|root|mnt|workspace|data|srv)(?:[\\/]|$)|(?:^|[\s("'=,;\[\]])[A-Za-z]:[\\/]|(?:^|[\s("'=,;\[\]])\\\\)/i;
-const RELATIVE_FILE = /(?:^|[\s("'=,;\[\]])(?:\.\.?[\\/]|(?:[A-Za-z0-9._-]+[\\/]){2,})[^\s"'<>;,)]*\.(?:mid|midi|wav|mp3|json|xml|mxl|txt|csv|log)(?=$|[\s"'<>;,\)])/i;
+const ABSOLUTE_PATH = /(?:file:\/\/|(?:^|[\s("'=,;[\]])\/(?:Users|private|tmp|var|home|Volumes|opt|etc|System|Applications|root|mnt|workspace|data|srv)(?:[\\/]|$)|(?:^|[\s("'=,;[\]])[A-Za-z]:[\\/]|(?:^|[\s("'=,;[\]])\\\\)/i;
+const RELATIVE_FILE = /(?:^|[\s("'=,;[\]])(?:\.\.?[\\/]|(?:[A-Za-z0-9._-]+[\\/]){2,})[^\s"'<>;,)]*\.(?:mid|midi|wav|mp3|json|xml|mxl|txt|csv|log)(?=$|[\s"'<>;,)])/i;
 
 /**
  * Strings in provenance and failure messages are not assumed to be logical

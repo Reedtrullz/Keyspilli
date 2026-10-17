@@ -342,6 +342,7 @@ function logicalBasename(value: string): string {
   }
   const segments = normalized
     .split("/")
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .filter((segment) => Boolean(segment) && segment !== "." && segment !== ".." && !/[\u0000-\u001f\u007f]/.test(segment));
   return segments.at(-1) ?? "score.pdf";
 }
@@ -421,7 +422,7 @@ function decodeXml(value: string): string {
 
 function xmlAttribute(tag: string, name: string): string | null {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return tag.match(new RegExp(`(?:^|\\s)${escaped}\\s*=\\s*[\"']([^\"']*)[\"']`, "i"))?.[1] ?? null;
+  return tag.match(new RegExp(`(?:^|\\s)${escaped}\\s*=\\s*["']([^"']*)["']`, "i"))?.[1] ?? null;
 }
 
 function xmlText(body: string, name: string): string | null {
@@ -953,6 +954,7 @@ export function assessScoreConfidence(input: ScoreConfidenceInput): ScoreConfide
 
 function logicalCorpusPath(value: unknown): string | undefined {
   if (typeof value !== "string" || !value.trim()) return undefined;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   if (/[\u0000-\u001f\u007f]/.test(value)) return undefined;
   let normalized = value.trim().replaceAll("\\", "/");
   normalized = normalized.split(/[?#]/, 1)[0] ?? "";
@@ -976,6 +978,7 @@ function logicalCorpusPath(value: unknown): string | undefined {
 function isSafeLogicalCorpusPath(value: unknown): value is string {
   if (typeof value !== "string" || !value.trim()) return false;
   const trimmed = value.trim();
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   if (trimmed !== value || /[\u0000-\u001f\u007f?#\\]/.test(value)) return false;
   if (/^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(value) || /^\/?[a-z]:\//i.test(value) || value.startsWith("/")) return false;
   const segments = value.split("/");
@@ -1106,6 +1109,7 @@ function validateCorpusSong(value: unknown, index: number, ids: Set<string>, err
   }
   const id = typeof value.id === "string" ? value.id.trim() : "";
   if (!id) errors.push(`${label} id is missing`);
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   else if (/[\u0000-\u001f\u007f]/.test(id)) errors.push(`${label} id contains control characters`);
   else if (ids.has(id)) errors.push(`duplicate corpus song id: ${id}`);
   else ids.add(id);

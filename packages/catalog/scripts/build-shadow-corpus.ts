@@ -82,6 +82,7 @@ function redactedError(error: unknown): string {
     .replace(/file:\/\/[^\s"']+/gi, "[redacted-path]")
     .replace(/(^|[\s(=,:])\/(?:[^\s"'<>;,)]*\/)?(?:Users|private|tmp|var|home|root|opt|mnt|workspace|data|srv|etc)\/[^\s"'<>;,)]*/gi, (_match, prefix: string) => `${prefix}[redacted-path]`)
     .replace(/(^|[\s(=,:])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, (_match, prefix: string) => `${prefix}[redacted-path]`)
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

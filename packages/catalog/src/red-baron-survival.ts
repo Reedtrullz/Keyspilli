@@ -259,7 +259,7 @@ function round(value: number): number {
  */
 function sanitizeHttpUrl(value: string): string {
   const withoutQuery = value.replace(/[?#].*$/, "");
-  return withoutQuery.replace(/^(https?:\/\/)(?:[^\/\s@]+(?::[^\/\s@]*)?@)/i, "$1");
+  return withoutQuery.replace(/^(https?:\/\/)(?:[^/\s@]+(?::[^/\s@]*)?@)/i, "$1");
 }
 
 function redactPath(value: string): string {

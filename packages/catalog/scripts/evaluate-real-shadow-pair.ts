@@ -328,6 +328,7 @@ function round(value: number, digits = 6): number {
 
 function text(value: unknown, fallback: string | null = null, max = 240): string | null {
   if (typeof value !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
   if (!clean) return fallback;
   if (/^https?:\/\//i.test(clean)) return clean;
@@ -359,7 +360,8 @@ function redactText(value: unknown): string {
   return message
     .replace(/file:\/\/[^\s"']+/gi, "[redacted-path]")
     .replace(/(^|[\s(=,:])\/(?:[^\s"'<>;,)]*\/)?(?:Users|private|tmp|var|home|root|opt|mnt|workspace|data|srv|etc)\/(?:[^\s"'<>;,)]*)/gi, (_match, prefix: string) => `${prefix}[redacted-path]`)
-    .replace(/(^|[\s(=,:])[A-Za-z]:[\\\/][^\s"'<>;,)]*/g, (_match, prefix: string) => `${prefix}[redacted-path]`)
+    .replace(/(^|[\s(=,:])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, (_match, prefix: string) => `${prefix}[redacted-path]`)
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -396,6 +398,7 @@ function protectedPath(value: string): boolean {
 }
 
 function localArgument(value: string, label: string): string {
+  // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
   if (!value || !isAbsolute(value) || /^(?:https?|ftp):\/\//i.test(value) || /[\u0000\r\n]/.test(value)) {
     throw new Error(`${label} must be an absolute local path`);
   }
@@ -460,6 +463,7 @@ function usage(): string {
 }
 
 async function regularFile(path: string, label: string, repositoryRoot: string, allowedRoot?: string): Promise<string> {
+  // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
   if (!isAbsolute(path) || /[\u0000\r\n]/.test(path)) throw new Error(`${label} must be an absolute local path`);
   let resolved: string;
   try {

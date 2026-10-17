@@ -542,6 +542,7 @@ function onsetGroups(notes: readonly CanonicalMidiNote[]): OnsetGroup[] {
 
 function sourceText(value: unknown): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const normalized = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   if (!normalized || normalized.includes("/") || normalized.includes("\\") || /^file:/i.test(normalized)) return null;
   return normalized.slice(0, 240);
@@ -1235,9 +1236,9 @@ function redactPathLikeText(value: string): string {
     .replace(/file:\/\/[^\s"'<>;,)]*/gi, "[redacted-path]")
     // Local absolute paths may contain spaces; stop only at a structural
     // delimiter so a path suffix cannot leak into a report or error string.
-    .replace(/(^|[\s(=,:;\[\]])\/(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)(?:[^"'<>;,)\n\r]*)?/gi, "$1[redacted-path]")
-    .replace(/(^|[\s(=,:;\[\]])[A-Za-z]:[\\/][^"'<>;,)\n\r]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s(=,:;\[\]])(?:\.\.?\/|[A-Za-z0-9._-]+\/)[^\s"'<>;,)]*\.(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)(?=$|[\s"'<>;,\)])/gi, "$1[redacted-path]")
+    .replace(/(^|[\s(=,:;[\]])\/(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)(?:[^"'<>;,)\n\r]*)?/gi, "$1[redacted-path]")
+    .replace(/(^|[\s(=,:;[\]])[A-Za-z]:[\\/][^"'<>;,)\n\r]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s(=,:;[\]])(?:\.\.?\/|[A-Za-z0-9._-]+\/)[^\s"'<>;,)]*\.(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)(?=$|[\s"'<>;,)])/gi, "$1[redacted-path]")
     .replace(/(https?:\/\/)([^\s/@:]+):([^\s/@]+)@/gi, "$1[redacted-credentials]@");
 }
 

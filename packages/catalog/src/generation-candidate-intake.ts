@@ -108,6 +108,7 @@ function safeSourceRef(value: unknown): string {
 
 function safeId(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) return "[redacted-id]";
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
   return clean && !/[\\/]|(?:file|data|javascript|blob):/i.test(clean) ? clean : "[redacted-id]";
 }
@@ -124,12 +125,14 @@ function safeSourcePage(value: unknown): string | null {
 
 function safeVersion(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) return "[redacted-version]";
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
   return clean && !/[\\/]|(?:file|data|javascript|blob):/i.test(clean) ? clean : "[redacted-version]";
 }
 
 function safeProvider(value: unknown): string | undefined {
   if (typeof value !== "string" || !value.trim()) return undefined;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
   if (!clean || /[\\/]|(?:file|data|javascript|blob):/i.test(clean)) return undefined;
   try {
@@ -236,6 +239,7 @@ const ABSOLUTE_PATH_TEXT = /(?:^|[\s(=,:])(?:file:\/\/(?:[A-Za-z]:[\\/]|[\\/]|~[
 const MEDIA_PATH_TEXT = /(?:^|[\s(=,:])(?:\.{1,2}[\\/]|[A-Za-z0-9._~-]+[\\/])[^\s,;)}\]]+\.(?:mid|midi|musicxml|xml|mxl|wav|mp3|json)(?:[?#][^\s,;)}\]]*)?(?:$|[\s,;)}\]])/i;
 
 function pathSafeAdapterText(value: string, key: string): string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 1_000);
   if (!clean) return clean;
   if (SOURCE_REF_KEY.test(key)) return safeSourceRef(clean);
