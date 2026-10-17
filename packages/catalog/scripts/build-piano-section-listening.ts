@@ -178,9 +178,6 @@ interface BundleExcerptMetadata {
 
 type BundleExcerptMap = Record<string, Record<string, BundleExcerptMetadata>>;
 
-interface SectionBuilderOutputMap {
-  [key: string]: unknown;
-}
 
 const OUTPUTS = [
   { id: "C-original-easy", label: "C original Easy" },

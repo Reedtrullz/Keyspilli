@@ -228,7 +228,7 @@ function uniqueLocalInputs(inputs: readonly LocalSymbolicInput[]): { inputs: Loc
   }
   const collisions: string[] = [];
   const unique: LocalSymbolicInput[] = [];
-  for (const [id, group] of [...groups.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+  for (const [_id, group] of [...groups.entries()].sort(([left], [right]) => left.localeCompare(right))) {
     const hashes = new Set(group.map((item) => sha256Hex(item.bytes)));
     if (hashes.size > 1 && group.some((item) => Boolean(item.id && /^local:[A-Za-z0-9_-]{16,128}$/.test(item.id)))) {
       collisions.push("local candidate id collision normalized by content hash");

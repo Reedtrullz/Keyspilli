@@ -598,7 +598,7 @@ function benchmarkSection(value: JsonObject | null): ShadowMissionReport["benchm
     const id = normalizedId(item.id, `song-${index + 1}`);
     const freeze = freezeSummary(id, item.freeze);
     const reference = record(item.reference);
-    const output = record(item.output);
+    const _output = record(item.output);
     const readiness = record(item.readiness ?? item.humanReadiness);
     const windowAudit = auditReferenceWindows(reference);
     return {
@@ -864,7 +864,7 @@ function redactText(value: string): string {
   return result.replace(/__SHADOW_URL_(\d+)__/g, (_match, index: string) => urls[Number(index)] ?? "[redacted-url]");
 }
 
-function stableValue(value: unknown, key = ""): unknown {
+function stableValue(value: unknown, _key = ""): unknown {
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return null;
     const rounded = Math.round(value * 1_000_000) / 1_000_000;

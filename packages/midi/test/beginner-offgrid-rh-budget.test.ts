@@ -35,12 +35,6 @@ function eventKey(note: Note): string {
   ]);
 }
 
-function beginner(notes: Note[]): Note[] {
-  return buildVariants(parsed(notes), { title: "Synthetic", artist: "Keyspilli" }, {
-    arrangementProfile: "learner",
-    maxDurBeats: null,
-  }).find((variant) => variant.level === "beginner")!.notes;
-}
 
 describe("generic Beginner sparse off-grid RH budget", () => {
   it("admits the frozen Candidate-A winner at most once per meter window without retiming or touching LH", () => {

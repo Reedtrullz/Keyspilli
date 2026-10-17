@@ -983,23 +983,6 @@ function homrUnavailable(): OmrBackendRun {
   return { id: "homr", version: "unavailable", status: "unavailable", error: "optional homr backend is not configured" };
 }
 
-function omrRunFromResult(result: OmrResult, score: OmrScoreInput | null): OmrBackendRun {
-  return {
-    id: result.backend,
-    version: result.version,
-    status: result.status === "pass" ? "available" : result.status,
-    ...(result.health ? { health: result.health } : {}),
-    ...(result.pages ? { pages: result.pages.map((page) => ({ ...page })) } : {}),
-    ...(result.invocation
-      ? { invocation: typeof result.invocation === "string" ? result.invocation : { ...result.invocation } }
-      : {}),
-    ...(result.model
-      ? { model: typeof result.model === "string" ? result.model : { ...result.model } }
-      : {}),
-    ...(score ? { score } : {}),
-    ...(result.errors.length ? { error: result.errors.join("; ") } : {}),
-  };
-}
 
 function isHomrAuto(value: string): boolean {
   return value === HOMR_AUTO_MODE;
