@@ -38,7 +38,7 @@
 
 ## Stage 1 — Freeze evidence and remove source blockers first
 
-Files: existing source fixtures and evidence under docs/superpowers/evidence; apps/web/src/components/player/chord-sources.ts; player source-loading path; packages/midi/src/types.ts if validated metadata is missing.
+Files: existing source fixtures and evidence under evidence/superpowers; apps/web/src/components/player/chord-sources.ts; player source-loading path; packages/midi/src/types.ts if validated metadata is missing.
 
 - [ ] Pin the five controls above, current Original output, source fingerprint, timing provenance, chart coverage and melody identity risks. Inspect complete song timelines and all fallback boundaries.
 - [ ] Determine exactly which source artifact establishes downbeat/pickup, melody identity, rests and harmony for each target. Reuse available metadata only after verifying its meaning.

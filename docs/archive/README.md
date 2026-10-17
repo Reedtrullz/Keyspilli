@@ -12,7 +12,7 @@ Download the archive and checksums, verify with `shasum -a 256 -c SHA256SUMS`, t
 
 ## Open findings and historical task status
 
-Archiving is not issue closure or musical acceptance. Pending listening, source identity, playability, and failed/blocked experiments retain their original status in the linked reports. Reassess against current code before treating a dated finding as a current defect. Current Chords conclusions remain in [the evidence ledger](../superpowers/evidence/2026-09-19-chords-finish/findings.md), [golden audit](../research/keyspilli-evidence/chords-golden-audit-2026-09-27.md), and [all-song review](../research/keyspilli-evidence/all-song-chords-2026-09-27.md).
+Archiving is not issue closure or musical acceptance. Pending listening, source identity, playability, and failed/blocked experiments retain their original status in the linked reports. Reassess against current code before treating a dated finding as a current defect. Current Chords conclusions remain in [the evidence ledger](../../evidence/superpowers/2026-09-19-chords-finish/findings.md), [golden audit](../../evidence/research/chords-golden-audit-2026-09-27.md), and [all-song review](../../evidence/research/all-song-chords-2026-09-27.md).
 
 The full task reports below preserve unresolved details and their original reproduction commands:
 
