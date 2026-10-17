@@ -40,9 +40,22 @@ test("250 groups, off-page favorites, malformed storage and URL navigation stay 
   await expect(page.getByText("No available songs match your favorites and filters.")).toBeVisible();
   await page.goto("/songs?sort=title");
   const names: string[] = [];
+  const songLinks = page.locator('.library-results a[href^="/player/"]').filter({ hasText: /^roadmap-\d{3}$/ });
+  let previousFirst: string | null = null;
   for (let number = 1; number <= 5; number++) {
+    // "60 of 250 songs" reads the same on pages 1-4, so it cannot prove the
+    // next page has rendered. Wait for state that is unique to this page:
+    // the page indicator and URL, a settled (non-busy) list, and a first
+    // song that differs from the previous page's first song.
+    await expect(page.getByText(`Page ${number} of 5`, { exact: true })).toBeVisible();
+    if (number > 1) await expect(page).toHaveURL(new RegExp(`[?&]page=${number}(?:&|$)`));
+    await expect(page.locator("[aria-busy]").first()).toHaveAttribute("aria-busy", "false");
     await expect(page.getByRole("status")).toHaveText(`${number === 5 ? 10 : 60} of 250 songs`);
-    names.push(...await page.locator('.library-results a[href^="/player/"]').filter({ hasText: /^roadmap-\d{3}$/ }).allTextContents());
+    if (previousFirst !== null) await expect(songLinks.first()).not.toHaveText(previousFirst);
+    const pageNames = await songLinks.allTextContents();
+    expect(pageNames).toHaveLength(number === 5 ? 10 : 60);
+    previousFirst = pageNames[0] ?? null;
+    names.push(...pageNames);
     if (number < 5) await page.getByRole("button", { name: "Next page" }).click();
   }
   expect(names).toHaveLength(250);
