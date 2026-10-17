@@ -428,9 +428,17 @@ class Store:
                         if source == scratch or source.is_relative_to(scratch):
                             raise ValueError("scratch still mounted by a container")
 
-    def docker(self, *args):
+    def builder_environment(self, run):
+        self.path(run)
+        configuration = self.root / "scratch" / run / "buildx-config"
+        if configuration.resolve() != configuration:
+            raise ValueError("builder configuration is linked")
+        return {**os.environ, "BUILDX_CONFIG": str(configuration)}
+
+    def docker(self, *args, buildx_run=None):
         real = os.environ.get("KEYSPILLI_REAL_DOCKER", shutil.which("docker") or "docker")
-        return subprocess.run([real, *args], check=True, capture_output=True, text=True, timeout=60).stdout
+        return subprocess.run([real, *args], check=True, capture_output=True, text=True, timeout=60,
+                              env=self.builder_environment(buildx_run) if buildx_run else None).stdout
 
     def image_pins(self, image, aliases=()):
         backups = Path(os.environ.get("KEYSPILLI_BACKUP_DIR", "/backups"))
@@ -461,7 +469,7 @@ class Store:
                 else:
                     document = helper("keyspilli-storage").manifest_document(path)
                     images = document.get("images")
-                    if not isinstance(images, dict) or any(not isinstance(images.get(role), dict) or "id" not in images[role] or (images[role]["id"] is not None and not re.fullmatch(r"sha256:[a-f0-9]{64}", str(images[role]["id"]))) for role in ("web", "worker")):
+                    if not isinstance(images, dict) or any(not isinstance(images.get(role), dict) or not isinstance(images[role].get("id"), str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", images[role]["id"]) for role in ("web", "worker")):
                         raise ValueError("malformed backup image references")
         return None
 
@@ -499,9 +507,9 @@ class Store:
                     expected = "/buildx_buildkit_" + name + "0"
                     if any(line != expected for line in self.docker("inspect", "--format", "{{.Name}}", *users).splitlines()):
                         raise ValueError("builder state is referenced by another container")
-                names = self.docker("buildx", "ls", "--format", "{{.Name}}").split()
+                names = self.docker("buildx", "ls", "--format", "{{.Name}}", buildx_run=run).split()
                 if name in names:
-                    self.docker("buildx", "rm", name)
+                    self.docker("buildx", "rm", name, buildx_run=run)
                 if volume in self.docker("volume", "ls", "-q", "--filter", "name=" + volume).split():
                     if self.docker("ps", "-aq", "--filter", "volume=" + volume).strip():
                         raise ValueError("builder state volume remains in use")
@@ -534,8 +542,9 @@ class Store:
             if doc["state"] == "released":
                 if doc.get("retainedResources"):
                     previous = json.loads(json.dumps(doc))
-                    doc["retainedResources"] = []
-                    self.cleanup_resources(doc)
+                    retry = {**doc, "resources": [dict(kind="image", name=item["name"]) for item in doc["retainedResources"]], "retainedResources": []}
+                    self.cleanup_resources(retry)
+                    doc["retainedResources"] = retry["retainedResources"]
                     if doc != previous:
                         save(path, doc)
                 return doc

@@ -274,12 +274,16 @@ class Lifecycle(unittest.TestCase):
 
         state, backups = self.root.parent / "state", self.root.parent / "backups"
         current = state / "current.json"
-        paths = [current, state / "deployment.json", backups / "backup-manifest-one.json",
-                 backups / ".keyspilli-offhost-hold/backup-manifest-one.json", self.root / "evidence/run/backup-manifest-one.json"]
+        stamp = "2026-10-17-000001"
+        filename = f"backup-manifest-{stamp}.json"
+        nullable = dict(schemaVersion=1, complete=True, stamp=stamp, dbFile=f"db-{stamp}.sqlite", archiveFile=f"artifacts-{stamp}.tar.gz",
+                        dbBytes=0, archiveBytes=0, dbSha256="a" * 64, archiveSha256="b" * 64, images={"web": {"id": None}, "worker": {"id": "sha256:" + "e" * 64}})
+        paths = [current, state / "deployment.json", backups / filename,
+                 backups / ".keyspilli-offhost-hold" / filename, self.root / "evidence/run" / filename]
         with mock.patch.object(store, "docker", docker), mock.patch.dict(os.environ, {"KEYSPILLI_BACKUP_DIR": str(backups), "KEYSPILLI_STORAGE_STATE_DIR": str(state)}):
             for path in paths:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                for invalid in ({}, {"images": "invalid", "protectedIds": "invalid"}, {"images": ["sha256:bad"], "protectedIds": ["sha256:bad"]}):
+                for invalid in ({}, {"images": "invalid", "protectedIds": "invalid"}, {"images": ["sha256:bad"], "protectedIds": ["sha256:bad"]}, nullable):
                     path.write_text(json.dumps(invalid))
                     with self.assertRaises((ValueError, KeyError)):
                         store.finish(run, "failed")
@@ -298,8 +302,18 @@ class Lifecycle(unittest.TestCase):
         sentinel = self.root.parent / "image-resource"
         sentinel.write_bytes(b"owned-image")
         store.resource(run, "image", name)
+        builder = f"keyspilli-evidence-{run}"
+        store.resource(run, "builder", builder)
+        builder_removals = []
 
-        def docker(*args):
+        def docker(*args, **_options):
+            if args[:2] == ("buildx", "ls"):
+                return builder
+            if args[:2] == ("buildx", "rm"):
+                builder_removals.append(args)
+                return ""
+            if args[:2] == ("volume", "ls"):
+                return ""
             if args[:2] == ("image", "ls"):
                 return image if sentinel.exists() else ""
             if args[:2] == ("image", "inspect"):
@@ -322,6 +336,8 @@ class Lifecycle(unittest.TestCase):
             self.cli("unpin", run)
             store.finish(run, "abandoned", recovering=True)
             self.assertFalse(sentinel.exists())
+            self.assertEqual(len(builder_removals), 1)
+            self.assertFalse((self.root / "scratch" / run).exists())
 
     def test_export_capacity_is_reserved_before_admitting_a_hosted_writer(self):
         module = self.module()
@@ -369,6 +385,30 @@ class Lifecycle(unittest.TestCase):
             free[0] = 5 * mib
             with self.assertRaises(ValueError):
                 store.guard(doc["id"])
+
+    def test_private_builder_config_survives_a_different_finalizer_home(self):
+        fake = self.root.parent / "fake-docker"
+        fake.write_text('#!' + sys.executable + '\n' +
+            'import os,pathlib,sys\n'
+            'args=sys.argv[1:]\n'
+            'if args[0]=="info": print("fixture-daemon")\n'
+            'elif args[:2]==["buildx","create"]:\n'
+            ' p=pathlib.Path(os.environ["BUILDX_CONFIG"]); p.mkdir(parents=True); (p/"builder").write_text(args[args.index("--name")+1])\n'
+            'elif args[:2]==["buildx","build"]: print("build-result")\n'
+            'elif args[:2]==["buildx","ls"]: print((pathlib.Path(os.environ["BUILDX_CONFIG"])/"builder").read_text())\n'
+            'elif args[:2]==["buildx","rm"]: (pathlib.Path(os.environ["BUILDX_CONFIG"])/"builder").unlink()\n')
+        fake.chmod(0o700)
+        self.env["KEYSPILLI_REAL_DOCKER"] = str(fake)
+        code = 'import subprocess; subprocess.run(["docker","build","-t","keyspilli-test:fixture","."],check=True)'
+        doc = json.loads(self.cli("begin", "--peak-bytes", "1048576", "--owner-pid", str(self.dead_pid)).stdout)
+        env = {**self.env, "KEYSPILLI_EVIDENCE_ROOT": str(self.root), "KEYSPILLI_EVIDENCE_RUN": doc["id"]}
+        configured = json.loads(subprocess.check_output([sys.executable, str(SCRIPT), "environment"], env=env, text=True))
+        result = subprocess.run([sys.executable, "-c", code], env={**env, **configured}, capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.env["HOME"] = str(self.root.parent / "different-finalizer-home")
+        self.cli("finish", doc["id"])
+        self.assertFalse((self.root / "scratch" / doc["id"]).exists())
+        self.assertIn("build-result", "".join(p.read_text() for p in (self.root / "evidence" / doc["id"]).glob("docker-*.log")))
 
     def test_checkout_fixture_lease_recovers_only_its_exact_directory(self):
         store = self.module().Store(self.root)

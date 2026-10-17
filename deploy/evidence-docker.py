@@ -136,15 +136,17 @@ def main():
             doc["dockerIdentity"] = identity
             module.save(path, doc)
     if args[:1] == ["build"]:
+        builder_env = store.builder_environment(run)
         if create_builder:
             subprocess.run([real, "buildx", "create", "--name", builder, "--driver", "docker-container",
-                            "--buildkitd-flags", "--oci-worker-gc --oci-worker-gc-keepstorage 4096"], check=True)
+                            "--buildkitd-flags", "--oci-worker-gc --oci-worker-gc-keepstorage 4096"], env=builder_env, check=True)
         args = ["buildx", "build", "--builder", builder, "--load", "--label", f"{module.LABEL}={run}", *args[1:]]
+        return execute(store, run, [real, *args], env=builder_env)
     return execute(store, run, [real, *args])
 
 
-def execute(store, run, args):
-    child = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+def execute(store, run, args, env=None):
+    child = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
     stdout, stderr = child.stdout, child.stderr
     if stdout is None or stderr is None:
         raise RuntimeError("Docker output pipes are unavailable")

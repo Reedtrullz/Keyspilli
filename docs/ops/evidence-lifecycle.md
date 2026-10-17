@@ -55,7 +55,8 @@ arguments. Docker output is streamed to its original stdout/stderr and retained
 in separate raw log files. Only test tags are accepted for builds; aliases map
 to unique run tags/names. Containers carry the exact run label. Each run gets a
 private buildx builder and its state is removed through buildx, not filesystem
-deletion. Writable binds must be inside that run's scratch; other binds are
+deletion. `BUILDX_CONFIG` is inside that run's scratch and is used explicitly by
+both the original client and a different-user/root recovery finalizer. Writable binds must be inside that run's scratch; other binds are
 read-only. All container references, extra image aliases/digests, backup image
 pins and pending deployment metadata prevent image retirement.
 Inherited mounts are rejected. Image-declared volumes receive owned writable
