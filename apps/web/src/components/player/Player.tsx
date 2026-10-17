@@ -109,6 +109,7 @@ import { reviewedSourceBacking } from "./reviewed-source-backing";
 import { accompanimentFallbackNotice, bassChordsBackground, playerArrangementEnd, playerChordSources } from "./chords-backing";
 import { melodyArrangementOutcome } from "./melody-arrangement-status";
 import { usePianoInput } from "./usePianoInput";
+import { loopBarRange, useLoopRegion, usePlayerTransport } from "./usePlayerTransport";
 import { createHeldInput } from "./held-input";
 import { InputStatus } from "./InputStatus";
 import { PlayerTools, type PlayerTool } from "./PlayerTools";
@@ -337,12 +338,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     () => reviewedSourceBacking(initial.chordData ?? initial.data),
     [initial.chordData, initial.data],
   );
-  const [time, setTime] = useState(0);
-  const [seekVersion, setSeekVersion] = useState(0);
+  const engineRef = useRef<PlaybackEngine | null>(null);
+  const { time, setTime, seekVersion, setSeekVersion, playing, setPlaying, timeRef, playingRef, syncTransportState } = usePlayerTransport(engineRef);
   const [engineReady, setEngineReady] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const timeRef = useRef(time);
-  const playingRef = useRef(playing);
   const versionPendingRef = useRef(false);
   versionPendingRef.current = versionControls?.pending ?? false;
   // Client-only preferences: initialize false for SSR, then sync from
@@ -391,16 +389,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
   }, [focusTarget]);
   // Store loop anchors in musical time (beats); seconds are derived from the
   // current speed so tempo changes automatically reproject the region.
-  const [loopBeats, setLoopBeats] = useState<{ startBeat: number; endBeat: number } | null>(null);
-  const [loopDraft, setLoopDraft] = useState<{ start: string; end: string } | null>(null);
+  const { loopBeats, setLoopBeats, loopDraft, setLoopDraft, loop } = useLoopRegion(activeData.tempoBpm, settings.speed);
   const [seekPreview, setSeekPreview] = useState<number | null>(null);
   const [readingWindow, setReadingWindow] = useState<2 | 3.2 | 5>(3.2);
   const [showLyrics, setShowLyrics] = useState(true);
-  const loop = useMemo<LoopRegion | null>(() => {
-    if (!loopBeats) return null;
-    const spb = secPerBeat(activeData.tempoBpm, settings.speed);
-    return { startSec: loopBeats.startBeat * spb, endSec: loopBeats.endBeat * spb };
-  }, [loopBeats, activeData.tempoBpm, settings.speed]);
   const sections: SongSection[] = activeData.sections ?? [];
   const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -594,7 +586,6 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     window.requestAnimationFrame(() => modeMenuTriggerRef.current?.focus());
   }
 
-  const engineRef = useRef<PlaybackEngine | null>(null);
   const soundPreviewRef = useRef<SoundPreviewSession | null>(null);
   const soundPreviewTokenRef = useRef(0);
   const cancelSoundPreview = useCallback(() => {
@@ -1135,15 +1126,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     }
   }, [audioChords, duration, engineSongTiming, guidanceNotes, loop, notes, settings, pulseResolution.settings]);
 
-  // Discrete events (play/pause/seek) still update React state so buttons
-  // and progress bar re-render; per-frame engine ticks only touch refs.
-  function syncTransportState() {
-    if (!engineRef.current) return;
-    timeRef.current = engineRef.current.time;
-    playingRef.current = engineRef.current.playing;
-    setTime(timeRef.current);
-    setPlaying(playingRef.current);
-  }
+  // Discrete events (play/pause/seek) update React state through
+  // syncTransportState (usePlayerTransport); per-frame ticks only touch refs.
 
   useEffect(() => {
     engineRef.current?.setWaitMode(waitMode);
@@ -1489,8 +1473,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     setLoopDraft(null);
   }
 
-  const loopStartBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat > loopBeats.startBeat)) + 1 : currentMeasure + 1;
-  const loopEndBar = loopBeats ? Math.max(0, navigationMeasures.findIndex((m) => m.endBeat >= loopBeats.endBeat)) + 1 : Math.min(navigationMeasures.length, currentMeasure + 4);
+  const { startBar: loopStartBar, endBar: loopEndBar } = loopBarRange(loopBeats, navigationMeasures, currentMeasure);
   const draftLoopBeats = loopDraft ? loopFromBars(Number(loopDraft.start), Number(loopDraft.end), navigationMeasures) : null;
   function editLoopBar(anchor: "start" | "end", value: string) {
     setLoopDraft(previous => ({ start: previous?.start ?? String(loopStartBar), end: previous?.end ?? String(loopEndBar), [anchor]: value }));
