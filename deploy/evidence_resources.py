@@ -34,7 +34,9 @@ def close_builder(store, doc, name, persist):
 
     def users():
         result = []
-        for identity in store.docker("ps", "-aq", "--no-trunc", "--filter", "volume=" + volume).split():
+        identities = set(store.docker("ps", "-aq", "--no-trunc", "--filter", "volume=" + volume).split())
+        identities.update(store.docker("ps", "-aq", "--no-trunc", "--filter", "name=^" + expected + "$").split())
+        for identity in sorted(identities):
             info = json.loads(store.docker("inspect", identity))[0]
             mounts = info.get("Mounts", [])
             if info.get("Id") != identity or info.get("Name") != expected or not any(mount.get("Type") == "volume" and mount.get("Name") == volume for mount in mounts):

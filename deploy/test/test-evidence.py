@@ -457,7 +457,7 @@ class Lifecycle(unittest.TestCase):
 
     def test_builder_teardown_converges_only_for_its_recorded_container(self):
         module = self.module()
-        for scenario in ("delayed", "foreign", "replaced"):
+        for scenario in ("delayed", "foreign", "replaced", "unmounted-first", "unmounted-recorded"):
             with self.subTest(scenario=scenario):
                 store = module.Store(self.root / scenario)
                 doc = store.begin(1048576, self.dead_pid)
@@ -465,9 +465,15 @@ class Lifecycle(unittest.TestCase):
                 volume = "buildx_buildkit_" + name + "0_state"
                 store.resource(doc["id"], "builder", name)
                 state = dict(removed=False, polls=0, volumeRemoved=False)
+                if scenario == "unmounted-recorded":
+                    path, recorded = store.path(doc["id"])
+                    recorded["builderContainers"] = {name: ["a" * 64]}
+                    module.save(path, recorded)
 
                 def docker(*args, **_options):
                     if args[0] == "ps":
+                        if scenario.startswith("unmounted"):
+                            return "b" * 64 if args[-1].startswith("name=") else ""
                         if state["removed"]:
                             state["polls"] += 1
                             if scenario == "replaced":
@@ -477,7 +483,7 @@ class Lifecycle(unittest.TestCase):
                         return "a" * 64
                     if args[0] == "inspect":
                         return json.dumps([dict(Id=args[1], Name="/foreign" if scenario == "foreign" else "/buildx_buildkit_" + name + "0",
-                                                Mounts=[dict(Type="volume", Name=volume)])])
+                                                Mounts=[] if scenario.startswith("unmounted") else [dict(Type="volume", Name=volume)])])
                     if args[:2] == ("buildx", "ls"):
                         return name
                     if args[:2] == ("buildx", "rm"):
@@ -499,7 +505,7 @@ class Lifecycle(unittest.TestCase):
                         with self.assertRaises(ValueError):
                             store.cleanup_resources(store.path(doc["id"])[1])
                         self.assertFalse(state["volumeRemoved"])
-                        if scenario == "foreign":
+                        if scenario == "foreign" or scenario.startswith("unmounted"):
                             self.assertFalse(state["removed"])
 
     def test_checkout_fixture_lease_recovers_only_its_exact_directory(self):
