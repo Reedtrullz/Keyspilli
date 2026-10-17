@@ -17,6 +17,7 @@ export default tseslint.config(
       "apps/web/public/**",
       "data/**",
       "docs/**",
+      "evidence/**",
       "output/**",
       ".transcribe-test-venv/**",
     ],
