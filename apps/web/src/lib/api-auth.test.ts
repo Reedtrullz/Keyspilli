@@ -8,6 +8,75 @@ import { checkMutationAuth } from "./mutation-auth";
 
 const request = (headers: Record<string, string> = {}) => new Request("http://127.0.0.1/api/test", { method: "POST", headers });
 
+function mutationHandlers(source: string): { method: string; body: string }[] {
+  const tree = ts.createSourceFile("route.ts", source, ts.ScriptTarget.Latest, true);
+  const methods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+  const handlers: { method: string; body: string }[] = [];
+  for (const statement of tree.statements) {
+    if (ts.isExportDeclaration(statement) && !statement.isTypeOnly) {
+      if (!statement.exportClause) throw new Error("Wildcard route exports require explicit handler coverage");
+      if (ts.isNamedExports(statement.exportClause)) {
+        for (const entry of statement.exportClause.elements) {
+          if (entry.isTypeOnly || !methods.has(entry.name.text)) continue;
+          const local = entry.propertyName?.text ?? entry.name.text;
+          const declaration = tree.statements.find(node =>
+            ts.isFunctionDeclaration(node) ? node.name?.text === local :
+            ts.isVariableStatement(node) && node.declarationList.declarations.some(value => ts.isIdentifier(value.name) && value.name.text === local));
+          if (statement.moduleSpecifier || !declaration) throw new Error("Re-exported mutator requires its module's handler coverage");
+          handlers.push({ method: entry.name.text, body: declaration.getText(tree) + "\n" + statement.getText(tree) });
+        }
+      }
+      continue;
+    }
+    if (!ts.canHaveModifiers(statement) || !ts.getModifiers(statement)?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword)) continue;
+    if (ts.isFunctionDeclaration(statement) && statement.name && methods.has(statement.name.text)) {
+      handlers.push({ method: statement.name.text, body: statement.getText(tree) });
+    } else if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (!ts.isIdentifier(declaration.name)) throw new Error("Destructured route exports require explicit handler coverage");
+        if (methods.has(declaration.name.text)) handlers.push({ method: declaration.name.text, body: `export const ${declaration.getText(tree)};` });
+      }
+    }
+  }
+  return handlers;
+}
+
+describe("mutator export discovery", () => {
+  it.each([
+    'export function POST(req: Request) { return new Response("ok"); }',
+    'export const POST = (req: Request) => new Response("ok");',
+    'export let POST = (req: Request) => new Response("ok");',
+    'function handler(req: Request) { return new Response("ok"); } export { handler as POST };',
+  ])("includes and rejects an unauthenticated mutator export", async source => {
+    const handlers = mutationHandlers(source);
+    expect(handlers.map(handler => handler.method)).toEqual(["POST"]);
+    await expect(guardsMutation(handlers[0]!.body)).resolves.toBe(false);
+  });
+
+  it("does not invent handlers from comments or strings", () => {
+    expect(mutationHandlers('// export async function POST() {}\nconst text = "export const DELETE = fn";')).toEqual([]);
+  });
+
+  it("refuses indirect exports it cannot safely isolate", () => {
+    expect(() => mutationHandlers('export { POST } from "./other";')).toThrow(/coverage/);
+    expect(() => mutationHandlers('export * from "./other";')).toThrow(/coverage/);
+    expect(() => mutationHandlers('export const { POST } = factory();')).toThrow(/coverage/);
+  });
+
+  it("accepts a synchronous handler with an effective shared guard regardless of local helper name", async () => {
+    const previous = process.env.KEYSPILLI_API_TOKEN;
+    process.env.KEYSPILLI_API_TOKEN = "guard-fixture";
+    try {
+      const [handler] = mutationHandlers('export function POST(req: Request) { function checkAuth(value: Request) { return requireBearer(value); } const denied = checkAuth(req); if (denied) return denied; return new Response("ok"); }');
+      expect(handler).toBeDefined();
+      await expect(guardsMutation(handler!.body)).resolves.toBe(true);
+    } finally {
+      if (previous === undefined) delete process.env.KEYSPILLI_API_TOKEN;
+      else process.env.KEYSPILLI_API_TOKEN = previous;
+    }
+  });
+});
+
 async function guardsMutation(body: string): Promise<boolean> {
   const exports: Record<string, unknown> = {};
   let guardCalls = 0;
@@ -122,12 +191,7 @@ describe("API route auth coverage", () => {
   const handlers = routeFiles(apiRoot).flatMap((path) => {
     const source = readFileSync(path, "utf8");
     const file = relative(apiRoot, path).split("\\").join("/");
-    const matches = [...source.matchAll(/export\s+(?:async\s+function|const)\s+(POST|PUT|PATCH|DELETE)\b/g)];
-    return matches.map((match) => {
-      const end = source.slice(match.index! + match[0].length).search(/\nexport\s/);
-      const body = end < 0 ? source.slice(match.index!) : source.slice(match.index!, match.index! + match[0].length + end);
-      return { id: `${file} ${match[1]}`, source, body };
-    });
+    return mutationHandlers(source).map(({ method, body }) => ({ id: `${file} ${method}`, source, body }));
   });
 
   it("finds the mutating handlers", () => {
@@ -141,7 +205,6 @@ describe("API route auth coverage", () => {
 
   it("has no route-local bearer comparisons", () => {
     for (const handler of handlers) {
-      expect(handler.source, handler.id).not.toMatch(/function checkAuth\b/);
       expect(handler.source, handler.id).not.toMatch(/[!=]==?\s*`Bearer \$\{/);
     }
   });
