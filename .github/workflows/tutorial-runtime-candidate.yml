@@ -26,13 +26,17 @@ concurrency:
 
 jobs:
   container-smoke:
+    defaults:
+      run:
+        shell: >-
+          python3 -c "import os,runpy;runpy.run_path(os.path.join(os.environ['GITHUB_WORKSPACE'],'deploy/evidence-step.py'),run_name='__main__')" {0}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-      - name: Require build disk headroom
-        run: test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
+      - name: Reserve owned test resources
+        run: python3 deploy/evidence-job.py begin
       - name: Build candidate (includes real geometry import and synthetic tests)
         run: docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial -t keyspilli-tutorial:candidate .
       - name: Build worker candidate on native amd64
@@ -84,3 +88,18 @@ jobs:
           docker image inspect keyspilli-tutorial:candidate --format '{{.Id}}'
           docker run --rm --network none --entrypoint python keyspilli-tutorial:candidate -m pip freeze
           docker run --rm --network none --entrypoint dpkg-query keyspilli-tutorial:candidate -W
+
+      - name: Release owned test resources
+        if: always()
+        env:
+          KEYSPILLI_EVIDENCE_FINISHING: "1"
+          JOB_STATUS: ${{ job.status }}
+        run: sudo --preserve-env=RUNNER_TEMP,KEYSPILLI_EVIDENCE_ROOT,KEYSPILLI_EVIDENCE_RUN,KEYSPILLI_REAL_DOCKER,JOB_STATUS python3 deploy/evidence-job.py finish
+      - name: Retain raw results and reconstruction maps
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tutorial-runtime-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/keyspilli-evidence.tar.gz
+          retention-days: 90

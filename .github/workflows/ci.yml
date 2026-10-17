@@ -63,6 +63,10 @@ concurrency:
 
 jobs:
   checks:
+    defaults:
+      run:
+        shell: >-
+          python3 -c "import os,runpy;runpy.run_path(os.path.join(os.environ['GITHUB_WORKSPACE'],'deploy/evidence-step.py'),run_name='__main__')" {0}
     name: ${{ github.event.inputs.promote_reviewed == 'true' && 'Promotion prerequisites' || 'Automatic checks' }}
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.promote_reviewed == false }}
     runs-on: ubuntu-24.04
@@ -128,6 +132,9 @@ jobs:
         run: node scripts/verify-playwright-runtime.mjs
         working-directory: apps/web
 
+      - name: Reserve owned test resources
+        run: python3 deploy/evidence-job.py begin
+
       - name: Validate private edge boundary
         run: bash deploy/test/access-boundary.sh
 
@@ -138,6 +145,7 @@ jobs:
           python3 deploy/test/test-live-verifier.py
           sudo python3 deploy/test/test-backup.py
           sudo python3 deploy/test/test-storage.py
+          sudo env KEYSPILLI_TEST_NODE="$(command -v node)" python3 -B deploy/test/test-evidence.py
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
           python3 deploy/test/test-release-operation.py
@@ -160,11 +168,13 @@ jobs:
 
       - name: End-to-end tests
         run: |
+          export PLAYWRIGHT_HTML_OUTPUT_DIR="$KEYSPILLI_EVIDENCE/playwright-report"
+          export PLAYWRIGHT_BLOB_OUTPUT_DIR="$KEYSPILLI_EVIDENCE/playwright-blob"
           node scripts/verify-e2e-routing.mjs
-          npx playwright test
-          npx playwright test --config=playwright.scratch.config.ts
-          npx playwright test --config=playwright.player-ui.config.ts
-          npx playwright test --config=playwright.roadmap.config.ts
+          npx playwright test --output "$KEYSPILLI_EVIDENCE/playwright/seeded"
+          npx playwright test --config=playwright.scratch.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/scratch"
+          npx playwright test --config=playwright.player-ui.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/player-ui"
+          npx playwright test --config=playwright.roadmap.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/roadmap"
         working-directory: apps/web
 
       - name: Verify public seed backup in the current isolated web image
@@ -173,7 +183,6 @@ jobs:
         env:
           RESTORE_REVISION: ${{ github.sha }}
         run: |
-          test "$(df -B1 --output=avail . | tail -1)" -ge 32212254720
           pull_ok=0
           for attempt in 1 2 3 4 5; do
             if docker pull docker.io/library/node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752; then
@@ -193,29 +202,45 @@ jobs:
             console.log(song.id); getDb().close();
           ')"
           python3 - <<'PY'
-          import json, os, shutil, subprocess, tempfile
+          import json, os, shutil, subprocess
           from pathlib import Path
           source = Path("data").resolve()
           for name in ("manifest.json", "learner-review.json"):
               shutil.copyfile(Path("catalog") / name, source / name)
-          with tempfile.TemporaryDirectory(prefix="keyspilli-ci-restore-") as directory:
-              root = Path(directory)
-              env = {**os.environ, "KEYSPILLI_DATA_DIR": str(source), "KEYSPILLI_BACKUP_DIR": str(root / "backups")}
-              subprocess.run(["bash", "deploy/backup.sh"], env=env, check=True, timeout=60)
-              manifests = list((root / "backups").glob("backup-manifest-*.json"))
-              assert len(manifests) == 1
-              subprocess.run(["bash", "deploy/restore-drill.sh", str(manifests[0]), str(root / "restored"),
-                              "--verify-app", env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["RESTORE_REVISION"],
-                              env["RESTORE_SONG_ID"]], check=True, timeout=300)
-              report = json.loads((root / "restored" / "restore-report.json").read_text())
-              assert report["applicationVerification"] == "passed"
-              assert report["restoredRevision"] == env["RESTORE_REVISION"]
-              assert report["webImageId"] == env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"]
-              for name in ("manifest.json", "learner-review.json"):
-                  assert (root / "restored" / "runtime" / name).read_bytes() == (source / name).read_bytes()
+          root = Path(os.environ["KEYSPILLI_SCRATCH"]) / "restore-ci"
+          root.mkdir()
+          env = {**os.environ, "KEYSPILLI_DATA_DIR": str(source), "KEYSPILLI_BACKUP_DIR": str(root / "backups")}
+          subprocess.run(["bash", "deploy/backup.sh"], env=env, check=True, timeout=60)
+          manifests = list((root / "backups").glob("backup-manifest-*.json"))
+          assert len(manifests) == 1
+          subprocess.run(["bash", "deploy/restore-drill.sh", str(manifests[0]), str(root / "restored"),
+                          "--verify-app", env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["RESTORE_REVISION"],
+                          env["RESTORE_SONG_ID"]], check=True, timeout=300)
+          report = json.loads((root / "restored" / "restore-report.json").read_text())
+          assert report["applicationVerification"] == "passed"
+          assert report["restoredRevision"] == env["RESTORE_REVISION"]
+          assert report["webImageId"] == env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"]
+          for name in ("manifest.json", "learner-review.json"):
+              assert (root / "restored" / "runtime" / name).read_bytes() == (source / name).read_bytes()
           assert not subprocess.check_output(["docker", "ps", "-aq", "--filter", "name=^/keyspilli-restore-"], text=True).strip()
           print("Current web image restored the public seed pair; policy bytes and owned-container cleanup verified")
           PY
+
+      - name: Release owned test resources
+        if: always()
+        env:
+          KEYSPILLI_EVIDENCE_FINISHING: "1"
+          JOB_STATUS: ${{ job.status }}
+        run: sudo --preserve-env=RUNNER_TEMP,KEYSPILLI_EVIDENCE_ROOT,KEYSPILLI_EVIDENCE_RUN,KEYSPILLI_REAL_DOCKER,JOB_STATUS python3 deploy/evidence-job.py finish
+
+      - name: Retain restore results and reconstruction maps
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: restore-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/keyspilli-evidence.tar.gz
+          retention-days: 90
 
   release-readiness:
     name: Reviewed music release readiness

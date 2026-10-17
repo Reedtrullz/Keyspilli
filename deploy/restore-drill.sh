@@ -2,6 +2,11 @@
 # Non-destructive backup restore drill into a new, empty destination.
 set -euo pipefail
 
+if [[ "${1:-}" == --ephemeral ]]; then
+  shift
+  exec python3 "$(dirname "$0")/keyspilli-evidence.py" restore "$@"
+fi
+
 if [[ $# -ne 2 && $# -ne 6 ]]; then
   echo "usage: $0 MANIFEST.json FRESH_DESTINATION [--verify-app IMAGE_ID EXPECTED_SHA SONG_ID]" >&2
   exit 2
@@ -15,6 +20,7 @@ if [[ $# -eq 6 ]]; then
   [[ "$3" == --verify-app && "$4" =~ ^sha256:[a-f0-9]{64}$ && "$5" =~ ^[a-f0-9]{40}$ && "$6" =~ ^[A-Za-z0-9_-]{1,128}$ ]] \
     || { echo "restore drill: invalid pinned application verification arguments" >&2; exit 2; }
 fi
+python3 "$(dirname "$0")/keyspilli-evidence.py" restore-preflight "$manifest" "$destination"
 mkdir -p -- "$(dirname -- "$destination")"
 mkdir -- "$destination"
 
@@ -67,7 +73,10 @@ if sha256(db_source) != manifest.get("dbSha256") or sha256(archive_source) != ma
 db_copy = destination / db_name
 archive_copy = destination / archive_name
 shutil.copyfile(db_source, db_copy)
-shutil.copyfile(archive_source, archive_copy)
+if __import__('os').environ.get('KEYSPILLI_EVIDENCE_RUN'):
+    archive_copy = archive_source
+else:
+    shutil.copyfile(archive_source, archive_copy)
 if sha256(db_copy) != manifest["dbSha256"] or sha256(archive_copy) != manifest["archiveSha256"]:
     raise SystemExit("restore drill: copied checksum mismatch")
 
@@ -108,6 +117,10 @@ print(json.dumps({
     "members": len(members),
 }, sort_keys=True))
 PY
+
+if [[ -n "${KEYSPILLI_EVIDENCE_RUN:-}" ]]; then
+  python3 "$(dirname "$0")/keyspilli-evidence.py" register-restore "$destination" "$manifest"
+fi
 
 if [[ $# -eq 6 ]]; then
   python3 "$(dirname "$0")/restore-app.py" "$manifest" "$destination" "$4" "$5" "$6"

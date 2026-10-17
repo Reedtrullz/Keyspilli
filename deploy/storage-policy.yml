@@ -24,7 +24,15 @@
         owner: root
         group: root
         mode: '0750'
-      loop: [keyspilli-storage.py, keyspilli-layer-report.py, backup.sh]
+      loop: [keyspilli-storage.py, keyspilli-layer-report.py, keyspilli-evidence.py, evidence-child.py, evidence-docker.py, evidence_docker_args.py, evidence_resources.py, evidence_external.py, evidence_bundle.py, restore-drill.sh, restore-app.py, restore-app-verifier.mjs, backup.sh]
+
+    - name: Stage managed Docker entry point
+      ansible.builtin.copy:
+        src: evidence-bin/
+        dest: "{{ policy_stage }}/evidence-bin/"
+        owner: root
+        group: root
+        mode: '0750'
 
     - name: Stage backup runner
       ansible.builtin.template:
@@ -37,7 +45,7 @@
         src: "templates/{{ item }}.j2"
         dest: "{{ policy_stage }}/{{ item }}"
         mode: '0644'
-      loop: [keyspilli-storage.service, keyspilli-storage.timer, keyspilli-replication.service]
+      loop: [keyspilli-storage.service, keyspilli-storage.timer, keyspilli-replication.service, keyspilli-evidence.service, keyspilli-evidence.timer]
 
     - name: Install all policy files while excluding backups and deployments
       ansible.builtin.shell: |
@@ -53,18 +61,21 @@
             cp -p "$source" "{{ app_dir }}/storage-policy-original/$(basename "$source")"
           fi
         done
-        for name in keyspilli-storage.py keyspilli-layer-report.py backup.sh; do
+        for name in keyspilli-storage.py keyspilli-layer-report.py keyspilli-evidence.py evidence-child.py evidence-docker.py evidence_docker_args.py evidence_resources.py evidence_external.py evidence_bundle.py restore-drill.sh restore-app.py restore-app-verifier.mjs backup.sh; do
           install -m 0750 "{{ policy_stage }}/$name" "{{ app_dir }}/.$name.install"
           mv -f "{{ app_dir }}/.$name.install" "{{ app_dir }}/$name"
         done
+        install -d -m 0750 "{{ app_dir }}/evidence-bin"
+        install -m 0750 "{{ policy_stage }}/evidence-bin/docker" "{{ app_dir }}/evidence-bin/docker"
         install -m 0750 "{{ policy_stage }}/keyspilli-backup-runner" /usr/local/sbin/.keyspilli-backup-runner.install
         mv -f /usr/local/sbin/.keyspilli-backup-runner.install /usr/local/sbin/keyspilli-backup-runner
-        for name in keyspilli-storage.service keyspilli-storage.timer keyspilli-replication.service; do
+        for name in keyspilli-storage.service keyspilli-storage.timer keyspilli-replication.service keyspilli-evidence.service keyspilli-evidence.timer; do
           install -m 0644 "{{ policy_stage }}/$name" "/etc/systemd/system/.$name.install"
           mv -f "/etc/systemd/system/.$name.install" "/etc/systemd/system/$name"
         done
         systemctl daemon-reload
         systemctl enable --now keyspilli-storage.timer
+        systemctl enable --now keyspilli-evidence.timer
       args:
         executable: /bin/bash
       when: not ansible_check_mode

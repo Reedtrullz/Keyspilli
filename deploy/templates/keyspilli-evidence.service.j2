@@ -1,0 +1,11 @@
+[Unit]
+Description=Recover abandoned owned Keyspilli test resources
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 {{ app_dir }}/keyspilli-evidence.py recover
+TimeoutStartSec=900
+Nice=15
+IOSchedulingClass=idle

@@ -60,5 +60,5 @@ try {
   if (rows.some(row => "error" in row)) process.exitCode = 1;
 } finally {
   if (previousRoot === undefined) delete process.env.KEYSPILLI_DATA_DIR; else process.env.KEYSPILLI_DATA_DIR = previousRoot;
-  rmSync(root, { recursive: true, force: true });
+  if (!process.env.KEYSPILLI_EVIDENCE_RUN) rmSync(root, { recursive: true, force: true });
 }

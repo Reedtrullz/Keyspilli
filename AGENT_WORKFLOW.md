@@ -212,6 +212,16 @@ Age alone is not a reason to close valid work.
 
 ## Verified repository configuration
 
+For shared-host test/restore work, follow [the owned evidence lifecycle](docs/ops/evidence-lifecycle.md).
+Use the canonical `/var/lib/keyspilli-evidence/managed-v1` root for ordinary VPS
+runs; alternate roots are for isolated fixtures or explicit reconstruction.
+Use the managed restore/run entry points, verified input acquisition and isolated
+writable catalogs. Keep recordings, raw results, database changes and recovery
+maps durable. Pin current candidates before sharing them. Do not reuse the
+October 17 partial scratch datasets without their recorded reconstruction.
+Policy installation, service activation and app deployment need their own owner
+authorization; preparing a PR does not activate the timer.
+
 - **Category options:** Bug / Feature / UX / Accessibility / Architecture / Reliability / Performance / Security / Testing / Developer Experience / Infrastructure / Documentation / Research
 - **Area options:** Player and practice / Audio and MIDI / Notation and export / Catalog and source evidence / Import and worker / Private owner workflows / Operations and release
 

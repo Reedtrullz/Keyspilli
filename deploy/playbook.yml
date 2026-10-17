@@ -242,7 +242,16 @@
         owner: root
         group: root
         mode: '0750'
-      loop: [keyspilli-storage.py, keyspilli-layer-report.py]
+      loop: [keyspilli-storage.py, keyspilli-layer-report.py, keyspilli-evidence.py, evidence-child.py, evidence-docker.py, evidence_docker_args.py, evidence_resources.py, evidence_external.py, evidence_bundle.py, restore-drill.sh, restore-app.py, restore-app-verifier.mjs]
+      tags: [always]
+
+    - name: Install managed test Docker entry point
+      ansible.builtin.copy:
+        src: evidence-bin/
+        dest: "{{ app_dir }}/evidence-bin/"
+        owner: root
+        group: root
+        mode: '0750'
       tags: [always]
 
     - name: Begin exclusive persistent deployment transaction
@@ -428,16 +437,17 @@
         owner: root
         group: root
         mode: '0644'
-      loop: [keyspilli-storage.service, keyspilli-storage.timer]
+      loop: [keyspilli-storage.service, keyspilli-storage.timer, keyspilli-evidence.service, keyspilli-evidence.timer]
       notify: Reload systemd
       tags: [backup, monitoring]
 
     - name: Enable hourly scoped retention and layer reporting
       ansible.builtin.systemd:
-        name: keyspilli-storage.timer
+        name: "{{ item }}"
         enabled: true
         state: started
         daemon_reload: true
+      loop: [keyspilli-storage.timer, keyspilli-evidence.timer]
       tags: [backup, monitoring]
 
     - name: Clean eligible Keyspilli data before deployment

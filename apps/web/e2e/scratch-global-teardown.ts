@@ -9,6 +9,7 @@ export default function teardown(): void {
   const target = realpathSync(resolve(configured));
   const prefix = join(scratchRoot, "keyspilli-web-e2e-");
   if (!target.startsWith(prefix)) throw new Error(`refusing to remove unexpected scratch path: ${target}`);
+  if (process.env.KEYSPILLI_EVIDENCE_RUN) return;
   try {
     if (realpathSync(target) !== target) return;
   } catch {
