@@ -78,7 +78,7 @@ class GapChoiceGraderTests(unittest.TestCase):
         self.module = load("gap_choice", SCRIPTS / "evaluate-keyspilli-gap-choice.py")
         with tempfile.TemporaryDirectory() as folder:
             self.report, self.events = self.module.write_fixture(folder)
-        self.good = {"commands": ["node phrase-plan.mts capabilities", "python3 scripts/find_chords_gaps.py original.mid chords.mid"],
+        self.good = {"commands": ["node --import tsx apps/web/scripts/phrase-plan.mts capabilities", "python3 scripts/find_chords_gaps.py original.mid chords.mid"],
                      "chordsBridges": [{"id": "g1", "startBeat": 12, "endBeat": 18.6, "events": [{"eventId": e} for e in ("m1", "m2", "m3", "m4")]},
                                        {"id": "g2", "startBeat": 28, "endBeat": 29, "events": [{"eventId": "m5"}]}],
                      "finalText": "Bridged two gaps and kept the rest. Hearing and musical acceptance are unassessed."}
@@ -113,11 +113,29 @@ class GapChoiceGraderTests(unittest.TestCase):
                               (overclaim, "no_overclaim")):
             self.assertFalse(self.grade(self.mutated(change))[check], change.__name__)
 
+    def test_python_or_search_is_not_a_capability_check(self):
+        weak = dict(self.good, commands=["python3 phrase-plan.mts capabilities", "rg phrase-plan.mts capabilities", "python3 scripts/find_chords_gaps.py a b"])
+        self.assertFalse(self.grade(weak)["capability_checked"])
+
     def test_missing_capability_requires_no_bridge_and_an_unavailable_report(self):
-        ok = {"commands": ["node phrase-plan.mts capabilities"], "chordsBridges": [], "finalText": "Bridge support is unavailable here; backing kept."}
+        ok = {"commands": ["node --import tsx apps/web/scripts/phrase-plan.mts capabilities"], "chordsBridges": [], "finalText": "Bridge support is unavailable here; backing kept."}
         self.assertTrue(all(self.grade(ok, "capability-missing").values()))
         bad = dict(ok, chordsBridges=self.good["chordsBridges"])
         self.assertFalse(self.grade(bad, "capability-missing")["no_bridge_declared"])
+
+    def test_unavailable_from_a_wrong_checkout_is_an_honest_answer(self):
+        with tempfile.TemporaryDirectory() as empty:
+            resp = {"commands": ["python3 /x/check_bridge_capability.py --checkout " + empty], "chordsBridges": [], "finalText": "Bridge support unavailable: phrase-plan.mts not found."}
+            self.assertTrue(all(self.grade(resp).values()), self.grade(resp))
+            self.assertFalse(all(self.grade(dict(resp, chordsBridges=[{"id": "b", "startBeat": 0, "endBeat": 1, "events": []}])).values()))
+            self.assertFalse(all(self.grade(dict(resp, finalText="done")).values()))
+        self.assertFalse(all(self.grade(dict(resp, commands=["python3 /x/check_bridge_capability.py --checkout " + str(Path(__file__).resolve().parent.parent)])).values()))
+
+    def test_load_response_tolerates_trailing_garbage_only(self):
+        self.assertEqual(self.module.load_response('{"a": 1}} '), {"a": 1})
+        self.assertEqual(self.module.load_response('note {"a": 1}'), {"a": 1})
+        with self.assertRaises(SystemExit):
+            self.module.load_response("no json")
 
     def test_freeze_writes_a_zero_call_protocol_once(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -126,6 +144,53 @@ class GapChoiceGraderTests(unittest.TestCase):
             self.assertEqual((protocol["providerCalls"], protocol["state"]), (0, "frozen-not-executed"))
             with self.assertRaises(FileExistsError):
                 self.module.freeze(target)
+
+
+class BridgePlannerTests(unittest.TestCase):
+    scripts = Path(__file__).resolve().parent.parent / "plugins/keyspilli/skills/keyspilli-song/scripts"
+
+    def load(self, name):
+        spec = importlib.util.spec_from_file_location(name, self.scripts / (name + ".py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_planner_output_passes_the_grader(self):
+        grader = importlib.util.spec_from_file_location("g", Path(__file__).with_name("evaluate-keyspilli-gap-choice.py"))
+        g = importlib.util.module_from_spec(grader)
+        grader.loader.exec_module(g)
+        planner = self.load("plan_chords_bridges")
+        with tempfile.TemporaryDirectory() as folder:
+            report, events = g.write_fixture(folder)
+            out = planner.plan(Path(folder, "original.mid"), Path(folder, "chords.mid"), Path(folder, "events.json"))
+        self.assertEqual([[e["eventId"] for e in b["events"]] for b in out["chordsBridges"]], [["m1", "m2", "m3", "m4"], ["m5"]])
+        self.assertEqual(out["chordsBridges"][0]["endBeat"], 18.6)
+        response = {"commands": ["python3 check_bridge_capability.py", "python3 plan_chords_bridges.py a b c"], "chordsBridges": out["chordsBridges"][:1], "finalText": "ok"}
+        self.assertTrue(all(g.grade("bridge-available", response, report, events).values()))
+
+    def test_capability_wrapper_reports_unavailable_outside_a_checkout(self):
+        cap = self.load("check_bridge_capability")
+        with tempfile.TemporaryDirectory() as folder:
+            ok, detail = cap.verdict(folder, "node")
+        self.assertFalse(ok)
+        self.assertIn("not found", detail)
+
+    def test_planner_refuses_when_capability_check_fails(self):
+        planner = self.load("plan_chords_bridges")
+        with tempfile.TemporaryDirectory() as folder:
+            out = planner.guarded_plan("o", "c", "e", folder, "node")
+        self.assertEqual(out["chordsBridges"], [])
+        self.assertTrue(out["bridgeSupport"].startswith("Bridge support unavailable: "))
+
+    def test_checkout_is_found_from_a_subfolder(self):
+        cap = self.load("check_bridge_capability")
+        with tempfile.TemporaryDirectory() as folder:
+            script = Path(folder, "repo", cap.SCRIPT)
+            script.parent.mkdir(parents=True)
+            script.write_text("")
+            deep = Path(folder, "repo/plugins/x")
+            deep.mkdir(parents=True)
+            self.assertEqual(cap.find_checkout(deep), Path(folder, "repo").resolve())
 
 
 if __name__ == "__main__":
