@@ -2974,7 +2974,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
         setLoading(false);
       }
     }
-  }, [detail, initial.song.id]);
+  }, [detail, initial.song.id, initial.publicationRevision]);
 
   const activeMode = requestedMode === "sheet" ? "Sheet Music" : MODES.find((item) => item.id === requestedMode)?.label ?? requestedMode;
   const displayVariants = playerVariantsForDisplay(initial.song, initial.variants);
