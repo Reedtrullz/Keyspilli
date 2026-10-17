@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 /**
@@ -10,20 +10,25 @@ export function apiAuthorization(req: Request): string {
   return req.headers.get("authorization") ?? req.headers.get("x-keyspilli-api-token") ?? "";
 }
 
-function digest(value: string): Buffer {
-  return createHash("sha256").update(value, "utf8").digest();
-}
-
 /**
  * Constant-time check that the request carries `Bearer <token>`.
  *
- * Both sides are hashed first so the comparison takes the same time
- * regardless of where the values differ and does not reveal the configured
- * token's length. An unset or empty token never matches.
+ * Both values are copied into zero-padded buffers of the same length so
+ * `timingSafeEqual` always runs over the full width, and the length check is
+ * folded in afterwards; the comparison time does not depend on where the
+ * values first differ. An unset or empty token never matches.
  */
 export function verifyBearer(req: Request, token: string | undefined = process.env.KEYSPILLI_API_TOKEN): boolean {
   if (!token) return false;
-  return timingSafeEqual(digest(apiAuthorization(req)), digest(`Bearer ${token}`));
+  const provided = Buffer.from(apiAuthorization(req), "utf8");
+  const expected = Buffer.from(`Bearer ${token}`, "utf8");
+  const width = Math.max(provided.length, expected.length);
+  const left = Buffer.alloc(width);
+  const right = Buffer.alloc(width);
+  provided.copy(left);
+  expected.copy(right);
+  const sameBytes = timingSafeEqual(left, right);
+  return sameBytes && provided.length === expected.length;
 }
 
 /**
