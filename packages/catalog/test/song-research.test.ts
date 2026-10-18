@@ -339,4 +339,15 @@ describe("song research foundation", () => {
     });
     expect(canonicalCandidateKey(item)).toContain("youtube:abc12345678");
   });
+
+  it("screens long query keys in linear time and still drops sensitive ones (CodeQL #6)", () => {
+    // A decoded line break defeated the old `.*` branches, forcing a retry at every "auth".
+    const hostileKey = `${"auth".repeat(40_000)}%0A`;
+    const started = performance.now();
+    const manifest = serializeResearchManifest(identity, [candidate({ id: "hostile", url: `https://example.test/song.mid?${hostileKey}=1&my_api-key=x&v=keep` })]);
+    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(manifest).not.toContain("authauth");
+    expect(manifest).not.toContain("my_api-key");
+    expect(manifest).toContain("v=keep");
+  });
 });
