@@ -25,6 +25,10 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: [version-update:semver-major]
+      # Offline music evidence retains Python 3.11 and NumPy 1.26.4.
+      # SciPy 1.18 requires Python >=3.12 and NumPy >=2; upgrade them together.
+      - dependency-name: scipy
+        versions: [">=1.18.0"]
     groups:
       pip-security:
         applies-to: security-updates
