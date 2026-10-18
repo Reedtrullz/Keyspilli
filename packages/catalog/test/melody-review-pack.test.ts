@@ -4,6 +4,7 @@ import {
   buildMelodyReviewPack,
   canonicalMelodyReviewPackJson,
   melodyReviewPackMarkdown,
+  melodyReviewPackHtml,
   validateMelodyCorrectionLedger,
   type MelodyReviewInput,
 } from "../src/melody-review-pack.js";
@@ -41,7 +42,8 @@ describe("melody review pack", () => {
       id: "song",
       review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
     }]));
-    const unit = report.bootstrap.decisions[0]!;
+    const unit = report.bootstrap.decisions[0];
+    if (!unit) throw Error("Expected an unresolved review decision");
     expect(unit.page).toBe(2);
     expect(canonicalMelodyReviewPackJson(report)).toContain('"page": 2');
     expect(melodyReviewPackMarkdown(report)).toContain("Which matches the printed melody? A / B / Neither");
@@ -251,5 +253,19 @@ describe("melody review pack", () => {
     // AC\|DC must become AC\\\|DC: an escaped backslash, then an escaped pipe.
     expect(markdown).toContain("AC\\\\\\|DC");
     expect(markdown).not.toMatch(/AC\\\|DC/);
+  });
+
+  it("preserves literal backslashes and pipes while escaping HTML review labels", () => {
+    const report = buildMelodyReviewPack(input([{
+      id: "song",
+      review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
+    }]));
+    const unit = report.bootstrap.decisions[0];
+    if (!unit) throw Error("Expected an unresolved review decision");
+    const html = melodyReviewPackHtml({ ...report, bootstrap: {
+      ...report.bootstrap, decisions: [{ ...unit, title: 'AC\\DC | <Lead> & "Voice"' }],
+    } });
+    expect(html).toContain('AC\\DC | &lt;Lead&gt; &amp; &quot;Voice&quot;');
+    expect(html).not.toContain("<Lead>");
   });
 });

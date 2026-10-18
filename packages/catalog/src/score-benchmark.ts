@@ -417,8 +417,8 @@ const XML_NAMED_ENTITIES: Readonly<Record<string, string>> = { amp: "&", lt: "<"
  */
 function decodeXml(value: string): string {
   return value.replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|(amp|lt|gt|quot|apos));/g, (_match, decimal?: string, hex?: string, named?: string) => {
-    if (named !== undefined) return XML_NAMED_ENTITIES[named]!;
-    return String.fromCodePoint(decimal !== undefined ? Number(decimal) : Number.parseInt(hex!, 16));
+    if (named !== undefined) return XML_NAMED_ENTITIES[named] ?? _match;
+    return String.fromCodePoint(decimal !== undefined ? Number(decimal) : Number.parseInt(hex ?? "", 16));
   });
 }
 

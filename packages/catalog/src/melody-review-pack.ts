@@ -463,9 +463,8 @@ export function canonicalMelodyReviewPackJson(pack: MelodyReviewPack): string {
   return `${JSON.stringify(stable(pack), null, 2)}\n`;
 }
 
-/** Escape a value for a Markdown table cell: backslashes first, then pipes; line breaks would end the row. */
 function markdownCell(value: unknown): string {
-  return text(value, "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ") || "—";
+  return text(value, "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|") || "—";
 }
 
 export function melodyReviewPackMarkdown(pack: MelodyReviewPack): string {
@@ -494,7 +493,7 @@ export function melodyReviewPackMarkdown(pack: MelodyReviewPack): string {
 }
 
 function htmlEscape(value: unknown): string {
-  return markdownCell(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return (text(value, "") || "—").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 export function melodyReviewPackHtml(pack: MelodyReviewPack): string {

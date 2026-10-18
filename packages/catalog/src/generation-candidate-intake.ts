@@ -102,13 +102,14 @@ function safeSourceRef(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) return "[redacted-source-ref]";
   const trimmed = value.trim();
   let url: URL | null = null;
-  try { url = new URL(trimmed); } catch { /* not URL-shaped: handled as a logical ref below */ }
+  try { url = new URL(trimmed); } catch (error) { if (!(error instanceof TypeError)) throw error; }
   if (url && (url.protocol === "http:" || url.protocol === "https:")) {
     url.username = ""; url.password = ""; url.search = ""; url.hash = "";
     return url.toString();
   }
   const logical = LOGICAL_SOURCE_REF.exec(trimmed);
-  return logical && !UNSAFE_LOGICAL_SCHEMES.has(logical[1]!.toLowerCase()) ? trimmed : "[redacted-source-ref]";
+  const scheme = logical?.[1];
+  return scheme && !UNSAFE_LOGICAL_SCHEMES.has(scheme.toLowerCase()) ? trimmed : "[redacted-source-ref]";
 }
 
 function safeId(value: unknown): string {

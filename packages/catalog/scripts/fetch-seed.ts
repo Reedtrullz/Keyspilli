@@ -33,7 +33,7 @@ const HTML_ENTITIES: Readonly<Record<string, string>> = { nbsp: " ", amp: "&", n
 function strip(s: string): string {
   return stripTags(s)
     // One pass, so "&amp;ndash;" stays the literal text "&ndash;".
-    .replace(/&(nbsp|amp|ndash);/g, (_match, name: string) => HTML_ENTITIES[name]!)
+    .replace(/&(nbsp|amp|ndash);/g, (match, name: string) => HTML_ENTITIES[name] ?? match)
     .replace(/\s+/g, " ")
     .trim();
 }
