@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Opt-in restore proof using a local immutable web image; never starts a worker."""
 import json
+import os
 import platform
 import re
 import subprocess
@@ -41,8 +42,14 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
         if docker("image", "inspect", "--format", "{{.Architecture}}", image_id).strip() != "amd64":
             raise ValueError("sampled verification requires an amd64 image")
         checkout = Path(__file__).resolve().parents[1]
+        bank_path = os.environ.get("KEYSPILLI_NATIVE_PIANO_DIR", "")
+        bank = Path(bank_path)
+        if not bank_path or not bank.is_absolute() or bank.is_symlink() or not bank.is_dir() or bank.resolve() != bank or ":" in bank_path:
+            raise ValueError("canonical read-only native piano input is required")
+        mounts.extend(("-v", f"{bank}:/piano-input:ro"))
         for relative in ("node_modules", "packages", "package.json", "tsconfig.base.json", "apps/web/e2e",
-                         "apps/web/scripts/verify-native-player.mts"):
+                         "apps/web/scripts/verify-native-player.mts", "apps/web/src/lib/native-player-assets.ts",
+                         "apps/web/src/lib/player-reference-bank.ts", "apps/web/scripts/fixtures/native-piano-assets.json"):
             source = checkout / relative
             if not source.exists() or source.is_symlink() or ":" in str(source):
                 raise ValueError("native browser probe source is unavailable")
