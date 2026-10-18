@@ -171,6 +171,7 @@ function integer(value: unknown): number | null {
 
 function cleanText(value: unknown): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const text = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
   return text || null;
 }

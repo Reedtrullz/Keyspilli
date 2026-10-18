@@ -739,7 +739,7 @@ function createBlindMap(pack: ScoreListeningPack): ScoreListeningPackBlindMap {
  */
 export function renderScoreListeningPackWorksheet(pack: ScoreListeningPack): string {
   const manifest = canonicalManifest(pack);
-  const songs = new Map(manifest.songs.map((song) => [song.id, song]));
+  const _songs = new Map(manifest.songs.map((song) => [song.id, song]));
   const lines = [
     "# Rotating score listening pack",
     "",
@@ -754,8 +754,6 @@ export function renderScoreListeningPackWorksheet(pack: ScoreListeningPack): str
     "",
   ];
   manifest.excerpts.forEach((excerpt, index) => {
-    const song = songs.get(excerpt.songId);
-    const title = [song?.artist, song?.title].filter(Boolean).join(" — ") || excerpt.songId;
     lines.push(`### A${String(index + 1).padStart(3, "0")}`, `- Section: ${excerpt.label ?? excerpt.sectionId}`, `- Duration: ${excerpt.durationSeconds}s`);
     for (const [key, value] of Object.entries(excerpt.references).sort(([left], [right]) => compareText(left, right))) {
       const link = worksheetReference(value);

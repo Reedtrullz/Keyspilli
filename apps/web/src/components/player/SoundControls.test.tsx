@@ -94,7 +94,6 @@ describe("SoundControls accompaniment styles", () => {
       [{ beat: 0, name: "C", notes: [], durationBeats: 1 }],
       { durationBeats: 1, sourceFingerprint: "fixture-source-v1" },
     );
-    const phrase = arrangement.phrases[0]!;
     const markup = renderToStaticMarkup(createElement(SoundControls, {
       settings: { ...DEFAULT_SETTINGS, backgroundMode: "chord", accompanimentStyle: "melody-accompaniment" },
       onChange: () => {},

@@ -346,6 +346,7 @@ function stable(value: unknown): unknown {
 
 function safeText(value: unknown, fallback = "unknown", max = 240): string {
   if (typeof value !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const text = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
   return text || fallback;
 }
@@ -378,6 +379,7 @@ async function existingRealpath(value: string): Promise<string> {
 }
 
 function assertSafePath(value: string, label: string): void {
+  // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
   if (!isAbsolute(value) || /[\u0000\r\n]/.test(value)) throw new Error(`${label} must be an absolute path without NUL/newline characters`);
 }
 

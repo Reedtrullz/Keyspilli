@@ -333,6 +333,7 @@ function compare(left: string, right: string): number {
 
 function text(value: unknown, fallback = ""): string {
   if (typeof value !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 500);
   return cleaned || fallback;
 }
@@ -355,6 +356,7 @@ function safeLabel(value: unknown, fallback = "unknown"): string {
 
 function safeRef(value: unknown): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const cleaned = value.replace(/\\/g, "/").replace(/[\u0000-\u001f\u007f]/g, "").trim();
   if (!cleaned || cleaned.startsWith("/") || /^[A-Za-z]:\//.test(cleaned) || cleaned.startsWith("~")) return null;
   if (cleaned.split("/").some((part) => part === ".." || part === "")) return null;
@@ -367,6 +369,7 @@ function safeReason(value: unknown, fallback = "unknown"): string {
   return value
     .replace(/https?:\/\/[^\s"']+/gi, "[redacted-url]")
     .replace(/(?:file:\/\/)?(?:\/(?:Users|private|tmp|var|home|Volumes)\/[^\s"']+|[A-Za-z]:[\\/][^\s"']+)/g, "[redacted-path]")
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

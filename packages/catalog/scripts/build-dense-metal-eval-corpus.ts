@@ -70,7 +70,6 @@ const TRACK: Record<Role, { name: string; channel: number; program?: number; per
 
 const round = (value: number, digits = 6): number => Number(value.toFixed(digits));
 const sha256 = (bytes: Uint8Array | string): string => createHash("sha256").update(bytes).digest("hex");
-const compareText = (left: string, right: string): number => left < right ? -1 : left > right ? 1 : 0;
 
 function event(role: Role, midi: number, startBeat: number, durationBeats: number, velocity: number): DenseMetalEvent {
   return { role, midi, startBeat: round(startBeat), durationBeats: round(durationBeats), velocity };

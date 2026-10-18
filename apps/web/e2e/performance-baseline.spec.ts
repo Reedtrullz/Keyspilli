@@ -37,7 +37,7 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
         OscillatorNode.prototype.start = function (when?: number) { state.__firstScheduledNote ??= performance.now(); return original.call(this, when); };
       }, renderer);
       const library: number[] = [];
-      for (const cache of ["cold", "warm"]) {
+      for (const _cache of ["cold", "warm"]) {
         const start = performance.now(); await page.goto("/");
         await expect(page.getByRole("heading", { name: "Recently added" })).toBeVisible();
         library.push(performance.now() - start);
