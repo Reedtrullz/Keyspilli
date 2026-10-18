@@ -5,7 +5,7 @@ ui=importlib.util.module_from_spec(spec);spec.loader.exec_module(ui)
 
 class PathTests(unittest.TestCase):
  def test_ui_files_pass(self):
-  paths=['apps/web/src/components/SongBrowser.tsx','apps/web/src/components/song-display.ts','apps/web/src/app/globals.css','apps/web/src/app/page.tsx','apps/web/e2e/app.spec.ts','docs/ops.md','packages/midi/src/x.test.ts']
+  paths=['apps/web/src/components/SongBrowser.tsx','apps/web/src/components/song-display.ts','apps/web/src/app/globals.css','apps/web/src/app/page.tsx','apps/web/e2e/app.spec.ts','docs/ops.md','evidence/research/tutorial-evaluation-manifest.json','packages/midi/src/x.test.ts']
   self.assertEqual(ui.violations(paths),[])
  def test_music_data_and_deploy_files_block(self):
   paths=['apps/web/src/components/player/Player.tsx','apps/web/src/components/player/chord-practice.ts','.github/workflows/ci.yml','packages/midi/src/validate.ts','packages/catalog/src/db.ts','packages/player-core/src/engine.ts','apps/web/src/lib/catalog-api.ts','apps/web/src/app/api/songs/route.ts','services/transcribe/src/x.py','deploy/playbook.yml','package-lock.json','apps/web/Dockerfile','catalog/manifest.json','apps/web/src/app/export/route.ts','apps/web/src/components/hidden/middleware.ts']

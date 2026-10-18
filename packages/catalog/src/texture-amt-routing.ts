@@ -459,8 +459,6 @@ function classSummary(truth: readonly ColdTransferNoteInput[], notes: readonly C
 }
 function agreementReport(truth: readonly ColdTransferNoteInput[], basic: readonly ColdTransferNote[], gaps: readonly ColdTransferNote[], timebase: "beats" | "seconds", tolerance: number): TextureAgreementReport {
   const assigned = pairs(basic, gaps, tolerance);
-  const sharedBasic = new Set(assigned.map((pair) => pair.left));
-  const sharedGaps = new Set(assigned.map((pair) => pair.right));
   const exactShared = assigned.filter((pair) => pair.kind === "exact");
   const pcShared = assigned.filter((pair) => pair.kind === "exact" || pair.kind === "pitchClass");
   const timingConflicts = assigned.filter((pair) => pair.kind === "onset");

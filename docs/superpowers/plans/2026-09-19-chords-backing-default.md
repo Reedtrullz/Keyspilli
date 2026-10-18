@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, React/Next.js, Vitest, Playwright, Node 22, existing MIDI/player-core chord and accompaniment utilities.
 
-**Spec:** User-authorized product clarification in the task; existing engineering contract in `docs/superpowers/evidence/2026-09-19-chords-finish/pr-103-coverage.md`.
+**Spec:** User-authorized product clarification in the task; existing engineering contract in `evidence/superpowers/2026-09-19-chords-finish/pr-103-coverage.md`.
 
 ## Global Constraints
 
@@ -164,10 +164,10 @@
 ### Task 5: Evaluate real fixtures, package evidence, and hand off the draft PR
 
 **Files:**
-- Create: `docs/superpowers/evidence/2026-09-19-chords-backing-default/README.md`
-- Create: `docs/superpowers/evidence/2026-09-19-chords-backing-default/manifest.json`
-- Create: `docs/superpowers/evidence/2026-09-19-chords-backing-default/audio-review/` generated Player captures
-- Modify: `docs/superpowers/evidence/2026-09-19-chords-finish/pr-103-coverage.md`
+- Create: `evidence/superpowers/2026-09-19-chords-backing-default/README.md`
+- Create: `evidence/superpowers/2026-09-19-chords-backing-default/manifest.json`
+- Create: `evidence/superpowers/2026-09-19-chords-backing-default/audio-review/` generated Player captures
+- Modify: `evidence/superpowers/2026-09-19-chords-finish/pr-103-coverage.md`
 
 **Interfaces:**
 - The evidence packet records exact branch/code SHA, commands, fixture hashes/paths, source-note versus generated-backing counts, fallback spans, limitations, and non-claims.
@@ -191,7 +191,7 @@
 
 - [x] **Step 5: Commit, push, and request review**
 
-  `git add docs/superpowers/plans/2026-09-19-chords-backing-default.md docs/superpowers/evidence/2026-09-19-chords-backing-default docs/superpowers/evidence/2026-09-19-chords-finish/pr-103-coverage.md && git commit --no-gpg-sign -m "docs: record backing-only chord evaluation" && git push origin codex/finish-chords-mode`
+  `git add docs/superpowers/plans/2026-09-19-chords-backing-default.md evidence/superpowers/2026-09-19-chords-backing-default evidence/superpowers/2026-09-19-chords-finish/pr-103-coverage.md && git commit --no-gpg-sign -m "docs: record backing-only chord evaluation" && git push origin codex/finish-chords-mode`
 
 ## Self-review
 

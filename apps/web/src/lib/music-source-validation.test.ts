@@ -1,5 +1,4 @@
 import { it, expect } from 'vitest';
-import { identityHash } from '@keyspilli/catalog/src/acoustic-receipt.js';
 import { validateSourceValidationReceipt, sourceValidationSemanticHash, type SourceValidationReceiptV1, type SourceValidationReceiptV2 } from './music-source-validation.js';
 import type { SourceAnchors } from './music-correspondence.js';
 

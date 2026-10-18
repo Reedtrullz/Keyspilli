@@ -18,7 +18,6 @@ import { getDb } from "../src/db.js";
 import { artifactsDir, ROOT } from "../src/paths.js";
 import type { Note } from "@keyspilli/midi";
 
-const LEVELS = ["vb", "b", "ve", "e", "m", "a"] as const;
 type ReviewRating = "good" | "polish" | "bad";
 
 interface VariantFile { notes: Note[]; tempoBpm: number; warnings?: string[] }

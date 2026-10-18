@@ -12,7 +12,7 @@
 
 ## Execution status — 9 September 2026
 
-Implementation for Tasks 1–7 is present in `codex/player-instrument-ui`. The local acceptance work and verification limits are documented in `docs/research/keyspilli-evidence/player-instrument-ui-2026-09-09/README.md`.
+Implementation for Tasks 1–7 is present in `codex/player-instrument-ui`. The local acceptance work and verification limits are documented in `evidence/research/player-instrument-ui-2026-09-09/README.md`.
 
 Delivery adjustment: A–C share one integrated review branch and PR, rather than three partial releases. No release was merged or deployed. Native dialogs replace the old panel wrapper; static bevels replace proposed gradients. Physical MIDI/touch feel, listening acceptance and production release checks remain separate from local automated evidence.
 
@@ -263,7 +263,7 @@ Guard absent/zero-length measures by hiding the indicator. Use boundaries from t
 
 ## Task 8 — Acceptance, regression and release
 
-**Files:** existing tests plus evidence under `docs/research/keyspilli-evidence/player-instrument-ui-2026-09-09/`; update release PR description and Obsidian project/daily note. Add tests only for meaningful new behavior, not every style declaration.
+**Files:** existing tests plus evidence under `evidence/research/player-instrument-ui-2026-09-09/`; update release PR description and Obsidian project/daily note. Add tests only for meaningful new behavior, not every style declaration.
 
 - [x] Before long builds, run `df -h /System/Volumes/Data`; stop long loops below 30GiB free. Reuse bounded `.player-review` output. Confirm seed data and local production server belong to the isolated worktree.
 - [ ] Run focused checks during each task; run the following once per release candidate after changes settle:

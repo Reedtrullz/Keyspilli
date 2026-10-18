@@ -23,7 +23,7 @@ fixtures and one small synthetic control:
 | Synthetic full-band | 20 / 4 | 120 BPM, 4/4 | 8 | `fba496e372f8962967b5e08903fa4883d6f4be1bde046f0eb3a06e1a1dcc8dc6` |
 
 The reproducible machine-readable freeze is
-[`2026-09-03-current-production-difficulty-differentiation-review.json`](./2026-09-03-current-production-difficulty-differentiation-review.json).
+[`2026-09-03-current-production-difficulty-differentiation-review.json`](../../../evidence/plans/2026-09-03-current-production-difficulty-differentiation-review.json).
 The report uses `0.08`-beat onset groups, contains no absolute paths, and was
 generated twice byte-identically (SHA-256
 `0115da9269ff54693a40c1b8b4f1cb9e4b34a2d4ed6298c6502e900af3e6cc1d`). The

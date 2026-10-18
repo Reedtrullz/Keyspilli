@@ -12,7 +12,7 @@ prune or Docker/containerd directory deletion is permitted.
 | `deploy/restore-drill.sh --ephemeral MANIFEST [--verify-app ID SHA SONG]` | Admits expanded archive + one acquired archive + three DB copies (input pool, snapshot and runtime) + 128 MiB overhead; plans reconstruction before extraction; reads the verified archive in place; seals results and releases scratch on every ordinary exit. |
 | Positional `restore-drill.sh MANIFEST FRESH_DESTINATION ...` | Deliberate durable recovery export; checks destination space before creation and refuses existing destinations. It is **not** a disposable test API. Use `--ephemeral` for tests or run it inside a managed command when further pipeline/browser checks need the restored tree. |
 | `.github/workflows/ci.yml` public-seed restore | Job ownership admission, unique image and builder, scratch-contained backup/restore, `always()` cleanup and evidence upload. |
-| `.github/workflows/runtime-rehearsal.yml` | Same ownership across both native image builds, worker shutdown and restore canary. Receipts stay outside disposable input trees. |
+| `.github/workflows/runtime-rehearsal.yml` | Same ownership across pinned piano-input acquisition, both native image builds, worker shutdown, restore canary and in-container sampled Player/export checks at1.5CPU. Verified piano bytes and allowlisted test sources are read-only; uploads mutate only the owned restore copy. Recordings, exports, raw results and reconstruction receipts stay outside disposable input trees. |
 | `.github/workflows/tutorial-runtime-candidate.yml` | Same ownership across geometry/worker builds, CLI, synthetic tests and worker shutdown. |
 | `deploy/test/access-boundary.sh` | Managed wrapper, isolated binds, registered Caddy containers, preserved results/configuration. |
 | One-off preserved-production restores, dual pipeline runs and browser recorders | Use `run` below, with all copied inputs and writable catalogs inside `KEYSPILLI_SCRATCH`, and recordings/results inside `KEYSPILLI_EVIDENCE`. Historical scripts/trees under the October 16/17 evidence roots are frozen records, **not reusable entry points**. |
@@ -55,7 +55,16 @@ arguments. Docker output is streamed to its original stdout/stderr and retained
 in separate raw log files. Only test tags are accepted for builds; aliases map
 to unique run tags/names. Containers carry the exact run label. Each run gets a
 private buildx builder and its state is removed through buildx, not filesystem
-deletion. `BUILDX_CONFIG` is inside that run's scratch and is used explicitly by
+deletion. After each successful image import, the wrapper releases unused cache
+from that exact private builder before the next image build. It verifies the
+run is running and unpinned, the daemon identity, and the recorded builder
+container/volume references. A foreign or replaced builder is refused. This
+builder-scoped operation preserves imported images and their pins; no global
+Docker prune is allowed. Failure or cancellation keeps the original build
+result and leaves teardown to the existing finalizer/recovery path. Cache
+release failures remain nonzero. Raw output and before/after free-byte readings
+are durable evidence; those readings can also include unrelated host activity.
+`BUILDX_CONFIG` is inside that run's scratch and is used explicitly by
 both the original client and a different-user/root recovery finalizer. Writable binds must be inside that run's scratch; other binds are
 read-only. All container references, extra image aliases/digests, backup image
 pins and pending deployment metadata prevent image retirement.
