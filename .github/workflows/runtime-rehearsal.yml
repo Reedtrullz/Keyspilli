@@ -16,6 +16,9 @@ on:
       - 'apps/web/e2e/player-audio-capture.ts'
       - 'packages/player-core/**'
       - 'deploy/restore-app*'
+      - 'deploy/evidence-docker.py'
+      - 'deploy/evidence_resources.py'
+      - 'deploy/test/test-evidence.py'
   workflow_dispatch:
     inputs:
       expected_commit:
