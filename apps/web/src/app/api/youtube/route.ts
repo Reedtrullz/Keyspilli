@@ -1,30 +1,11 @@
 import { readJsonObject } from "../../../lib/bounded-body";
-import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { canonicalYoutubeUrl, insertJob, enqueueImportJob, getSongsByBase } from "@keyspilli/catalog";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
-import { apiAuthorization } from "../../../lib/api-auth";
+import { requireBearer } from "../../../lib/api-auth";
 
 export const dynamic = "force-dynamic";
-
-function checkAuth(req: Request): Response | null {
-  const token = process.env.KEYSPILLI_API_TOKEN;
-  if (!token) {
-    console.error("KEYSPILLI_API_TOKEN is not configured; rejecting mutation request");
-    return NextResponse.json(
-      { error: "server authentication is not configured" },
-      { status: 503 },
-    );
-  }
-  const auth = apiAuthorization(req);
-  const provided = Buffer.from(auth);
-  const expected = Buffer.from(`Bearer ${token}`);
-  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  return null;
-}
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
@@ -52,7 +33,7 @@ function checkRateLimit(ip: string): Response | null {
 }
 
 export async function POST(req: NextRequest) {
-  const authResponse = checkAuth(req);
+  const authResponse = requireBearer(req);
   if (authResponse) return authResponse;
   // Caddy sets X-Real-IP from the actual remote address; X-Forwarded-For
   // can be spoofed by clients when no trusted proxy overwrites it.

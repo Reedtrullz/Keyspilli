@@ -408,15 +408,18 @@ interface XmlMeasure {
   body: string;
 }
 
+const XML_NAMED_ENTITIES: Readonly<Record<string, string>> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+
+/**
+ * Decode the predefined XML entities and numeric character references in a
+ * single pass, so text produced by one replacement is never decoded again
+ * (`&amp;lt;` is the literal text `&lt;`, not `<`).
+ */
 function decodeXml(value: string): string {
-  return value
-    .replaceAll("&amp;", "&")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">")
-    .replaceAll("&quot;", '"')
-    .replaceAll("&apos;", "'")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)));
+  return value.replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|(amp|lt|gt|quot|apos));/g, (_match, decimal?: string, hex?: string, named?: string) => {
+    if (named !== undefined) return XML_NAMED_ENTITIES[named] ?? _match;
+    return String.fromCodePoint(decimal !== undefined ? Number(decimal) : Number.parseInt(hex ?? "", 16));
+  });
 }
 
 function xmlAttribute(tag: string, name: string): string | null {

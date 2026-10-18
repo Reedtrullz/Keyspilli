@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import filesystem, { mkdtempSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -95,6 +96,66 @@ describe("grouped catalogue read-model cache", () => {
     unlinkSync(manifest);
     expect(countSongsGrouped({ artist: "Cache Test" })).toBe(10_002);
   });
+
+  it.each(["manifest.json", "learner-review.json"])("refreshes grouped visibility after a large %s rewrite within one filesystem tick", (file) => {
+    const path = join(dataDir, file);
+    const first = row(0).baseId;
+    const second = row(1).baseId;
+    const bytes = (id: string) => JSON.stringify(file === "manifest.json"
+      ? { songs: [{ id, disabled: true }], padding: " ".repeat(64 * 1024) }
+      : { verdicts: { [id]: { blocked: true } }, padding: " ".repeat(64 * 1024) });
+    writeFileSync(path, bytes(first));
+    const original = filesystem.statSync;
+    const frozen = original(path, { bigint: true });
+    const metadata = vi.spyOn(filesystem, "statSync").mockImplementation((source, options) => {
+      if (String(source) === path) return frozen;
+      return original(source, options);
+    });
+    syncBuiltinESMExports();
+    try {
+      const filters = { ids: [row(0).id, row(1).id] };
+      expect(listSongsGroupedWithTotal(filters).songs.map(song => song.representative.baseId)).toEqual([second]);
+      writeFileSync(path, bytes(second));
+      expect(listSongsGroupedWithTotal(filters).songs.map(song => song.representative.baseId)).toEqual([first]);
+    } finally {
+      metadata.mockRestore();
+      syncBuiltinESMExports();
+      unlinkSync(path);
+      invalidateSongReadModel();
+    }
+  });
+
+  it.each(["manifest.json", "learner-review.json"])("fails closed for grouped visibility when %s becomes unreadable after a failed fingerprint", (file) => {
+    const path = join(dataDir, file);
+    const bytes = (id: string) => JSON.stringify(file === "manifest.json"
+      ? { songs: [{ id, disabled: true }] }
+      : { verdicts: { [id]: { blocked: true } } });
+    writeFileSync(path, bytes(row(0).baseId));
+    const original = filesystem.readFileSync;
+    let unreadable = false;
+    const reads = vi.spyOn(filesystem, "readFileSync").mockImplementation((source, options) => {
+      if (String(source) === path && (options === undefined || unreadable)) {
+        throw Object.assign(new Error("EACCES: policy read refused"), { code: "EACCES" });
+      }
+      return original(source, options);
+    });
+    syncBuiltinESMExports();
+    try {
+      try { listSongsGroupedWithTotal(); }
+      catch (error) {
+        if (!(error instanceof Error && "code" in error && error.code === "EACCES")) throw error;
+      }
+      writeFileSync(path, bytes(row(1).baseId));
+      unreadable = true;
+      expect(() => listSongsGroupedWithTotal()).toThrow(/EACCES/);
+    } finally {
+      reads.mockRestore();
+      syncBuiltinESMExports();
+      unlinkSync(path);
+      invalidateSongReadModel();
+    }
+  });
+
   it("filters import methods before pagination, preserving complete level groups and totals", () => {
     mkdirSync(join(dataDir, "uploads"), { recursive: true });
     for (const [index, contentType, extension] of [
