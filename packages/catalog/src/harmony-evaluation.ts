@@ -264,7 +264,7 @@ function validateWindow(window: unknown, index: number): { value?: HarmonyEvalua
   const diagnostics: string[] = [];
   if (!isRecord(window)) return { diagnostics: [`window ${index} is malformed`] };
   const value = window as unknown as HarmonyEvaluationWindowInput;
-  let normalized: HarmonyEvaluationWindowInput = { ...value };
+  const normalized: HarmonyEvaluationWindowInput = { ...value };
   if (typeof value.id !== "string" || !value.id.trim()) diagnostics.push(`window ${index} id is invalid`);
   if (!finite(value.startBeat) || !finite(value.endBeat) || value.startBeat < 0 || value.endBeat <= value.startBeat) diagnostics.push(`window ${index} bounds are invalid`);
   const reference = value.reference;
@@ -471,7 +471,7 @@ function playability(notes: readonly Note[]): HarmonyPlayabilityMetrics {
   };
 }
 
-function unavailableMetrics(status: HarmonyAvailability, diagnostics: string[] = []): HarmonyWindowMetrics {
+function unavailableMetrics(status: HarmonyAvailability, _diagnostics: string[] = []): HarmonyWindowMetrics {
   return {
     chromaAgreement: null, rootAgreement: null, bassAgreement: null, chordAgreement: null, qualityAgreement: null,
     changeTiming: { expected: 0, observed: 0, matched: 0, unsupported: 0, medianErrorBeats: null, p95ErrorBeats: null },

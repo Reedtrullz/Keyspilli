@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   parseAcousticReceipt,
   acousticCacheKey,
-  type AcousticReceipt,
 } from "../src/acoustic-receipt.js";
 import { sampleReceipt } from "./music-fixtures.js";
 describe("raw acoustic receipt", () => {

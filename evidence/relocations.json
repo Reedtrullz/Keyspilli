@@ -1,0 +1,2752 @@
+{
+  "schemaVersion": 1,
+  "originalSourceCommit": "6742f2400d219ff60fade0a8f099300d4f89aef4",
+  "historicalRelocationProposal": "2be3fc01ad802db27d3ba38b8979c8167b6e0194",
+  "scope": "Tracked moved evidence and original changed context; not a complete historical runtime checkout or missing audio/input restoration.",
+  "entries": [
+    {
+      "originalPath": "docs/ops/music-review-results-2026-10-05.json",
+      "currentPath": "evidence/ops/music-review-results-2026-10-05.json",
+      "originalStoredPath": "evidence/ops/music-review-results-2026-10-05.json",
+      "originalSha256": "a09c8da33cafa44236c162024de7afbec56cbb5412ea8dc4f0d183e5541fc7c6",
+      "currentSha256": "a09c8da33cafa44236c162024de7afbec56cbb5412ea8dc4f0d183e5541fc7c6",
+      "originalBytes": 25661
+    },
+    {
+      "originalPath": "docs/performance-baseline-2026-10-02.json",
+      "currentPath": "evidence/performance/performance-baseline-2026-10-02.json",
+      "originalStoredPath": "evidence/performance/performance-baseline-2026-10-02.json",
+      "originalSha256": "bcd6a38392193a34937046d166c6c953594215789eab9d53bd33be9023390b68",
+      "currentSha256": "bcd6a38392193a34937046d166c6c953594215789eab9d53bd33be9023390b68",
+      "originalBytes": 8493
+    },
+    {
+      "originalPath": "docs/performance-span-2026-10-02.json",
+      "currentPath": "evidence/performance/performance-span-2026-10-02.json",
+      "originalStoredPath": "evidence/performance/performance-span-2026-10-02.json",
+      "originalSha256": "1335bf71ce6164caccf353a0ca6087f9e1104facc95a35c8eb2ec57a6dceb6cc",
+      "currentSha256": "1335bf71ce6164caccf353a0ca6087f9e1104facc95a35c8eb2ec57a6dceb6cc",
+      "originalBytes": 11649
+    },
+    {
+      "originalPath": "docs/performance-stress-2026-10-02.json",
+      "currentPath": "evidence/performance/performance-stress-2026-10-02.json",
+      "originalStoredPath": "evidence/performance/performance-stress-2026-10-02.json",
+      "originalSha256": "98ee9091286aa49e6af9d98befdea99279a8bb6a18d5cc07c54a891ec830157b",
+      "currentSha256": "98ee9091286aa49e6af9d98befdea99279a8bb6a18d5cc07c54a891ec830157b",
+      "originalBytes": 11728
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-beginner-budget-revision-preregistration.json",
+      "currentPath": "evidence/plans/2026-09-02-beginner-budget-revision-preregistration.json",
+      "originalStoredPath": "evidence/plans/2026-09-02-beginner-budget-revision-preregistration.json",
+      "originalSha256": "9c7a47e0f007a74af0f8d4528ad0e6b935c525624997c49b5d8c56e72f10be63",
+      "currentSha256": "9c7a47e0f007a74af0f8d4528ad0e6b935c525624997c49b5d8c56e72f10be63",
+      "originalBytes": 5361
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-beginner-sparse-lh-production-preregistration.json",
+      "currentPath": "evidence/plans/2026-09-02-beginner-sparse-lh-production-preregistration.json",
+      "originalStoredPath": "evidence/plans/2026-09-02-beginner-sparse-lh-production-preregistration.json",
+      "originalSha256": "73a6cea499b49a77e2c43eaa6946ef4070933c52181656f1596c82b9bcf0a8cb",
+      "currentSha256": "73a6cea499b49a77e2c43eaa6946ef4070933c52181656f1596c82b9bcf0a8cb",
+      "originalBytes": 9816
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-beginner-sparse-lh-promotion-evidence-repair-preregistration.json",
+      "currentPath": "evidence/plans/2026-09-02-beginner-sparse-lh-promotion-evidence-repair-preregistration.json",
+      "originalStoredPath": "evidence/plans/2026-09-02-beginner-sparse-lh-promotion-evidence-repair-preregistration.json",
+      "originalSha256": "bb27ae45e6e042e934616d296dfbc259e6b7d4ccb0b5d91b9ec53382e6f465b9",
+      "currentSha256": "bb27ae45e6e042e934616d296dfbc259e6b7d4ccb0b5d91b9ec53382e6f465b9",
+      "originalBytes": 10622
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-collision-aware-beginner-two-hand-policy-preregistration.json",
+      "currentPath": "evidence/plans/2026-09-02-collision-aware-beginner-two-hand-policy-preregistration.json",
+      "originalStoredPath": "evidence/plans/2026-09-02-collision-aware-beginner-two-hand-policy-preregistration.json",
+      "originalSha256": "e890acf6547e0c11deecc21e1322f5874cdbb5d065f31a169aa19188e2ac3655",
+      "currentSha256": "e890acf6547e0c11deecc21e1322f5874cdbb5d065f31a169aa19188e2ac3655",
+      "originalBytes": 4339
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-difficulty-ladder-baseline.json",
+      "currentPath": "evidence/plans/2026-09-02-difficulty-ladder-baseline.json",
+      "originalStoredPath": "evidence/plans/2026-09-02-difficulty-ladder-baseline.json",
+      "originalSha256": "19500f7c4b7dc4cff3fa4d4ac3104176c8cc06241ec5b97608e5c33970a4a98b",
+      "currentSha256": "19500f7c4b7dc4cff3fa4d4ac3104176c8cc06241ec5b97608e5c33970a4a98b",
+      "originalBytes": 85871
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-easy-lineage-baseline.json",
+      "currentPath": "evidence/plans/2026-09-02-easy-lineage-baseline.json",
+      "originalStoredPath": "evidence/plans/2026-09-02-easy-lineage-baseline.json",
+      "originalSha256": "7d30b3636b568aca045eeb8fcf3f53ef043831601fe12292f2c7c265d123d83a",
+      "currentSha256": "7d30b3636b568aca045eeb8fcf3f53ef043831601fe12292f2c7c265d123d83a",
+      "originalBytes": 8747
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-easy-preservation-baseline.json",
+      "currentPath": "evidence/plans/2026-09-02-easy-preservation-baseline.json",
+      "originalStoredPath": "evidence/plans/2026-09-02-easy-preservation-baseline.json",
+      "originalSha256": "722be68c8c35eca6282d72635d2b77133af07ee3ad6c65d62696ea7df16723ff",
+      "currentSha256": "722be68c8c35eca6282d72635d2b77133af07ee3ad6c65d62696ea7df16723ff",
+      "originalBytes": 2991
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-03-cover-rh-identity-cliff-attribution-report.json",
+      "currentPath": "evidence/plans/2026-09-03-cover-rh-identity-cliff-attribution-report.json",
+      "originalStoredPath": "evidence/plans/2026-09-03-cover-rh-identity-cliff-attribution-report.json",
+      "originalSha256": "7cd2c0287781ca827439f311578695ef38e0ce96b63fac4cfc2c2038419c5412",
+      "currentSha256": "7cd2c0287781ca827439f311578695ef38e0ce96b63fac4cfc2c2038419c5412",
+      "originalBytes": 3934
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-03-current-production-difficulty-differentiation-review.json",
+      "currentPath": "evidence/plans/2026-09-03-current-production-difficulty-differentiation-review.json",
+      "originalStoredPath": "evidence/plans/2026-09-03-current-production-difficulty-differentiation-review.json",
+      "originalSha256": "0115da9269ff54693a40c1b8b4f1cb9e4b34a2d4ed6298c6502e900af3e6cc1d",
+      "currentSha256": "0115da9269ff54693a40c1b8b4f1cb9e4b34a2d4ed6298c6502e900af3e6cc1d",
+      "originalBytes": 260595
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-03-difficulty-surface-inventory.json",
+      "currentPath": "evidence/plans/2026-09-03-difficulty-surface-inventory.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-03-difficulty-surface-inventory.json.raw",
+      "originalSha256": "f0a2cd3eba1592892e92aa450a95d1400b83855a88cba9b90dce843e96ec3fe0",
+      "currentSha256": "8b01894c2f39d9e66cd7d5f3453233a04737f91351e0ea6214df6c7aa3eb3e9d",
+      "originalBytes": 9832
+    },
+    {
+      "originalPath": "docs/superpowers/plans/beginner-sparse-lh-independent-current-eval-preregistration.json",
+      "currentPath": "evidence/plans/beginner-sparse-lh-independent-current-eval-preregistration.json",
+      "originalStoredPath": "evidence/plans/beginner-sparse-lh-independent-current-eval-preregistration.json",
+      "originalSha256": "bc88d155ba39527b5ed3e494b2dad2b07b34ba58f10c2184987cdc99b7f2ad8d",
+      "currentSha256": "bc88d155ba39527b5ed3e494b2dad2b07b34ba58f10c2184987cdc99b7f2ad8d",
+      "originalBytes": 3805
+    },
+    {
+      "originalPath": "docs/research/2026-10-02-local-decoder-resource-probe-3.json",
+      "currentPath": "evidence/research/2026-10-02-local-decoder-resource-probe-3.json",
+      "originalStoredPath": "evidence/research/2026-10-02-local-decoder-resource-probe-3.json",
+      "originalSha256": "6fc937be94a76e4abe1b10e6111864ea37879695030e1906f8fb7f926459214b",
+      "currentSha256": "6fc937be94a76e4abe1b10e6111864ea37879695030e1906f8fb7f926459214b",
+      "originalBytes": 3842
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/KEYSPILLI_PRODUCT_PIPELINE_STATUS_2026_09.md",
+      "currentPath": "evidence/research/KEYSPILLI_PRODUCT_PIPELINE_STATUS_2026_09.md",
+      "originalStoredPath": "evidence/research/KEYSPILLI_PRODUCT_PIPELINE_STATUS_2026_09.md",
+      "originalSha256": "7c59979e75d0dec8160f2d6ac1e0e10d14a52c54706112dfb513f5ab93dfd27e",
+      "currentSha256": "7c59979e75d0dec8160f2d6ac1e0e10d14a52c54706112dfb513f5ab93dfd27e",
+      "originalBytes": 91565
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/README.md",
+      "currentPath": "evidence/research/README.md",
+      "originalStoredPath": "evidence/research/README.md",
+      "originalSha256": "a4bc73acafe64c51efdadc67beb891ed2d1e3e9c4c955216f049732597db785b",
+      "currentSha256": "a4bc73acafe64c51efdadc67beb891ed2d1e3e9c4c955216f049732597db785b",
+      "originalBytes": 13778
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/advanced-catalog-repair-2026-09-06.md",
+      "currentPath": "evidence/research/advanced-catalog-repair-2026-09-06.md",
+      "originalStoredPath": "evidence/research/advanced-catalog-repair-2026-09-06.md",
+      "originalSha256": "722ebfde62417d32b40adf6f7274004cb587ec9bfcf997f991f397ed785ec888",
+      "currentSha256": "722ebfde62417d32b40adf6f7274004cb587ec9bfcf997f991f397ed785ec888",
+      "originalBytes": 3053
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/all-song-chords-2026-09-27.md",
+      "currentPath": "evidence/research/all-song-chords-2026-09-27.md",
+      "originalStoredPath": "evidence/research/all-song-chords-2026-09-27.md",
+      "originalSha256": "b2a47cb05e9b596bf0c61021bece6ff75c33c6b7ca64fcd4f592725fc4c501a2",
+      "currentSha256": "b2a47cb05e9b596bf0c61021bece6ff75c33c6b7ca64fcd4f592725fc4c501a2",
+      "originalBytes": 10306
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/asap-fresh-validation-results-2026-09-03.json",
+      "currentPath": "evidence/research/asap-fresh-validation-results-2026-09-03.json",
+      "originalStoredPath": "evidence/research/asap-fresh-validation-results-2026-09-03.json",
+      "originalSha256": "6891ec10aae8e861a0ef1813b1acb3035175986dbd6798e17214da5aa974d17c",
+      "currentSha256": "6891ec10aae8e861a0ef1813b1acb3035175986dbd6798e17214da5aa974d17c",
+      "originalBytes": 6032
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/asap-fresh-validation-selection-2026-09-03.json",
+      "currentPath": "evidence/research/asap-fresh-validation-selection-2026-09-03.json",
+      "originalStoredPath": "evidence/research/asap-fresh-validation-selection-2026-09-03.json",
+      "originalSha256": "fdd4a87c3348b06a59f9b4b4d656730362463bbe045244b4d1119736b2c16b61",
+      "currentSha256": "fdd4a87c3348b06a59f9b4b4d656730362463bbe045244b4d1119736b2c16b61",
+      "originalBytes": 3641
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/asap-matchmaker-skf-reference-2026-09-03.json",
+      "currentPath": "evidence/research/asap-matchmaker-skf-reference-2026-09-03.json",
+      "originalStoredPath": "evidence/research/asap-matchmaker-skf-reference-2026-09-03.json",
+      "originalSha256": "720e18bb1b96c2efea7bb9b8f34150735aba44544b71e0a84084e04b04869917",
+      "currentSha256": "720e18bb1b96c2efea7bb9b8f34150735aba44544b71e0a84084e04b04869917",
+      "originalBytes": 25588
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/asap-revealed-v2-validation-2026-09-03.json",
+      "currentPath": "evidence/research/asap-revealed-v2-validation-2026-09-03.json",
+      "originalStoredPath": "evidence/research/asap-revealed-v2-validation-2026-09-03.json",
+      "originalSha256": "15b89077711660ad268fe3af65950a31bf96302e1963b43444f6a38981edfe18",
+      "currentSha256": "15b89077711660ad268fe3af65950a31bf96302e1963b43444f6a38981edfe18",
+      "originalBytes": 4434
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/asap-score-alignment-2026-09-03.json",
+      "currentPath": "evidence/research/asap-score-alignment-2026-09-03.json",
+      "originalStoredPath": "evidence/research/asap-score-alignment-2026-09-03.json",
+      "originalSha256": "6c095e10d249a44969e857e4731a3cd95782296a9e222d3bee1f6e892d06db52",
+      "currentSha256": "6c095e10d249a44969e857e4731a3cd95782296a9e222d3bee1f6e892d06db52",
+      "originalBytes": 9223
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/asap-score-alignment-causal-diagnosis-2026-09-03.json",
+      "currentPath": "evidence/research/asap-score-alignment-causal-diagnosis-2026-09-03.json",
+      "originalStoredPath": "evidence/research/asap-score-alignment-causal-diagnosis-2026-09-03.json",
+      "originalSha256": "417d15219489a15849266df5006c66365f6213e1ff4cb45383d49a254019e6b3",
+      "currentSha256": "417d15219489a15849266df5006c66365f6213e1ff4cb45383d49a254019e6b3",
+      "originalBytes": 2087
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/asap-score-alignment-preregistration-2026-09-03.json",
+      "currentPath": "evidence/research/asap-score-alignment-preregistration-2026-09-03.json",
+      "originalStoredPath": "evidence/research/asap-score-alignment-preregistration-2026-09-03.json",
+      "originalSha256": "757e0a9b6cdc53120aa89f1b0c6375136fc583725ebde52b96e962305542dc7e",
+      "currentSha256": "757e0a9b6cdc53120aa89f1b0c6375136fc583725ebde52b96e962305542dc7e",
+      "originalBytes": 5081
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/audio-amt-branch-closeout-2026-09-05.json",
+      "currentPath": "evidence/research/audio-amt-branch-closeout-2026-09-05.json",
+      "originalStoredPath": "evidence/research/audio-amt-branch-closeout-2026-09-05.json",
+      "originalSha256": "4f9ba9ed01e8bc59d38430ed39f1f9d9c4be2c95eeec373a458c8066f43ffcf5",
+      "currentSha256": "4f9ba9ed01e8bc59d38430ed39f1f9d9c4be2c95eeec373a458c8066f43ffcf5",
+      "originalBytes": 11032
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/audit-tutorial-difficulty.mts",
+      "currentPath": "evidence/research/audit-tutorial-difficulty.mts",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/audit-tutorial-difficulty.mts.raw",
+      "originalSha256": "46405b724f197ad45b723883b18b60f81676aaa8f1d18b7de2dd17fa972c14b5",
+      "currentSha256": "9f58465d276272c00568a1a67592923e91cca97797ca294907dce980f7182fd6",
+      "originalBytes": 3039
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/authoritative-symbolic-density-normalization-2026-09-04.json",
+      "currentPath": "evidence/research/authoritative-symbolic-density-normalization-2026-09-04.json",
+      "originalStoredPath": "evidence/research/authoritative-symbolic-density-normalization-2026-09-04.json",
+      "originalSha256": "bdf7ae7f4f108d424ea24e092edd84b8dce9fa0fd116488ff066ca64bdd7c94a",
+      "currentSha256": "bdf7ae7f4f108d424ea24e092edd84b8dce9fa0fd116488ff066ca64bdd7c94a",
+      "originalBytes": 237210
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/authoritative-symbolic-density-normalization-2026-09-04.md",
+      "currentPath": "evidence/research/authoritative-symbolic-density-normalization-2026-09-04.md",
+      "originalStoredPath": "evidence/research/authoritative-symbolic-density-normalization-2026-09-04.md",
+      "originalSha256": "182ba67cd46cf34430bfed3faf7117f72cc94b6f956968cfdd1a97f15e66d823",
+      "currentSha256": "182ba67cd46cf34430bfed3faf7117f72cc94b6f956968cfdd1a97f15e66d823",
+      "originalBytes": 7861
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/authoritative-symbolic-playability-gate-audit-2026-09-04.json",
+      "currentPath": "evidence/research/authoritative-symbolic-playability-gate-audit-2026-09-04.json",
+      "originalStoredPath": "evidence/research/authoritative-symbolic-playability-gate-audit-2026-09-04.json",
+      "originalSha256": "7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324",
+      "currentSha256": "7807a641be94aad899ec1d60ff7678d2c8261587ed8bdbd4640a998fb6344324",
+      "originalBytes": 177232
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/authoritative-symbolic-playability-gate-audit-2026-09-04.md",
+      "currentPath": "evidence/research/authoritative-symbolic-playability-gate-audit-2026-09-04.md",
+      "originalStoredPath": "evidence/research/authoritative-symbolic-playability-gate-audit-2026-09-04.md",
+      "originalSha256": "bf1d76d365bcd48e9c0743a3dd5acc4ee868d2b2a5332f3d7cd6b3622613cd98",
+      "currentSha256": "bf1d76d365bcd48e9c0743a3dd5acc4ee868d2b2a5332f3d7cd6b3622613cd98",
+      "originalBytes": 13312
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/autonomous-blocked-symbolic-source-recovery-2026-09-06.json",
+      "currentPath": "evidence/research/autonomous-blocked-symbolic-source-recovery-2026-09-06.json",
+      "originalStoredPath": "evidence/research/autonomous-blocked-symbolic-source-recovery-2026-09-06.json",
+      "originalSha256": "d5c2278584bcc6b9cd3edf6051a0f96fea8520eef2691f563bf4ade52b9f4d9e",
+      "currentSha256": "d5c2278584bcc6b9cd3edf6051a0f96fea8520eef2691f563bf4ade52b9f4d9e",
+      "originalBytes": 27306
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/beginner-burst-spacing-2026-09-07.json",
+      "currentPath": "evidence/research/beginner-burst-spacing-2026-09-07.json",
+      "originalStoredPath": "evidence/research/beginner-burst-spacing-2026-09-07.json",
+      "originalSha256": "e4e23d37299eaf261fe348a9631cb6befc75857f4ac4cacc095dc77ba0b2531b",
+      "currentSha256": "e4e23d37299eaf261fe348a9631cb6befc75857f4ac4cacc095dc77ba0b2531b",
+      "originalBytes": 542
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/beginner-burst-spacing-2026-09-07.md",
+      "currentPath": "evidence/research/beginner-burst-spacing-2026-09-07.md",
+      "originalStoredPath": "evidence/research/beginner-burst-spacing-2026-09-07.md",
+      "originalSha256": "259369fede373732b92bd10f267c141c4f9f30df2e67bcdb696a86922cd428c8",
+      "currentSha256": "259369fede373732b92bd10f267c141c4f9f30df2e67bcdb696a86922cd428c8",
+      "originalBytes": 1633
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/beginner-offgrid-rh-budget-frontier-2026-09-03.md",
+      "currentPath": "evidence/research/beginner-offgrid-rh-budget-frontier-2026-09-03.md",
+      "originalStoredPath": "evidence/research/beginner-offgrid-rh-budget-frontier-2026-09-03.md",
+      "originalSha256": "fe82df63a660bdb1124434796666b3faf2aea73207fe917a34fcc92158f7e935",
+      "currentSha256": "fe82df63a660bdb1124434796666b3faf2aea73207fe917a34fcc92158f7e935",
+      "originalBytes": 4998
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/beginner-offgrid-rh-budget-policy-2026-09-03.json",
+      "currentPath": "evidence/research/beginner-offgrid-rh-budget-policy-2026-09-03.json",
+      "originalStoredPath": "evidence/research/beginner-offgrid-rh-budget-policy-2026-09-03.json",
+      "originalSha256": "a1a82a19defb1e949404c212b39d304158a8f53041949f9061ba74e169c1b304",
+      "currentSha256": "a1a82a19defb1e949404c212b39d304158a8f53041949f9061ba74e169c1b304",
+      "originalBytes": 1555
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/beginner-offgrid-rh-promotion-2026-09-03.json",
+      "currentPath": "evidence/research/beginner-offgrid-rh-promotion-2026-09-03.json",
+      "originalStoredPath": "evidence/research/beginner-offgrid-rh-promotion-2026-09-03.json",
+      "originalSha256": "f8b9db2d96fb9f98b250c995615aaf91c947405acb5e187ee75938335a0aa7d9",
+      "currentSha256": "f8b9db2d96fb9f98b250c995615aaf91c947405acb5e187ee75938335a0aa7d9",
+      "originalBytes": 4831
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/beginner-whole-song-screen-2026-09-07.json",
+      "currentPath": "evidence/research/beginner-whole-song-screen-2026-09-07.json",
+      "originalStoredPath": "evidence/research/beginner-whole-song-screen-2026-09-07.json",
+      "originalSha256": "0ac3981a1852b77cf0155379f10d6b62d896a9d38f9c51410d1f8731c10c57c8",
+      "currentSha256": "0ac3981a1852b77cf0155379f10d6b62d896a9d38f9c51410d1f8731c10c57c8",
+      "originalBytes": 7019
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/blocked-advanced-source-recovery-2026-09-06.json",
+      "currentPath": "evidence/research/blocked-advanced-source-recovery-2026-09-06.json",
+      "originalStoredPath": "evidence/research/blocked-advanced-source-recovery-2026-09-06.json",
+      "originalSha256": "2b48b9732875d280cb0bb872779dfb3c74676d8c437f4a4e1c180d565ced3b57",
+      "currentSha256": "2b48b9732875d280cb0bb872779dfb3c74676d8c437f4a4e1c180d565ced3b57",
+      "originalBytes": 5666
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/blocked-advanced-source-recovery-manifest-2026-09-06.json",
+      "currentPath": "evidence/research/blocked-advanced-source-recovery-manifest-2026-09-06.json",
+      "originalStoredPath": "evidence/research/blocked-advanced-source-recovery-manifest-2026-09-06.json",
+      "originalSha256": "0b823172258d79831532d36d64e5e79f4a5011ee465519baf5cf57e0bda22355",
+      "currentSha256": "0b823172258d79831532d36d64e5e79f4a5011ee465519baf5cf57e0bda22355",
+      "originalBytes": 10920
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/blocked-source-human-action-decision-2026-09-06.json",
+      "currentPath": "evidence/research/blocked-source-human-action-decision-2026-09-06.json",
+      "originalStoredPath": "evidence/research/blocked-source-human-action-decision-2026-09-06.json",
+      "originalSha256": "6f315de39507abd2f4a51dd8bc97743ecccda3128d853e1063cccb0c1032809f",
+      "currentSha256": "6f315de39507abd2f4a51dd8bc97743ecccda3128d853e1063cccb0c1032809f",
+      "originalBytes": 1542
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/bounded-mvp-deployment-canary-2026-09-04.json",
+      "currentPath": "evidence/research/bounded-mvp-deployment-canary-2026-09-04.json",
+      "originalStoredPath": "evidence/research/bounded-mvp-deployment-canary-2026-09-04.json",
+      "originalSha256": "139e6ea55817f2dd5bf9934b97cab0ca5012993c9d94113adc1e3a35805e6fab",
+      "currentSha256": "139e6ea55817f2dd5bf9934b97cab0ca5012993c9d94113adc1e3a35805e6fab",
+      "originalBytes": 3625
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/bounded-mvp-post-deploy-operations-2026-09-04.json",
+      "currentPath": "evidence/research/bounded-mvp-post-deploy-operations-2026-09-04.json",
+      "originalStoredPath": "evidence/research/bounded-mvp-post-deploy-operations-2026-09-04.json",
+      "originalSha256": "ecce80096a969e292eb740391759fa44e119bcf6f10c80c79a5bc562689b2ceb",
+      "currentSha256": "ecce80096a969e292eb740391759fa44e119bcf6f10c80c79a5bc562689b2ceb",
+      "originalBytes": 6127
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/bounded-mvp-release-candidate-2026-09-04.json",
+      "currentPath": "evidence/research/bounded-mvp-release-candidate-2026-09-04.json",
+      "originalStoredPath": "evidence/research/bounded-mvp-release-candidate-2026-09-04.json",
+      "originalSha256": "cb8ea634ebf63deb741b4511292a873f24c0a9e4ea1640e1a95b861ee0b99512",
+      "currentSha256": "cb8ea634ebf63deb741b4511292a873f24c0a9e4ea1640e1a95b861ee0b99512",
+      "originalBytes": 3453
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/build-source-lane-candidates.mts",
+      "currentPath": "evidence/research/build-source-lane-candidates.mts",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/build-source-lane-candidates.mts.raw",
+      "originalSha256": "87e84e58ab18587f48afda9b0c4daa3c6193276ea41e135515ab83376406d8fb",
+      "currentSha256": "5175a25ada089c3393158b988d4ce5e2e51d48addd22330a3607de0ad18df1ef",
+      "originalBytes": 5365
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/chords-golden-audit-2026-09-27.json",
+      "currentPath": "evidence/research/chords-golden-audit-2026-09-27.json",
+      "originalStoredPath": "evidence/research/chords-golden-audit-2026-09-27.json",
+      "originalSha256": "f25e7bf77b86bbcad6e41de07bf70b4d4753024940c968eb140bdd2f68421e8b",
+      "currentSha256": "f25e7bf77b86bbcad6e41de07bf70b4d4753024940c968eb140bdd2f68421e8b",
+      "originalBytes": 43873
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/chords-golden-audit-2026-09-27.md",
+      "currentPath": "evidence/research/chords-golden-audit-2026-09-27.md",
+      "originalStoredPath": "evidence/research/chords-golden-audit-2026-09-27.md",
+      "originalSha256": "86c0e81488cbdba97193ecb3e3af2c5c28f734b57ffe3e208a1efa2206c9c5fb",
+      "currentSha256": "86c0e81488cbdba97193ecb3e3af2c5c28f734b57ffe3e208a1efa2206c9c5fb",
+      "originalBytes": 19618
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/chords-golden-corpus-review-2026-09-25.md",
+      "currentPath": "evidence/research/chords-golden-corpus-review-2026-09-25.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/chords-golden-corpus-review-2026-09-25.md.raw",
+      "originalSha256": "4a654795ca0d23387f668180d915c7e1c65d47096bd28b7bce4825c25a253375",
+      "currentSha256": "83f2a8a24b1d4e0796b9cf44d259eff61bfb0a395daee3dfbf739664568806ca",
+      "originalBytes": 12403
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/chords-next-ten-2026-09-25.md",
+      "currentPath": "evidence/research/chords-next-ten-2026-09-25.md",
+      "originalStoredPath": "evidence/research/chords-next-ten-2026-09-25.md",
+      "originalSha256": "505243710356721fbeb6f2826b7beee8fb7f0905fd77392a2d0b13927e636179",
+      "currentSha256": "505243710356721fbeb6f2826b7beee8fb7f0905fd77392a2d0b13927e636179",
+      "originalBytes": 5298
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/chords-next-ten-candidate-review-2026-09-25.md",
+      "currentPath": "evidence/research/chords-next-ten-candidate-review-2026-09-25.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/chords-next-ten-candidate-review-2026-09-25.md.raw",
+      "originalSha256": "0085e1b4c958665f89f75bf9f640982ca8770b64bb4d14a30d3e412b8af84826",
+      "currentSha256": "9658f021ba80d09fc5e6d071036f4b4d28671d571aedcbfbd4397cfb55da8757",
+      "originalBytes": 57549
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/chords-upload-automation-2026-09-27.json",
+      "currentPath": "evidence/research/chords-upload-automation-2026-09-27.json",
+      "originalStoredPath": "evidence/research/chords-upload-automation-2026-09-27.json",
+      "originalSha256": "e1c411c78ae0c96a8ad21a427f576e618278abf038672b8fab271e732104cbf6",
+      "currentSha256": "e1c411c78ae0c96a8ad21a427f576e618278abf038672b8fab271e732104cbf6",
+      "originalBytes": 164332
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/chords-upload-automation-2026-09-27.md",
+      "currentPath": "evidence/research/chords-upload-automation-2026-09-27.md",
+      "originalStoredPath": "evidence/research/chords-upload-automation-2026-09-27.md",
+      "originalSha256": "ad18bd8a6258f0d52a5f4eed53501fa8171eb00cd2641cacc5df277090673cfd",
+      "currentSha256": "ad18bd8a6258f0d52a5f4eed53501fa8171eb00cd2641cacc5df277090673cfd",
+      "originalBytes": 9813
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/clamp3-sparse-landmark-reference-2026-09-03.json",
+      "currentPath": "evidence/research/clamp3-sparse-landmark-reference-2026-09-03.json",
+      "originalStoredPath": "evidence/research/clamp3-sparse-landmark-reference-2026-09-03.json",
+      "originalSha256": "7dc6859ac0e74e8ce1c944cc2438c7a1c296d7012fe6c18d01eca78fd89a87dc",
+      "currentSha256": "7dc6859ac0e74e8ce1c944cc2438c7a1c296d7012fe6c18d01eca78fd89a87dc",
+      "originalBytes": 8934
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/cold-transfer-2026-09-02-rerun-metrics.json",
+      "currentPath": "evidence/research/cold-transfer-2026-09-02-rerun-metrics.json",
+      "originalStoredPath": "evidence/research/cold-transfer-2026-09-02-rerun-metrics.json",
+      "originalSha256": "8c12b4a6fe062d423c0570db3b6f3e8bf61df75315085362ecd88489a51fe9bc",
+      "currentSha256": "8c12b4a6fe062d423c0570db3b6f3e8bf61df75315085362ecd88489a51fe9bc",
+      "originalBytes": 6639
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/cold-transfer-2026-09-02-rerun.md",
+      "currentPath": "evidence/research/cold-transfer-2026-09-02-rerun.md",
+      "originalStoredPath": "evidence/research/cold-transfer-2026-09-02-rerun.md",
+      "originalSha256": "10256442dc5439192c7350c6f92d61117e8d952f90447d39565d8ec4a7ec2726",
+      "currentSha256": "10256442dc5439192c7350c6f92d61117e8d952f90447d39565d8ec4a7ec2726",
+      "originalBytes": 5005
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/cold-transfer-2026-09-02.md",
+      "currentPath": "evidence/research/cold-transfer-2026-09-02.md",
+      "originalStoredPath": "evidence/research/cold-transfer-2026-09-02.md",
+      "originalSha256": "916097fdae6b163c2ab9eca35d25513ef4673a4af77e5a3e164ce1378dc07805",
+      "currentSha256": "916097fdae6b163c2ab9eca35d25513ef4673a4af77e5a3e164ce1378dc07805",
+      "originalBytes": 2678
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/cold-transfer-preregistration.template.json",
+      "currentPath": "evidence/research/cold-transfer-preregistration.template.json",
+      "originalStoredPath": "evidence/research/cold-transfer-preregistration.template.json",
+      "originalSha256": "817e80b225070f081662072df2d81c03707d439ef7357baf19556c313407cb52",
+      "currentSha256": "817e80b225070f081662072df2d81c03707d439ef7357baf19556c313407cb52",
+      "originalBytes": 2860
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/complete-local-pipeline-2026-09-08.json",
+      "currentPath": "evidence/research/complete-local-pipeline-2026-09-08.json",
+      "originalStoredPath": "evidence/research/complete-local-pipeline-2026-09-08.json",
+      "originalSha256": "e1acf73aca9cec03821ba3745d8407d686fec09451a8ca94958989533e152beb",
+      "currentSha256": "e1acf73aca9cec03821ba3745d8407d686fec09451a8ca94958989533e152beb",
+      "originalBytes": 4478
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/complete-local-pipeline-2026-09-08.md",
+      "currentPath": "evidence/research/complete-local-pipeline-2026-09-08.md",
+      "originalStoredPath": "evidence/research/complete-local-pipeline-2026-09-08.md",
+      "originalSha256": "36f7d962c8e9563890aa515cbc708da6492e1b63cf3ceba24132161233b3284c",
+      "currentSha256": "36f7d962c8e9563890aa515cbc708da6492e1b63cf3ceba24132161233b3284c",
+      "originalBytes": 3163
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/dense-metal-amt-eval-corpus-v1-manifest.json",
+      "currentPath": "evidence/research/dense-metal-amt-eval-corpus-v1-manifest.json",
+      "originalStoredPath": "evidence/research/dense-metal-amt-eval-corpus-v1-manifest.json",
+      "originalSha256": "18762bc9cb97d8aad36e20fc1ecf3b6d1914ecef6f1e0f0643c3542b3ccaefb8",
+      "currentSha256": "18762bc9cb97d8aad36e20fc1ecf3b6d1914ecef6f1e0f0643c3542b3ccaefb8",
+      "originalBytes": 4341
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/difficulty-contract-implementation-2026-09-04.json",
+      "currentPath": "evidence/research/difficulty-contract-implementation-2026-09-04.json",
+      "originalStoredPath": "evidence/research/difficulty-contract-implementation-2026-09-04.json",
+      "originalSha256": "4a80c3279efe31382c0d1581fa62ee216b7c1406d1f995a1cf88c2fb862af18b",
+      "currentSha256": "4a80c3279efe31382c0d1581fa62ee216b7c1406d1f995a1cf88c2fb862af18b",
+      "originalBytes": 142063
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/difficulty-contract-implementation-2026-09-04.md",
+      "currentPath": "evidence/research/difficulty-contract-implementation-2026-09-04.md",
+      "originalStoredPath": "evidence/research/difficulty-contract-implementation-2026-09-04.md",
+      "originalSha256": "7002b3d7e1875b388353d7d57fa59cf174a29e287a0da62ae75d81a6587884b0",
+      "currentSha256": "7002b3d7e1875b388353d7d57fa59cf174a29e287a0da62ae75d81a6587884b0",
+      "originalBytes": 2632
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/difficulty-contract-review-2026-09-04.json",
+      "currentPath": "evidence/research/difficulty-contract-review-2026-09-04.json",
+      "originalStoredPath": "evidence/research/difficulty-contract-review-2026-09-04.json",
+      "originalSha256": "13e6d341a934bb422578acf2145ab4596efdf7977d9051e7aed46d2b13b2e0a7",
+      "currentSha256": "13e6d341a934bb422578acf2145ab4596efdf7977d9051e7aed46d2b13b2e0a7",
+      "originalBytes": 120528
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/difficulty-contract-review-2026-09-04.md",
+      "currentPath": "evidence/research/difficulty-contract-review-2026-09-04.md",
+      "originalStoredPath": "evidence/research/difficulty-contract-review-2026-09-04.md",
+      "originalSha256": "9094a8277846b8f7e9cf25f8220e8ea70f1bc39b0ecceaa525909aa1ce5d2781",
+      "currentSha256": "9094a8277846b8f7e9cf25f8220e8ea70f1bc39b0ecceaa525909aa1ce5d2781",
+      "originalBytes": 2882
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json",
+      "currentPath": "evidence/research/discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json",
+      "originalStoredPath": "evidence/research/discovery-assisted-private-alpha-hardening-deployment-canary-2026-09-05.json",
+      "originalSha256": "b7dbb24753c36c4c6e71a19f08cd749ac1f5c844b726c889dd363be7fb3141fa",
+      "currentSha256": "b7dbb24753c36c4c6e71a19f08cd749ac1f5c844b726c889dd363be7fb3141fa",
+      "originalBytes": 7001
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json",
+      "currentPath": "evidence/research/discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json",
+      "originalStoredPath": "evidence/research/discovery-assisted-private-alpha-hardening-deployment-canary-retry-2026-09-05.json",
+      "originalSha256": "4c00e3fc3fd0640f84024460545685131cfd7ad727c43c826f8689409f52edbf",
+      "currentSha256": "4c00e3fc3fd0640f84024460545685131cfd7ad727c43c826f8689409f52edbf",
+      "originalBytes": 4721
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/discovery-assisted-private-alpha-product-hardening-2026-09-05.json",
+      "currentPath": "evidence/research/discovery-assisted-private-alpha-product-hardening-2026-09-05.json",
+      "originalStoredPath": "evidence/research/discovery-assisted-private-alpha-product-hardening-2026-09-05.json",
+      "originalSha256": "5e2019e85e07f404cad7160c7a009d0b547dcea08c8f3ca411154bae0f318311",
+      "currentSha256": "5e2019e85e07f404cad7160c7a009d0b547dcea08c8f3ca411154bae0f318311",
+      "originalBytes": 3143
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/experiment-ledger.json",
+      "currentPath": "evidence/research/experiment-ledger.json",
+      "originalStoredPath": "evidence/research/experiment-ledger.json",
+      "originalSha256": "b896ac4ea2c6b699ea2f3e42c715e5e6897f12222833dbeaf082f813b9878792",
+      "currentSha256": "b896ac4ea2c6b699ea2f3e42c715e5e6897f12222833dbeaf082f813b9878792",
+      "originalBytes": 170586
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/external-symbolic-shadow-rehearsal-2026-09-03.json",
+      "currentPath": "evidence/research/external-symbolic-shadow-rehearsal-2026-09-03.json",
+      "originalStoredPath": "evidence/research/external-symbolic-shadow-rehearsal-2026-09-03.json",
+      "originalSha256": "db2d2d891097c35570843a916e8cbe7024663af0e18a882e357b0dc256e3d64a",
+      "currentSha256": "db2d2d891097c35570843a916e8cbe7024663af0e18a882e357b0dc256e3d64a",
+      "originalBytes": 3876
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/four-level-lineup-2026-09-07.md",
+      "currentPath": "evidence/research/four-level-lineup-2026-09-07.md",
+      "originalStoredPath": "evidence/research/four-level-lineup-2026-09-07.md",
+      "originalSha256": "ec04fe6015670bdfabef7625c951a4f8a31d0beae0ed7546c2e7a38b6971a5f2",
+      "currentSha256": "ec04fe6015670bdfabef7625c951a4f8a31d0beae0ed7546c2e7a38b6971a5f2",
+      "originalBytes": 1765
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/frozen-density-normalization-public-contract-2026-09-04.json",
+      "currentPath": "evidence/research/frozen-density-normalization-public-contract-2026-09-04.json",
+      "originalStoredPath": "evidence/research/frozen-density-normalization-public-contract-2026-09-04.json",
+      "originalSha256": "f1c83004bf51d53054fbbe8a140423dfe1a6c0b634e24e282e886b350cf35060",
+      "currentSha256": "f1c83004bf51d53054fbbe8a140423dfe1a6c0b634e24e282e886b350cf35060",
+      "originalBytes": 11723
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/frozen-density-normalization-public-contract-2026-09-04.md",
+      "currentPath": "evidence/research/frozen-density-normalization-public-contract-2026-09-04.md",
+      "originalStoredPath": "evidence/research/frozen-density-normalization-public-contract-2026-09-04.md",
+      "originalSha256": "ba968af0da43a217236e4a99d7e9c918c02371eb31b040e333d37a8dc5590fb4",
+      "currentSha256": "ba968af0da43a217236e4a99d7e9c918c02371eb31b040e333d37a8dc5590fb4",
+      "originalBytes": 6560
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/gaps-guitar-techs-tiebreaker-2026-09-02.md",
+      "currentPath": "evidence/research/gaps-guitar-techs-tiebreaker-2026-09-02.md",
+      "originalStoredPath": "evidence/research/gaps-guitar-techs-tiebreaker-2026-09-02.md",
+      "originalSha256": "d5e935c442bd90d2f0aabebe8da8f185f396c03518608aef508603330e4cb754",
+      "currentSha256": "d5e935c442bd90d2f0aabebe8da8f185f396c03518608aef508603330e4cb754",
+      "originalBytes": 9242
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/generic-real-song-source-discovery-and-ranking-2026-09-04.json",
+      "currentPath": "evidence/research/generic-real-song-source-discovery-and-ranking-2026-09-04.json",
+      "originalStoredPath": "evidence/research/generic-real-song-source-discovery-and-ranking-2026-09-04.json",
+      "originalSha256": "d6c77057a1cc13da55b6cac9c16f3a0de52b2350bea55cf24d1dc1d810c52e08",
+      "currentSha256": "d6c77057a1cc13da55b6cac9c16f3a0de52b2350bea55cf24d1dc1d810c52e08",
+      "originalBytes": 26225
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/generic-real-song-source-discovery-and-ranking-2026-09-04.md",
+      "currentPath": "evidence/research/generic-real-song-source-discovery-and-ranking-2026-09-04.md",
+      "originalStoredPath": "evidence/research/generic-real-song-source-discovery-and-ranking-2026-09-04.md",
+      "originalSha256": "b2ff58057c1acb2ff08dad2ed83f615eea6954e9dada8415a96f75c077f4e2e6",
+      "currentSha256": "b2ff58057c1acb2ff08dad2ed83f615eea6954e9dada8415a96f75c077f4e2e6",
+      "originalBytes": 3437
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/http-source-profile-v10-2026-09-07.json",
+      "currentPath": "evidence/research/http-source-profile-v10-2026-09-07.json",
+      "originalStoredPath": "evidence/research/http-source-profile-v10-2026-09-07.json",
+      "originalSha256": "d208b8e3798fffcd4317fba2c0399c97f0e6a7a1b953c5f65f59cf5aac7b8879",
+      "currentSha256": "d208b8e3798fffcd4317fba2c0399c97f0e6a7a1b953c5f65f59cf5aac7b8879",
+      "originalBytes": 4076
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/README.md",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/README.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/importer-stress-2026-09-08/README.md.raw",
+      "originalSha256": "b93f736912011c286c19ba8b76b88341885b698f5701578f7a5b3435c32a604f",
+      "currentSha256": "27d39781997cfff56c2a887fc280db8a13600bd5c31ddbab23fd04ca9a9811df",
+      "originalBytes": 5497
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/candidate.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/candidate.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/candidate.json",
+      "originalSha256": "3f66efb8944c94367f72159dcd0bbc8e2527716f2a55c84fbcfb0be3d6828155",
+      "currentSha256": "3f66efb8944c94367f72159dcd0bbc8e2527716f2a55c84fbcfb0be3d6828155",
+      "originalBytes": 21305
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/first-run.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/first-run.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/first-run.json",
+      "originalSha256": "b14d28543fcf462cedf482afa79997848b1b6e2df40b810b9b833ec80c8c1215",
+      "currentSha256": "b14d28543fcf462cedf482afa79997848b1b6e2df40b810b9b833ec80c8c1215",
+      "originalBytes": 23958
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/manifest.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/manifest.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/manifest.json",
+      "originalSha256": "7617858797769711d87049e8c8e830dc92cf03aeec22a2bc0767545e6efd4240",
+      "currentSha256": "7617858797769711d87049e8c8e830dc92cf03aeec22a2bc0767545e6efd4240",
+      "originalBytes": 5668
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/manifest.sha256",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/manifest.sha256",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/manifest.sha256",
+      "originalSha256": "4a0dad5ed6f0627cebd576dc5a910df80aab01c1f364d3661f47c15e0c19053f",
+      "currentSha256": "4a0dad5ed6f0627cebd576dc5a910df80aab01c1f364d3661f47c15e0c19053f",
+      "originalBytes": 65
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/operations.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/operations.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/operations.json",
+      "originalSha256": "62e29f0ecedf6b2d0b142099165ccf2a2c897a6ddc5952eb58932a4311f48c5b",
+      "currentSha256": "62e29f0ecedf6b2d0b142099165ccf2a2c897a6ddc5952eb58932a4311f48c5b",
+      "originalBytes": 474
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/playability-audit.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/playability-audit.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/playability-audit.json",
+      "originalSha256": "b14091eca370815c51c580acc92321eb82cbf8897f1788a5c466e748b74beb08",
+      "currentSha256": "b14091eca370815c51c580acc92321eb82cbf8897f1788a5c466e748b74beb08",
+      "originalBytes": 134920
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/regression-comparison.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/regression-comparison.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/regression-comparison.json",
+      "originalSha256": "d5ab9246263f0edc0d6e7e5a4b437b02175afb1e4803df954288e70f41bf6c07",
+      "currentSha256": "d5ab9246263f0edc0d6e7e5a4b437b02175afb1e4803df954288e70f41bf6c07",
+      "originalBytes": 223
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/repair-regressions-candidate.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/repair-regressions-candidate.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/repair-regressions-candidate.json",
+      "originalSha256": "57374c007f59c9331788ab022926833a8e21a3cd6ed550679da0b6b39a4ebef4",
+      "currentSha256": "57374c007f59c9331788ab022926833a8e21a3cd6ed550679da0b6b39a4ebef4",
+      "originalBytes": 21305
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/repair-regressions.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/repair-regressions.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/repair-regressions.json",
+      "originalSha256": "ee344797d293971d7ec7e986246b7d0cd1cfe050888c544fa0fe74740e4930b9",
+      "currentSha256": "ee344797d293971d7ec7e986246b7d0cd1cfe050888c544fa0fe74740e4930b9",
+      "originalBytes": 8830
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/repair-run.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/repair-run.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/repair-run.json",
+      "originalSha256": "b3cc43f0f089b71f566e48bd5955f951dc3d77259c43019ae8a4beec8fa75e7e",
+      "currentSha256": "b3cc43f0f089b71f566e48bd5955f951dc3d77259c43019ae8a4beec8fa75e7e",
+      "originalBytes": 2091
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/repair-v2-candidate.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/repair-v2-candidate.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/repair-v2-candidate.json",
+      "originalSha256": "2b853a2f778c341a303c4a2f6a1e3f4b1e66bb0c9edd3462a73797b94d4cc795",
+      "currentSha256": "2b853a2f778c341a303c4a2f6a1e3f4b1e66bb0c9edd3462a73797b94d4cc795",
+      "originalBytes": 21305
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/repair-v2.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/repair-v2.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/repair-v2.json",
+      "originalSha256": "2b6d56285b19814cb950d780a834fb6e89d51aae7ce4503b4858db3dfcd51dc0",
+      "currentSha256": "2b6d56285b19814cb950d780a834fb6e89d51aae7ce4503b4858db3dfcd51dc0",
+      "originalBytes": 2938
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/importer-stress-2026-09-08/runtime.json",
+      "currentPath": "evidence/research/importer-stress-2026-09-08/runtime.json",
+      "originalStoredPath": "evidence/research/importer-stress-2026-09-08/runtime.json",
+      "originalSha256": "8a51a123d45d77ce12f71e45c84bae89cda147d8b86c398a957aa48c5ca8ecea",
+      "currentSha256": "8a51a123d45d77ce12f71e45c84bae89cda147d8b86c398a957aa48c5ca8ecea",
+      "originalBytes": 456
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ingest-source-profile-v10-2026-09-07.json",
+      "currentPath": "evidence/research/ingest-source-profile-v10-2026-09-07.json",
+      "originalStoredPath": "evidence/research/ingest-source-profile-v10-2026-09-07.json",
+      "originalSha256": "d756b8f67eb102b93b1733e66220976bd003c614ae64ad47c959dee6808721b3",
+      "currentSha256": "d756b8f67eb102b93b1733e66220976bd003c614ae64ad47c959dee6808721b3",
+      "originalBytes": 2294
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/iphone-player-2026-09-09/README.md",
+      "currentPath": "evidence/research/iphone-player-2026-09-09/README.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/iphone-player-2026-09-09/README.md.raw",
+      "originalSha256": "2e7fdf95669f90897925faa7271e5c5a6b41e3330f63881e1fac1be656a0b682",
+      "currentSha256": "2e7fdf95669f90897925faa7271e5c5a6b41e3330f63881e1fac1be656a0b682",
+      "originalBytes": 2467
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/just-tonight-import-failure-2026-09-08.md",
+      "currentPath": "evidence/research/just-tonight-import-failure-2026-09-08.md",
+      "originalStoredPath": "evidence/research/just-tonight-import-failure-2026-09-08.md",
+      "originalSha256": "84ec674ef0bd210c4f1495842f17bef0a80d3f670b3bb1a6da71a69fadd0f89f",
+      "currentSha256": "84ec674ef0bd210c4f1495842f17bef0a80d3f670b3bb1a6da71a69fadd0f89f",
+      "originalBytes": 4029
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/keyspilli-next-update-v1.json",
+      "currentPath": "evidence/research/keyspilli-next-update-v1.json",
+      "originalStoredPath": "evidence/research/keyspilli-next-update-v1.json",
+      "originalSha256": "d2f6780eafb95ad5e44478a55bb9ee1dfe9f308a18ca3fec4c19691f59a763cb",
+      "currentSha256": "d2f6780eafb95ad5e44478a55bb9ee1dfe9f308a18ca3fec4c19691f59a763cb",
+      "originalBytes": 15358
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks08-phrase-pilot-2026-10-12/README.md",
+      "currentPath": "evidence/research/ks08-phrase-pilot-2026-10-12/README.md",
+      "originalStoredPath": "evidence/research/ks08-phrase-pilot-2026-10-12/README.md",
+      "originalSha256": "7729f83336e0dd94c71783196c08acb3135598d80aa6d668250ffebcb774219b",
+      "currentSha256": "7729f83336e0dd94c71783196c08acb3135598d80aa6d668250ffebcb774219b",
+      "originalBytes": 6263
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks08-phrase-pilot-2026-10-12/evaluation.json",
+      "currentPath": "evidence/research/ks08-phrase-pilot-2026-10-12/evaluation.json",
+      "originalStoredPath": "evidence/research/ks08-phrase-pilot-2026-10-12/evaluation.json",
+      "originalSha256": "c0eea5d8a9113ce469c2e3332172660322963aa59ee3818e91b3cb376fe228ac",
+      "currentSha256": "c0eea5d8a9113ce469c2e3332172660322963aa59ee3818e91b3cb376fe228ac",
+      "originalBytes": 42655
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/README.md",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/README.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/README.md.raw",
+      "originalSha256": "8cfc3bb4e0ac2123fdd42bbd8dc86c688472fab101843f53b6edc38fb709b43f",
+      "currentSha256": "72f4b057cf85352715def7180babda3e489b3690d914256feb0e3322355cdb51",
+      "originalBytes": 20186
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/development-evaluation.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/development-evaluation.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/development-evaluation.json",
+      "originalSha256": "da8519fb401ede6b079458cb41afb3bf5752f4ad25b443db3cefbeb6b5366c40",
+      "currentSha256": "da8519fb401ede6b079458cb41afb3bf5752f4ad25b443db3cefbeb6b5366c40",
+      "originalBytes": 106031
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/holdout-evaluation.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/holdout-evaluation.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/holdout-evaluation.json",
+      "originalSha256": "2245c176aa9bb07f6c508a92ef5bbc5fcb1b974b0fff03cd03217c288ea1638b",
+      "currentSha256": "2245c176aa9bb07f6c508a92ef5bbc5fcb1b974b0fff03cd03217c288ea1638b",
+      "originalBytes": 169241
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/post-holdout-input-validation.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/post-holdout-input-validation.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/post-holdout-input-validation.json",
+      "originalSha256": "65ea3256fe3b26966d9e4a445043bf72e3055bf0e03403fac7004bb8056b75a7",
+      "currentSha256": "65ea3256fe3b26966d9e4a445043bf72e3055bf0e03403fac7004bb8056b75a7",
+      "originalBytes": 1337
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/pre-holdout-freeze.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/pre-holdout-freeze.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/pre-holdout-freeze.json",
+      "originalSha256": "469983a58db1fe7ec1e482f7d86f1d85e483bc079abddde3a0a169e515ddf7c7",
+      "currentSha256": "469983a58db1fe7ec1e482f7d86f1d85e483bc079abddde3a0a169e515ddf7c7",
+      "originalBytes": 605
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/review-controls-implementation1.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/review-controls-implementation1.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/review-controls-implementation1.json",
+      "originalSha256": "be4bc607f6452e7f90f59dc369f831b62cb5fdb76fa28ff9ae32cc2367c9cf26",
+      "currentSha256": "be4bc607f6452e7f90f59dc369f831b62cb5fdb76fa28ff9ae32cc2367c9cf26",
+      "originalBytes": 35981
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/review-controls-implementation2.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/review-controls-implementation2.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/review-controls-implementation2.json",
+      "originalSha256": "2ad43ce5ea9c211a6588c2612a3428d052cc9e1c0f903d60f40e892b11b27b9f",
+      "currentSha256": "2ad43ce5ea9c211a6588c2612a3428d052cc9e1c0f903d60f40e892b11b27b9f",
+      "originalBytes": 41507
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/revision2-jitter-observation.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/revision2-jitter-observation.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/revision2-jitter-observation.json",
+      "originalSha256": "b150f2af6418748d1b346b694634d32908bba4625bbbdf971be148fb75e93f5b",
+      "currentSha256": "b150f2af6418748d1b346b694634d32908bba4625bbbdf971be148fb75e93f5b",
+      "originalBytes": 5017
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/revision2-regression-report.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/revision2-regression-report.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/revision2-regression-report.json",
+      "originalSha256": "41bf62c8a6656a904a07c63b7553604426cad46ad598789ba828ee8558561ed4",
+      "currentSha256": "41bf62c8a6656a904a07c63b7553604426cad46ad598789ba828ee8558561ed4",
+      "originalBytes": 13241
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/ks09-harmony-pilot-2026-10-12/validation-summary.json",
+      "currentPath": "evidence/research/ks09-harmony-pilot-2026-10-12/validation-summary.json",
+      "originalStoredPath": "evidence/research/ks09-harmony-pilot-2026-10-12/validation-summary.json",
+      "originalSha256": "fcb23049486964b5ec4874ec6827025c2ce1f17c1aa8579f949c73ed6ebdf662",
+      "currentSha256": "fcb23049486964b5ec4874ec6827025c2ce1f17c1aa8579f949c73ed6ebdf662",
+      "originalBytes": 3296
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/live-same-origin-browser-mutation-port-fix-2026-09-05.json",
+      "currentPath": "evidence/research/live-same-origin-browser-mutation-port-fix-2026-09-05.json",
+      "originalStoredPath": "evidence/research/live-same-origin-browser-mutation-port-fix-2026-09-05.json",
+      "originalSha256": "f4cf5df5a740e3f2525969b43a0396859a979da2cd705027e5850ab0695b54f6",
+      "currentSha256": "f4cf5df5a740e3f2525969b43a0396859a979da2cd705027e5850ab0695b54f6",
+      "originalBytes": 3357
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-beta-acceptance-2026-09-07.json",
+      "currentPath": "evidence/research/metal-beta-acceptance-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-beta-acceptance-2026-09-07.json",
+      "originalSha256": "b6a114ed2e3f5913ad5331cb05b38beb580de84c77089a118af2600cda1e5047",
+      "currentSha256": "b6a114ed2e3f5913ad5331cb05b38beb580de84c77089a118af2600cda1e5047",
+      "originalBytes": 57361
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-delivery-cohort-2026-09-07.json",
+      "currentPath": "evidence/research/metal-delivery-cohort-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-delivery-cohort-2026-09-07.json",
+      "originalSha256": "1a8dcb550d8fafb6ae0a17edb0118c8d9e8a8e36654a45c2e4f61a26c2ced6e5",
+      "currentSha256": "1a8dcb550d8fafb6ae0a17edb0118c8d9e8a8e36654a45c2e4f61a26c2ced6e5",
+      "originalBytes": 20095
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-delivery-development-2026-09-07.json",
+      "currentPath": "evidence/research/metal-delivery-development-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-delivery-development-2026-09-07.json",
+      "originalSha256": "2bb6b4b15de8e013ca879392be14b1430432f7b80d64af4a96a6c9d2f436e723",
+      "currentSha256": "2bb6b4b15de8e013ca879392be14b1430432f7b80d64af4a96a6c9d2f436e723",
+      "originalBytes": 16190
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-delivery-progress-2026-09-07.md",
+      "currentPath": "evidence/research/metal-delivery-progress-2026-09-07.md",
+      "originalStoredPath": "evidence/research/metal-delivery-progress-2026-09-07.md",
+      "originalSha256": "3d188d1744c6ed2aa4299fec99124558d0bf251c0cf58ee5f5ebd011de5ae5f9",
+      "currentSha256": "3d188d1744c6ed2aa4299fec99124558d0bf251c0cf58ee5f5ebd011de5ae5f9",
+      "originalBytes": 7479
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-delivery-source-freeze-2026-09-07.json",
+      "currentPath": "evidence/research/metal-delivery-source-freeze-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-delivery-source-freeze-2026-09-07.json",
+      "originalSha256": "c723644c2797e32d37846914988e4fa8d65b9d0039059d42787ddd9c41106076",
+      "currentSha256": "c723644c2797e32d37846914988e4fa8d65b9d0039059d42787ddd9c41106076",
+      "originalBytes": 9669
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-execution-checklist-2026-09-07.md",
+      "currentPath": "evidence/research/metal-execution-checklist-2026-09-07.md",
+      "originalStoredPath": "evidence/research/metal-execution-checklist-2026-09-07.md",
+      "originalSha256": "a2572dc489d23241911b64de9c48607549f4a86319975875188fd9b2a3091333",
+      "currentSha256": "a2572dc489d23241911b64de9c48607549f4a86319975875188fd9b2a3091333",
+      "originalBytes": 13327
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-final-report-2026-09-07.md",
+      "currentPath": "evidence/research/metal-final-report-2026-09-07.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/metal-final-report-2026-09-07.md.raw",
+      "originalSha256": "dac0abe5b068a5b0320ae0f071180dc5027f47da7bfa1f906ff0631b86f9977a",
+      "currentSha256": "d41b7d26af8fae3169be2323cc70734c5bbea012766124a1a57c24f993a6de97",
+      "originalBytes": 11430
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-identity-isolation-2026-09-07.json",
+      "currentPath": "evidence/research/metal-identity-isolation-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-identity-isolation-2026-09-07.json",
+      "originalSha256": "a988918070e7b543f9c6ff1e30a9371e0936e5c2ed3ea55d54aa2d9c88044647",
+      "currentSha256": "a988918070e7b543f9c6ff1e30a9371e0936e5c2ed3ea55d54aa2d9c88044647",
+      "originalBytes": 1018
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-identity-preservation-2026-09-07.json",
+      "currentPath": "evidence/research/metal-identity-preservation-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-identity-preservation-2026-09-07.json",
+      "originalSha256": "f5dc24b4eecf0c4b7d82181787919b7e62addefde041f588aab661dd02b8fa60",
+      "currentSha256": "f5dc24b4eecf0c4b7d82181787919b7e62addefde041f588aab661dd02b8fa60",
+      "originalBytes": 6172
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-piano-controls-2026-09-07.json",
+      "currentPath": "evidence/research/metal-piano-controls-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-piano-controls-2026-09-07.json",
+      "originalSha256": "ffcc01312b9e4d469684e16954da5389a5b16ba0fcaf30c60cebb15f77067320",
+      "currentSha256": "ffcc01312b9e4d469684e16954da5389a5b16ba0fcaf30c60cebb15f77067320",
+      "originalBytes": 61469
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-recovery-decision-2026-09-07.md",
+      "currentPath": "evidence/research/metal-recovery-decision-2026-09-07.md",
+      "originalStoredPath": "evidence/research/metal-recovery-decision-2026-09-07.md",
+      "originalSha256": "63259d3357a37b6a0f211a9a3a9277b23ab5d1b63cbbe41c16cef2cbbdea661b",
+      "currentSha256": "63259d3357a37b6a0f211a9a3a9277b23ab5d1b63cbbe41c16cef2cbbdea661b",
+      "originalBytes": 7063
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-recovery-reference-manifest-2026-09-07.json",
+      "currentPath": "evidence/research/metal-recovery-reference-manifest-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-recovery-reference-manifest-2026-09-07.json",
+      "originalSha256": "fbc6023f0877ef25d6f3ffe8e8673b3b22fb481b463f816744abb25d741f3ca7",
+      "currentSha256": "fbc6023f0877ef25d6f3ffe8e8673b3b22fb481b463f816744abb25d741f3ca7",
+      "originalBytes": 4382
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-source-route-decision-2026-09-07.json",
+      "currentPath": "evidence/research/metal-source-route-decision-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-source-route-decision-2026-09-07.json",
+      "originalSha256": "2c367764023e1dc7087270d8edd1c3ba699e5ae9899c188cf6e4bf2feb512257",
+      "currentSha256": "2c367764023e1dc7087270d8edd1c3ba699e5ae9899c188cf6e4bf2feb512257",
+      "originalBytes": 2684
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-to-midi-audit-2026-09-07.md",
+      "currentPath": "evidence/research/metal-to-midi-audit-2026-09-07.md",
+      "originalStoredPath": "evidence/research/metal-to-midi-audit-2026-09-07.md",
+      "originalSha256": "cf5186b8f40c9ba1f50080dcfe28fa33071512d09238eb2ffc08adea09916ac3",
+      "currentSha256": "cf5186b8f40c9ba1f50080dcfe28fa33071512d09238eb2ffc08adea09916ac3",
+      "originalBytes": 10454
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-to-midi-release-gap-reassessment-2026-09-04.json",
+      "currentPath": "evidence/research/metal-to-midi-release-gap-reassessment-2026-09-04.json",
+      "originalStoredPath": "evidence/research/metal-to-midi-release-gap-reassessment-2026-09-04.json",
+      "originalSha256": "5c23c167ad3ec586d59e51b9b55ee875270d09b42eba5a4231ad50b4746a2a93",
+      "currentSha256": "5c23c167ad3ec586d59e51b9b55ee875270d09b42eba5a4231ad50b4746a2a93",
+      "originalBytes": 21514
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-to-midi-release-gap-reassessment-2026-09-04.md",
+      "currentPath": "evidence/research/metal-to-midi-release-gap-reassessment-2026-09-04.md",
+      "originalStoredPath": "evidence/research/metal-to-midi-release-gap-reassessment-2026-09-04.md",
+      "originalSha256": "08217f19f3751b683ffd8899dec016a264ac4ca6c155831ac77911b6cfb18b07",
+      "currentSha256": "08217f19f3751b683ffd8899dec016a264ac4ca6c155831ac77911b6cfb18b07",
+      "originalBytes": 6633
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-upstream-comparison-2026-09-07.json",
+      "currentPath": "evidence/research/metal-upstream-comparison-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-upstream-comparison-2026-09-07.json",
+      "originalSha256": "2d5c736bc8c598f2d34edc19a443f0cd2af600149ff1719b3f0dc6d8f3347351",
+      "currentSha256": "2d5c736bc8c598f2d34edc19a443f0cd2af600149ff1719b3f0dc6d8f3347351",
+      "originalBytes": 8177
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metal-worker-safety-2026-09-07.json",
+      "currentPath": "evidence/research/metal-worker-safety-2026-09-07.json",
+      "originalStoredPath": "evidence/research/metal-worker-safety-2026-09-07.json",
+      "originalSha256": "8ad48c72fe706706252c323dbedcfc6958acbe486ac20fe59a1aa0b291642ee5",
+      "currentSha256": "8ad48c72fe706706252c323dbedcfc6958acbe486ac20fe59a1aa0b291642ee5",
+      "originalBytes": 3930
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/metallica-hand-lane-candidate-2026-09-08.json",
+      "currentPath": "evidence/research/metallica-hand-lane-candidate-2026-09-08.json",
+      "originalStoredPath": "evidence/research/metallica-hand-lane-candidate-2026-09-08.json",
+      "originalSha256": "b70af4923b2280acedba86fbe7c96f7bb71e31ae80661e10c2dce9701f8e4177",
+      "currentSha256": "b70af4923b2280acedba86fbe7c96f7bb71e31ae80661e10c2dce9701f8e4177",
+      "originalBytes": 49220
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/muscriptor-cold-metal-reference-evaluation-2026-09-05.json",
+      "currentPath": "evidence/research/muscriptor-cold-metal-reference-evaluation-2026-09-05.json",
+      "originalStoredPath": "evidence/research/muscriptor-cold-metal-reference-evaluation-2026-09-05.json",
+      "originalSha256": "c864d3a84dc5ad841f822f2e1f6791ec1c0f7e90cc030caf61cf8271fc4f7478",
+      "currentSha256": "c864d3a84dc5ad841f822f2e1f6791ec1c0f7e90cc030caf61cf8271fc4f7478",
+      "originalBytes": 5293
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/muscriptor-dense-metal-basic-pitch-baseline-2026-09-05.json",
+      "currentPath": "evidence/research/muscriptor-dense-metal-basic-pitch-baseline-2026-09-05.json",
+      "originalStoredPath": "evidence/research/muscriptor-dense-metal-basic-pitch-baseline-2026-09-05.json",
+      "originalSha256": "4bc2b80e8be117694ac300e9f306501241958ee4183e4d12b7b9e8815b5489a3",
+      "currentSha256": "4bc2b80e8be117694ac300e9f306501241958ee4183e4d12b7b9e8815b5489a3",
+      "originalBytes": 3234
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/muscriptor-dense-metal-cold-eval-preregistration-2026-09-05.json",
+      "currentPath": "evidence/research/muscriptor-dense-metal-cold-eval-preregistration-2026-09-05.json",
+      "originalStoredPath": "evidence/research/muscriptor-dense-metal-cold-eval-preregistration-2026-09-05.json",
+      "originalSha256": "06ee5fd318102203498e6a82f844223b8cefbf4af1064a197fc1659029a25eae",
+      "currentSha256": "06ee5fd318102203498e6a82f844223b8cefbf4af1064a197fc1659029a25eae",
+      "originalBytes": 5707
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/muscriptor-dense-metal-cold-evaluation-2026-09-05.json",
+      "currentPath": "evidence/research/muscriptor-dense-metal-cold-evaluation-2026-09-05.json",
+      "originalStoredPath": "evidence/research/muscriptor-dense-metal-cold-evaluation-2026-09-05.json",
+      "originalSha256": "67a69e113b664c033a8e2b9d264531f645f705db44a6c7678a4701c82ef940ba",
+      "currentSha256": "67a69e113b664c033a8e2b9d264531f645f705db44a6c7678a4701c82ef940ba",
+      "originalBytes": 7214
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/muscriptor-hf-access-resume-2026-09-05.json",
+      "currentPath": "evidence/research/muscriptor-hf-access-resume-2026-09-05.json",
+      "originalStoredPath": "evidence/research/muscriptor-hf-access-resume-2026-09-05.json",
+      "originalSha256": "4ef254d119ddd05105061f38fb7e88aac907e6ab8635a4ace54b9c38c714faeb",
+      "currentSha256": "4ef254d119ddd05105061f38fb7e88aac907e6ab8635a4ace54b9c38c714faeb",
+      "originalBytes": 4545
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/muscriptor-hf-browser-auth-runtime-unlock-2026-09-05.json",
+      "currentPath": "evidence/research/muscriptor-hf-browser-auth-runtime-unlock-2026-09-05.json",
+      "originalStoredPath": "evidence/research/muscriptor-hf-browser-auth-runtime-unlock-2026-09-05.json",
+      "originalSha256": "946c3c9944d002bcb2320f519c8669d38d19828e3e4991ca1143d518976fe917",
+      "currentSha256": "946c3c9944d002bcb2320f519c8669d38d19828e3e4991ca1143d518976fe917",
+      "originalBytes": 5911
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/muscriptor-local-auth-runtime-unlock-2026-09-05.json",
+      "currentPath": "evidence/research/muscriptor-local-auth-runtime-unlock-2026-09-05.json",
+      "originalStoredPath": "evidence/research/muscriptor-local-auth-runtime-unlock-2026-09-05.json",
+      "originalSha256": "874c42868a97cb8071651ed51ca9a9a68603d0b01abd8a9fd0cc923348f97b29",
+      "currentSha256": "874c42868a97cb8071651ed51ca9a9a68603d0b01abd8a9fd0cc923348f97b29",
+      "originalBytes": 3971
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/note-letters-2026-09-09.md",
+      "currentPath": "evidence/research/note-letters-2026-09-09.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/note-letters-2026-09-09.md.raw",
+      "originalSha256": "7ce5e36cd5f88a27ef203bdb854094112715a310808d1f89c19853545192f4c5",
+      "currentSha256": "7ce5e36cd5f88a27ef203bdb854094112715a310808d1f89c19853545192f4c5",
+      "originalBytes": 5283
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/original-link-proof-2026-09-07.json",
+      "currentPath": "evidence/research/original-link-proof-2026-09-07.json",
+      "originalStoredPath": "evidence/research/original-link-proof-2026-09-07.json",
+      "originalSha256": "00b3c4ca6d85bf358ffc8b3b3ecccf51120a2d40e15d201dae099702962cbaf5",
+      "currentSha256": "00b3c4ca6d85bf358ffc8b3b3ecccf51120a2d40e15d201dae099702962cbaf5",
+      "originalBytes": 2721
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/original-link-retries-2026-09-08.json",
+      "currentPath": "evidence/research/original-link-retries-2026-09-08.json",
+      "originalStoredPath": "evidence/research/original-link-retries-2026-09-08.json",
+      "originalSha256": "9aa3868b5fb91c3f1f5848d4ecd3354e1efd4363a93d317bee511b0d5d3ce585",
+      "currentSha256": "9aa3868b5fb91c3f1f5848d4ecd3354e1efd4363a93d317bee511b0d5d3ce585",
+      "originalBytes": 1864
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/original-link-retries-2026-09-08.md",
+      "currentPath": "evidence/research/original-link-retries-2026-09-08.md",
+      "originalStoredPath": "evidence/research/original-link-retries-2026-09-08.md",
+      "originalSha256": "7ee9645e0b911249a9ed90f631682679f680050e52e5589acb21d36a4740cd80",
+      "currentSha256": "7ee9645e0b911249a9ed90f631682679f680050e52e5589acb21d36a4740cd80",
+      "originalBytes": 1838
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/owner-private-alpha-access-restoration-2026-09-05.json",
+      "currentPath": "evidence/research/owner-private-alpha-access-restoration-2026-09-05.json",
+      "originalStoredPath": "evidence/research/owner-private-alpha-access-restoration-2026-09-05.json",
+      "originalSha256": "317ce455a1d7f53d8f44c73e89fbcf984c7c1ff94442d3a03dcbf3b07bff2c04",
+      "currentSha256": "317ce455a1d7f53d8f44c73e89fbcf984c7c1ff94442d3a03dcbf3b07bff2c04",
+      "originalBytes": 1801
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/owner-retrieved-blocked-symbolic-validation-2026-09-06.json",
+      "currentPath": "evidence/research/owner-retrieved-blocked-symbolic-validation-2026-09-06.json",
+      "originalStoredPath": "evidence/research/owner-retrieved-blocked-symbolic-validation-2026-09-06.json",
+      "originalSha256": "82912779977679913ad23d79f146228007ba41057331dc65c2bc943c32919cf4",
+      "currentSha256": "82912779977679913ad23d79f146228007ba41057331dc65c2bc943c32919cf4",
+      "originalBytes": 10782
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/player-instrument-ui-2026-09-09/README.md",
+      "currentPath": "evidence/research/player-instrument-ui-2026-09-09/README.md",
+      "originalStoredPath": "evidence/research/player-instrument-ui-2026-09-09/README.md",
+      "originalSha256": "91c73a7aeb450b4f0b7c89475130ae8e9dcdbab5a197b4702fa797a3fae95a6a",
+      "currentSha256": "91c73a7aeb450b4f0b7c89475130ae8e9dcdbab5a197b4702fa797a3fae95a6a",
+      "originalBytes": 4101
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/player-instrument-ui-2026-09-09/frame-profile.json",
+      "currentPath": "evidence/research/player-instrument-ui-2026-09-09/frame-profile.json",
+      "originalStoredPath": "evidence/research/player-instrument-ui-2026-09-09/frame-profile.json",
+      "originalSha256": "4237e17f04badf1611e39f63a16ad4b945a09e5c3971e1b8b1260e44361a8a90",
+      "currentSha256": "4237e17f04badf1611e39f63a16ad4b945a09e5c3971e1b8b1260e44361a8a90",
+      "originalBytes": 457
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/player-polish-2026-09-08.md",
+      "currentPath": "evidence/research/player-polish-2026-09-08.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/player-polish-2026-09-08.md.raw",
+      "originalSha256": "216a72a6066d97ce449104200bc50f0b4a2861d1612e7f0cc3b0e74077e80f28",
+      "currentSha256": "216a72a6066d97ce449104200bc50f0b4a2861d1612e7f0cc3b0e74077e80f28",
+      "originalBytes": 8518
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/private-alpha-operational-readiness-closeout-2026-09-05.json",
+      "currentPath": "evidence/research/private-alpha-operational-readiness-closeout-2026-09-05.json",
+      "originalStoredPath": "evidence/research/private-alpha-operational-readiness-closeout-2026-09-05.json",
+      "originalSha256": "8d6e5292a543595091ae34199695aa589c71b059447886d3584106ccbbc35f4b",
+      "currentSha256": "8d6e5292a543595091ae34199695aa589c71b059447886d3584106ccbbc35f4b",
+      "originalBytes": 2527
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/private-alpha-operations-monitoring-hardening-2026-09-05.json",
+      "currentPath": "evidence/research/private-alpha-operations-monitoring-hardening-2026-09-05.json",
+      "originalStoredPath": "evidence/research/private-alpha-operations-monitoring-hardening-2026-09-05.json",
+      "originalSha256": "e7222b76a13959bf5d5494e5bc60c302bf20249bc999e65d0304c044abe6e77d",
+      "currentSha256": "e7222b76a13959bf5d5494e5bc60c302bf20249bc999e65d0304c044abe6e77d",
+      "originalBytes": 3248
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/private-alpha-usage-feedback-phase-2026-09-05.json",
+      "currentPath": "evidence/research/private-alpha-usage-feedback-phase-2026-09-05.json",
+      "originalStoredPath": "evidence/research/private-alpha-usage-feedback-phase-2026-09-05.json",
+      "originalSha256": "3f5fbd4c951a8f51315cb0da38cbb1ce055f022eac5224f4b0e6ecacfe85ed52",
+      "currentSha256": "3f5fbd4c951a8f51315cb0da38cbb1ce055f022eac5224f4b0e6ecacfe85ed52",
+      "originalBytes": 7024
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/private-alpha-usage-feedback-preregistration-2026-09-05.json",
+      "currentPath": "evidence/research/private-alpha-usage-feedback-preregistration-2026-09-05.json",
+      "originalStoredPath": "evidence/research/private-alpha-usage-feedback-preregistration-2026-09-05.json",
+      "originalSha256": "13cf174570016e7ea3403fbfbf804fe5c96ae0967f9c64a93af8a290192228bb",
+      "currentSha256": "13cf174570016e7ea3403fbfbf804fe5c96ae0967f9c64a93af8a290192228bb",
+      "originalBytes": 2829
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/private-deployment-access-boundary-2026-09-04.json",
+      "currentPath": "evidence/research/private-deployment-access-boundary-2026-09-04.json",
+      "originalStoredPath": "evidence/research/private-deployment-access-boundary-2026-09-04.json",
+      "originalSha256": "16bec63df83adbc7e935d6e7bbdedb4dbff3b134cff886f40eeea3e432c70bc9",
+      "currentSha256": "16bec63df83adbc7e935d6e7bbdedb4dbff3b134cff886f40eeea3e432c70bc9",
+      "originalBytes": 4526
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/probe-metallica-hand-lanes.mts",
+      "currentPath": "evidence/research/probe-metallica-hand-lanes.mts",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/probe-metallica-hand-lanes.mts.raw",
+      "originalSha256": "df7564e9c2aecd9481fa75fa73a4b8ca9fb971848d64b9e5ffb2fe64b92ec303",
+      "currentSha256": "0fc125a47f8f8d3eaea5d6d27f58492c3b79ee7144b4fab3ae06d83ff1b8bc2d",
+      "originalBytes": 3475
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/production-generic-source-search-provider-2026-09-05.json",
+      "currentPath": "evidence/research/production-generic-source-search-provider-2026-09-05.json",
+      "originalStoredPath": "evidence/research/production-generic-source-search-provider-2026-09-05.json",
+      "originalSha256": "6895c63f29f49234d8dbf0a1dc86458b45d4029684490f3b1c009d5841890411",
+      "currentSha256": "6895c63f29f49234d8dbf0a1dc86458b45d4029684490f3b1c009d5841890411",
+      "originalBytes": 7510
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/production-search-provider-canary-closeout-2026-09-05.json",
+      "currentPath": "evidence/research/production-search-provider-canary-closeout-2026-09-05.json",
+      "originalStoredPath": "evidence/research/production-search-provider-canary-closeout-2026-09-05.json",
+      "originalSha256": "f3b6e537df536abebade9d388cf79164041b299191329a3b809d66292cfe353b",
+      "currentSha256": "f3b6e537df536abebade9d388cf79164041b299191329a3b809d66292cfe353b",
+      "originalBytes": 5697
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/production-search-provider-credential-canary-2026-09-05.json",
+      "currentPath": "evidence/research/production-search-provider-credential-canary-2026-09-05.json",
+      "originalStoredPath": "evidence/research/production-search-provider-credential-canary-2026-09-05.json",
+      "originalSha256": "0772573ec8462b9000e386acaf4efa97aabefd1424ecee51d07ef14f1e65ef5a",
+      "currentSha256": "0772573ec8462b9000e386acaf4efa97aabefd1424ecee51d07ef14f1e65ef5a",
+      "originalBytes": 3482
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/production-search-provider-credential-canary-rerun-2026-09-05.json",
+      "currentPath": "evidence/research/production-search-provider-credential-canary-rerun-2026-09-05.json",
+      "originalStoredPath": "evidence/research/production-search-provider-credential-canary-rerun-2026-09-05.json",
+      "originalSha256": "51dea006feb7de2a5f608d429e7b9018c83de50bef25bbffbcbbbeb5ecf1c514",
+      "currentSha256": "51dea006feb7de2a5f608d429e7b9018c83de50bef25bbffbcbbbeb5ecf1c514",
+      "originalBytes": 4376
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/real-symbolic-timing-hardening-2026-09-03.json",
+      "currentPath": "evidence/research/real-symbolic-timing-hardening-2026-09-03.json",
+      "originalStoredPath": "evidence/research/real-symbolic-timing-hardening-2026-09-03.json",
+      "originalSha256": "89b17c29f983b717b2f5b7f9a0b305d7c8a67b4260dd32df8d89743f823dd3e1",
+      "currentSha256": "89b17c29f983b717b2f5b7f9a0b305d7c8a67b4260dd32df8d89743f823dd3e1",
+      "originalBytes": 7741
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/red-baron-lineage-2026-09-01.md",
+      "currentPath": "evidence/research/red-baron-lineage-2026-09-01.md",
+      "originalStoredPath": "evidence/research/red-baron-lineage-2026-09-01.md",
+      "originalSha256": "e7a7e9fc1fa9ad383b487a62320cb3e45caeca830596a9a0b89c03647840541b",
+      "currentSha256": "e7a7e9fc1fa9ad383b487a62320cb3e45caeca830596a9a0b89c03647840541b",
+      "originalBytes": 1846
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/region-aware-real-shadow-rehearsal-2026-09-04.json",
+      "currentPath": "evidence/research/region-aware-real-shadow-rehearsal-2026-09-04.json",
+      "originalStoredPath": "evidence/research/region-aware-real-shadow-rehearsal-2026-09-04.json",
+      "originalSha256": "6508e00e88fb1124ffa2914168a9ed855c9a2e4aa667748ddd61a3b367b4181b",
+      "currentSha256": "6508e00e88fb1124ffa2914168a9ed855c9a2e4aa667748ddd61a3b367b4181b",
+      "originalBytes": 4328
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/region-ownership-asap-oracle-2026-09-03.json",
+      "currentPath": "evidence/research/region-ownership-asap-oracle-2026-09-03.json",
+      "originalStoredPath": "evidence/research/region-ownership-asap-oracle-2026-09-03.json",
+      "originalSha256": "fd9cdf40be54ddabf8ec65c998c31f2c246f92d0a35f99267fe9f3252381ce9c",
+      "currentSha256": "fd9cdf40be54ddabf8ec65c998c31f2c246f92d0a35f99267fe9f3252381ce9c",
+      "originalBytes": 2224
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/render-source-lane-review.mts",
+      "currentPath": "evidence/research/render-source-lane-review.mts",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/render-source-lane-review.mts.raw",
+      "originalSha256": "1d87a643697aaa55cf20963e82cf18dcb671d3632935f6396bbf96ff03339f5c",
+      "currentSha256": "fdf6d081cf8eaa0dae48dd63a162a47a7d4cd09eaed149403d1dfba85df856cb",
+      "originalBytes": 7162
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/reproduction-manifest.md",
+      "currentPath": "evidence/research/reproduction-manifest.md",
+      "originalStoredPath": "evidence/research/reproduction-manifest.md",
+      "originalSha256": "b5ed76986cf237f78db8e238be23c12d2f1575cedc3231b86a678d7041990f50",
+      "currentSha256": "b5ed76986cf237f78db8e238be23c12d2f1575cedc3231b86a678d7041990f50",
+      "originalBytes": 1778
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/rights-cleared-dense-metal-amt-eval-corpus-2026-09-05.json",
+      "currentPath": "evidence/research/rights-cleared-dense-metal-amt-eval-corpus-2026-09-05.json",
+      "originalStoredPath": "evidence/research/rights-cleared-dense-metal-amt-eval-corpus-2026-09-05.json",
+      "originalSha256": "2b6fddbe44167289bc2035dcae3cfcbf791fc96006e48b4f62d294d0f84f1d13",
+      "currentSha256": "2b6fddbe44167289bc2035dcae3cfcbf791fc96006e48b4f62d294d0f84f1d13",
+      "originalBytes": 9172
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/score-alignment-production-candidate-2026-09-03.json",
+      "currentPath": "evidence/research/score-alignment-production-candidate-2026-09-03.json",
+      "originalStoredPath": "evidence/research/score-alignment-production-candidate-2026-09-03.json",
+      "originalSha256": "7cbf22a70c000016025c0330ca3a6bb88aaadab23ea5f566ed917d4968e92d18",
+      "currentSha256": "7cbf22a70c000016025c0330ca3a6bb88aaadab23ea5f566ed917d4968e92d18",
+      "originalBytes": 3397
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/screen-tutorial-beginner.py",
+      "currentPath": "evidence/research/screen-tutorial-beginner.py",
+      "originalStoredPath": "evidence/research/screen-tutorial-beginner.py",
+      "originalSha256": "be020027b3dbd88ea2979dcb836e0e78844a506df438e72fbd91332d089c18f9",
+      "currentSha256": "be020027b3dbd88ea2979dcb836e0e78844a506df438e72fbd91332d089c18f9",
+      "originalBytes": 1680
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/song-workflow-hardening-2026-09-27.md",
+      "currentPath": "evidence/research/song-workflow-hardening-2026-09-27.md",
+      "originalStoredPath": "evidence/research/song-workflow-hardening-2026-09-27.md",
+      "originalSha256": "cd8deaa158d2ee53f802a028dd91cd555f117f41073e2f34175a7033fae3c004",
+      "currentSha256": "cd8deaa158d2ee53f802a028dd91cd555f117f41073e2f34175a7033fae3c004",
+      "originalBytes": 9513
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/source-easy-spacing-2026-09-07.json",
+      "currentPath": "evidence/research/source-easy-spacing-2026-09-07.json",
+      "originalStoredPath": "evidence/research/source-easy-spacing-2026-09-07.json",
+      "originalSha256": "d6b53df26d6dccdfee46ed47368e7bd49ce6f42192fd9ab11268a5f0d8373ae8",
+      "currentSha256": "d6b53df26d6dccdfee46ed47368e7bd49ce6f42192fd9ab11268a5f0d8373ae8",
+      "originalBytes": 269
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/source-hand-lanes-2026-09-08.md",
+      "currentPath": "evidence/research/source-hand-lanes-2026-09-08.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/source-hand-lanes-2026-09-08.md.raw",
+      "originalSha256": "1c9038bd299529c99ae94c14b4fd8f6a6e9c0506f336ee08fe0e6cae0138ef14",
+      "currentSha256": "1ba1390c069ea959cf5368c79d8ef2f599887772d6d8a9d0bf3d04462ca65efd",
+      "originalBytes": 5226
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/source-lane-candidates-2026-09-08.json",
+      "currentPath": "evidence/research/source-lane-candidates-2026-09-08.json",
+      "originalStoredPath": "evidence/research/source-lane-candidates-2026-09-08.json",
+      "originalSha256": "dcba2659f61362e9fcbf1796212480a699840ed139b37a52737f51caf7f7d7d6",
+      "currentSha256": "dcba2659f61362e9fcbf1796212480a699840ed139b37a52737f51caf7f7d7d6",
+      "originalBytes": 110097
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/source-lane-listening-2026-09-08.json",
+      "currentPath": "evidence/research/source-lane-listening-2026-09-08.json",
+      "originalStoredPath": "evidence/research/source-lane-listening-2026-09-08.json",
+      "originalSha256": "4100746842b23a72a0d6d8fed341ad76f9c8c14181f0509dfc1e0b21cfb56428",
+      "currentSha256": "4100746842b23a72a0d6d8fed341ad76f9c8c14181f0509dfc1e0b21cfb56428",
+      "originalBytes": 1406
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/source-profile-v10-2026-09-07.md",
+      "currentPath": "evidence/research/source-profile-v10-2026-09-07.md",
+      "originalStoredPath": "evidence/research/source-profile-v10-2026-09-07.md",
+      "originalSha256": "75ac14f0f5b9079c5d8ec35d190d135067a93afcd0295492ad4eae21be59164d",
+      "currentSha256": "75ac14f0f5b9079c5d8ec35d190d135067a93afcd0295492ad4eae21be59164d",
+      "originalBytes": 1640
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/storage-inventory.json",
+      "currentPath": "evidence/research/storage-inventory.json",
+      "originalStoredPath": "evidence/research/storage-inventory.json",
+      "originalSha256": "2048b1db08906f95d6e8a77f68ee99b926231ad3137ac2120fb291e3aa66e700",
+      "currentSha256": "2048b1db08906f95d6e8a77f68ee99b926231ad3137ac2120fb291e3aa66e700",
+      "originalBytes": 6400
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/storage-policy.md",
+      "currentPath": "evidence/research/storage-policy.md",
+      "originalStoredPath": "evidence/research/storage-policy.md",
+      "originalSha256": "73aa9277140183f4055bab04a90a3255e56bf168278050aa80fc604c3ab3ab1d",
+      "currentSha256": "73aa9277140183f4055bab04a90a3255e56bf168278050aa80fc604c3ab3ab1d",
+      "originalBytes": 1887
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/texture-amt-routing-2026-09-02-metrics.json",
+      "currentPath": "evidence/research/texture-amt-routing-2026-09-02-metrics.json",
+      "originalStoredPath": "evidence/research/texture-amt-routing-2026-09-02-metrics.json",
+      "originalSha256": "4169bc31da66b0ba9921e0aeffa603b0db551cc49a10caac5f608fbd64f8bb78",
+      "currentSha256": "4169bc31da66b0ba9921e0aeffa603b0db551cc49a10caac5f608fbd64f8bb78",
+      "originalBytes": 15526
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/texture-amt-routing-2026-09-02.md",
+      "currentPath": "evidence/research/texture-amt-routing-2026-09-02.md",
+      "originalStoredPath": "evidence/research/texture-amt-routing-2026-09-02.md",
+      "originalSha256": "ad246f57f23f7d7862c4714ee37e9fa55de08e917e6e6592e1d257d8d9769cd9",
+      "currentSha256": "ad246f57f23f7d7862c4714ee37e9fa55de08e917e6e6592e1d257d8d9769cd9",
+      "originalBytes": 4688
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-cache-priority-recovery-v3-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-cache-priority-recovery-v3-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-cache-priority-recovery-v3-2026-09-08.json",
+      "originalSha256": "6425854e7a6c046ee63450bc188a07ac58ec836dc0ca3be0ef5dec678fd5d1b5",
+      "currentSha256": "6425854e7a6c046ee63450bc188a07ac58ec836dc0ca3be0ef5dec678fd5d1b5",
+      "originalBytes": 2867
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-candidate-freeze-v1-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-candidate-freeze-v1-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-candidate-freeze-v1-2026-09-08.json",
+      "originalSha256": "ea861c48e6371d866ab3142b9d21beb916b49d91fda1c5491a949ff320ce31a9",
+      "currentSha256": "ea861c48e6371d866ab3142b9d21beb916b49d91fda1c5491a949ff320ce31a9",
+      "originalBytes": 21189
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-candidate-freeze-v2-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-candidate-freeze-v2-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-candidate-freeze-v2-2026-09-08.json",
+      "originalSha256": "cd55a20fcffbd77c0555f808d1e37bf1ad53545f4c7e77ab037dde35d527ecdb",
+      "currentSha256": "cd55a20fcffbd77c0555f808d1e37bf1ad53545f4c7e77ab037dde35d527ecdb",
+      "originalBytes": 21189
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-candidate-freeze-v3-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-candidate-freeze-v3-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-candidate-freeze-v3-2026-09-08.json",
+      "originalSha256": "d042a472197542c3c9645936b1c27c56fc2f7ffc000218460bd8f43337486488",
+      "currentSha256": "d042a472197542c3c9645936b1c27c56fc2f7ffc000218460bd8f43337486488",
+      "originalBytes": 21189
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-development-frozen-v2-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-development-frozen-v2-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-development-frozen-v2-2026-09-08.json",
+      "originalSha256": "508152862aac12c2e6f3419deb852f54effc53b5ed22b2b95b6bac44e4305d9d",
+      "currentSha256": "508152862aac12c2e6f3419deb852f54effc53b5ed22b2b95b6bac44e4305d9d",
+      "originalBytes": 38811
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-development-frozen-v3-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-development-frozen-v3-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-development-frozen-v3-2026-09-08.json",
+      "originalSha256": "a187601d5b52b78619127e00a3a06c81f43471490ff8715cc4d51d4655b4573c",
+      "currentSha256": "a187601d5b52b78619127e00a3a06c81f43471490ff8715cc4d51d4655b4573c",
+      "originalBytes": 40494
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-difficulty-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-difficulty-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-difficulty-2026-09-08.json",
+      "originalSha256": "0cb8939f312e6c0f2b59c84e057e4a3ef778a302538317b4bd9dd40d6cc9f68b",
+      "currentSha256": "0cb8939f312e6c0f2b59c84e057e4a3ef778a302538317b4bd9dd40d6cc9f68b",
+      "originalBytes": 66453
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-difficulty-2026-09-08.md",
+      "currentPath": "evidence/research/tutorial-difficulty-2026-09-08.md",
+      "originalStoredPath": "evidence/originals/docs/research/keyspilli-evidence/tutorial-difficulty-2026-09-08.md.raw",
+      "originalSha256": "6583f9a92ca510706a4a2e43a1b09a556759479132c2b5cf4a648c2da459b44b",
+      "currentSha256": "0dc06f83a5a01e7977a329cdce0789aabd4177b603ad90a827b5a0d70fe63749",
+      "originalBytes": 6740
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-evaluation-manifest.json",
+      "currentPath": "evidence/research/tutorial-evaluation-manifest.json",
+      "originalStoredPath": "evidence/research/tutorial-evaluation-manifest.json",
+      "originalSha256": "e589511bc5395c39e5829417db6b9389b12d842b7cfad7710f6766c8dcad2593",
+      "currentSha256": "e589511bc5395c39e5829417db6b9389b12d842b7cfad7710f6766c8dcad2593",
+      "originalBytes": 13424
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-evaluation-manifest.sha256",
+      "currentPath": "evidence/research/tutorial-evaluation-manifest.sha256",
+      "originalStoredPath": "evidence/research/tutorial-evaluation-manifest.sha256",
+      "originalSha256": "4383a24977d6b41bfaa26a748229415301e1ac493319a83a4875fd7f518bc429",
+      "currentSha256": "4383a24977d6b41bfaa26a748229415301e1ac493319a83a4875fd7f518bc429",
+      "originalBytes": 100
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-evaluation-policy.md",
+      "currentPath": "evidence/research/tutorial-evaluation-policy.md",
+      "originalStoredPath": "evidence/research/tutorial-evaluation-policy.md",
+      "originalSha256": "765ff9b94b14a709a7c3201afae41e290465a51345e253fd94de3753c8e5be95",
+      "currentSha256": "765ff9b94b14a709a7c3201afae41e290465a51345e253fd94de3753c8e5be95",
+      "originalBytes": 6426
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-evaluation-source-freeze.json",
+      "currentPath": "evidence/research/tutorial-evaluation-source-freeze.json",
+      "originalStoredPath": "evidence/research/tutorial-evaluation-source-freeze.json",
+      "originalSha256": "95271b905b42d130ce4d1ce07e78c728aa25a587466df88abd519421a3eaf1fc",
+      "currentSha256": "95271b905b42d130ce4d1ce07e78c728aa25a587466df88abd519421a3eaf1fc",
+      "originalBytes": 4433
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-expansion-2026-09-07.json",
+      "currentPath": "evidence/research/tutorial-expansion-2026-09-07.json",
+      "originalStoredPath": "evidence/research/tutorial-expansion-2026-09-07.json",
+      "originalSha256": "b97428da07880d8a94f3d49b500569f47c0e46f092af2553ca778c6f04b81c60",
+      "currentSha256": "b97428da07880d8a94f3d49b500569f47c0e46f092af2553ca778c6f04b81c60",
+      "originalBytes": 3769
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-expansion-2026-09-07.md",
+      "currentPath": "evidence/research/tutorial-expansion-2026-09-07.md",
+      "originalStoredPath": "evidence/research/tutorial-expansion-2026-09-07.md",
+      "originalSha256": "5b5ab3ad948ca6ab44097fabea929b539af1961a020ec7c56238223724342c66",
+      "currentSha256": "5b5ab3ad948ca6ab44097fabea929b539af1961a020ec7c56238223724342c66",
+      "originalBytes": 3906
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-heldout-v1-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-heldout-v1-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-heldout-v1-2026-09-08.json",
+      "originalSha256": "a8a478fb3abc990424724a62b93ccf9524375cb5b2fb894a48b96cbbcc71ba23",
+      "currentSha256": "a8a478fb3abc990424724a62b93ccf9524375cb5b2fb894a48b96cbbcc71ba23",
+      "originalBytes": 12251
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-key-recovery-2026-09-07.json",
+      "currentPath": "evidence/research/tutorial-key-recovery-2026-09-07.json",
+      "originalStoredPath": "evidence/research/tutorial-key-recovery-2026-09-07.json",
+      "originalSha256": "396c672a215cb4db467490318ef1d1a54e35dffee1d2e9833e4b047e9136cb78",
+      "currentSha256": "396c672a215cb4db467490318ef1d1a54e35dffee1d2e9833e4b047e9136cb78",
+      "originalBytes": 3784
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-key-recovery-2026-09-07.md",
+      "currentPath": "evidence/research/tutorial-key-recovery-2026-09-07.md",
+      "originalStoredPath": "evidence/research/tutorial-key-recovery-2026-09-07.md",
+      "originalSha256": "23dd1cf4e8c7d377d490d9e6f8809eb0b5d62e25ded2a4c256e25be349de1973",
+      "currentSha256": "23dd1cf4e8c7d377d490d9e6f8809eb0b5d62e25ded2a4c256e25be349de1973",
+      "originalBytes": 7091
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-linux-http-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-linux-http-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-linux-http-2026-09-08.json",
+      "originalSha256": "39699b62591370279911459cbccac8146f03ef1b4bfeaa1c1fb8deb3f05fa0d7",
+      "currentSha256": "39699b62591370279911459cbccac8146f03ef1b4bfeaa1c1fb8deb3f05fa0d7",
+      "originalBytes": 34239
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-linux-runtime-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-linux-runtime-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-linux-runtime-2026-09-08.json",
+      "originalSha256": "a28a17632caaa38214088d0dc3ca78640c2ed896a2851c49b72fefb427600c69",
+      "currentSha256": "a28a17632caaa38214088d0dc3ca78640c2ed896a2851c49b72fefb427600c69",
+      "originalBytes": 25617
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-native-runtime-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-native-runtime-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-native-runtime-2026-09-08.json",
+      "originalSha256": "26acb2b769fea2d6a926d48fa1ae8087d0380b50e0e7c0d83b037336add0ace1",
+      "currentSha256": "26acb2b769fea2d6a926d48fa1ae8087d0380b50e0e7c0d83b037336add0ace1",
+      "originalBytes": 2727
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-prospective-difficulty-v2.json",
+      "currentPath": "evidence/research/tutorial-prospective-difficulty-v2.json",
+      "originalStoredPath": "evidence/research/tutorial-prospective-difficulty-v2.json",
+      "originalSha256": "15a0dda10590bb9b0a2c852fe3f258aab25a6507a36fb74779e01c1f46da34ee",
+      "currentSha256": "15a0dda10590bb9b0a2c852fe3f258aab25a6507a36fb74779e01c1f46da34ee",
+      "originalBytes": 549524
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-prospective-manifest-v2.json",
+      "currentPath": "evidence/research/tutorial-prospective-manifest-v2.json",
+      "originalStoredPath": "evidence/research/tutorial-prospective-manifest-v2.json",
+      "originalSha256": "68284bf55c542dac2634a9ba2e5147ae61164f254683dd2e1d58deecb94595d5",
+      "currentSha256": "68284bf55c542dac2634a9ba2e5147ae61164f254683dd2e1d58deecb94595d5",
+      "originalBytes": 13038
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-prospective-manifest-v2.sha256",
+      "currentPath": "evidence/research/tutorial-prospective-manifest-v2.sha256",
+      "originalStoredPath": "evidence/research/tutorial-prospective-manifest-v2.sha256",
+      "originalSha256": "5f3735a6b86fd0cce09068a617950529d57ae3d8a5d954a8d2c6559b60ae2f3e",
+      "currentSha256": "5f3735a6b86fd0cce09068a617950529d57ae3d8a5d954a8d2c6559b60ae2f3e",
+      "originalBytes": 104
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-prospective-selection-v2.json",
+      "currentPath": "evidence/research/tutorial-prospective-selection-v2.json",
+      "originalStoredPath": "evidence/research/tutorial-prospective-selection-v2.json",
+      "originalSha256": "4b74cc21abd7fff720f690ff8f11db7f89eac4b189780c701c908957f7190f8e",
+      "currentSha256": "4b74cc21abd7fff720f690ff8f11db7f89eac4b189780c701c908957f7190f8e",
+      "originalBytes": 2950
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-prospective-v2-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-prospective-v2-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-prospective-v2-2026-09-08.json",
+      "originalSha256": "885eaa15d294fb3a09e387a0a2624f38fb538345edd11fba38708f91ce42ce3e",
+      "currentSha256": "885eaa15d294fb3a09e387a0a2624f38fb538345edd11fba38708f91ce42ce3e",
+      "originalBytes": 19230
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-prospective-v2-2026-09-08.md",
+      "currentPath": "evidence/research/tutorial-prospective-v2-2026-09-08.md",
+      "originalStoredPath": "evidence/research/tutorial-prospective-v2-2026-09-08.md",
+      "originalSha256": "c858a00cb1dc3225daea58e1459771b0f1b219842362673f289d8a634a58a44e",
+      "currentSha256": "c858a00cb1dc3225daea58e1459771b0f1b219842362673f289d8a634a58a44e",
+      "originalBytes": 2352
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-runtime-artifact-hashes-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-runtime-artifact-hashes-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-runtime-artifact-hashes-2026-09-08.json",
+      "originalSha256": "5d191e63b375006767330d93226af83a2ed1a34c620e38c31411270b4d2155f5",
+      "currentSha256": "5d191e63b375006767330d93226af83a2ed1a34c620e38c31411270b4d2155f5",
+      "originalBytes": 170477
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-runtime-candidate.md",
+      "currentPath": "evidence/research/tutorial-runtime-candidate.md",
+      "originalStoredPath": "evidence/research/tutorial-runtime-candidate.md",
+      "originalSha256": "0bded4be731b7fa41f2013020380ed66ba2939c318cfa07e58d3bad1ffa62c36",
+      "currentSha256": "0bded4be731b7fa41f2013020380ed66ba2939c318cfa07e58d3bad1ffa62c36",
+      "originalBytes": 14806
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-runtime-dependencies-2026-09-08.json",
+      "currentPath": "evidence/research/tutorial-runtime-dependencies-2026-09-08.json",
+      "originalStoredPath": "evidence/research/tutorial-runtime-dependencies-2026-09-08.json",
+      "originalSha256": "e8c4de8621675a27ad424a10fead32516375a1cb049651b82161925795a3defe",
+      "currentSha256": "e8c4de8621675a27ad424a10fead32516375a1cb049651b82161925795a3defe",
+      "originalBytes": 100995
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-source-ending-2026-09-07.json",
+      "currentPath": "evidence/research/tutorial-source-ending-2026-09-07.json",
+      "originalStoredPath": "evidence/research/tutorial-source-ending-2026-09-07.json",
+      "originalSha256": "31cb4c2668a7e4dc187a8c71baaefd190c117d6bced90c85a143101e950fd7ab",
+      "currentSha256": "31cb4c2668a7e4dc187a8c71baaefd190c117d6bced90c85a143101e950fd7ab",
+      "originalBytes": 3354
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-source-harmony-2026-09-07.json",
+      "currentPath": "evidence/research/tutorial-source-harmony-2026-09-07.json",
+      "originalStoredPath": "evidence/research/tutorial-source-harmony-2026-09-07.json",
+      "originalSha256": "f4735f6c83386827768ca4389b5ded7241496ab5ca8f749c88a9982b88faf737",
+      "currentSha256": "f4735f6c83386827768ca4389b5ded7241496ab5ca8f749c88a9982b88faf737",
+      "originalBytes": 2105
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-source-harmony-2026-09-07.md",
+      "currentPath": "evidence/research/tutorial-source-harmony-2026-09-07.md",
+      "originalStoredPath": "evidence/research/tutorial-source-harmony-2026-09-07.md",
+      "originalSha256": "23b63c359ead4d02322c50ee3bac7ebe1c74a7deaeaefb100a8bcc00f3eb00e1",
+      "currentSha256": "23b63c359ead4d02322c50ee3bac7ebe1c74a7deaeaefb100a8bcc00f3eb00e1",
+      "originalBytes": 5668
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/tutorial-timing-boundary-2026-09-08.md",
+      "currentPath": "evidence/research/tutorial-timing-boundary-2026-09-08.md",
+      "originalStoredPath": "evidence/research/tutorial-timing-boundary-2026-09-08.md",
+      "originalSha256": "2bcfd2ad3b44d897e1b0892c01e3480761997d5f57d6c1f62cdd3146026429fb",
+      "currentSha256": "2bcfd2ad3b44d897e1b0892c01e3480761997d5f57d6c1f62cdd3146026429fb",
+      "originalBytes": 6735
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/user-mediated-source-candidate-handoff-2026-09-05.json",
+      "currentPath": "evidence/research/user-mediated-source-candidate-handoff-2026-09-05.json",
+      "originalStoredPath": "evidence/research/user-mediated-source-candidate-handoff-2026-09-05.json",
+      "originalSha256": "2738ffe9fce7db33ac9059b47608cd95224df50b645b27c2e1c2f2a9809d931f",
+      "currentSha256": "2738ffe9fce7db33ac9059b47608cd95224df50b645b27c2e1c2f2a9809d931f",
+      "originalBytes": 6452
+    },
+    {
+      "originalPath": "docs/research/keyspilli-evidence/user-mediated-source-handoff-live-canary-2026-09-05.json",
+      "currentPath": "evidence/research/user-mediated-source-handoff-live-canary-2026-09-05.json",
+      "originalStoredPath": "evidence/research/user-mediated-source-handoff-live-canary-2026-09-05.json",
+      "originalSha256": "c29ae747abfd1793c3f0c003e12f2393d9bd9287343c746a53b9c6a62873d793",
+      "currentSha256": "c29ae747abfd1793c3f0c003e12f2393d9bd9287343c746a53b9c6a62873d793",
+      "originalBytes": 1920
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-16-useful-melody-accompaniment-baseline.ts",
+      "currentPath": "evidence/superpowers/2026-09-16-useful-melody-accompaniment-baseline.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-16-useful-melody-accompaniment-baseline.ts.raw",
+      "originalSha256": "a006bc11e8421936942e0cc482872e2312c17c02e2012ec1ea6f5da23f8d058e",
+      "currentSha256": "732af68dbf64ca51f2baca291be614664af30b9e005516ae3e08354cad551d30",
+      "originalBytes": 2732
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-16-useful-melody-accompaniment-dry-run.ts",
+      "currentPath": "evidence/superpowers/2026-09-16-useful-melody-accompaniment-dry-run.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-16-useful-melody-accompaniment-dry-run.ts.raw",
+      "originalSha256": "216b070f69434da8b38e5d37bd918700e7a95dfe4c5b3cef57a0ac703fc82532",
+      "currentSha256": "734903cfebdaff6c184f332afa5a20988fb04afea6dd61e3e9a0a21e60ecc645",
+      "originalBytes": 5935
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-16-useful-melody-accompaniment-pilot.md",
+      "currentPath": "evidence/superpowers/2026-09-16-useful-melody-accompaniment-pilot.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-16-useful-melody-accompaniment-pilot.md",
+      "originalSha256": "7e258d48204ff04f36ca109fdd6564185f0b72be29393551dc2c787d3f50c298",
+      "currentSha256": "7e258d48204ff04f36ca109fdd6564185f0b72be29393551dc2c787d3f50c298",
+      "originalBytes": 17928
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-16-useful-melody-accompaniment-stratified.ts",
+      "currentPath": "evidence/superpowers/2026-09-16-useful-melody-accompaniment-stratified.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-16-useful-melody-accompaniment-stratified.ts.raw",
+      "originalSha256": "98a92e8f3f07a56d2db0ed832e2a9a6707adfa4d5b1401919bec63282de59081",
+      "currentSha256": "2724ee4c6a0286234e4700f2d7a8add244b82e8bab9662676aa87072d09c94f5",
+      "originalBytes": 5087
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-backing-rhythm-repair-checkpoint.md",
+      "currentPath": "evidence/superpowers/2026-09-17-backing-rhythm-repair-checkpoint.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-backing-rhythm-repair-checkpoint.md",
+      "originalSha256": "01f9168c905cdee1e4455cce1bf22c68842f231c7e12959d3094384fe16a7221",
+      "currentSha256": "01f9168c905cdee1e4455cce1bf22c68842f231c7e12959d3094384fe16a7221",
+      "originalBytes": 17532
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-backing-rhythm-repair-implementation.md",
+      "currentPath": "evidence/superpowers/2026-09-17-backing-rhythm-repair-implementation.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-backing-rhythm-repair-implementation.md",
+      "originalSha256": "29c00acfd734e34814b4b8b286902938ac357a9ea0f0a6aa4a1ac983e7697520",
+      "currentSha256": "29c00acfd734e34814b4b8b286902938ac357a9ea0f0a6aa4a1ac983e7697520",
+      "originalBytes": 19125
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-baseline.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-baseline.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-baseline.json.raw",
+      "originalSha256": "c74d96a0da4652d8b04b903664ac488f11979549973c7aa5ccbceaf73aaf62de",
+      "currentSha256": "833655cb6bc2f93e0cf1fec3bbbb16b03e890d4e2197ea60f7ec50f4e595db6e",
+      "originalBytes": 19219
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-candidate-freeze.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-candidate-freeze.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-candidate-freeze.json.raw",
+      "originalSha256": "cb851ac3766913259a90352859ddd8d2aefa0b1d3fc82b6c513b9d516dd77331",
+      "currentSha256": "85532eac732216efc9281fea75f8e17efa9bd2d9b2bca816ca9be66f71e4db44",
+      "originalBytes": 3702
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/README.md",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/README.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/README.md",
+      "originalSha256": "54c1ac276969b1c0ede51bfed1e9f3cc1c3c71135496d619455c856d594d30ef",
+      "currentSha256": "54c1ac276969b1c0ede51bfed1e9f3cc1c3c71135496d619455c856d594d30ef",
+      "originalBytes": 1332
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/SHA256SUMS.txt",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/SHA256SUMS.txt",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/SHA256SUMS.txt",
+      "originalSha256": "a46af9e92cc6f8b4e309081ffbb6558e109628af68e6c4d342ddc2aec4bd7fd0",
+      "currentSha256": "a46af9e92cc6f8b4e309081ffbb6558e109628af68e6c4d342ddc2aec4bd7fd0",
+      "originalBytes": 3978
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-automatic.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-automatic.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-automatic.json",
+      "originalSha256": "3c9fbe2195af665ec43a22a3222fffecc07d992c67d5b5cb99cbf37c56f88010",
+      "currentSha256": "3c9fbe2195af665ec43a22a3222fffecc07d992c67d5b5cb99cbf37c56f88010",
+      "originalBytes": 54714
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-manual.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-manual.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-manual.json",
+      "originalSha256": "85bc7580eba41300d74c8bcf516602bee897b0def202d6fe956b04546d55a701",
+      "currentSha256": "85bc7580eba41300d74c8bcf516602bee897b0def202d6fe956b04546d55a701",
+      "originalBytes": 55094
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-original.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-original.json",
+      "originalSha256": "ebb317951393ca33bf9edb09c5a94f8d0cd7f3a6302078c02698a06742d6d0cd",
+      "currentSha256": "ebb317951393ca33bf9edb09c5a94f8d0cd7f3a6302078c02698a06742d6d0cd",
+      "originalBytes": 55020
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-automatic.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-automatic.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-automatic.json",
+      "originalSha256": "ce9641ce5e876bb9554d83a5e8f902e66b2802eb6855fefc97b41eca6542469a",
+      "currentSha256": "ce9641ce5e876bb9554d83a5e8f902e66b2802eb6855fefc97b41eca6542469a",
+      "originalBytes": 128341
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-manual.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-manual.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-manual.json",
+      "originalSha256": "7c9a20a83a7173b98a11d29ced3bb3713f7ff89cb55a0987f62dd1b57c1411eb",
+      "currentSha256": "7c9a20a83a7173b98a11d29ced3bb3713f7ff89cb55a0987f62dd1b57c1411eb",
+      "originalBytes": 135983
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-original.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-c-v-alkan-prelude-original.json",
+      "originalSha256": "f89c1097c49701257c6c13996b193ff04981bcd48957cae0793aa56e2ce0ef92",
+      "currentSha256": "f89c1097c49701257c6c13996b193ff04981bcd48957cae0793aa56e2ce0ef92",
+      "originalBytes": 139405
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-automatic.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-automatic.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-automatic.json",
+      "originalSha256": "acb3ad294f89714a3fafade4a7d203bf31e99ae313646e0c9083f2fab1c275f4",
+      "currentSha256": "acb3ad294f89714a3fafade4a7d203bf31e99ae313646e0c9083f2fab1c275f4",
+      "originalBytes": 211255
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-manual.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-manual.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-manual.json",
+      "originalSha256": "59354889c908796d84b5ad45f2e8bdf8dd3af86f25ffb61e13af9e015bc22e19",
+      "currentSha256": "59354889c908796d84b5ad45f2e8bdf8dd3af86f25ffb61e13af9e015bc22e19",
+      "originalBytes": 216405
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-original.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-original.json",
+      "originalSha256": "8ab26fcee4f66e9c878005ef4823fd1c97c0a823baf303a45ef0d9701ca24e24",
+      "currentSha256": "8ab26fcee4f66e9c878005ef4823fd1c97c0a823baf303a45ef0d9701ca24e24",
+      "originalBytes": 215980
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-automatic.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-automatic.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-automatic.json",
+      "originalSha256": "477a4fea1f2fe848361f6441b44fae0a08f8ebc4b576414b9953fe27b8bd3119",
+      "currentSha256": "477a4fea1f2fe848361f6441b44fae0a08f8ebc4b576414b9953fe27b8bd3119",
+      "originalBytes": 96695
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-manual.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-manual.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-manual.json",
+      "originalSha256": "9656580216e0c4943064c339f25632ee33dc7018f4436d10de5b8edce3d32957",
+      "currentSha256": "9656580216e0c4943064c339f25632ee33dc7018f4436d10de5b8edce3d32957",
+      "originalBytes": 97044
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-original.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/captures/reserved-w-h-doane-near-the-cross-original.json",
+      "originalSha256": "0d347b5c1f51ebda6740dfb4960b4f90275dc613cef6a8b281ce7e0a4f203b99",
+      "currentSha256": "0d347b5c1f51ebda6740dfb4960b4f90275dc613cef6a8b281ce7e0a4f203b99",
+      "originalBytes": 98002
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/controls/control-blackbird-original-a.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/controls/control-blackbird-original-a.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/controls/control-blackbird-original-a.json",
+      "originalSha256": "de6c65ee86db1b8b9a9b7d9ffd0989d051fe03b8aa0cae52d9a85a51e2988d25",
+      "currentSha256": "de6c65ee86db1b8b9a9b7d9ffd0989d051fe03b8aa0cae52d9a85a51e2988d25",
+      "originalBytes": 18487
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/controls/control-blackbird-original-b.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/controls/control-blackbird-original-b.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/controls/control-blackbird-original-b.json",
+      "originalSha256": "387d0dd5ae7d339122de85d427ccc384458c5c0fbfe7f5e14c61f3cfb3067f8c",
+      "currentSha256": "387d0dd5ae7d339122de85d427ccc384458c5c0fbfe7f5e14c61f3cfb3067f8c",
+      "originalBytes": 18800
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet/reserved-evaluation-outcomes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/reserved-evaluation-outcomes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-capture-packet/reserved-evaluation-outcomes.json",
+      "originalSha256": "1faef745527f6969c11f5b90e1b2d18d0baa876c3a0de03796b2861239391fa1",
+      "currentSha256": "1faef745527f6969c11f5b90e1b2d18d0baa876c3a0de03796b2861239391fa1",
+      "originalBytes": 32582
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-development.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-current-candidate-development.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-development.json.raw",
+      "originalSha256": "458e3f6900eee9679f332269d8f862aaa790f35950b8c5625fa21b59513bd128",
+      "currentSha256": "9011fb7494eb59ba70a8ec83ca3af90ecc54e111ee970e50472751783468f050",
+      "originalBytes": 5781
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/README.md",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-current-candidate-packet/README.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/README.md.raw",
+      "originalSha256": "79480df7bfef0eb58508804bdb74ecbc9f68081a3ba672ba2cbe3461ea964950",
+      "currentSha256": "79480df7bfef0eb58508804bdb74ecbc9f68081a3ba672ba2cbe3461ea964950",
+      "originalBytes": 1678
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-current-candidate-packet/manifest.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-current-candidate-packet/manifest.json.raw",
+      "originalSha256": "fbe1e6b64b3be87bdd6c556e605cfd482140703561c27abf19b2b12a5ac1ec14",
+      "currentSha256": "8519fc3f946b7eebc5d0ff1c39a52d096e7933e56c17e27c5e405c3f6a8a69b7",
+      "originalBytes": 3506
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-draft-pr.md",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-draft-pr.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-draft-pr.md.raw",
+      "originalSha256": "6fe8904d1c1010ed7adc7b47e1e67de376ce7e35b0feb491d8f8b36f6a52c8c6",
+      "currentSha256": "c082a5a4f8bb1593c8f72fe4739c9db3b8b16dbb1bb5a224873763285de0091e",
+      "originalBytes": 16664
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/a/notes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/a/notes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/a/notes.json",
+      "originalSha256": "587458f078cc1f1248f9d8ebfe2079ab36e471de4d29a596631ee401e9dab4bf",
+      "currentSha256": "587458f078cc1f1248f9d8ebfe2079ab36e471de4d29a596631ee401e9dab4bf",
+      "originalBytes": 27072
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/manifest.json",
+      "originalSha256": "20d01fbd446ce820bcdfa205b3a906933a54bb232c39618c03391acd49bfc64d",
+      "currentSha256": "20d01fbd446ce820bcdfa205b3a906933a54bb232c39618c03391acd49bfc64d",
+      "originalBytes": 1951
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/song.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/song.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940/song.json",
+      "originalSha256": "e320b78f65df763252aeddcc01f521c20d1c4a03ccc9f7e5b9ea0a4e18e41340",
+      "currentSha256": "e320b78f65df763252aeddcc01f521c20d1c4a03ccc9f7e5b9ea0a4e18e41340",
+      "originalBytes": 733
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/a/notes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/a/notes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/a/notes.json",
+      "originalSha256": "7fe0f9b6464a1727c74f3f25d1f81777d2e916b6c7e11ebeaf9733cc5043b05d",
+      "currentSha256": "7fe0f9b6464a1727c74f3f25d1f81777d2e916b6c7e11ebeaf9733cc5043b05d",
+      "originalBytes": 42507
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/manifest.json",
+      "originalSha256": "592f18b63e9df64dea60e1c0abb1d7faf2a2cc73901587bc97d1a6373cba4aac",
+      "currentSha256": "592f18b63e9df64dea60e1c0abb1d7faf2a2cc73901587bc97d1a6373cba4aac",
+      "originalBytes": 793
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/song.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/song.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/c-v-alkan-prelude/song.json",
+      "originalSha256": "bd9dcbc8542f09341ace882ea56c8c734527ed0fb293c7822b2865d58b2e87a4",
+      "currentSha256": "bd9dcbc8542f09341ace882ea56c8c734527ed0fb293c7822b2865d58b2e87a4",
+      "originalBytes": 513
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/a/notes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/a/notes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/a/notes.json",
+      "originalSha256": "0e2b1ba6166434cb23ccf022440f4a9a4caff6f6a60f74b9bc4f84dabf636cde",
+      "currentSha256": "0e2b1ba6166434cb23ccf022440f4a9a4caff6f6a60f74b9bc4f84dabf636cde",
+      "originalBytes": 362625
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/manifest.json",
+      "originalSha256": "58aba31dd6df1776cc4be9caa56017620cdfe7cb30931231e23c99470873c356",
+      "currentSha256": "58aba31dd6df1776cc4be9caa56017620cdfe7cb30931231e23c99470873c356",
+      "originalBytes": 995
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/song.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/song.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo/song.json",
+      "originalSha256": "62b2792be3510c9754ed449af6c838e2cf56fecd810b5d92de2dff545f6802a0",
+      "currentSha256": "62b2792be3510c9754ed449af6c838e2cf56fecd810b5d92de2dff545f6802a0",
+      "originalBytes": 669
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/a/notes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/a/notes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/a/notes.json",
+      "originalSha256": "da39379165b5d13a03ef188a230765f3b08c1cc356d105766246b48a9a88b80e",
+      "currentSha256": "da39379165b5d13a03ef188a230765f3b08c1cc356d105766246b48a9a88b80e",
+      "originalBytes": 35288
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/manifest.json",
+      "originalSha256": "80fc6f3a4cace092c22a75ffdd7bc1e141a6b27f396f7806ef90467a24dccf0e",
+      "currentSha256": "80fc6f3a4cace092c22a75ffdd7bc1e141a6b27f396f7806ef90467a24dccf0e",
+      "originalBytes": 809
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/song.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/song.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures/w-h-doane-near-the-cross/song.json",
+      "originalSha256": "60e1f345d509e51d8265ea21bc7126e1f91f7fe987cc7a82954d221a41fcf3cc",
+      "currentSha256": "60e1f345d509e51d8265ea21bc7126e1f91f7fe987cc7a82954d221a41fcf3cc",
+      "originalBytes": 533
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/a/notes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/a/notes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/a/notes.json",
+      "originalSha256": "587680e888ee479a4be9c4c664b5910af88ecb2132863091e8b661b65040f6e4",
+      "currentSha256": "587680e888ee479a4be9c4c664b5910af88ecb2132863091e8b661b65040f6e4",
+      "originalBytes": 183446
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/manifest.json",
+      "originalSha256": "dc1bbbc6f3f797096ce45f73001cbcfbb7a371b889a3a660a759c18285810150",
+      "currentSha256": "dc1bbbc6f3f797096ce45f73001cbcfbb7a371b889a3a660a759c18285810150",
+      "originalBytes": 1955
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/song.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/song.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/aria-ellys-music-the-warning-hell-you-call-a-dream-piano-cover-by-aria-ellys-mslzwo1d/song.json",
+      "originalSha256": "8e3614442f891ccfe0a6aae85d2b09b95389a12fcb214ef1a1f765e91cebb93e",
+      "currentSha256": "8e3614442f891ccfe0a6aae85d2b09b95389a12fcb214ef1a1f765e91cebb93e",
+      "originalBytes": 755
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/a/notes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/a/notes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/a/notes.json",
+      "originalSha256": "346c168afa388c8582fbd631a1e0d79ba8bd585caa49ad7a1082492b5ecb7f98",
+      "currentSha256": "346c168afa388c8582fbd631a1e0d79ba8bd585caa49ad7a1082492b5ecb7f98",
+      "originalBytes": 249129
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/manifest.json",
+      "originalSha256": "e14640e33da4cc82214da98c87def815b1c5a0338dc5b5f67bfc7dddd8ce85bd",
+      "currentSha256": "e14640e33da4cc82214da98c87def815b1c5a0338dc5b5f67bfc7dddd8ce85bd",
+      "originalBytes": 827
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/song.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/song.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/britney-spears-oops-i-did-it-again/song.json",
+      "originalSha256": "6a2c4b129b01ff0f1b3640b31d434b14898aacb5650abfab0191769f84bc002f",
+      "currentSha256": "6a2c4b129b01ff0f1b3640b31d434b14898aacb5650abfab0191769f84bc002f",
+      "originalBytes": 554
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/a/notes.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/a/notes.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/a/notes.json",
+      "originalSha256": "5aa5671d42bd93c2ac65c1fd21c87aa049b8baead3dfb48ae265213e6f445c75",
+      "currentSha256": "5aa5671d42bd93c2ac65c1fd21c87aa049b8baead3dfb48ae265213e6f445c75",
+      "originalBytes": 157459
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/manifest.json",
+      "originalSha256": "3ce655a3df2b975c2b324672d81d6e9444dda33250d19f94b3633ab141a403c9",
+      "currentSha256": "3ce655a3df2b975c2b324672d81d6e9444dda33250d19f94b3633ab141a403c9",
+      "originalBytes": 803
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/song.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/song.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/song.json",
+      "originalSha256": "860daa8e75955264ebb84bbce7e899c0abe54dd298f40fe787db6a0c33949e42",
+      "currentSha256": "860daa8e75955264ebb84bbce7e899c0abe54dd298f40fe787db6a0c33949e42",
+      "originalBytes": 513
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-g1-review.md",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-g1-review.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-g1-review.md.raw",
+      "originalSha256": "ef978550ba43c2899daba0f1b88489d5990f1c10f52a33e51b4b93f6b8f00546",
+      "currentSha256": "5f07ce1fa35f203a81ef2c8235b1f66a32e662aec70273fe0a397d3d0004b8d8",
+      "originalBytes": 32118
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-oops-phrase-captures.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-oops-phrase-captures.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-oops-phrase-captures.json",
+      "originalSha256": "3cc089339b647d2d02986467e8528a0dab82b0c85c6232f5652f38a49a292aad",
+      "currentSha256": "3cc089339b647d2d02986467e8528a0dab82b0c85c6232f5652f38a49a292aad",
+      "originalBytes": 22762
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-reserved-evaluation.json",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-reserved-evaluation.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-chords-v2-reserved-evaluation.json.raw",
+      "originalSha256": "83b5cbbd8bc00699d488726914df4929d4389d0abc05ba2711d6bd65a5ccc6ce",
+      "currentSha256": "7a91f0504412cf3df54276cfed826fc2b972050acc80652e8371feb5848006b2",
+      "originalBytes": 32718
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-chords-v2-reserved-evaluation.md",
+      "currentPath": "evidence/superpowers/2026-09-17-chords-v2-reserved-evaluation.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-chords-v2-reserved-evaluation.md",
+      "originalSha256": "efbb691066939283f067eb08b8fb5d2153bdd71f5d127418d730ed9c8f40c142",
+      "currentSha256": "efbb691066939283f067eb08b8fb5d2153bdd71f5d127418d730ed9c8f40c142",
+      "originalBytes": 3047
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-oops-original-source-findings.md",
+      "currentPath": "evidence/superpowers/2026-09-17-oops-original-source-findings.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-17-oops-original-source-findings.md",
+      "originalSha256": "3ab6cf640795e5fdb3526702f84c0d478bd72f8bd7cda29431ce31ccb7a451a5",
+      "currentSha256": "3ab6cf640795e5fdb3526702f84c0d478bd72f8bd7cda29431ce31ccb7a451a5",
+      "originalBytes": 2384
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-17-oops-proposed-melody-expectations.json",
+      "currentPath": "evidence/superpowers/2026-09-17-oops-proposed-melody-expectations.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-17-oops-proposed-melody-expectations.json.raw",
+      "originalSha256": "602e89497a19ab55a0887aeb3f9a923378651b624c41609cc0349d5685e65e4a",
+      "currentSha256": "ede83f6d83c19fc9e72bdaa309b1ef728c1979442a4b38c0612509ea5206b014",
+      "originalBytes": 7808
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-blackbird-14-26.5-phrase-review-worksheet.md",
+      "currentPath": "evidence/superpowers/2026-09-18-blackbird-14-26.5-phrase-review-worksheet.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-18-blackbird-14-26.5-phrase-review-worksheet.md.raw",
+      "originalSha256": "3029cc19272870306717c43b97da724e86fcaeb09e220b4dc18eab635aec50af",
+      "currentSha256": "493b42c8e750b1f701a9f8608c6a6b3e3bd5ff764a32a0e845a55a582abef2dc",
+      "originalBytes": 5444
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-chords-v2-task-1-checkpoint.md",
+      "currentPath": "evidence/superpowers/2026-09-18-chords-v2-task-1-checkpoint.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-18-chords-v2-task-1-checkpoint.md.raw",
+      "originalSha256": "053413d5323b6063fc09c01ace7ec5e7d6de1d444de92cb4185d9dec89e6be0e",
+      "currentSha256": "a37a9d41e033b099e8bfa7ddb964e80f00e3106e881d8de261068d15437cc8bb",
+      "originalBytes": 3473
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-chords-v2-task-2-checkpoint.md",
+      "currentPath": "evidence/superpowers/2026-09-18-chords-v2-task-2-checkpoint.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-18-chords-v2-task-2-checkpoint.md.raw",
+      "originalSha256": "de1e5bae77147ba683f8f83b04fae5a526ef2e2bb44c43b4cdfd0ba3cc6b87b5",
+      "currentSha256": "8653ad975eba83184e63c275a041d2fffd871875515b1ce19f898e01c8cd172d",
+      "originalBytes": 3011
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-chords-v2-task-3-checkpoint.md",
+      "currentPath": "evidence/superpowers/2026-09-18-chords-v2-task-3-checkpoint.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-chords-v2-task-3-checkpoint.md",
+      "originalSha256": "374d1798f6e144ed7c4bb32fca04eb572160c9d8919249cdf99a0bce90f811f3",
+      "currentSha256": "374d1798f6e144ed7c4bb32fca04eb572160c9d8919249cdf99a0bce90f811f3",
+      "originalBytes": 2196
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-chords-v2-task-4-checkpoint.md",
+      "currentPath": "evidence/superpowers/2026-09-18-chords-v2-task-4-checkpoint.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-18-chords-v2-task-4-checkpoint.md.raw",
+      "originalSha256": "80a1b01b32fe477b929ba110d56ab8d19ded9c88180a3321fd462bdc88e24c4d",
+      "currentSha256": "dc6754fd1471b528e17491d78f523dbed6aa757794ce618d7f30202fe2db3fb9",
+      "originalBytes": 6062
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-chords-v2-task-5-final-ledger.md",
+      "currentPath": "evidence/superpowers/2026-09-18-chords-v2-task-5-final-ledger.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-chords-v2-task-5-final-ledger.md",
+      "originalSha256": "abb26f91c06bd77024998adb50f378a0ac36975f357ab9218b3bd9b9ce0cf749",
+      "currentSha256": "abb26f91c06bd77024998adb50f378a0ac36975f357ab9218b3bd9b9ce0cf749",
+      "originalBytes": 4787
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-oops-source-density-classification.md",
+      "currentPath": "evidence/superpowers/2026-09-18-oops-source-density-classification.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-18-oops-source-density-classification.md.raw",
+      "originalSha256": "e288019bfb2bab7df640909d6c607ec22e4a416d12e6413eab8c0f962d3cb690",
+      "currentSha256": "9337724cdc5c18983836477b74cc46440b16dd6ba5f59842c33bc88347e7b270",
+      "originalBytes": 14186
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-player-fallback-layout-verification.json",
+      "currentPath": "evidence/superpowers/2026-09-18-player-fallback-layout-verification.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-player-fallback-layout-verification.json",
+      "originalSha256": "9a68791d5b0abd2a3339921324e146c52e4b0af7fa20f14e52e9b425f2b7e23b",
+      "currentSha256": "9a68791d5b0abd2a3339921324e146c52e4b0af7fa20f14e52e9b425f2b7e23b",
+      "originalBytes": 4733
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts",
+      "currentPath": "evidence/superpowers/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts.raw",
+      "originalSha256": "29338516980b9de33091ef858286dd804d6d2e3f58014036dae1bf65bdd5c08a",
+      "currentSha256": "f8818c8b2baf0392d78c85709d261ebbde079e418f19030c401f55013efc4db1",
+      "originalBytes": 9842
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit-results.json",
+      "currentPath": "evidence/superpowers/2026-09-18-pr100-chords-v2-skeptical-audit-results.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-pr100-chords-v2-skeptical-audit-results.json",
+      "originalSha256": "645b583b87e813aa848dfd3868f2335e9fee8f5c194213c5a64e890e0e799b7e",
+      "currentSha256": "645b583b87e813aa848dfd3868f2335e9fee8f5c194213c5a64e890e0e799b7e",
+      "originalBytes": 7109
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit.md",
+      "currentPath": "evidence/superpowers/2026-09-18-pr100-chords-v2-skeptical-audit.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit.md.raw",
+      "originalSha256": "22af7ed6ff92a94179b75af183bb73d765a3a3a86f54e942f1d8b58de559f980",
+      "currentSha256": "a26ebb88740e522990365fa3c555d1573c5b2a727460bc169fe63f512f248d36",
+      "originalBytes": 27508
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-source-backing-preview-comparison.md",
+      "currentPath": "evidence/superpowers/2026-09-18-source-backing-preview-comparison.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-source-backing-preview-comparison.md",
+      "originalSha256": "719e8f586f0caf1f13590d3d1d7d4df5fdf7d8370679c0057033c2ab41b88aae",
+      "currentSha256": "719e8f586f0caf1f13590d3d1d7d4df5fdf7d8370679c0057033c2ab41b88aae",
+      "originalBytes": 3189
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/README.md",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/README.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/README.md",
+      "originalSha256": "de1c6ef316e9b20d341778146c8ced2c9d1706d9c9b2780122aedcd256de5d3e",
+      "currentSha256": "de1c6ef316e9b20d341778146c8ced2c9d1706d9c9b2780122aedcd256de5d3e",
+      "originalBytes": 3784
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-audio-comparison.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-audio-comparison.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-audio-comparison.json",
+      "originalSha256": "65ec2698817834d745cc7ce5a629952161c1a12b103893b1f975e266bf134e01",
+      "currentSha256": "65ec2698817834d745cc7ce5a629952161c1a12b103893b1f975e266bf134e01",
+      "originalBytes": 1622
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-automatic.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-automatic.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-automatic.json",
+      "originalSha256": "c68ba333e37710828707196ac46c65b64c094d97b7bee154080ab37655201b5f",
+      "currentSha256": "c68ba333e37710828707196ac46c65b64c094d97b7bee154080ab37655201b5f",
+      "originalBytes": 59237
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-original.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-14-26.5/capture/blackbird-phrase-14-26.5-original.json",
+      "originalSha256": "bac26f4562604162befc33487684f7161cbece220baf762bbaaed1c599d7812a",
+      "currentSha256": "bac26f4562604162befc33487684f7161cbece220baf762bbaaed1c599d7812a",
+      "originalBytes": 60410
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-short-wiring/initial-capture/blackbird-automatic.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-short-wiring/initial-capture/blackbird-automatic.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-short-wiring/initial-capture/blackbird-automatic.json",
+      "originalSha256": "ce45eca3a266a373e74b660c58898ffae18836af2d4888b04474f27fc96cd72b",
+      "currentSha256": "ce45eca3a266a373e74b660c58898ffae18836af2d4888b04474f27fc96cd72b",
+      "originalBytes": 17210
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-short-wiring/initial-capture/blackbird-original.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-short-wiring/initial-capture/blackbird-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/blackbird-short-wiring/initial-capture/blackbird-original.json",
+      "originalSha256": "bba50889bdbafde44bd37a98a08ef4d3da741af5c6a1f869423417b607784525",
+      "currentSha256": "bba50889bdbafde44bd37a98a08ef4d3da741af5c6a1f869423417b607784525",
+      "originalBytes": 17941
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-audio-comparison.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-audio-comparison.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-audio-comparison.json",
+      "originalSha256": "657c2bda417a9175630b230eddeb7aa79cf1cdfd6b84bbf111d6c2b8cbb0a122",
+      "currentSha256": "657c2bda417a9175630b230eddeb7aa79cf1cdfd6b84bbf111d6c2b8cbb0a122",
+      "originalBytes": 1706
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-coherent.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-coherent.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-coherent.json",
+      "originalSha256": "b4a270c2042f09d30317aa80a567b925b30b569889941f362595bbb8f49570fd",
+      "currentSha256": "b4a270c2042f09d30317aa80a567b925b30b569889941f362595bbb8f49570fd",
+      "originalBytes": 247774
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-original.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-original.json",
+      "originalSha256": "750915f693a17082c0378fc7d76ce1139babd40abe723bc398b4114242bd5b58",
+      "currentSha256": "750915f693a17082c0378fc7d76ce1139babd40abe723bc398b4114242bd5b58",
+      "originalBytes": 284268
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-resume.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-resume.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/final-capture/oops-section-2-resume.json",
+      "originalSha256": "d5c0338b3234ebb003dc779f8b7f734f4c6bde1f8de515eccc4b352524f628f0",
+      "currentSha256": "d5c0338b3234ebb003dc779f8b7f734f4c6bde1f8de515eccc4b352524f628f0",
+      "originalBytes": 248746
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-audio-comparison.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-audio-comparison.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-audio-comparison.json",
+      "originalSha256": "c8224407649d88f3ad458b74238907ee02aefbf5d4b518d79a50208513de49a6",
+      "currentSha256": "c8224407649d88f3ad458b74238907ee02aefbf5d4b518d79a50208513de49a6",
+      "originalBytes": 1344
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-coherent.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-coherent.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-coherent.json",
+      "originalSha256": "fea0661b330b04c4a12f2c0e7026633953b76b8028d45e3a0455dfb498f6b8e4",
+      "currentSha256": "fea0661b330b04c4a12f2c0e7026633953b76b8028d45e3a0455dfb498f6b8e4",
+      "originalBytes": 247736
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-original.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-original.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-original.json",
+      "originalSha256": "375a15db140d99938c93f03d11c8c8c65cf343d44b4ef883d453ef0f32296857",
+      "currentSha256": "375a15db140d99938c93f03d11c8c8c65cf343d44b4ef883d453ef0f32296857",
+      "originalBytes": 284085
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-resume.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-resume.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/initial-capture/oops-section-2-resume.json",
+      "originalSha256": "1dd64dee5b63a5c0ef7bc468bc9013d23c94847482c4b2cbefb0ab426b291d61",
+      "currentSha256": "1dd64dee5b63a5c0ef7bc468bc9013d23c94847482c4b2cbefb0ab426b291d61",
+      "originalBytes": 248824
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/source-preview-capture/oops-section-2-source-preview-comparison.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/source-preview-capture/oops-section-2-source-preview-comparison.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/source-preview-capture/oops-section-2-source-preview-comparison.json",
+      "originalSha256": "b28b51066dc09b64a7baf27abf5558495f3f9aa70d271f8dfd53de5c4faccb67",
+      "currentSha256": "b28b51066dc09b64a7baf27abf5558495f3f9aa70d271f8dfd53de5c4faccb67",
+      "originalBytes": 2114
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-18-task-5-audio/oops-64-108/source-preview-capture/oops-section-2-source-preview.json",
+      "currentPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/source-preview-capture/oops-section-2-source-preview.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-18-task-5-audio/oops-64-108/source-preview-capture/oops-section-2-source-preview.json",
+      "originalSha256": "b3fe66a62126f733b35907cd2269f11d4e7349086bb48901667b39ecf792f48d",
+      "currentSha256": "b3fe66a62126f733b35907cd2269f11d4e7349086bb48901667b39ecf792f48d",
+      "originalBytes": 254439
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-cathedral-organ-gain/README.md",
+      "currentPath": "evidence/superpowers/2026-09-19-cathedral-organ-gain/README.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-cathedral-organ-gain/README.md.raw",
+      "originalSha256": "64d06153c0cbf50b907a600d839c9b6d2ee167e6a761c1fd9ef94932ddef9f05",
+      "currentSha256": "40ffd44476f55d5ccbf78eea3f6b8c4bfb267d2cc789c7c01ccf30fb444eb743",
+      "originalBytes": 1502
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-cathedral-organ-gain/organ-gain-probe.spec.ts",
+      "currentPath": "evidence/superpowers/2026-09-19-cathedral-organ-gain/organ-gain-probe.spec.ts",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-cathedral-organ-gain/organ-gain-probe.spec.ts",
+      "originalSha256": "fc1b06ce021c886a92ea7844fa8d89890fa39a7cb763b0718d1663cc1d9d6b23",
+      "currentSha256": "fc1b06ce021c886a92ea7844fa8d89890fa39a7cb763b0718d1663cc1d9d6b23",
+      "originalBytes": 5002
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-cathedral-organ-gain/organ-gain-runtime-probe.json",
+      "currentPath": "evidence/superpowers/2026-09-19-cathedral-organ-gain/organ-gain-runtime-probe.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-cathedral-organ-gain/organ-gain-runtime-probe.json.raw",
+      "originalSha256": "ab346d43fc8403a78131e6b2184c0680e1c2c59ef5e5e1d0c27c8f04dbc4d56a",
+      "currentSha256": "ebcc639c429380304d85b84b1fcebb2bf9b2dd4a34d4f8d2356721520730ceb5",
+      "originalBytes": 1904
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-backing-default/README.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-backing-default/README.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-backing-default/README.md.raw",
+      "originalSha256": "06f1a394a3bb16fe1cb9a665e2bb227678ce0fce04f8f7713a7e7f3e90dd3603",
+      "currentSha256": "cd5a81e46c8efb76df3fd026f3176af8a00b20a5abf607779df52704482e8766",
+      "originalBytes": 10354
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-backing-default/current-player-canonical-comparisons.json",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-backing-default/current-player-canonical-comparisons.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-backing-default/current-player-canonical-comparisons.json",
+      "originalSha256": "fa41cca535a32342820247176afa1d99797b0b956fe75eed9c4b920d550e66ed",
+      "currentSha256": "fa41cca535a32342820247176afa1d99797b0b956fe75eed9c4b920d550e66ed",
+      "originalBytes": 4522
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-backing-default/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-backing-default/manifest.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-backing-default/manifest.json.raw",
+      "originalSha256": "b9aade640081d9bc1f99d2bfb7e96110ae0c0bd3dac2841dc4741cb9e4bb1959",
+      "currentSha256": "ac390d90449370cb42bb6e33669b752accb65440ee21f9b83bf30d99d1d88602",
+      "originalBytes": 12583
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/audio-candidate-2026-09-19/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/audio-candidate-2026-09-19/manifest.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/audio-candidate-2026-09-19/manifest.json",
+      "originalSha256": "c9959bb9afba2a0154210eb2bda3e3d67adff3b380e75e41438f34cf36524585",
+      "currentSha256": "c9959bb9afba2a0154210eb2bda3e3d67adff3b380e75e41438f34cf36524585",
+      "originalBytes": 3932
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/audio-review-2026-09-19/README.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/audio-review-2026-09-19/README.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/audio-review-2026-09-19/README.md.raw",
+      "originalSha256": "3277beaab68d4f0a0b79f1f1eb1d6b7fe0cff869899a27e73affad492c65fb8b",
+      "currentSha256": "3277beaab68d4f0a0b79f1f1eb1d6b7fe0cff869899a27e73affad492c65fb8b",
+      "originalBytes": 1269
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/audio-review-2026-09-19/blackbird-14-26.5-audio-comparison.json",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/audio-review-2026-09-19/blackbird-14-26.5-audio-comparison.json",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/audio-review-2026-09-19/blackbird-14-26.5-audio-comparison.json",
+      "originalSha256": "e679073aa0c9569995ae28314621fbdde8cd0846186a5089db14bc515543f794",
+      "currentSha256": "e679073aa0c9569995ae28314621fbdde8cd0846186a5089db14bc515543f794",
+      "originalBytes": 1658
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/bridge-chords-producer.ts",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/bridge-chords-producer.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/bridge-chords-producer.ts.raw",
+      "originalSha256": "bc6ceda9cb000b76b27ef020f47ada00cf21f1dc6b4794bbe341c6982ce96b8a",
+      "currentSha256": "de3535051f1814bac1cd2d8cc0b254e4ad9b53c5f0459908e42a14bba1270dff",
+      "originalBytes": 15449
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/findings.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/findings.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/findings.md",
+      "originalSha256": "18fe3f3a6429d247f5d362ebad25dde7166015e31f5d19cda1a8117da3463d42",
+      "currentSha256": "18fe3f3a6429d247f5d362ebad25dde7166015e31f5d19cda1a8117da3463d42",
+      "originalBytes": 5541
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/manifest.json",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/manifest.json",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/manifest.json.raw",
+      "originalSha256": "bc944e4db48f12d9f0ff12634116fd708759e487c13bed730a0e3d4954fcca3f",
+      "currentSha256": "b2fb309c75226c64091da67f96afac0487e9fb33eadc12f0710d6428902c6efb",
+      "originalBytes": 18692
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/pr-103-coverage.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/pr-103-coverage.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/pr-103-coverage.md",
+      "originalSha256": "c4ff46644c00abfa99b680cffdf0e5ff5f38535cadac49edb954070494e7f013",
+      "currentSha256": "c4ff46644c00abfa99b680cffdf0e5ff5f38535cadac49edb954070494e7f013",
+      "originalBytes": 15596
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/queen-meter-regression.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/queen-meter-regression.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/queen-meter-regression.md",
+      "originalSha256": "c5665b77fc9cbb39a8d744f87e0e750af2b4ee5a5cd33770222350a7209f65c9",
+      "currentSha256": "c5665b77fc9cbb39a8d744f87e0e750af2b4ee5a5cd33770222350a7209f65c9",
+      "originalBytes": 1494
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/render-source-candidate.ts",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/render-source-candidate.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/render-source-candidate.ts.raw",
+      "originalSha256": "276d060cc3941331ccdd21bfe3354501fca658c7d1b696e9d8a193c54a149262",
+      "currentSha256": "df0e7ecc719fa9695ce0a591ef9509736da4d75b7d6fb38d829ef120f2f4ef4a",
+      "originalBytes": 7626
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/review-8cd09a3-preview-lifecycle.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/review-8cd09a3-preview-lifecycle.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/review-8cd09a3-preview-lifecycle.md",
+      "originalSha256": "2aab7f49089a675f54e4b773b649d954e590c67e61441748b476f31bf018faab",
+      "currentSha256": "2aab7f49089a675f54e4b773b649d954e590c67e61441748b476f31bf018faab",
+      "originalBytes": 6056
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/source-candidate-comparison.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/source-candidate-comparison.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/source-candidate-comparison.md.raw",
+      "originalSha256": "bcec2409b4cd8062e65bb9700e127c20ceca070303f7e52dc602fea3a87e5b39",
+      "currentSha256": "4ca0416611a2e1709c0cb4574dd336b9ff5dbdd64152227cba709d798f004495",
+      "originalBytes": 33255
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/source-candidate-comparison.ts",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/source-candidate-comparison.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/source-candidate-comparison.ts.raw",
+      "originalSha256": "b311a7a67e431e2d14ee69333a3b1ba34a8b0a28979e4f12cc0daae4db962e81",
+      "currentSha256": "9abad7241b0d2210d7919242c5cd0c18e1f00fe52b212ef436b1c02667496e20",
+      "originalBytes": 65800
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/source-contract.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/source-contract.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/source-contract.md",
+      "originalSha256": "86cdc61bc8ba59576b2e8da4aee34c754d74121ec79860960fd166b54f4d701d",
+      "currentSha256": "86cdc61bc8ba59576b2e8da4aee34c754d74121ec79860960fd166b54f4d701d",
+      "originalBytes": 6844
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/source-review-packet.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/source-review-packet.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/source-review-packet.md",
+      "originalSha256": "ef0604fde5de2cce0d47cbf7fcc954ffed4132b33fe332837af744f7e0905bdc",
+      "currentSha256": "ef0604fde5de2cce0d47cbf7fcc954ffed4132b33fe332837af744f7e0905bdc",
+      "originalBytes": 3188
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/t3-canonical-loader-evaluation.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/t3-canonical-loader-evaluation.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/t3-canonical-loader-evaluation.md.raw",
+      "originalSha256": "4025ba564a70787647a3c8b265361df80a4cc41354c65cb03045e00858115875",
+      "currentSha256": "545e1c97be342aff8c942487c755aed1eff4e2e93f77e84fdd20867577a03a15",
+      "originalBytes": 7789
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/t3-canonical-loader-evaluation.ts",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/t3-canonical-loader-evaluation.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/t3-canonical-loader-evaluation.ts.raw",
+      "originalSha256": "2b57af6123754545b8cf87810c076982ed8472cf0d0b7f002b766695718b67af",
+      "currentSha256": "3bc8ab8499ce4aaa1e41845b6c74fe956df07482f1a1fd7ed6f1e5293d6054ba",
+      "originalBytes": 21012
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/t3-structural-evaluation.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/t3-structural-evaluation.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/t3-structural-evaluation.md.raw",
+      "originalSha256": "001ad76225a6a13366aa470be714920669d8702984d3402a39af3ab4c5c5952f",
+      "currentSha256": "0ea5a4e0b86d4b4a6a380e86ba2e8d2245d5f76ded8601cb652d789330e2b20f",
+      "originalBytes": 3228
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/t3-structural-evaluation.ts",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/t3-structural-evaluation.ts",
+      "originalStoredPath": "evidence/originals/docs/superpowers/evidence/2026-09-19-chords-finish/t3-structural-evaluation.ts.raw",
+      "originalSha256": "f109e01ecad4d8740c6c79a1e07c33b3025426950d1df7218f2112f24d09f2c2",
+      "currentSha256": "0eed8c5632b4bfee2ee5750f4576cbe4732b05e19f02eaef760c6a738164ba63",
+      "originalBytes": 7671
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-19-chords-finish/t4-t7-runtime-checkpoint.md",
+      "currentPath": "evidence/superpowers/2026-09-19-chords-finish/t4-t7-runtime-checkpoint.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-19-chords-finish/t4-t7-runtime-checkpoint.md",
+      "originalSha256": "5400189ffe815dd41c0e3b6ad2a551518beee5a00abd7d413b0a86acb1b77f76",
+      "currentSha256": "5400189ffe815dd41c0e3b6ad2a551518beee5a00abd7d413b0a86acb1b77f76",
+      "originalBytes": 3789
+    },
+    {
+      "originalPath": "docs/superpowers/evidence/2026-09-24-all-song-chords/README.md",
+      "currentPath": "evidence/superpowers/2026-09-24-all-song-chords/README.md",
+      "originalStoredPath": "evidence/superpowers/2026-09-24-all-song-chords/README.md",
+      "originalSha256": "3befa40467ecd6b37b36d7344ffc65282f9c53e37829eb1f04f9cfc36d05cbc9",
+      "currentSha256": "3befa40467ecd6b37b36d7344ffc65282f9c53e37829eb1f04f9cfc36d05cbc9",
+      "originalBytes": 14814
+    }
+  ],
+  "contextOriginals": [
+    {
+      "originalPath": "apps/web/playwright.chords-v2.t1.config.ts",
+      "originalStoredPath": "evidence/originals/apps/web/playwright.chords-v2.t1.config.ts.raw",
+      "originalSha256": "d55eb85efbafd91aa033904208aa009b8e4d8bf1a9a8a588dee870425571cf47",
+      "originalBytes": 4813
+    },
+    {
+      "originalPath": "apps/web/playwright.organ-gain.config.ts",
+      "originalStoredPath": "evidence/originals/apps/web/playwright.organ-gain.config.ts.raw",
+      "originalSha256": "a70c1b15b8e90d9ed2294d620c2992efebc7930bb89a39d00710848e808bd868",
+      "originalBytes": 376
+    },
+    {
+      "originalPath": "apps/web/scripts/validate-chords-v2-t1-evidence.mjs",
+      "originalStoredPath": "evidence/originals/apps/web/scripts/validate-chords-v2-t1-evidence.mjs.raw",
+      "originalSha256": "807b439d8a979644fd58f4e645177dd98fb19270f68e0afea8af48ceea6070d8",
+      "originalBytes": 2814
+    },
+    {
+      "originalPath": "docs/README.md",
+      "originalStoredPath": "evidence/originals/docs/README.md.raw",
+      "originalSha256": "2d122e4e20a0be7a01dea78fb5f4d5c315246c27fc8e7e1959e910b57653db4d",
+      "originalBytes": 1587
+    },
+    {
+      "originalPath": "docs/archive/README.md",
+      "originalStoredPath": "evidence/originals/docs/archive/README.md.raw",
+      "originalSha256": "a642937bb4fa9a750f043698306970410d78694bf8b833d0220ce5223bb3af74",
+      "originalBytes": 6819
+    },
+    {
+      "originalPath": "docs/archive/storage-cleanup-2026-09-01.md",
+      "originalStoredPath": "evidence/originals/docs/archive/storage-cleanup-2026-09-01.md.raw",
+      "originalSha256": "10be4f805be135c21b488b6cf52b8877b85da77775afd6dc6a4ed9698bafbd21",
+      "originalBytes": 11296
+    },
+    {
+      "originalPath": "docs/chords-tuning.md",
+      "originalStoredPath": "evidence/originals/docs/chords-tuning.md.raw",
+      "originalSha256": "72c0b6850b616d4fb7ad63328f9fc7aa1b140bac5cf4c89e15aa9624c21f0ecc",
+      "originalBytes": 14201
+    },
+    {
+      "originalPath": "docs/listening-review.md",
+      "originalStoredPath": "evidence/originals/docs/listening-review.md.raw",
+      "originalSha256": "2b6f3728709be571e885bf6c4f16d0c12ea61bab91f82db2a1633238f3de222a",
+      "originalBytes": 18259
+    },
+    {
+      "originalPath": "docs/ops.md",
+      "originalStoredPath": "evidence/originals/docs/ops.md.raw",
+      "originalSha256": "b8774136a379bbb869c32eb48e6ef2fe9268ab392170ba9ba7c910adcaa1ec3b",
+      "originalBytes": 84618
+    },
+    {
+      "originalPath": "docs/performance-baseline.md",
+      "originalStoredPath": "evidence/originals/docs/performance-baseline.md.raw",
+      "originalSha256": "da8e90fa17af00236a78de009f463625fce74af03b52eb941b0ad9ba2c8f6457",
+      "originalBytes": 4088
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-beginner-sparse-lh-promotion-evidence-repair-results.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-02-beginner-sparse-lh-promotion-evidence-repair-results.md.raw",
+      "originalSha256": "9d70f8b6db05db231c3e992dd6a354faca93da400067506dd3d63d6a69aeb659",
+      "originalBytes": 7217
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-collision-aware-beginner-two-hand-policy-experiment-results.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-02-collision-aware-beginner-two-hand-policy-experiment-results.md.raw",
+      "originalSha256": "3c9b04ea4799ee827bffa5787b39c37120808cafefb1b3f07ec5251bc9106c78",
+      "originalBytes": 6505
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-difficulty-ladder.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-02-difficulty-ladder.md.raw",
+      "originalSha256": "10f81c2d8edcba462e6879aaeb291ba80a1db71c59cdccff5d9ec6b9bf46b77c",
+      "originalBytes": 4827
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-easy-lineage-results.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-02-easy-lineage-results.md.raw",
+      "originalSha256": "96155d49a0b50c41a66805d2fe4df8660abb5b322eb4a4b4b06ade565b595ad2",
+      "originalBytes": 9680
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-easy-lineage.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-02-easy-lineage.md.raw",
+      "originalSha256": "eb85527c1032a27973bcfaaf44a1943bf2018738d911fba25f850648def5ed88",
+      "originalBytes": 3695
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-02-easy-preservation-results.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-02-easy-preservation-results.md.raw",
+      "originalSha256": "256e41905ac9bc77cf40533e394ae18e32c8a784457c074b371fb70316c9e50a",
+      "originalBytes": 7993
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-03-cover-rh-identity-cliff-attribution-report.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-03-cover-rh-identity-cliff-attribution-report.md.raw",
+      "originalSha256": "a354d908567bb40e28fb1654a8fc2f6e7934f73d8ce905e226fb155bdf3be71f",
+      "originalBytes": 7280
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-03-current-production-difficulty-differentiation-review.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-03-current-production-difficulty-differentiation-review.md.raw",
+      "originalSha256": "f270f7727228df60df9380fa9ed40dcec2fb659d23ab6dc414b96ccf26abe143",
+      "originalBytes": 20731
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-07-autonomous-metal-piano-delivery.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-07-autonomous-metal-piano-delivery.md.raw",
+      "originalSha256": "e008fb189712aa3a7a07facd3876f963eb2106a105502e5cdd1248029df063ac",
+      "originalBytes": 32240
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-07-reliable-metal-to-piano.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-07-reliable-metal-to-piano.md.raw",
+      "originalSha256": "8591a88b9763e2f244c34a9283371ca9588e970d498156024555ef185c8aa66d",
+      "originalBytes": 17008
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-08-player-polish.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-08-player-polish.md.raw",
+      "originalSha256": "c586901f16b91af38e82c213ff4716e9760c90891b2a889127a892c8b19d1a5e",
+      "originalBytes": 21985
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-08-tutorial-production-hardening.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-08-tutorial-production-hardening.md.raw",
+      "originalSha256": "427ab577bb4380e34e9a60af59a3fe05f7fa19a7404fa3b37c22e32e2a931a96",
+      "originalBytes": 17703
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-09-player-instrument-ui.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-09-player-instrument-ui.md.raw",
+      "originalSha256": "f3e70864fe29c652248c6fa35485f1aefd4e20f1bc35962a42952c4887370556",
+      "originalBytes": 32241
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-17-musically-useful-chords-mode.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-17-musically-useful-chords-mode.md.raw",
+      "originalSha256": "fd9a66309dd5a248e7547dce41f14bf5077b9d2d7a80bc858a5614994b565d2c",
+      "originalBytes": 53776
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-18-chords-v2-remediation.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-18-chords-v2-remediation.md.raw",
+      "originalSha256": "c62f33409ec60dc70ebf5540fe1587485d5e84b0c9e08673d34569b1c1838b25",
+      "originalBytes": 13505
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-19-chords-backing-default.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-19-chords-backing-default.md.raw",
+      "originalSha256": "f8c9b79ffdc81fd5d36af2127aa7abca2ed2cb9db0ff0330304652113446f668",
+      "originalBytes": 14624
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-19-chords-mode-implementation.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-19-chords-mode-implementation.md.raw",
+      "originalSha256": "1a4b021de56489624a20808f58b051d38c03a0b6004c22751b34db6b278aae6e",
+      "originalBytes": 17270
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-09-19-finish-chords-mode.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-09-19-finish-chords-mode.md.raw",
+      "originalSha256": "6586d1ef844ff931268ab9b6636540a30f8dd5383dfb562b376c81116d881624",
+      "originalBytes": 11726
+    },
+    {
+      "originalPath": "docs/superpowers/plans/2026-10-12-ks09-conservative-harmony-pilot.md",
+      "originalStoredPath": "evidence/originals/docs/superpowers/plans/2026-10-12-ks09-conservative-harmony-pilot.md.raw",
+      "originalSha256": "d2c88792d54edd4b6ea12f8502bffa991f125fc3ed69d4cb2eb72bcff8322c37",
+      "originalBytes": 9442
+    },
+    {
+      "originalPath": "packages/catalog/scripts/evaluate-independent-current.ts",
+      "originalStoredPath": "evidence/originals/packages/catalog/scripts/evaluate-independent-current.ts.raw",
+      "originalSha256": "1c36e6ceb30a91d3a77c21d0ec692c136276a08fa75fc2403bda6b9d82cf726d",
+      "originalBytes": 9677
+    },
+    {
+      "originalPath": "scripts/check-ui-release.py",
+      "originalStoredPath": "evidence/originals/scripts/check-ui-release.py.raw",
+      "originalSha256": "7be90942cb0478b82dabd2e4a145a71bb58d8520f421859f78b6976a8575855f",
+      "originalBytes": 3247
+    },
+    {
+      "originalPath": "scripts/test_check_ui_release.py",
+      "originalStoredPath": "evidence/originals/scripts/test_check_ui_release.py.raw",
+      "originalSha256": "34c68daa68a45d6dafadf94e6debcb23a11e0432eaa2e92b4bb401ada4e193a4",
+      "originalBytes": 5193
+    },
+    {
+      "originalPath": "services/transcribe/scripts/evaluate-tutorial-pipeline.ts",
+      "originalStoredPath": "evidence/originals/services/transcribe/scripts/evaluate-tutorial-pipeline.ts.raw",
+      "originalSha256": "4622833e9a40711630c01a27d70e7b58866db5fd9e1b07488e0fd5b01ee451ae",
+      "originalBytes": 12464
+    }
+  ]
+}

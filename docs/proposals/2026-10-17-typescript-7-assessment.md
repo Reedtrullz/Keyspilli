@@ -3,12 +3,13 @@
 Status: assessment and CSS declaration only. The compiler remains TypeScript
 5.9.3; this PR changes no dependency, lockfile, compiler command or CI gate.
 
-Refreshed 2026-10-18 on Node 22.22.3 against the provisional PR331 source tree
-`bdf099f01bf6c494af0825396da8a743656eb9d4`. That candidate selects Next
-16.4.2 with webpack, React 19.3.1, Vitest 5.0.5 and Playwright 1.64.1.
-Actual main is still `a3c498adea87b460b635fb669b62b6e69a8f545c`;
-PR331 and its prerequisite updates have not landed. The lint foundation is
-also pending; its selected typescript-eslint 8.71.2 is checked separately.
+Refreshed 2026-10-18 on Node 22.22.3 against qualified provisional parent
+`0a8b3af2fac778fb8e3a8360d8e4eb84c6d56f39` (PR336, including PR331).
+That candidate selects Next 16.4.2 with webpack, React 19.3.1, Vitest 5.0.5,
+Playwright 1.64.1 and the merged lint foundation's typescript-eslint 8.71.2.
+These are candidate-source observations, not a claim that the pending
+framework, native-library and test-runner prerequisites have landed on main.
+The compiler remains TypeScript 5.9.3 throughout this assessment.
 
 ## Upstream compatibility
 

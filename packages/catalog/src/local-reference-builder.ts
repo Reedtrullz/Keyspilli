@@ -185,6 +185,7 @@ function compareText(left: string, right: string): number {
 function cleanText(value: unknown, fallback = "unknown", limit = 240): string {
   if (typeof value !== "string") return fallback;
   const cleaned = value
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -227,6 +228,7 @@ function redact(value: unknown): unknown {
       // without sharing mutable RegExp state with the validation helpers.
       .replace(/https?:\/\/[^\s/@:]+:[^\s/@]+@/gi, "https://[redacted]@")
       .replace(/(?:^|[\s"'(=:])(?:file:|[A-Za-z]:[\\/]|~[\\/]|\.\.?[\\/]|\/|\\)(?:[^\s"']*)/gi, "[redacted-path]")
+      // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
       .replace(/[\u0000-\u001f\u007f]/g, " ")
       .replace(/\s+/g, " ")
       .trim()
@@ -269,6 +271,7 @@ async function existingRealpath(value: string): Promise<string> {
 }
 
 async function assertOutputRoot(outputRoot: string, repositoryRoot: string): Promise<string> {
+  // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
   if (!isAbsolute(outputRoot) || /[\u0000\r\n]/.test(outputRoot)) {
     throw new Error("local reference outputRoot must be an absolute path without NUL/newline characters");
   }

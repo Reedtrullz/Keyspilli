@@ -62,7 +62,7 @@ stable source key, never a locale-dependent or unordered object traversal.
 The paired machine-readable freeze and narrative results are kept next to this
 plan:
 
-- [`2026-09-02-easy-lineage-baseline.json`](./2026-09-02-easy-lineage-baseline.json)
+- [`2026-09-02-easy-lineage-baseline.json`](../../../evidence/plans/2026-09-02-easy-lineage-baseline.json)
 - [`2026-09-02-easy-lineage-results.md`](./2026-09-02-easy-lineage-results.md)
 
 The baseline file contains source hashes, all six level digests, stage/funnel

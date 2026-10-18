@@ -19,7 +19,7 @@ let browser:Browser|undefined;let blocked:string|null=null;
 try {
  browser=await chromium.launch({headless:true});const context=await browser.newContext({serviceWorkers:'block'});
  await context.route('**/*',async route=>{const url=route.request().url();if(url.startsWith(origin+'/'))return route.continue();const body=local.assets.get(url);if(!body){blocked=url;return route.abort();}return route.fulfill({status:200,contentType:'audio/ogg',body});});
- await context.addInitScript('globalThis.__name = (fn, name) => Object.defineProperty(fn, \"name\", { value: name, configurable: true });');
+ await context.addInitScript('globalThis.__name = (fn, name) => Object.defineProperty(fn, "name", { value: name, configurable: true });');
  const page=await context.newPage();page.setDefaultTimeout(30000);await page.goto(origin);
  await page.evaluate(async ()=>{const dynamicImport=new Function('path','return import(path)');const module=await dynamicImport('/smplr.mjs');const ctx=new OfflineAudioContext(2,4410,44100);let buffers:unknown;const piano=module.SplendidGrandPiano(ctx,{loader:{async load(preset:unknown){buffers=await module.SampleLoader(ctx).load(preset);return buffers;}}});await piano.ready;piano.dispose();(window as any).__playerBank={module,buffers};});
  if(blocked)throw new Error('unregistered asset refused: '+blocked);
@@ -29,6 +29,6 @@ try {
   const b=playerReferenceWav(values),path=join(references,`ref-${midi}-v${velocity}.wav`);bytesWritten+=b.length;if(bytesWritten>4*1024**3)throw new Error('reference bank cap exceeded');writeFileSync(path,b,{flag:'wx'});
   pins.push({midi,velocity,path,sha256:sha(b),encoding:'pcm-f32le',sampleRate:44100,channels:2,frames:values.length/2,referenceAlignmentSeconds:.05});
  }
- const manifest={schemaVersion:1,kind:'keyspilli-player-reference-bank',localUsePermission:true,rightsSource:local.manifest.rightsSource,renderer:{moduleVersion:local.manifest.moduleVersion,moduleSha256:sha(local.module),browserVersion:browser.version()},compressor:{threshold:-24,knee:12,ratio:3,attack:.005,release:.15},sampleAssetPins:local.manifest.assets.map(({path,...pin})=>pin),references:pins,providerCalls:0,networkAcquisitions:0,productionProfileAdmitted:false};
+ const manifest={schemaVersion:1,kind:'keyspilli-player-reference-bank',localUsePermission:true,rightsSource:local.manifest.rightsSource,renderer:{moduleVersion:local.manifest.moduleVersion,moduleSha256:sha(local.module),browserVersion:browser.version()},compressor:{threshold:-24,knee:12,ratio:3,attack:.005,release:.15},sampleAssetPins:local.manifest.assets.map(({path: _path,...pin})=>pin),references:pins,providerCalls:0,networkAcquisitions:0,productionProfileAdmitted:false};
  writeFileSync(join(output,'reference-manifest.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({references:pins.length,manifest:join(output,'reference-manifest.json'),networkAcquisitions:0,productionProfileAdmitted:false}));
 } finally {if(browser)await browser.close();await new Promise<void>(ok=>server.close(()=>ok()));}

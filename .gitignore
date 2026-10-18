@@ -44,3 +44,6 @@ __pycache__/
 
 # Generated public offline shell contains no owner arrangement data.
 apps/web/public/offline/
+
+# Real deploy inventory (host, user, key path); see deploy/inventory/hosts.example.yml
+deploy/inventory/hosts.yml

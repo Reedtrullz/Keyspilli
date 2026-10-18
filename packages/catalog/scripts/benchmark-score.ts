@@ -261,7 +261,7 @@ export function sanitizeText(value: unknown, fallback = "unknown error"): string
   // filesystem-root allowlist covers the normal POSIX roots; the longer
   // fallback requires several path components so a logical two-segment label
   // is left useful in diagnostics.
-  const pathBoundary = `(^|[\\s(\"'=,;:\\[\\]])`;
+  const pathBoundary = `(^|[\\s("'=,;:\\[\\]])`;
   const pathComponent = `[A-Za-z0-9._~+@%!-]+`;
   const filesystemRoots = `(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app|Applications|System|Volumes|Library|usr|bin|sbin|dev)`;
   return text
@@ -299,6 +299,7 @@ export function safeError(error: unknown, fallback = "score benchmark failed"): 
 function slugify(value: string): string {
   return value
     .normalize("NFKD")
+    // eslint-disable-next-line no-control-regex -- matches every non-ASCII character (the range starts at NUL) to build ASCII-only slugs
     .replace(/[^\x00-\x7f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -1032,21 +1033,6 @@ function statusFor(errors: string[], warnings: ScoreWarning[]): ScoreValidationS
   return "PASS";
 }
 
-function emptyMetrics(): ScoreValidationMetrics {
-  return {
-    parsedNotes: 0,
-    parsedDurationBeats: 0,
-    pitchMin: null,
-    pitchMax: null,
-    duplicateEvents: 0,
-    multiOctaveJumps: 0,
-    malformedNoteElements: 0,
-    tuplets: 0,
-    ties: { starts: 0, stops: 0, orphanStarts: 0, orphanStops: 0 },
-    measures: [],
-    densityAnomalies: 0,
-  };
-}
 
 function baseReport(pdf: { fileName: string; sha256: string | null; pages: number | null }, options: ScoreBenchmarkOptions): ScoreValidationReport {
   return {
@@ -1361,7 +1347,6 @@ async function prepareArtifacts(xmlSource: XmlSource): Promise<PreparedArtifacts
   const errors = [...notation.errors];
   if (!/<score-partwise\b/i.test(xml)) errors.push("OMR output is not a score-partwise MusicXML document");
   if (!scans.length) errors.push("MusicXML contains no parts");
-  const notes = parsed.notes;
   const tracks = parsedPartList.flatMap((part) => [
     { name: `${part.name} RH`, notes: part.notes.filter((note) => note.hand !== "L") },
     { name: `${part.name} LH`, notes: part.notes.filter((note) => note.hand === "L") },
@@ -1479,7 +1464,7 @@ export async function runBenchmarkScore(options: ScoreBenchmarkOptions): Promise
   await ensureOutputDirectory(normalizedDir, out, "normalized output directory");
   await ensureOutputDirectory(validationDir, out, "validation output directory");
   const timestamp = new Date().toISOString();
-  let manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
+  const manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
   try {
     if (manifest) await assertOutsideRepository(manifest, "corpus manifest");
     const scratch = await mkdtemp(join(omrDir, ".audiveris-"));

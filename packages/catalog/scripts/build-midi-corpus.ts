@@ -214,6 +214,7 @@ async function regularInput(value: string, repositoryRoot = ROOT): Promise<{ pat
 
 function pathFreeString(value: unknown, field: string): string {
   if (typeof value !== "string") throw new Error(`${field} must be a string`);
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const normalized = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   if (!normalized || normalized.includes("/") || normalized.includes("\\") || /^file:/i.test(normalized)) throw new Error(`${field} must be a logical path-free value`);
   return normalized.slice(0, 240);

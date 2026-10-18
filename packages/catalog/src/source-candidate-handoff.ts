@@ -137,6 +137,7 @@ export interface SourceCandidateHandoffClientView {
 
 function text(value: unknown, max = 200): string {
   return typeof value === "string"
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     ? value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/(?:file:\/\/|[A-Za-z]:[\\/]|\/(?:Users|private|tmp|var|home|Volumes|root|opt|mnt|workspace|data|srv|etc)[\\/])[^\s,;)}\]]*/gi, "[redacted-path]").replace(/\s+/g, " ").trim().slice(0, max)
     : "";
 }

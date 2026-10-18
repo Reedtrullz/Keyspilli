@@ -126,9 +126,6 @@ function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function finite(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
 
 function median(values: readonly number[]): number | null {
   if (!values.length) return null;

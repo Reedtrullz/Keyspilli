@@ -5,7 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { LEVEL_ORDER, buildVariants, parseMidi, parseMusicXmlNotes, validateArtifactFiles, validateVariants,
-  writeVariantArtifacts, type Note, type ParsedMidi, type PhrasePlanV1, type Variant } from "../src/index.js";
+  writeVariantArtifacts, type Note, type ParsedMidi, type PhrasePlanV1 } from "../src/index.js";
 import { analyzeTechnique, type TechniqueInput, type TechniqueInstant, type TechniqueInterval, type TechniqueResult } from "../src/technique-diagnostics.js";
 import { checkSourceProtection, correspondPhysicalNotes, originKey, type ContractCase, type TierPolicy } from "./technique-contract-support.js";
 
@@ -179,7 +179,7 @@ function observe(input: TechniqueInput) {
 
 function implementationIdentity() {
   const git = (...args: string[]) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
-  const paths = ["scripts/evaluate-technique-contract.ts", "scripts/technique-contract-support.ts", "src/technique-diagnostics.ts", "src/index.ts", "src/simplify.ts", "src/phrase-plan.ts", "src/parse.ts", "src/parseXml.ts", "src/writeMidi.ts", "src/writeXml.ts", "src/roundtrip.ts", "src/validate.ts", "src/source-pedal.ts"];
+  const paths = ["scripts/evaluate-technique-contract.ts", "scripts/technique-contract-support.ts", "src/technique-diagnostics.ts", "src/index.ts", "src/simplify.ts", "src/simplify/shared.ts", "src/simplify/source-workload.ts", "src/simplify/learner-trace.ts", "src/simplify/texture.ts", "src/simplify/metal-rh.ts", "src/simplify/playability.ts", "src/phrase-plan.ts", "src/parse.ts", "src/parseXml.ts", "src/writeMidi.ts", "src/writeXml.ts", "src/roundtrip.ts", "src/validate.ts", "src/source-pedal.ts"];
   return { head: git("rev-parse", "HEAD"), tree: git("rev-parse", "HEAD^{tree}"), status: git("status", "--porcelain", "--untracked-files=normal"), node: process.versions.node,
     implementationFiles: paths.map(path => { const bytes = readFileSync(join(repo, "packages/midi", path)); return { path: `packages/midi/${path}`, bytes: bytes.length, sha256: sha(bytes) }; }) };
 }

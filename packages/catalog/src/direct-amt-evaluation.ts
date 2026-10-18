@@ -1223,14 +1223,14 @@ export const classifyDirectAmtBottleneck = classifyDirectAmtSongBottleneck;
 function canonicalPathSafeString(value: string): string {
   return value
     .replace(/(?:file:\/\/)?\/(?:Users|private|tmp|var|Volumes|home|root|opt|mnt|workspace|etc|srv|data|Applications|Library|System)(?:\/[^\s"'<>;,)]*)*/gi, "[redacted-path]")
-    .replace(/(^|[\s("'=,;\[])([A-Za-z]:[\\/][^\s"'<>;,)]*)/g, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;\[])(\\\\[^\s"'<>;,)]*)/g, "$1[redacted-path]");
+    .replace(/(^|[\s("'=,;[])([A-Za-z]:[\\/][^\s"'<>;,)]*)/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;[])(\\\\[^\s"'<>;,)]*)/g, "$1[redacted-path]");
 }
 
 function canonicalPathSafeStringExtended(value: string): string {
   return value
-    .replace(/(^|[\s"'=(:,;\[])(?:\.\.?(?:\/|\\))+(?:[^\s"'<>;,)]*)/g, "$1[redacted-path]")
-    .replace(/(^|[\s"'=(:,;\[])(?:[A-Za-z0-9._-]+(?:\/|\\))+[A-Za-z0-9._-]+\.(?:wav|wave|mid|midi|mp3|flac|json|ckpt|onnx|pt|pth)(?=$|\s|[.,;)}\]])/gi, "$1[redacted-path]");
+    .replace(/(^|[\s"'=(:,;[])(?:\.\.?(?:\/|\\))+(?:[^\s"'<>;,)]*)/g, "$1[redacted-path]")
+    .replace(/(^|[\s"'=(:,;[])(?:[A-Za-z0-9._-]+(?:\/|\\))+[A-Za-z0-9._-]+\.(?:wav|wave|mid|midi|mp3|flac|json|ckpt|onnx|pt|pth)(?=$|\s|[.,;)}\]])/gi, "$1[redacted-path]");
 }
 
 const OMIT_CANONICAL_KEY = /(?:path|filename|file|directory|workdir|cwd)$/i;
