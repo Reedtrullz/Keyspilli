@@ -6,7 +6,7 @@ import type { Note, MeasureInfo, Section } from "@keyspilli/midi";
 export function detectSections(
   notes: Note[],
   measures: MeasureInfo[],
-  timeSig: [number, number] = [4, 4],
+  _timeSig: [number, number] = [4, 4],
 ): Section[] {
   if (measures.length === 0) return [];
 

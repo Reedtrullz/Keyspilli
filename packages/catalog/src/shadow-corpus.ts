@@ -154,8 +154,8 @@ export interface ShadowCorpusManifestRead {
 }
 
 const SHA256_RE = /^[0-9a-f]{64}$/i;
+// eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
 const CONTROL_RE = /[\u0000-\u001f\u007f]/;
-const SCHEME_RE = /^[A-Za-z][A-Za-z0-9+.-]*:/;
 const MEDIA_STATUS_SET = new Set<string>(SHADOW_CORPUS_MEDIA_STATUSES);
 
 function assertSupportedSchemaVersion(value: unknown, field: string): void {
@@ -214,9 +214,6 @@ function pathInside(candidate: string, root: string): boolean {
   return remainder === "" || (remainder !== ".." && !remainder.startsWith(`..${sep}`) && !isAbsolute(remainder));
 }
 
-function containsEmbeddedPath(value: string): boolean {
-  return isAbsolutePathLike(value) || EMBEDDED_PATH_RE.test(value);
-}
 
 function redactPathText(value: string): string {
   if (isAbsolutePathLike(value)) return "[redacted-path]";

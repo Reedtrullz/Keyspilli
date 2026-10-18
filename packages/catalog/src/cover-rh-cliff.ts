@@ -229,7 +229,7 @@ function phrases(groups: Group[]): Group[][] {
   return out;
 }
 
-function structure(notes: Note[], tempoBpm = 120): RhStructureMetrics {
+function structure(notes: Note[], _tempoBpm = 120): RhStructureMetrics {
   const valid = notes.filter(finiteNote);
   const groups = onsetGroups(valid);
   const sizes = groups.map((group) => group.notes.length);
@@ -433,7 +433,7 @@ function traceFunnel(trace: ProvenanceTraceEvent[] | undefined): { funnel: Cliff
       return an - bn || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
     })[0];
     let fate: CliffFate;
-    let operation: string | null = matching[0]?.operation ?? null;
+    const operation: string | null = matching[0]?.operation ?? null;
     if (!matching.length) fate = firstLossStage ? (lossReason?.toUpperCase().includes("COLLAP") ? "COLLAPSED" : "REJECTED") : "REJECTED";
     else if (matching.length > 1) fate = "MERGED";
     else if (!source.note || !matching[0]!.note) fate = "REPLACED";
@@ -543,7 +543,7 @@ function counterfactual(variants: Variant[], trace: ProvenanceTraceEvent[] | und
   const violations: string[] = [];
   if (candidate.maxSimultaneity > limits.maxSim) violations.push(`maxSimultaneity ${candidate.maxSimultaneity} exceeds Beginner limit ${limits.maxSim}`);
   if (candidate.attacksPerSecond > limits.maxDensity) violations.push(`attack density ${candidate.attacksPerSecond} exceeds Beginner limit ${limits.maxDensity}`);
-  const baselineIdentity = structure(beginner.notes.filter((note) => note.hand !== "L"), beginner.tempoBpm);
+  const _baselineIdentity = structure(beginner.notes.filter((note) => note.hand !== "L"), beginner.tempoBpm);
   const candidateIdentity = structure(candidateNotes.filter((note) => note.hand !== "L"), beginner.tempoBpm);
   const medianIoiSeconds = candidateIdentity.ioiBeats.median === null ? null : candidateIdentity.ioiBeats.median * 60 / beginner.tempoBpm;
   if (medianIoiSeconds !== null && medianIoiSeconds < limits.minMedianIoi) violations.push(`median RH IOI ${round(medianIoiSeconds)}s below Beginner floor ${limits.minMedianIoi}s`);

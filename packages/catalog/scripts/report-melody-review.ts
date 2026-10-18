@@ -54,6 +54,7 @@ function nextValue(argv: readonly string[], index: number, flag: string): [strin
 }
 
 function localPath(value: string, flag: string): string {
+  // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
   if (!value.trim() || !isAbsolute(value) || /[\u0000\r\n]/.test(value)) throw new Error(`${flag} must be an absolute local path without NUL/newline characters`);
   return resolve(value);
 }
@@ -133,6 +134,7 @@ async function outputPath(value: string): Promise<string> {
 function publicError(error: unknown): string {
   return (error instanceof Error ? error.message : String(error))
     .replace(/(?:file:\/\/)?(?:\/(?:Users|private|tmp|var|home|Volumes|root|opt|mnt|workspace|data|srv|etc)\/[^\s"'<>;,)]*|[A-Za-z]:[\\/][^\s"'<>;,)]*)/gi, "[redacted-path]")
+    // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
     .replace(/[\u0000\r\n]+/g, " ").slice(0, 500);
 }
 

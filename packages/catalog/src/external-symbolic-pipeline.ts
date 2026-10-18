@@ -485,9 +485,6 @@ function scorePartNotesWithSource(
   return notes.sort((a, b) => a.note.start - b.note.start || a.note.midi - b.note.midi);
 }
 
-function scorePartNotes(part: OmrScoreInput["parts"][number], alignment?: PianoSectionSource["alignment"]): Note[] {
-  return scorePartNotesWithSource(part, alignment).map(({ note }) => note);
-}
 
 function clipNotesToWindows(notes: readonly Note[], windows: readonly PianoSectionWindow[]): Note[] {
   if (!windows.length) return [...notes];
