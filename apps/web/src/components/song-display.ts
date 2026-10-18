@@ -1,8 +1,8 @@
 const NOISE = [
-  /\s*[\[(][^\])]*(piano|synthesia|tutorial|cover|sheet)[^\])]*[\])]/gi,
+  /\s*[[(][^\])]*(piano|synthesia|tutorial|cover|sheet)[^\])]*[\])]/gi,
   /\s*[-–|]\s*(piano|piano (cover|version|tutorial)|easy piano)\s*$/i,
   /\s+(piano )?(cover|tutorial)\s*$/i,
-  /\s*[-–—|]\s*(piano\s+)?(accompaniment|karaoke)(\s*[\[(][^\])]*[\])])?\s*$/i,
+  /\s*[-–—|]\s*(piano\s+)?(accompaniment|karaoke)(\s*[[(][^\])]*[\])])?\s*$/i,
 ];
 
 export function displaySong(title: string, artist: string): { title: string; artist: string } {

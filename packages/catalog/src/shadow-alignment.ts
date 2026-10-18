@@ -632,9 +632,6 @@ function onsetGroups(notes: readonly Note[], tolerance: number): Array<{ start: 
   return groups;
 }
 
-function sectionForReferenceStart(start: number): SectionDefinition | undefined {
-  return SECTION_DEFINITIONS.find((section) => start >= section.reference[0]! - EPS && start < section.reference[1]! - EPS);
-}
 
 function inWindow(value: number, bounds: [number, number]): boolean {
   return value >= bounds[0]! - EPS && value < bounds[1]! - EPS;

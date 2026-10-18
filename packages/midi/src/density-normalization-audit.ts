@@ -78,11 +78,6 @@ function sortedAttackMembers(attack: PlayabilityAttack): Note[] {
   return [...attack.notes].sort(compareNotes);
 }
 
-function representativePitch(attack: PlayabilityAttack): number | null {
-  const right = attack.notes.filter((note) => note.hand !== "L");
-  const values = (right.length ? right : attack.notes).map((note) => note.midi).filter(Number.isFinite);
-  return values.length ? Math.max(...values) : null;
-}
 
 function melodyPitch(attack: PlayabilityAttack): number | null {
   const values = attack.notes.filter((note) => note.hand !== "L").map((note) => note.midi).filter(Number.isFinite);

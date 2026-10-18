@@ -214,7 +214,7 @@ export function buildOmrReviewQueue(input: unknown): OmrReviewQueue {
       items.push({
         id: `${id}:${measure.id}:${group.role}:${group.reason}`, scoreId: id, page: measure.page, system: measure.system, measureId: measure.id, measureNumber: measure.number,
         role: group.role, reasonCategory: group.reason, state: measure.state, priorityClass: priority(group.role, group.reason), backendValues, backendInterpretations,
-        context: { keySignature: measure.keySignature, timeSignature: measure.timeSignature, startBeat: measure.startBeat, durationBeats: measure.durationBeats, structural: { agreement: measure.structuralAgreement, evidence: [...new Set([...measure.structuralEvidence, ...evidence.filter((entry) => group.reason === "structure")])].sort(compare) } },
+        context: { keySignature: measure.keySignature, timeSignature: measure.timeSignature, startBeat: measure.startBeat, durationBeats: measure.durationBeats, structural: { agreement: measure.structuralAgreement, evidence: [...new Set([...measure.structuralEvidence, ...evidence.filter((_entry) => group.reason === "structure")])].sort(compare) } },
         evidence, recommendedAction: action(group.role, group.reason),
       });
     }

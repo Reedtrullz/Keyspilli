@@ -11,7 +11,7 @@ test("owner review inspects excluded versions privately without re-enabling less
   expect((await request.get(`/api/songs/${receipt.songIds[0]}`)).status()).toBe(404);
   expect((await request.get('/api/catalog/review')).status()).toBe(401);
   expect((await request.get('/api/catalog/review?after=..',{headers})).status()).toBe(400);
-  await page.goto('/maintenance');const review=page.getByRole('region',{name:'Owner musical review'});
+  await page.goto('/maintenance');
   await expect(page.getByRole('button',{name:'Refresh musical review'})).toBeVisible();
   // Explicit owner API cursor lets the fixture appear independently of the seeded library pages.
   await page.route('**/api/catalog/review?after=',route=>route.continue({url:`http://127.0.0.1:3128/api/catalog/review?after=upload`}));

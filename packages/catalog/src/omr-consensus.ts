@@ -1314,7 +1314,7 @@ function redactUrlCredentials(value: string): string {
   // Keep the logical URL while ensuring user-info cannot enter a report hash
   // or a review artifact.  The fallback also handles non-standard schemes
   // which the URL constructor would reject.
-  return value.replace(/([A-Za-z][A-Za-z0-9+.-]*:\/\/)([^\s\/@:]+)(?::[^\s\/@]*)?@/g, "$1[redacted]@");
+  return value.replace(/([A-Za-z][A-Za-z0-9+.-]*:\/\/)([^\s/@:]+)(?::[^\s/@]*)?@/g, "$1[redacted]@");
 }
 
 const CANONICAL_VOLATILE_KEYS = new Set([

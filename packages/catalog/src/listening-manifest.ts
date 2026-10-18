@@ -560,10 +560,10 @@ export function createListeningManifest(input: ListeningManifestInput): Listenin
 
 function redactPathLikeString(value: string): string {
   return value
-    .replace(/(^|[\s("'=,;:\[\]])file:\/\/[^\s"'<>;,)]*/gi, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;:\[\]])(?:~\/|\.\.?\/)[^\s"'<>;,)]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;:\[\]])\/(?:[^\s"'<>;,)]*\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;:\[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])file:\/\/[^\s"'<>;,)]*/gi, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])(?:~\/|\.\.?\/)[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])\/(?:[^\s"'<>;,)]*\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
     .replace(/(^|\s)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|wav|mp3|sf2)(?=$|[\s"'])/gi, "$1[redacted-path]");
 }
 
@@ -640,7 +640,7 @@ export function createBlankListeningWorksheet(
   const normalized = candidates.map(candidateInputForWorksheet).sort((a, b) => compareText(a.id, b.id));
   const ids = normalized.map((candidate) => candidate.id);
   if (new Set(ids).size !== ids.length) throw new Error("candidate ids must be unique for a worksheet");
-  const aliases = options.aliases ? [...options.aliases] : options.blind ? createBlindAliases(ids) : ids.map((candidateId, index) => ({ alias: candidateId, candidateId }));
+  const aliases = options.aliases ? [...options.aliases] : options.blind ? createBlindAliases(ids) : ids.map((candidateId, _index) => ({ alias: candidateId, candidateId }));
   const aliasByCandidate = new Map(aliases.map((alias) => [alias.candidateId, alias.alias]));
   const scores = (): Record<ListeningWorksheetDimension, number | null> => Object.fromEntries(
     LISTENING_WORKSHEET_DIMENSIONS.map((dimension) => [dimension, null]),
