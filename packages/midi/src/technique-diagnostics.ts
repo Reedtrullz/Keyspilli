@@ -107,6 +107,7 @@ const record = (value: unknown): value is Record<string, unknown> => value !== n
 const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 const ascii = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const identifier = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   && value.length <= TECHNIQUE_DIAGNOSTIC_LIMITS.maxIdLength && !/[\x00-\x1f\x7f]/.test(value);
 const pitchOrder = (a: TechniqueEvent, b: TechniqueEvent) => a.midi - b.midi || ascii(a.eventId, b.eventId);
 /** Only arithmetic round-off is equal here; the onset grouping tolerance is separate. */

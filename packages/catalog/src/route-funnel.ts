@@ -139,7 +139,7 @@ function noPath(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) return "unavailable";
   return value.trim()
     .replace(/(?:file:\/\/)?\/(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app)(?:\/[^\s"'<>;,)]*)?/gi, "[redacted-path]")
-    .replace(/(^|[\s("'=,;\[])(?:\.\.?\/|[^\s/]+\/)[^\s"'<>;,)]*\.(?:mid|midi|json|wav|mp3|xml|mxl)(?=$|[\s"'<>;,\)])/gi, "$1[redacted-path]");
+    .replace(/(^|[\s("'=,;[])(?:\.\.?\/|[^\s/]+\/)[^\s"'<>;,)]*\.(?:mid|midi|json|wav|mp3|xml|mxl)(?=$|[\s"'<>;,)])/gi, "$1[redacted-path]");
 }
 
 function routeIds(routes: readonly RouteFunnelRouteInput[]): { ordered: RouteFunnelRouteInput[]; missing: RouteId[] } {

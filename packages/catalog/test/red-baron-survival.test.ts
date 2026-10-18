@@ -13,7 +13,6 @@ import {
   redactStageSurvivalText,
   type DecoderFixEvidence,
   type StageInput,
-  type StageSurvivalReport,
 } from "../src/red-baron-survival.js";
 
 const note = (id: string, midi: number, start: number, overrides: Record<string, unknown> = {}) => ({

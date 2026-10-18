@@ -126,6 +126,81 @@ quota produced `Data limit exceeded` across both retained runner attempts; the
 existing bounded retries cannot clear that quota. Registry acquisition does not
 skip the edge, restore, browser or image checks.
 
+## Native browser rehearsal
+
+The existing `runtime-rehearsal.yml` builds the web and worker on native Linux
+amd64 using the public seed catalog. Its opt-in `deploy/restore-app.py ...
+--sampled` check runs Chromium **inside** the restored web container, with an
+inspected 1.5 CPU quota, 1 GiB memory and 128 PID limit. The host and immutable
+image must both be amd64. Host-side playback or emulation does not qualify this
+check. The five-argument restore command remains an HTTP/framing canary; its
+`browserPlaybackAcceptance: not_tested` field is intentionally unchanged.
+
+The sampled check mounts only the allowlisted test SDK and source paths read-only.
+Its generated MusicXML software control is uploaded into the owned writable
+restore copy, then deleted through the application API. It records six seconds
+of actual Original and Chords PCM with the maintained Player capture helper,
+including the full sampled-bank transfer barrier and unchanged readiness,
+signal and clipping assertions. A separate idle, paired recorder control must
+remain silent. MIDI and MusicXML are downloaded through the actual active UI
+selection and checked for mode, hash and note/time parity. PDF requests reuse
+that selection after the capture browser exits; this part checks the API path,
+not a PDF button click. No provider inference is called.
+
+The controller waits for startup without rendering PDFs, runs the native probe,
+then runs all seven full HTTP/framing checks, including both PDF layouts.
+This prevents the server's cached PDF Chromium from overlapping the recorder's
+Chromium before capture. Readiness alone is never full application acceptance.
+The first native run at test merge `8a5714b723059d96d800868749063911a2183754`
+failed at the first browser page before PCM; browser overlap was confirmed,
+but PID exhaustion was not established. Its raw evidence remains retained.
+Native browser debug stderr is retained by the owned Docker lifecycle logs.
+
+The generated native upload control has an explicit played left-hand C/E/G
+stack, not octave-unison C notes. Its real ingest/detail/backing regression
+requires playable Chords throughout the capture window; the former ambiguous
+octave control remains a negative and must stay silent. This qualifies a software
+control, without changing harmony refusal, catalog music or approval pins.
+Raw mode WAVs and source/clock counters are persisted before signal rejection;
+an empty-start failure also retains bounded page state and a screenshot. Those
+diagnostics never make a rejected capture pass, and raw passing WAVs are reused
+for the normal receipt rather than copied a second time.
+
+The native workflow explicitly selects `--sampled --image-sizes` to record
+Docker's measured uncompressed bytes for both backup-pinned images. Standalone
+`--sampled` retains its web-only contract and needs no local worker image. Their conservative sum (including shared layers twice)
+must fit the existing managed scratch budget, 16 GiB by default, before canary
+container creation. Sizes and the selected limit are retained in the runtime
+receipt. This is candidate qualification, not production disk admission.
+
+The rehearsal stages the existing Player's complete 226-file Ogg bank before
+starting the network-disabled container. `prepare-native-piano.mts` uses the
+retained Chromium capture's URL/byte/SHA-256 pins, verifies the installed smplr
+1.1.0 module and full preset inventory, and reuses only verified read-only,
+single-link files. Writable or linked inputs are refused without chmod/repair.
+Acquisition has four workers, a two-minute total bound, a 256 MiB inventory cap
+and a 6 GiB free-space reserve. Failed/corrupt/foreign inputs are preserved and
+refused; they are never silently repaired. The managed run seals these inputs
+and diagnostics before releasing scratch on failure, cancellation or success.
+
+Set `KEYSPILLI_NATIVE_PIANO_DIR` to that canonical input directory for the
+sampled restore. It is mounted read-only at `/piano-input`; the browser fulfills
+only the pinned sample URLs from those bytes. All 226 actual transfers, decoding
+and signal assertions still run. This qualifies offline input transport, not
+live CDN reachability. Upstream [documents AKAI's samples as public domain](https://github.com/sfzinstruments/SplendidGrandPiano#splendid-grand-piano);
+the fixture records that authority and the retained capture hash. No bank is
+added to the production image or musical baselines. Historical reference-bank
+module pins remain unchanged. Recorder initialization is self-contained under
+tsx's function-name serialization; the existing PCM and timing checks remain.
+
+`native-player/result.json`, PCM, screenshots and exports are retained alongside
+the restore report and lifecycle reconstruction evidence. Failures, timeouts
+and cancellation cannot produce a successful application report; owned-container
+cleanup still runs. A cleanup failure remains a failure. The job's existing
+45-minute and restore-step 12-minute bounds are unchanged. This synthetic runtime
+check does not establish musical, physical-keyboard, independent listening,
+production-catalog or production-deployment acceptance.
+
 ## Acceptance scope
 
 Keep code review, stock-renderer operation, actual browser handoff, independent

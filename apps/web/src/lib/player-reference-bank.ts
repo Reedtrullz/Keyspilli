@@ -10,10 +10,13 @@ export function readPinnedPlayerAssets(manifestPath:string,modulePath:string){
  const manifest=JSON.parse(bounded(manifestPath,1024*1024).toString()) as PlayerAssetManifest;
  check(manifest.schemaVersion===1 && manifest.localUsePermission===true && typeof manifest.rightsSource==='string' && manifest.rightsSource.length>0,'explicit local permission and rights source required');
  const module=bounded(modulePath,4*1024*1024);check(isHash(manifest.moduleSha256) && sha(module)===manifest.moduleSha256 && manifest.moduleVersion==='1.0.0','module identity drift');
- check(Array.isArray(manifest.assets) && manifest.assets.length>0 && manifest.assets.length<=1024,'bounded asset inventory required');
+ return {manifest,module,assets:readPinnedSampleAssets(manifest.assets)};
+}
+export function readPinnedSampleAssets(pins:PlayerAssetManifest['assets']){
+ check(Array.isArray(pins) && pins.length>0 && pins.length<=1024,'bounded asset inventory required');
  const assets=new Map<string,Buffer>();let bytes=0;
- for(const pin of manifest.assets){check(/^https?:\/\//.test(pin.url) && !assets.has(pin.url) && isHash(pin.sha256) && Number.isSafeInteger(pin.bytes) && pin.bytes>0,'invalid/duplicate asset pin');bytes+=pin.bytes;check(bytes<=512*1024*1024,'sample asset inventory exceeds 512MiB');const b=bounded(pin.path,4*1024*1024);check(b.length===pin.bytes && sha(b)===pin.sha256,'asset hash/bytes drift');assets.set(pin.url,b);}
- return {manifest,module,assets};
+ for(const pin of pins){check(/^https?:\/\//.test(pin.url) && !assets.has(pin.url) && isHash(pin.sha256) && Number.isSafeInteger(pin.bytes) && pin.bytes>0,'invalid/duplicate asset pin');bytes+=pin.bytes;check(bytes<=512*1024*1024,'sample asset inventory exceeds 512MiB');const b=bounded(pin.path,4*1024*1024);check(b.length===pin.bytes && sha(b)===pin.sha256,'asset hash/bytes drift');assets.set(pin.url,b);}
+ return assets;
 }
 export function playerReferenceWav(values:number[]):Buffer {
  check(values.length>0 && values.length%2===0 && values.length<=4*44100*2,'bounded stereo reference required');

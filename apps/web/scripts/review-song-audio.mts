@@ -35,7 +35,6 @@ import {
   validateReviewManifest,
   type ComparisonStatus,
   type ReviewProfile,
-  type AntiListenEnvelope,
   type GatewayAudioRoutePin,
   type ReviewJob,
   type ReviewManifest,

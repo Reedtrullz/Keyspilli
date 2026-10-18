@@ -68,7 +68,7 @@ provenance cases. The single authorized replacement is
   freeze; the test-local candidate has eight RH and six emitted LH notes.
 
 The fresh preregistration is
-`docs/superpowers/plans/2026-09-02-beginner-sparse-lh-promotion-evidence-repair-preregistration.json`
+`evidence/plans/2026-09-02-beginner-sparse-lh-promotion-evidence-repair-preregistration.json`
 with the hash above. It freezes `COLLISION_AWARE_SPARSE_LH`, all trusted
 fixture hashes, exact gates, exclusions, and deferred concerns.
 

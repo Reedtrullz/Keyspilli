@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import selectors
+import shutil
 import signal
 import sys
 import uuid
@@ -141,7 +142,36 @@ def main():
             subprocess.run([real, "buildx", "create", "--name", builder, "--driver", "docker-container",
                             "--buildkitd-flags", "--oci-worker-gc --oci-worker-gc-keepstorage 4096"], env=builder_env, check=True)
         args = ["buildx", "build", "--builder", builder, "--load", "--label", f"{module.LABEL}={run}", *args[1:]]
-        return execute(store, run, [real, *args], env=builder_env)
+        code = execute(store, run, [real, *args], env=builder_env)
+        if code:
+            return code
+        # --load has committed the image to Docker. Its intermediate build cache
+        # must not overlap the next image's build/export/import peak.
+        with store.lock():
+            path, doc = store.path(run)
+            if doc["state"] != "running" or doc["pins"]:
+                raise ValueError("builder cache is pinned or not writable")
+            if store.docker("info", "--format", "{{.ID}}").strip() != doc["dockerIdentity"]:
+                raise ValueError("Docker daemon identity changed before cache release")
+            resources = module.helper("evidence_resources")
+            if not any(resources.decode(item, run) == resources.Resource("builder", builder) for item in doc["resources"]):
+                raise ValueError("builder cache is not owned by this run")
+            identities = resources.builder_users(store, builder)
+            journal = doc.setdefault("builderContainers", {})
+            if len(identities) != 1 or (builder in journal and journal[builder] != identities):
+                raise ValueError("builder container identity changed before cache release")
+            journal[builder] = identities
+            module.save(path, doc)
+            measurement = dict(builder=builder, container=identities[0], availableBefore=shutil.disk_usage(store.root).free)
+            measurement_path = store.root / "evidence" / run / f"builder-cache-{uuid.uuid4().hex}.json"
+            module.save(measurement_path, measurement)
+            try:
+                code = execute(store, run, [real, "buildx", "prune", "--builder", builder, "--all", "--force"], env=builder_env)
+                measurement["exitCode"] = code
+                return code
+            finally:
+                measurement["availableAfter"] = shutil.disk_usage(store.root).free
+                module.save(measurement_path, measurement)
     return execute(store, run, [real, *args])
 
 
