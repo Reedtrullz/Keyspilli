@@ -7,7 +7,6 @@ import {
   writeMidi,
   type Note,
   type ParsedMidi,
-  type SongMeta,
 } from "@keyspilli/midi";
 import {
   normalizeSymbolicScore,

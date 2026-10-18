@@ -18,7 +18,6 @@ import {
   selectRotatingScoreListeningPack,
   type ScoreCorpusSong,
   type ScoreListeningPack,
-  type ScoreListeningPackExcerpt,
 } from "./score-listening-pack.js";
 
 export const ROTATING_LISTENING_BUNDLE_SCHEMA_VERSION = 1 as const;

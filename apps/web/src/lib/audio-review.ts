@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream, constants } from "node:fs";
-import { open, readFile, stat, lstat } from "node:fs/promises";
+import { open, stat, lstat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { parseCompactJson } from "./music-review-jobs.js";
 

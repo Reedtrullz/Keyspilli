@@ -1479,7 +1479,7 @@ export async function runBenchmarkScore(options: ScoreBenchmarkOptions): Promise
   await ensureOutputDirectory(normalizedDir, out, "normalized output directory");
   await ensureOutputDirectory(validationDir, out, "validation output directory");
   const timestamp = new Date().toISOString();
-  let manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
+  const manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
   try {
     if (manifest) await assertOutsideRepository(manifest, "corpus manifest");
     const scratch = await mkdtemp(join(omrDir, ".audiveris-"));

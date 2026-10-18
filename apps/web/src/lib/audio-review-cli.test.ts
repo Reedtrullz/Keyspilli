@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { execFile as execFileCallback, execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
