@@ -20,9 +20,13 @@ environment gate. A deployment retry leaves catalog sources and data untouched. 
 `services/transcribe/Dockerfile.tutorial --target worker`; the root Compose
 file is a separate development topology with the legacy audio worker.
 
-Manual deploy (equivalent to the CI deploy job, after images exist):
+Manual deploy (equivalent to the CI deploy job, after images exist). The real
+inventory is gitignored; render it first (or copy
+`deploy/inventory/hosts.example.yml` to `deploy/inventory/hosts.yml` and fill it in):
 
 ```bash
+KEYSPILLI_VPS_HOST=<vps host or IP> KEYSPILLI_VPS_SSH_KEY=~/.ssh/<deploy key> \
+  python3 deploy/render-inventory.py
 APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
   -i deploy/inventory/hosts.yml deploy/playbook.yml \
   -e "docker_image=ghcr.io/reedtrullz/keyspilli:$(git rev-parse --short=12 HEAD)" \
@@ -32,7 +36,7 @@ APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
 Preconditions (matching the other projects):
 
 - Control node: `brew install ansible` + `ansible-galaxy collection install -r deploy/requirements.yml`.
-- The inventory defaults to `~/.ssh/id_rsa_racknerd` for CI, host `198.23.137.16`, user `deploy`. Local operators should use their configured deploy key; override `ansible_ssh_private_key_file` when needed. The local `Racknerd-Deploy` SSH alias uses a different key. Never copy private key material into the repository.
+- Inventory: `deploy/inventory/hosts.yml` is not committed. `deploy/render-inventory.py` writes it from `KEYSPILLI_VPS_HOST` (required), `KEYSPILLI_VPS_USER` (default `deploy`) and `KEYSPILLI_VPS_SSH_KEY` (default `~/.ssh/keyspilli_deploy`). CI uses the `KEYSPILLI_VPS_HOST` secret, the optional `KEYSPILLI_VPS_USER` variable and the `VPS_SSH_PRIVATE_KEY` secret; the host must match the host field in `VPS_SSH_HOST_KEY`. Local operators can point `KEYSPILLI_VPS_SSH_KEY` at their own deploy key. Never copy private key material into the repository.
 - VPS: Docker, Docker Compose v2, Caddy; GHCR pull access (`docker login ghcr.io` if the images are private).
 - Domain: the inventory defaults to `keys.reidar.tech` — add a Caddy
   block for any other domain to `deploy/playbook.yml` vars or the inventory.
@@ -306,8 +310,8 @@ node -e "const D=require('better-sqlite3')('data/db.sqlite'); D.pragma('wal_chec
 
 # 2. Ship the data and swap it into the volume
 tar czf - -C data db.sqlite artifacts transcribed seed-midi \
-  | ssh deploy@198.23.137.16 'mkdir -p /tmp/keyspilli-seed && tar xzf - -C /tmp/keyspilli-seed'
-ssh deploy@198.23.137.16 'docker stop keyspilli keyspilli-worker && \
+  | ssh "${KEYSPILLI_VPS_USER:-deploy}@$KEYSPILLI_VPS_HOST" 'mkdir -p /tmp/keyspilli-seed && tar xzf - -C /tmp/keyspilli-seed'
+ssh "${KEYSPILLI_VPS_USER:-deploy}@$KEYSPILLI_VPS_HOST" 'docker stop keyspilli keyspilli-worker && \
   docker run --rm -v keyspilli_keyspilli_data:/data -v /tmp/keyspilli-seed:/src:ro \
     ghcr.io/reedtrullz/keyspilli:latest \
     sh -c "rm -f /data/db.sqlite-wal /data/db.sqlite-shm && cp -a /src/. /data/" && \
@@ -715,6 +719,13 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
   workflow dispatch with `rebuild_target` and an explicit base ID, or `rebuild_all`
   with `REBUILD_ALL_CATALOG` (runs inside the worker container with
   `--keep-existing-tempo`). The default `deploy_only` skips this job.
+  Rebuild dispatches require main, successful validation/checks and both release
+  flags disabled. They use the installed worker; they do not publish or deploy
+  images. Scope validation still requires the explicit target or full-catalog
+  confirmation before any production SSH operation. The authenticated live web
+  revision must already match the dispatch SHA before catalog writes begin;
+  advancing main without deploying it causes a clean preflight refusal. The
+  same revision and requested target are verified again after the rebuild.
 
 ### Discovery-assisted private alpha deployment canary — 2026-09-05
 
