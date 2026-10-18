@@ -176,6 +176,7 @@ jobs:
           sudo env KEYSPILLI_TEST_NODE="$(command -v node)" python3 -B deploy/test/test-evidence.py
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
+          python3 -B deploy/test/test-restore-app.py
           python3 deploy/test/test-release-operation.py
           python3 scripts/test_check_music_release.py
           python3 scripts/test_check_ui_release.py

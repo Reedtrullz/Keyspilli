@@ -18,7 +18,8 @@
     "scripts/benchmark-music-review.mts",
     "scripts/report-music-review.mts",
     "scripts/preview-music-repair.mts",
-    "scripts/prepare-music-model-experiments.mts"
+    "scripts/prepare-music-model-experiments.mts",
+    "scripts/verify-native-player.mts"
   ],
   "exclude": [
     "node_modules"
