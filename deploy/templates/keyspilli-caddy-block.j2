@@ -6,6 +6,14 @@
     # Optional host-managed test logins survive application deployments.
     import /etc/caddy/keyspilli-users/*.conf
   }
+  # HSTS belongs at the TLS edge. The application sets CSP (frame-ancestors),
+  # X-Frame-Options, nosniff and Referrer-Policy itself (apps/web/next.config.ts)
+  # so they also hold in local and CI runs. No includeSubDomains: other
+  # services on the parent domain are not managed here.
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    -Server
+  }
   # Caddy's default response matcher excludes the vendor MusicXML MIME, so
   # keep the standard encodings and add it explicitly for sheet responses.
   encode zstd gzip {
