@@ -18,7 +18,6 @@ import {
   selectRotatingScoreListeningPack,
   type ScoreCorpusSong,
   type ScoreListeningPack,
-  type ScoreListeningPackExcerpt,
 } from "./score-listening-pack.js";
 
 export const ROTATING_LISTENING_BUNDLE_SCHEMA_VERSION = 1 as const;
@@ -248,7 +247,7 @@ function redact(value: string): string {
     .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted-url]")
     .replace(/(?:file:\/\/)?\/[^\s"'<>;,)]*/g, "[redacted-path]")
     .replace(/[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "[redacted-path]")
-    .replace(/(^|[\s("'=,;:\[\]])(?:\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|wav|mp3|sf2)(?=$|[\s"'])/gi, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])(?:\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|wav|mp3|sf2)(?=$|[\s"'])/gi, "$1[redacted-path]")
     .replace(/[\0\r\n]+/g, " ")
     .slice(0, 500);
 }

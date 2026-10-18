@@ -26,7 +26,7 @@ export async function prepareCompactReviewJobs(report:MusicReviewReport,output:s
 }
 export function parseCompactJson(text:string):unknown{
  assertMusic(Buffer.byteLength(text,'utf8')<=65536,'bounded compact JSON required');const value=JSON.parse(text,(_k,v)=>{assertMusic(typeof v!=='number'||Number.isFinite(v),'nonfinite JSON');return v;});
- const containers:Array<Set<string>|null>=[],tokens=/"(?:[^"\\]|\\.)*"|[{}\[\]]/g;let token:RegExpExecArray|null;
+ const containers:Array<Set<string>|null>=[],tokens=/"(?:[^"\\]|\\.)*"|[{}[\]]/g;let token:RegExpExecArray|null;
  while((token=tokens.exec(text))){const t=token[0];if(t==='{')containers.push(new Set());else if(t==='[')containers.push(null);else if(t==='}'||t===']')containers.pop();else{let at=tokens.lastIndex;while(/\s/.test(text[at]??'') && at<text.length)at++;if(text[at]===':'){const keys=containers.at(-1),key=JSON.parse(t);assertMusic(keys && !keys.has(key),'duplicate compact JSON field');keys.add(key);}}}return value;
 }
 export function validateCompactResult(value:unknown,evidence:AntiMusicEvidence):unknown{

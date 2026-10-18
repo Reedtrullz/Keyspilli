@@ -538,7 +538,7 @@ const PATH_KEY = /path|file|filename|directory|dir|root|cwd|timestamp|generateda
 
 function redactString(value: string): string {
   if (/^(?:file:\/\/)?\//i.test(value)) return "[redacted-path]";
-  return value.replace(/(^|[\s("'=,;\[])(?:file:\/\/)?\/(?!\/)[^\s"'<>;,)]*/gi, (_match, prefix: string) => `${prefix}[redacted-path]`);
+  return value.replace(/(^|[\s("'=,;[])(?:file:\/\/)?\/(?!\/)[^\s"'<>;,)]*/gi, (_match, prefix: string) => `${prefix}[redacted-path]`);
 }
 
 function canonicalize(value: unknown, key?: string): unknown {

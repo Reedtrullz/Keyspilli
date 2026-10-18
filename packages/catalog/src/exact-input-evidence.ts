@@ -49,6 +49,7 @@ export function evidenceObject(value: unknown, label: string): Record<string, un
   return value as Record<string, unknown>;
 }
 function boundedString(value: unknown, max: number): value is string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   return typeof value === "string" && value.length <= max && !/[\u0000-\u001f\u007f]/.test(value);
 }
 function id(value: unknown): value is string { return typeof value === "string" && ID.test(value); }

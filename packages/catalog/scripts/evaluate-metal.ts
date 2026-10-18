@@ -83,13 +83,6 @@ function parseNumber(value: string, label: string): number {
   return number;
 }
 
-function parseBounds(value: string, label: string): [number, number] {
-  const parts = value.split(",");
-  if (parts.length !== 2) throw new Error(`${label} must have the form start,end: ${value}`);
-  const bounds: [number, number] = [parseNumber(parts[0]!, `${label} start`), parseNumber(parts[1]!, `${label} end` )];
-  if (bounds[1] <= bounds[0]) throw new Error(`${label} end must be greater than start: ${value}`);
-  return bounds;
-}
 
 function parseWindow(value: string): EvaluationWindow {
   const equal = value.indexOf("=");

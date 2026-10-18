@@ -5,7 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { LEVEL_ORDER, buildVariants, parseMidi, parseMusicXmlNotes, validateArtifactFiles, validateVariants,
-  writeVariantArtifacts, type Note, type ParsedMidi, type PhrasePlanV1, type Variant } from "../src/index.js";
+  writeVariantArtifacts, type Note, type ParsedMidi, type PhrasePlanV1 } from "../src/index.js";
 import { analyzeTechnique, type TechniqueInput, type TechniqueInstant, type TechniqueInterval, type TechniqueResult } from "../src/technique-diagnostics.js";
 import { checkSourceProtection, correspondPhysicalNotes, originKey, type ContractCase, type TierPolicy } from "./technique-contract-support.js";
 

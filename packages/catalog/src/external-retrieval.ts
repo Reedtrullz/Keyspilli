@@ -216,6 +216,7 @@ const SYMBOLIC_MIME: Readonly<Record<string, ExternalRetrievalFormat>> = {
 
 function cleanText(value: unknown, max = 240): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
   return clean || null;
 }
@@ -642,6 +643,7 @@ function safeReason(value: string): string {
     .replace(/((?:^|[\s"'(:]))(?:[A-Za-z]:[\\/]|~[\\/]|\.{1,2}[\\/]|\/(?:Users|private|tmp|var|home|Volumes|workspace|opt|root|srv|etc|mnt|data)(?:[\\/]|$))[^\s,;)}\]]+/gi, (_match, prefix: string) => `${prefix}[redacted-path]`)
     .replace(/(https?:\/\/)[^\s/@:]+:[^\s/@]+@/gi, "$1[redacted]@")
     .replace(/(https?:\/\/[^\s/?#]+(?:\/[^\s?#]*)?)(?:\?[^\s#]*)/gi, "$1")
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
