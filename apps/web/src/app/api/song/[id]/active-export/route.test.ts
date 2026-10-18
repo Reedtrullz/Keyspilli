@@ -2,15 +2,14 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { inferHarmonyTimeline, parseMidi, parseMusicXmlNotes, type Note } from "@keyspilli/midi";
 import type { SongData } from "@keyspilli/player-core";
-import { activeExportDigest, activeExportVariant, resolveActiveExport, type ActiveExportSelection } from "@/components/player/active-arrangement-export";
+import { activeExportDigest, activeExportSourceFingerprint, activeExportVariant, resolveActiveExport, type ActiveExportSelection } from "@/components/player/active-arrangement-export";
 
 const getSongDetail = vi.hoisted(() => vi.fn());
-const getSongDetailShell = vi.hoisted(() => vi.fn());
 const PublicationRevisionConflictError = vi.hoisted(() => class extends Error {});
-// Only the publication store and request authorization are substituted. The
-// active resolver, serializer, response bytes, and reparsers are production code.
-vi.mock("@/lib/catalog-api", () => ({ getSongDetail, getSongDetailShell, PublicationRevisionConflictError }));
+const renderPdfResponse = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/catalog-api", () => ({ getSongDetailForExport: getSongDetail, PublicationRevisionConflictError }));
 vi.mock("@/lib/mutation-auth", () => ({ checkMutationAuth: () => null }));
+vi.mock("@/lib/pdf-export", () => ({renderPdfResponse}));
 
 import { POST } from "./route";
 
@@ -44,17 +43,18 @@ const shape = (notes: readonly Note[]) => notes.map(({ midi, hand, start, dur })
   .sort((a, b) => a.start - b.start || a.midi - b.midi);
 const params = Promise.resolve({ id: "synthetic-ks06" });
 
-async function exported(data: SongData, selection: ActiveExportSelection, type: "midi" | "musicxml") {
+async function exported(data: SongData, selection: ActiveExportSelection, type: "midi" | "musicxml", revision: string | null = "synthetic-revision") {
   const resolution = resolveActiveExport(data, selection);
   const variant = activeExportVariant(data, resolution, selection);
   const expectedHash = await activeExportDigest(variant);
-  getSongDetail.mockResolvedValue({ song: { id: "synthetic-ks06", title: "Synthetic hand export", artist: "Software control" }, data, publicationRevision: "synthetic-revision" });
+  getSongDetail.mockResolvedValue({ song: { id: "synthetic-ks06", title: "Synthetic hand export", artist: "Software control" }, data, publicationRevision: revision });
   const response = await POST(new NextRequest("http://127.0.0.1/api/song/synthetic-ks06/active-export", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, revision: "synthetic-revision", sourceFingerprint: data.sourceFingerprint, selection, expectedHash }),
+    body: JSON.stringify({ type, revision, sourceFingerprint: await activeExportSourceFingerprint(data), selection, expectedHash }),
   }), { params });
   expect(response.status).toBe(200);
   expect(response.headers.get("x-active-arrangement-sha256")).toBe(expectedHash);
+  expect(response.headers.get("x-publication-revision")).toBe(revision ?? "unpinned");
   const parsed = type === "midi" ? parseMidi(new Uint8Array(await response.arrayBuffer())) : parseMusicXmlNotes(await response.text());
   return { resolution, variant, parsed };
 }
@@ -62,7 +62,50 @@ async function exported(data: SongData, selection: ActiveExportSelection, type: 
 describe("active export hand semantics through the download response", () => {
   beforeEach(() => {
     getSongDetail.mockReset();
-    getSongDetailShell.mockReset().mockResolvedValue({ song: { hasSheetXml: 1 }, publicationRevision: "synthetic-revision" });
+    renderPdfResponse.mockReset();
+  });
+
+  it.each((["midi", "musicxml"] as const).flatMap(type => (["piano", "chord"] as const).map(backgroundMode => ({type, backgroundMode}))))
+  ("exports explicit legacy $backgroundMode selections as $type without changing the source", async ({type, backgroundMode}) => {
+    const before = structuredClone(authored);
+    const {parsed} = await exported(authored, {...defaults, backgroundMode}, type, null);
+    const expected = backgroundMode === "piano" ? source : [
+      {midi: 40, hand: "L" as const, start: 0.5, dur: 2, vel: 100},
+      ...[67, 72, 76].map(midi => ({midi, hand: "R" as const, start: 0.5, dur: 2, vel: 100})),
+    ];
+    expect(shape(parsed.notes)).toEqual(shape(expected));
+    expect(parsed.tempoBpm).toBeCloseTo(60, 4);
+    expect(authored).toEqual(before);
+  });
+
+  it.each([null, "synthetic-revision"])("rejects source changes after generation while revision stays %s", async revision => {
+    const selection = {...defaults, backgroundMode: "piano" as const};
+    const expectedHash = await activeExportDigest(activeExportVariant(authored, resolveActiveExport(authored, selection), selection));
+    const initial = {song: {id: "synthetic-ks06", title: "Fixture", artist: "Control", hasSheetXml: 1}, data: authored, publicationRevision: revision};
+    getSongDetail.mockResolvedValueOnce(initial).mockResolvedValueOnce({...initial, data: {...authored, notes: authored.notes.map(n => ({...n, midi: n.midi + 1}))}});
+    const response = await POST(new NextRequest("http://127.0.0.1/api/song/synthetic-ks06/active-export", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({type: "midi", revision, sourceFingerprint: await activeExportSourceFingerprint(authored), selection, expectedHash}),
+    }), {params});
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({code: "PUBLICATION_REVISION_CONFLICT"});
+  });
+
+  it.each([null, "synthetic-revision"])("rejects a source change during PDF rendering with revision %s", async revision => {
+    const selection = {...defaults, backgroundMode: "piano" as const};
+    const expectedHash = await activeExportDigest(activeExportVariant(authored, resolveActiveExport(authored, selection), selection));
+    const initial = {song: {id: "synthetic-ks06", title: "Fixture", artist: "Control", hasSheetXml: 1}, data: authored, publicationRevision: revision};
+    getSongDetail.mockResolvedValue(initial);
+    renderPdfResponse.mockImplementation(async () => {
+      getSongDetail.mockResolvedValue({...initial, data: {...authored, notes: authored.notes.map(n => ({...n, midi: n.midi + 1}))}});
+      return new Response("%PDF-rendered-before-source-change", {status: 200});
+    });
+    const response = await POST(new NextRequest("http://127.0.0.1/api/song/synthetic-ks06/active-export", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({type: "pdf", revision, sourceFingerprint: await activeExportSourceFingerprint(authored), selection, expectedHash}),
+    }), {params});
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({code: "PUBLICATION_REVISION_CONFLICT"});
   });
 
   it.each((["midi", "musicxml"] as const).flatMap(type => (["authored", "generated"] as const).flatMap(kind =>
