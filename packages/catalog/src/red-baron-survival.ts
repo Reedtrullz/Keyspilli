@@ -259,7 +259,7 @@ function round(value: number): number {
  */
 function sanitizeHttpUrl(value: string): string {
   const withoutQuery = value.replace(/[?#].*$/, "");
-  return withoutQuery.replace(/^(https?:\/\/)(?:[^\/\s@]+(?::[^\/\s@]*)?@)/i, "$1");
+  return withoutQuery.replace(/^(https?:\/\/)(?:[^/\s@]+(?::[^/\s@]*)?@)/i, "$1");
 }
 
 function redactPath(value: string): string {
@@ -294,7 +294,7 @@ function safeDiagnostic(value: unknown): string {
   catch { return "[unserializable diagnostic]"; }
 }
 
-function sortedObject(value: unknown, key = ""): unknown {
+function sortedObject(value: unknown, _key = ""): unknown {
   if (typeof value === "number" && !Number.isFinite(value)) return null;
   if (typeof value === "string") return redactPath(value);
   if (Array.isArray(value)) return value.map((item) => sortedObject(item));

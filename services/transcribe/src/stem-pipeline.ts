@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, statfs, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, join } from "node:path";
 import { promisify } from "node:util";
 import { writeMidi } from "@keyspilli/midi";
 import { finiteNumberSetting } from "./worker-config.js";

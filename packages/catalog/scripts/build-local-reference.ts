@@ -113,6 +113,7 @@ function nextValue(argv: readonly string[], index: number, flag: string): [strin
 }
 
 function cleanLogicalText(value: string, field: string): string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const text = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   if (!text) throw new Error(`${field} must not be empty`);
   if (text.includes("/") || text.includes("\\") || /^file:/i.test(text)) {
@@ -125,6 +126,7 @@ function logicalId(value: string): string {
   const text = cleanLogicalText(value, "--id");
   const id = text
     .normalize("NFKD")
+    // eslint-disable-next-line no-control-regex -- matches every non-ASCII character (the range starts at NUL) to build ASCII-only slugs
     .replace(/[^\x00-\x7f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9._:-]+/g, "-")

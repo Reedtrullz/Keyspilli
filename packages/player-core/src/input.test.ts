@@ -122,7 +122,7 @@ describe("MidiInput lifecycle", () => {
     try {
       const mi = new MidiInput({
         onNoteOn: (m) => notes.push([m]),
-        onNoteOff: (m) => notes.push([-1]),
+        onNoteOff: (_m) => notes.push([-1]),
       });
       await mi.connect();
       expect(mi.connectedCount).toBe(1);
