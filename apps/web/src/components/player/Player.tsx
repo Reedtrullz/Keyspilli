@@ -3,7 +3,7 @@ import type { MeasureInfo } from "@keyspilli/midi";
 import { MidiTakePanel,type MidiTakeInput } from "./MidiTakePanel";
 import { RhythmCoach } from "./RhythmCoach";
 import { LearningInspection } from "./LearningInspection";
-import {activeExportDigest,activeExportVariant,type ActiveExportSelection} from "./active-arrangement-export";
+import {activeExportDigest,activeExportSourceFingerprint,activeExportVariant,type ActiveExportSelection} from "./active-arrangement-export";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -1086,7 +1086,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       }
     };
     audio.onStateChange = state => {
-      if (engineRef.current === engine && state !== "running" && (gradingRef.current || engine.playing || countInRef.current !== null)) interruptRef.current("Audio output was interrupted.");
+      if (engineRef.current === engine && state !== "running" && !audio.activationPending && (gradingRef.current || engine.playing || countInRef.current !== null)) interruptRef.current("Audio output was interrupted.");
     };
     engineRef.current = engine;
     if (audio instanceof SamplerAudioEngine) {
@@ -1162,7 +1162,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       last = now;
       const eng = engineRef.current;
       if (!eng) return;
-      if (eng.audio.state && eng.audio.state !== "running") { interruptRef.current("Audio output was interrupted."); return; }
+      if (eng.audio.state && eng.audio.state !== "running") {
+        if (eng.audio.activationPending) { raf = requestAnimationFrame(tick); return; }
+        interruptRef.current("Audio output was interrupted."); return;
+      }
       eng.tick(dt);
       if (now - lastSync >= 100) {
         lastSync = now;
@@ -2766,7 +2769,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
       {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} savedVersionLabel={initial.playerVersions?.find(version => version.id === initial.song.id)?.label} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose}
-        activeExport={melodyArrangementRequested&&(melodyArrangementPending||melodyArrangementFailed)?undefined:{selection:activeExportSelection,sourceFingerprint:melodySourceFingerprint,
+        activeExport={melodyArrangementRequested&&(melodyArrangementPending||melodyArrangementFailed)?undefined:{selection:activeExportSelection,
+          sourceDigest:()=>activeExportSourceFingerprint(activeData),
           digest:()=>activeExportDigest(activeExportVariant(activeData,{...accompaniment,displayChords},activeExportSelection))}} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());
@@ -2939,7 +2943,6 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
     const controller = new AbortController();
     loadRequestRef.current = controller;
     setLoading(true);
-    setError("");
     try {
       const response = await fetch(`/api/songs/${encodeURIComponent(initial.song.id)}?revision=${encodeURIComponent(initial.publicationRevision ?? "unpinned")}`, {
         signal: controller.signal,
@@ -2957,6 +2960,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
       const pageNode = score?.querySelector<HTMLElement>(`[data-page="${page}"]`);
       const zoom = document.querySelector<HTMLSelectElement>('[aria-label="Score zoom"]');
       if (score && pageNode && zoom) sheetPositionRef.current = { zoom: Number(zoom.value), page, offset: pageNode.getBoundingClientRect().top, scrollLeft: score.scrollLeft };
+      setError("");
       setDetail(value as PlayerDetail);
       if (nextMode !== "sheet") {
         window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}/${nextMode}`);
@@ -3082,7 +3086,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
           <p>{error}</p>
           <button onClick={() => {
             void loadDetail(requestedMode);
-            window.requestAnimationFrame(() => loadControlsTriggerRef.current?.focus());
+            window.requestAnimationFrame(() => loadControlsTriggerRef.current?.focus({ preventScroll: true }));
           }} className="mt-2 rounded-lg border border-red-300 px-3 py-1.5 font-medium hover:bg-red-100">
             Retry
           </button>

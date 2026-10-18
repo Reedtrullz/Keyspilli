@@ -1,4 +1,5 @@
 import { configurePlaybackSession } from "./audio-session.js";
+import { audioActivationPending, resumeAudioContext } from "./audio-activation.js";
 import type { TimedNote } from "./timeline.js";
 import type { AudioLike } from "./engine.js";
 import { AudioEngine } from "./audio.js";
@@ -44,6 +45,7 @@ export class SamplerAudioEngine implements AudioLike {
   private ctx: AudioContext | null = null;
   onStateChange: ((state: string) => void) | null = null;
   get state(): string { return (this.playbackTimbre === "fallback" ? this.fallbackEngine?.state : undefined) ?? this.ctx?.state ?? "uninitialized"; }
+  get activationPending(): boolean { return (this.playbackTimbre === "fallback" ? this.fallbackEngine?.activationPending : undefined) ?? (this.ctx !== null && audioActivationPending(this.ctx)); }
   private compressor: DynamicsCompressorNode | null = null;
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
@@ -152,7 +154,9 @@ export class SamplerAudioEngine implements AudioLike {
       this.applyGains();
     }
     const context = this.ctx;
-    if (activate && context.state === "suspended") void context.resume().catch(() => { if (this.ctx === context) this.onStateChange?.(context.state); });
+    if (activate) resumeAudioContext(context, () => {
+      if (this.ctx === context && (this.playbackTimbre === "sampled" || this.clicks.size > 0)) this.onStateChange?.(context.state);
+    });
     // Start fetching samples as soon as the context exists so the first
     // play uses the sampler rather than falling back to oscillators.
     if (!this.loadStarted && !this.pianoLoadPromise && !this.pianoFailed) {

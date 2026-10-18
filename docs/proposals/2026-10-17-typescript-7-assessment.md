@@ -1,65 +1,82 @@
-# TypeScript 7 (tsgo) assessment
+# TypeScript 7 assessment
 
-Status: assessment only. Nothing in this branch upgrades the compiler yet.
-Measured on 2026-10-17 against `main` at `6742f240`, on Node 22.22.3.
+Status: assessment and CSS declaration only. The compiler remains TypeScript
+5.9.3; this PR changes no dependency, lockfile, compiler command or CI gate.
 
-## Where TypeScript 7 stands
+Refreshed 2026-10-18 on Node 22.22.3 against the provisional PR331 source tree
+`bdf099f01bf6c494af0825396da8a743656eb9d4`. That candidate selects Next
+16.4.2 with webpack, React 19.3.1, Vitest 5.0.5 and Playwright 1.64.1.
+Actual main is still `a3c498adea87b460b635fb669b62b6e69a8f545c`;
+PR331 and its prerequisite updates have not landed. The lint foundation is
+also pending; its selected typescript-eslint 8.71.2 is checked separately.
 
-- **TypeScript 7.0.2** is stable and ships as the plain `typescript` package. It is the Go port: its `tsc` is a native binary, installed through the `@typescript/typescript-<platform>` optional dependency.
-- **7.0 has no JavaScript compiler API.** `require("typescript")` only exports the version (`lib/version.cjs`). Experimental APIs sit under `typescript/unstable/*`.
-- **7.1 should stabilise a new, different API.** The RC is planned for 2026-11-10 and stable for 2026-11-24, but the beta has already slipped.
-- **Microsoft's interim path is a side-by-side install:** `@typescript/typescript6` (the 6.0 API plus a `tsc6` binary) is aliased as `typescript`, and 7.0 is installed under a second name for `tsc`.
-- **7.0 adopts 6.0's defaults and turns 6.0 deprecations into hard errors.** The relevant changes are:
-  - `types` defaults to `[]`
-  - `noUncheckedSideEffectImports` is on
-  - strict mode is always on
-  - `baseUrl`, `moduleResolution: node10` and ES5 targets are removed
-  - `esModuleInterop` can no longer be `false`
+## Upstream compatibility
 
-Our `tsconfig.base.json` already uses `moduleResolution: "bundler"`, `ES2022`, `strict`, and `esModuleInterop: true`. Each package sets `types: ["node"]`. None of the removed options are in use.
+The [TypeScript 7 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)
+describes the native compiler and the API transition. Fresh registry metadata
+confirms `typescript@7.0.2`: the main export is `lib/version.cjs`, the
+compiler executable is `tsc`, and the available programmatic entry points
+are under `typescript/unstable/*`. Replacing the installed JavaScript API
+with that main export breaks existing API consumers.
 
-## What breaks
+Microsoft documents an npm alias for the compatibility API:
+`"typescript": "npm:@typescript/typescript6@^6.0.2"`, alongside a separately
+named TypeScript 7 package. The compatibility package exposes `tsc6`.
+The current compatibility-package version is **6.0.2**; a fresh lookup of
+`@typescript/typescript6@6.0.3` returns E404. Plain `typescript@6.0.3`
+and the compatibility package are different package identities.
 
-| # | Breakage | Seen as | Fix | Effort |
-|---|---|---|---|---|
-| 1 | `apps/web/src/app/layout.tsx` imports `./globals.css` as a side effect. TS 6 and 7 check side-effect imports by default. | `TS2882: Cannot find module or type declarations for side-effect import of './globals.css'` (TS 6 *and* 7, and in `next build`'s type step) | `apps/web/src/types/css.d.ts` with `declare module "*.css";`. **Included in this branch**; harmless on TS 5. | done |
-| 2 | Next 15.5 loads `next.config.ts` through the TypeScript JS API (`ts.sys`). | `next build` → `Failed to load next.config.ts … Cannot read properties of undefined (reading 'fileExists')` on plain TS 7 | Side-by-side install (the 6.0 API under `typescript`), **or** Next 16, whose `next build` defaults to the `tsc` CLI (`experimental.useTypeScriptCli`) and supports TS 7. Next 16 is #331. | small with side-by-side; tied to #331 otherwise |
-| 3 | `apps/web/src/components/player/player-practice-pulse-lifecycle.test.ts` uses `ts.createSourceFile` and `ts.is*` to inspect `FullPlayer`. | 29 type errors under TS 7, and the test fails at runtime: `Cannot read properties of undefined (reading 'Latest')` | Works unchanged with side-by-side. On plain TS 7, port it to `typescript/unstable/ast` (unstable until 7.1) or another parser. | none with side-by-side; ~1 h to port |
-| 4 | typescript-eslint (added in #314) needs the TS JS API, and its peer range is `<6.1.0`. | Install refuses TS 7, or crashes when forced | Side-by-side: `typescript` resolves to 6.0.3, which is inside the range. | none with side-by-side |
+The [TypeScript 6 release notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html)
+describe changed defaults, including `types: []` and
+`noUncheckedSideEffectImports: true`. Root configuration already uses
+bundler resolution, ES2022, strict checking and esModuleInterop. Five
+non-web workspace configurations explicitly include Node types; the web
+configurations do not. Their effective ambient types must be checked during
+any migration.
 
-Nothing else broke:
+## Current repository obligations
 
-- All 7 typecheck projects (`packages/{midi,engrave,player-core,catalog}`, `services/transcribe`, `apps/web`, `apps/web/tsconfig.song-tools.json`) pass on TS 6.0.3 and TS 7.0.2 once fix 1 is in. There are no new type errors from stricter defaults or from changed inference.
-- Vitest, tsx and Playwright transpile with esbuild or their own pipelines and never load `typescript`.
-- Every other runtime use of `typescript` in the repo is the one test in row 3.
+| Consumer | Current source evidence | Migration obligation |
+|---|---|---|
+| Stylesheets | `apps/web/src/app/layout.tsx` imports `./globals.css`; this PR adds `src/types/css.d.ts` | Check both web projects with side-effect import checking enabled. The wildcard describes bundled CSS; it does not independently verify stylesheet existence. |
+| Player lifecycle test | `apps/web/src/components/player/player-practice-pulse-lifecycle.test.ts` uses createSourceFile, ScriptTarget and transpileModule | Preserve its executable AST checks through a compatible API or a separately reviewed parser change. |
+| Mutation-auth coverage | `apps/web/src/lib/api-auth.test.ts` also uses createSourceFile and transpileModule after PR315 | Preserve discovery and execution of actual protected handlers. There are **two** direct repository API consumers, not one. |
+| Lint | Selected `@typescript-eslint/typescript-estree` peer range is `>=4.8.4 <6.1.0` | A plain TypeScript 7 replacement is outside that range. Verify the compatibility alias and the complete lint gate before changing it. |
+| Next 16 | Installed `next/dist/server/config-shared.js` defaults useTypeScriptCli to true; the config loader uses SWC/native Node resolution | This removes the historical Next15 config-loader assumption. It does not qualify the entire Next16 build, type generation or editor under TypeScript7. |
 
-## Measured results
+Repository API inventory excludes dependencies, generated builds and offline
+bundles. Installed tool internals have separate compatibility obligations;
+the fact that tsx, Vitest or Playwright transpile code does not establish
+that none of their surrounding tools load the compiler API.
 
-| Check | TS 5.9.3 (today) | TS 6.0.3 | TS 7.0.2 |
+## Historical measurements
+
+The original author reported these 2026-10-17 measurements on main
+`6742f240`, Next15.5.25 and a shared loaded host. They were **not rerun**
+against the current source or the proposed compatibility alias in this
+qualification. They are historical observations, not current acceptance.
+
+| Check | TS5.9.3 | TS6.0.3 | TS7.0.2 |
 |---|---|---|---|
-| All 7 typecheck projects, sequential, cold | 42.0 s | 42.8 s | **4.2 s** (~10×) |
-| `packages/catalog` alone | 8.8 s | n/a | 0.9 s |
-| `apps/web` alone | 11.4 s | n/a | 1.0 s |
-| `next build` (Next 15.5.25) | ✅ | ✅ (via the 6.0 API) | ❌ row 2 on plain 7; ✅ side-by-side |
-| `player-practice-pulse-lifecycle.test.ts` | ✅ | ✅ | ❌ on plain 7; ✅ side-by-side (5/5) |
+| Seven typecheck projects, sequential/cold | 42.0s | 42.8s | 4.2s |
+| Catalog only | 8.8s | not measured | 0.9s |
+| Web only | 11.4s | not measured | 1.0s |
 
-Timings come from a shared, loaded box, so read them as ratios rather than absolutes.
+The earlier single-test and Next15 results do not cover the added auth API
+consumer, current Next16, the changed runner, or current lint dependencies.
+No new speedup or complete TypeScript6/7 compatibility is claimed.
 
-## Recommended path
+## Recommended next step
 
-**Option A: side-by-side now (about half a day including review).**
-1. In every workspace that lists `typescript`, put both of these in `devDependencies`: `"typescript": "npm:@typescript/typescript6@^6.0.2"` and `"typescript-7": "npm:typescript@^7.0.2"`. Regenerate `package-lock.json`.
-2. Point each `typecheck` script at the TS 7 binary, e.g. `node ../../node_modules/typescript-7/bin/tsc --noEmit`. Under the alias, plain `tsc` is not on PATH any more (the 6.0 package ships `tsc6`).
-3. Keep fix 1. Next 15, the AST test and typescript-eslint keep using the 6.0 API.
-4. Expect Dependabot noise: it will propose `typescript` bumps against the alias. Group or ignore them in `.github/dependabot.yml`.
+Land this compatible CSS declaration and accurate assessment while retaining
+TypeScript5.9.3. If a compiler migration is separately authorized, compare
+side-by-side compatibility against a future stable API using exact package
+identities. Recheck all seven typecheck projects, generated Next types,
+webpack/standalone builds, both API-dependent tests, lint, runtime suites and
+editor behavior on the actual intended revision. Preserve default test
+discovery and deadlines.
 
-**Option B: wait for 7.1 (end of November at the earliest), then go TS 7 only.**
-This needs Next 16 (#331), typescript-eslint releasing TS 7 support, and the AST test ported to the 7.1 API. It is cleaner, but it is blocked on three outside releases.
-
-The recommendation is **A**, with fix 1 landing now regardless. It brings the ~10× typecheck speed-up to CI and local runs at little cost, and Option B can follow once 7.1 and #331 land.
-
-## Not covered
-
-- Editor/LSP experience with the TS 7 language server.
-- `--incremental` / `tsbuildinfo` behaviour in CI caches. `apps/web` sets `incremental: true`. TS 7 accepted it, but the timings above disable it.
-- Emitted JS. Every project here is `--noEmit`, and bundlers do the emit.
+Incremental caches, emitted code, native platform binaries, CI resource usage
+and editor/LSP adoption need their own evidence. No 7.1 release date or
+half-day implementation estimate is assumed. This PR does not perform the
+migration.

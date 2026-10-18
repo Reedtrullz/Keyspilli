@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - main
-      - codex/keyspilli-listening-review
   push:
     branches:
       - main
@@ -74,7 +73,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Validate dispatch operation before release work
         if: github.event_name == 'workflow_dispatch'
@@ -86,7 +85,7 @@ jobs:
         run: python3 deploy/validate-release-operation.py
 
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -153,6 +152,7 @@ jobs:
           python3 scripts/test_check_ui_release.py
           python3 scripts/test_ui_release_workflow.py
           python3 deploy/test/test-worker-queue.py
+          python3 deploy/test/test-ops-check-tls.py
           python3 -m unittest \
             deploy.test_worker_resources.WorkerResourceBoundary.test_native_limits_are_bounded_without_shell_commands \
             deploy.test_worker_resources.WorkerResourceBoundary.test_cleanup_failure_cannot_claim_success
@@ -235,7 +235,7 @@ jobs:
 
       - name: Retain restore results and reconstruction maps
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: restore-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -260,7 +260,7 @@ jobs:
       checks: read
     steps:
       - name: Check out reviewed revision
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Read exact-head check results from GitHub
         env:
           GH_TOKEN: ${{ github.token }}
@@ -295,7 +295,7 @@ jobs:
       contents: read
     steps:
       - name: Check out full history
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Require a UI-only change since the revision production reports
@@ -344,7 +344,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Compute immutable image tag
         id: image
@@ -353,10 +353,10 @@ jobs:
           echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -364,7 +364,7 @@ jobs:
 
       - name: Build and push web image
         id: web
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
           file: apps/web/Dockerfile
@@ -389,7 +389,7 @@ jobs:
 
       - name: Build and push worker image
         id: worker
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
           file: services/transcribe/Dockerfile.tutorial
@@ -468,7 +468,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Ansible
         shell: bash
@@ -617,7 +617,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Ansible
         shell: bash
