@@ -42,8 +42,7 @@ describe("melody review pack", () => {
       id: "song",
       review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
     }]));
-    const unit = report.bootstrap.decisions[0];
-    if (!unit) throw Error("Expected an unresolved review decision");
+    const unit = report.bootstrap.decisions[0]!;
     expect(unit.page).toBe(2);
     expect(canonicalMelodyReviewPackJson(report)).toContain('"page": 2');
     expect(melodyReviewPackMarkdown(report)).toContain("Which matches the printed melody? A / B / Neither");
@@ -248,7 +247,8 @@ describe("melody review pack", () => {
       id: "song",
       review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
     }]));
-    const unit = report.bootstrap.decisions[0]!;
+    const unit = report.bootstrap.decisions[0];
+    if (!unit) throw Error("Expected an unresolved review decision");
     const markdown = melodyReviewPackMarkdown({ ...report, bootstrap: { ...report.bootstrap, decisions: [{ ...unit, title: "AC\\|DC" }] } });
     // AC\|DC must become AC\\\|DC: an escaped backslash, then an escaped pipe.
     expect(markdown).toContain("AC\\\\\\|DC");
