@@ -6,11 +6,6 @@ const MAX_SOURCE_TIME_SIG_EVENTS = 4096;
 const MAX_SOURCE_BEATS = 4096;
 const MAX_SOURCE_MEASURES = 2048;
 
-/**
- * Generate 6 difficulty variants from a source arrangement.
- * Guarantee: each easier level is a strict simplification (subset or
- * equal notes) of the level above it.
- */
 export function normalizeTimeSigEvents(events: readonly MidiTimeSignatureEvent[] | undefined): MidiTimeSignatureEvent[] {
   if (!events?.length) return [];
   if (events.length > MAX_SOURCE_TIME_SIG_EVENTS) {

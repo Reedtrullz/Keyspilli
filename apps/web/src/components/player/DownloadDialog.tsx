@@ -19,7 +19,7 @@ export function DownloadDialog({
   hasSheetXml: boolean;
   backgroundMode?: "piano" | "chord";
   transpose?: number;
-  activeExport?: {selection:ActiveExportSelection;sourceFingerprint:string|null;digest:()=>Promise<string>};
+  activeExport?: {selection:ActiveExportSelection;sourceDigest:()=>Promise<string>;digest:()=>Promise<string>};
   onClose: () => void;
 }) {
   const items = [
@@ -35,12 +35,13 @@ export function DownloadDialog({
   const requestRef=useRef<AbortController|null>(null);
   useEffect(()=>()=>{requestRef.current?.abort();requestRef.current=null;},[]);
   async function downloadActive(type:"midi"|"musicxml"|"pdf") {
-    if(!activeExport||!publicationRevision||!activeExport.sourceFingerprint||busy||!validActiveExportSelection(activeExport.selection))return;
+    if(!activeExport||publicationRevision===undefined||busy||!validActiveExportSelection(activeExport.selection))return;
     const controller=new AbortController();requestRef.current=controller;setBusy(true);setError("");
     const timer=setTimeout(()=>controller.abort(),100000);
     try {
       const expectedHash=await activeExport.digest();if(controller.signal.aborted)return;
-      const response=await fetch(`/api/song/${encodeURIComponent(songId)}/active-export`,{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({type,revision:publicationRevision,sourceFingerprint:activeExport.sourceFingerprint,selection:activeExport.selection,expectedHash})});
+      const sourceFingerprint=await activeExport.sourceDigest();if(controller.signal.aborted)return;
+      const response=await fetch(`/api/song/${encodeURIComponent(songId)}/active-export`,{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({type,revision:publicationRevision,sourceFingerprint,selection:activeExport.selection,expectedHash})});
       if(!response.ok){const value=await response.json();throw new Error(value.error??"Active export unavailable.");}
       const blob=await response.blob();if(controller.signal.aborted)return;
       const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`${songId}-active.${type==="midi"?"mid":type==="pdf"?"pdf":"musicxml"}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -79,7 +80,7 @@ export function DownloadDialog({
           <button autoFocus onClick={requestClose} className="px-2 py-1 rounded-lg hover:bg-zinc-100" aria-label="Close">×</button>
         </div>
         <p className="text-xs text-zinc-500 mb-4">Download this arrangement for practice. Source rights still apply.</p>
-        <label className="block mb-4 text-sm">Arrangement<select className="block border rounded min-h-11 px-2" disabled={busy} value={arrangement} onChange={event=>{setArrangement(event.target.value);setError("");}}><option value="stored">{savedVersionLabel ? `Saved version ${savedVersionLabel}` : "Saved arrangement"}</option><option value="active" disabled={!activeExport||!publicationRevision||!activeExport.sourceFingerprint}>Current playback arrangement</option></select></label>
+        <label className="block mb-4 text-sm">Arrangement<select className="block border rounded min-h-11 px-2" disabled={busy} value={arrangement} onChange={event=>{setArrangement(event.target.value);setError("");}}><option value="stored">{savedVersionLabel ? `Saved version ${savedVersionLabel}` : "Saved arrangement"}</option><option value="active" disabled={!activeExport||publicationRevision===undefined}>Current playback arrangement</option></select></label>
         {arrangement === "stored" && backgroundMode === "chord" && (
           <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
             Downloads use {savedVersionLabel ? `saved version ${savedVersionLabel}` : "the saved arrangement"}. Chord mode changes playback and guidance only.
