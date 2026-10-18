@@ -166,6 +166,13 @@ an empty-start failure also retains bounded page state and a screenshot. Those
 diagnostics never make a rejected capture pass, and raw passing WAVs are reused
 for the normal receipt rather than copied a second time.
 
+The native workflow explicitly selects `--sampled --image-sizes` to record
+Docker's measured uncompressed bytes for both backup-pinned images. Standalone
+`--sampled` retains its web-only contract and needs no local worker image. Their conservative sum (including shared layers twice)
+must fit the existing managed scratch budget, 16 GiB by default, before canary
+container creation. Sizes and the selected limit are retained in the runtime
+receipt. This is candidate qualification, not production disk admission.
+
 The rehearsal stages the existing Player's complete 226-file Ogg bank before
 starting the network-disabled container. `prepare-native-piano.mts` uses the
 retained Chromium capture's URL/byte/SHA-256 pins, verifies the installed smplr

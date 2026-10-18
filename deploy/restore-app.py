@@ -11,7 +11,9 @@ import uuid
 from pathlib import Path
 
 
-def verify(manifest_path, destination, image_id, revision, song_id, sampled=False):
+def verify(manifest_path, destination, image_id, revision, song_id, sampled=False, measure_images=False):
+    if measure_images and not sampled:
+        raise ValueError("image size qualification requires sampled verification")
     if sampled and (platform.system() != "Linux" or platform.machine() not in ("x86_64", "amd64")):
         raise ValueError("sampled verification requires native Linux amd64")
     manifest = json.loads(Path(manifest_path).read_text())
@@ -62,6 +64,28 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
     started = time.monotonic()
     report["applicationVerification"] = "failed"
     try:
+        if measure_images:
+            image_limit = int(os.environ.get("KEYSPILLI_EVIDENCE_LIMIT_BYTES", str(16 * 1024 ** 3)))
+            if image_limit <= 0:
+                raise ValueError("invalid native image size budget")
+            image_sizes = {}
+            for role in ("web", "worker"):
+                recorded_image = (manifest.get("images") or {}).get(role)
+                if (not isinstance(recorded_image, dict)
+                        or not re.fullmatch(r"sha256:[a-f0-9]{64}", str(recorded_image.get("id", "")))
+                        or recorded_image.get("revision") != revision):
+                    raise ValueError("native image size requires pinned image metadata")
+                identity = recorded_image["id"]
+                if docker("image", "inspect", "--format", "{{.Id}}", identity).strip() != identity:
+                    raise ValueError("native image size requires the local immutable image")
+                raw_size = docker("image", "inspect", "--format", "{{.Size}}", identity).strip()
+                if not re.fullmatch(r"[0-9]+", raw_size) or int(raw_size) <= 0:
+                    raise ValueError("native image size is unavailable or invalid")
+                image_sizes[role] = {"id": identity, "bytes": int(raw_size)}
+            if sum(item["bytes"] for item in image_sizes.values()) > image_limit:
+                raise ValueError("native image size total exceeds the existing scratch budget")
+            report["nativeImageSizes"] = image_sizes
+            report["nativeImageSizeLimitBytes"] = image_limit
         docker("create", "--pull=never", "--name", name, "--network", "none",
                "--cpus", "1.5", "--memory", "1g", "--pids-limit", "128",
                "--read-only", "--tmpfs", "/tmp:rw,nosuid,size=512m",
@@ -109,9 +133,10 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
 
 if __name__ == "__main__":
     try:
-        if len(sys.argv) not in (6, 7) or (len(sys.argv) == 7 and sys.argv[6] != "--sampled"):
-            raise ValueError("expected manifest, fresh destination, image ID, revision, song ID and optional --sampled")
-        verify(*sys.argv[1:6], sampled=len(sys.argv) == 7)
+        flags = sys.argv[6:]
+        if len(sys.argv) < 6 or len(flags) != len(set(flags)) or set(flags) - {"--sampled", "--image-sizes"}:
+            raise ValueError("expected manifest, fresh destination, image ID, revision, song ID and optional --sampled --image-sizes")
+        verify(*sys.argv[1:6], sampled="--sampled" in flags, measure_images="--image-sizes" in flags)
     except Exception:
         print("restore app verification failed; inspect the isolated restore report", file=sys.stderr)
         sys.exit(1)
