@@ -14,9 +14,12 @@ export default tseslint.config(
       "**/playwright-report/**",
       "**/test-results/**",
       "**/next-env.d.ts",
-      "apps/web/public/**",
+      "apps/web/public/offline/**",
+      "apps/web/public/verovio/verovio-module.mjs",
+      "apps/web/public/verovio/verovio.mjs",
       "data/**",
       "docs/**",
+      "evidence/**",
       "output/**",
       ".transcribe-test-venv/**",
     ],
@@ -67,5 +70,9 @@ export default tseslint.config(
   {
     files: ["**/*.cjs"],
     languageOptions: { sourceType: "commonjs" },
+  },
+  {
+    files: ["apps/web/public/verovio/render-worker.mjs"],
+    languageOptions: { globals: globals.worker },
   },
 );
