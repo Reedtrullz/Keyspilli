@@ -156,6 +156,16 @@ failed at the first browser page before PCM; browser overlap was confirmed,
 but PID exhaustion was not established. Its raw evidence remains retained.
 Native browser debug stderr is retained by the owned Docker lifecycle logs.
 
+The generated native upload control has an explicit played left-hand C/E/G
+stack, not octave-unison C notes. Its real ingest/detail/backing regression
+requires playable Chords throughout the capture window; the former ambiguous
+octave control remains a negative and must stay silent. This qualifies a software
+control, without changing harmony refusal, catalog music or approval pins.
+Raw mode WAVs and source/clock counters are persisted before signal rejection;
+an empty-start failure also retains bounded page state and a screenshot. Those
+diagnostics never make a rejected capture pass, and raw passing WAVs are reused
+for the normal receipt rather than copied a second time.
+
 The rehearsal stages the existing Player's complete 226-file Ogg bank before
 starting the network-disabled container. `prepare-native-piano.mts` uses the
 retained Chromium capture's URL/byte/SHA-256 pins, verifies the installed smplr
