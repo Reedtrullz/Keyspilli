@@ -27,7 +27,6 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 import { readBoundedBody, BodyTooLargeError as UploadTooLargeError, BodyDeadlineError } from "../../../lib/bounded-body";
 let uploadActive = false;
 
-
 export async function POST(req: NextRequest) {
   const authResponse = checkMutationAuth(req);
   if (authResponse) return authResponse;
