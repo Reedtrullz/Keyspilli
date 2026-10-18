@@ -852,6 +852,46 @@ describe("arrangement evaluation", () => {
     expect(serialized).not.toContain("access_token");
   });
 
+  it.each([
+    ["https://[::1]/path?token=SYNTHETIC_IPV6", "https://[::1]/path"],
+    ["https://user:secret@[2001:db8::1]:8443/path#SYNTHETIC_IPV6", "https://[2001:db8::1]:8443/path"],
+    ["https://host.test/path?key=SYNTHETIC_HEAD;SYNTHETIC_TAIL", "https://host.test/path"],
+    ["https://host.test?key=SYNTHETIC_HEAD,SYNTHETIC_TAIL)/suffix]", "https://host.test"],
+    ["https://user:SYNTHETIC_HEAD;SYNTHETIC_TAIL@host.test/path", "https://host.test/path"],
+    ["https://user:SYNTHETIC_HEAD,SYNTHETIC_TAIL@host.test/path", "https://host.test/path"],
+    ["https://user:SYNTHETIC_HEAD)SYNTHETIC_TAIL@host.test/path", "https://host.test/path"],
+    ["https://user:SYNTHETIC_HEAD]SYNTHETIC_TAIL@[::1]/path", "https://[::1]/path"],
+  ])("removes bracketed-authority and punctuation-bearing URL secrets: %s", (source, expected) => {
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      trace: { status: "available", events: [{ key: "url-trace", source, sourceStem: source }] },
+    });
+    expect(report.trace.events?.[0]?.source).toBe(expected);
+    expect(report.trace.events?.[0]?.sourceStem).toBe(expected);
+    expect(JSON.stringify(report)).not.toContain("SYNTHETIC_");
+    const canonical = canonicalEvaluationJson(report);
+    expect(canonical).not.toContain("SYNTHETIC_");
+    expect(JSON.parse(canonical).trace.events[0].source).toBe(expected);
+  });
+
+  it.each([
+    "https://user:dummy@SYNTHETIC_PASSWORD_SEGMENT_A@SYNTHETIC_PASSWORD_SEGMENT_B@host.test/path?token=example#fragment",
+    "https://host.test?token=SYNTHETIC_PASSWORD_SEGMENT_A@other.test/private",
+    "https://host.test#SYNTHETIC_PASSWORD_SEGMENT_A/private",
+  ])("removes complete URL userinfo and query/fragment tails from public reports", source => {
+    const expected = source.includes("/path?") ? "https://host.test/path" : "https://host.test";
+    const report = evaluateArrangement({
+      ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
+      trace: { status: "available", events: [{ key: "url-trace", source, sourceStem: source }] },
+    });
+    expect(report.trace.events?.[0]?.source).toBe(expected);
+    expect(report.trace.events?.[0]?.sourceStem).toBe(expected);
+    expect(JSON.stringify(report)).not.toContain("SYNTHETIC_PASSWORD_SEGMENT");
+    const canonical = canonicalEvaluationJson(report);
+    expect(canonical).not.toContain("SYNTHETIC_PASSWORD_SEGMENT");
+    expect(JSON.parse(canonical).trace.events[0].source).toBe(expected);
+  });
+
   it("fails closed when parsed metadata contains an explicit null time signature", () => {
     const report = evaluateArrangement({
       fixture: { id: "null-parser-timesig" },
