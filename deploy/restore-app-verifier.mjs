@@ -1,5 +1,17 @@
 import { pathToFileURL } from "node:url";
 
+export async function waitForRestoredApp(request = fetch) {
+  const deadline = Date.now() + 30_000;
+  for (;;) {
+    try {
+      const ready = await request("http://127.0.0.1:3000/api/health/live", { signal: AbortSignal.timeout(1000) });
+      if (ready.ok) return;
+    } catch {}
+    if (Date.now() >= deadline) throw new Error("startup deadline");
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
 /** Read-only HTTP proof inside the network-disabled restore container. */
 export async function verifyRestoredApp(revision, songId, epoch, request = fetch) {
   const origin = "http://127.0.0.1:3000";
@@ -67,16 +79,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const [revision, songId, epoch] = process.argv.slice(2);
   try {
     // Startup is bounded; endpoint/export failures after startup are never silently retried.
-    const deadline = Date.now() + 30_000;
-    for (;;) {
-      try {
-        const ready = await fetch("http://127.0.0.1:3000/api/health/live", { signal: AbortSignal.timeout(1000) });
-        if (ready.ok) break;
-      } catch {}
-      if (Date.now() >= deadline) throw new Error("startup deadline");
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-    console.log(JSON.stringify(await verifyRestoredApp(revision, songId, Number(epoch))));
+    await waitForRestoredApp();
+    console.log(JSON.stringify(process.argv[5] === "--ready-only"
+      ? { startupReadiness: "passed" }
+      : await verifyRestoredApp(revision, songId, Number(epoch))));
   } catch {
     console.error("restored app endpoint verification failed");
     process.exitCode = 1;
