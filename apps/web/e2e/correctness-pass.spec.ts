@@ -191,7 +191,7 @@ test.describe("linked version correctness", () => {
     await page.getByRole("button", { name: "Download sheet music and MIDI" }).click();
     const download = page.getByRole("dialog", { name: "Download sheet music or MIDI" });
     await expect(download.getByRole("option", { name: "Saved version B", exact: true })).toHaveCount(1);
-    await expect(download.getByRole("option", { name: "Current playback arrangement", exact: true })).toHaveAttribute("disabled", "");
+    await expect(download.getByRole("option", { name: "Current playback arrangement", exact: true })).toBeEnabled();
     await expect(download).toHaveCSS("opacity", "1");
     await page.screenshot({ path: testInfo.outputPath("saved-version-export.png") });
     await download.getByRole("button", { name: "Done", exact: true }).click();

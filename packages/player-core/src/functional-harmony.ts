@@ -1,7 +1,17 @@
 import {tryParseChordSymbol} from '@keyspilli/midi';
 export interface ConfirmedKeyRegion {startBeat:number;endBeat:number;key:string}
+/** `text` without a trailing whitespace-separated `word` (case-insensitive), or null. Linear-time replacement for /\s+word$/i. */
+function withoutTrailingWord(text:string,word:string):string|null {
+ if(text.length<=word.length||text.slice(-word.length).toLowerCase()!==word)return null;
+ const head=text.slice(0,-word.length);
+ const trimmed=head.trimEnd();
+ return trimmed.length<head.length?trimmed:null;
+}
 function keyContext(key:string) {
- const symbol=tryParseChordSymbol(key.trim().replace(/\s+major$/i,'').replace(/\s+minor$/i,'m'));
+ const trimmed=key.trim();
+ const withoutMajor=withoutTrailingWord(trimmed,'major')??trimmed;
+ const minorRoot=withoutTrailingWord(withoutMajor,'minor');
+ const symbol=tryParseChordSymbol(minorRoot===null?withoutMajor:`${minorRoot}m`);
  return symbol && ['major','minor'].includes(symbol.quality)?symbol:null;
 }
 export function validKeyRegions(regions:unknown,endBeat:number):regions is ConfirmedKeyRegion[] {
