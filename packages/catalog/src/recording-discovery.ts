@@ -98,6 +98,7 @@ function containsSequence(haystack: readonly string[], needle: readonly string[]
 
 function safeText(value: unknown, fallback: string): string {
   if (typeof value !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const text = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
   if (!text) return fallback;
   // Network metadata is untrusted. Do not let a malicious title/uploader turn

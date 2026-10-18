@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseMidi, writeMidi, type Note, type ParsedMidi } from "@keyspilli/midi";
+import { writeMidi, type Note, type ParsedMidi } from "@keyspilli/midi";
 import { canonicalRouteFunnelJson, evaluateRouteFunnel } from "../src/route-funnel.js";
 import { runRouteFunnelCli } from "../scripts/route-funnel.js";
 

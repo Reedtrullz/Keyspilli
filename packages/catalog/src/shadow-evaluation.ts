@@ -432,13 +432,6 @@ export function shadowItemToMetalStems(item: ShadowCorpusItemInput): { stems: Me
   return { stems, input: extracted.roles, reference: extracted.reference, failures: extracted.failures };
 }
 
-function onsetStarts(notes: readonly Note[], tolerance = 0.08): number[] {
-  const starts: number[] = [];
-  for (const note of [...notes].filter(finiteNote).sort(noteSort)) {
-    if (!starts.length || note.start - starts[starts.length - 1]! > tolerance + EPS) starts.push(note.start);
-  }
-  return starts;
-}
 
 function onsetGroups(notes: readonly Note[], tolerance = 0.08): Note[][] {
   const groups: Note[][] = [];
@@ -554,8 +547,8 @@ function variantsByRequiredLevel(variants: readonly Variant[]): { advanced?: Var
 }
 
 const PATH_KEY = /(?:^|[_-])(?:absolute|physical|local|source)?path$|(?:^|[_-])(?:file|filename|locator|artifact|source)(?:ref|path|name)?$/i;
-const ABSOLUTE_PATH = /(?:file:\/\/|(?:^|[\s("'=,;\[\]])\/(?:Users|private|tmp|var|home|Volumes|opt|etc|System|Applications|root|mnt|workspace|data|srv)(?:[\\/]|$)|(?:^|[\s("'=,;\[\]])[A-Za-z]:[\\/]|(?:^|[\s("'=,;\[\]])\\\\)/i;
-const RELATIVE_FILE = /(?:^|[\s("'=,;\[\]])(?:\.\.?[\\/]|(?:[A-Za-z0-9._-]+[\\/]){2,})[^\s"'<>;,)]*\.(?:mid|midi|wav|mp3|json|xml|mxl|txt|csv|log)(?=$|[\s"'<>;,\)])/i;
+const ABSOLUTE_PATH = /(?:file:\/\/|(?:^|[\s("'=,;[\]])\/(?:Users|private|tmp|var|home|Volumes|opt|etc|System|Applications|root|mnt|workspace|data|srv)(?:[\\/]|$)|(?:^|[\s("'=,;[\]])[A-Za-z]:[\\/]|(?:^|[\s("'=,;[\]])\\\\)/i;
+const RELATIVE_FILE = /(?:^|[\s("'=,;[\]])(?:\.\.?[\\/]|(?:[A-Za-z0-9._-]+[\\/]){2,})[^\s"'<>;,)]*\.(?:mid|midi|wav|mp3|json|xml|mxl|txt|csv|log)(?=$|[\s"'<>;,)])/i;
 
 /**
  * Strings in provenance and failure messages are not assumed to be logical

@@ -1,9 +1,9 @@
 /** Bounded state machine around maintained local preparation. No catalog/DB imports. */
 import { randomUUID } from "node:crypto";
 import { closeSync, fsyncSync, lstatSync, mkdirSync, openSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
-  absolutePath, admitRequest, captureImplementation, capturePayload, captureRuntime, compact, CONFIG, digestFile, equal,
+  absolutePath, admitRequest, captureImplementation, capturePayload, captureRuntime, CONFIG, digestFile, equal,
   gitProvenance, IntegrityError, KIND, noSymlinks, object, parseJson, pathInside, readJson, readRegular, requireThat, sha256, validHash,
   type ImplementationPin, type InputPin, type PayloadInventory, type PreparationRequest, type RuntimePin,
 } from "./prepare-workflow-pins.js";

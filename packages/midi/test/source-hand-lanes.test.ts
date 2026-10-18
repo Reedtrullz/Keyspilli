@@ -21,7 +21,7 @@ describe("opt-in tutorial source hand lanes", () => {
     expect(result.notes.filter(note => note.sourceLane === "green keys").every(note => note.hand === "L")).toBe(true);
     expect(result.notes.find(note => note.midi === 76)?.hand).toBe("L");
     expect(result.notes.filter(note => note.sourceLane === "blue keys").every(note => note.hand === "R")).toBe(true);
-    expect(result.notes.map(({ hand, ...note }) => note)).toEqual(parsed.notes);
+    expect(result.notes.map(({ hand: _hand, ...note }) => note)).toEqual(parsed.notes);
     expect(parsed.notes.every(note => note.hand === undefined)).toBe(true);
     expect(inferSourceHandLanes([...parsed.notes].reverse()).notes.reverse()).toEqual(result.notes);
   });
@@ -29,7 +29,7 @@ describe("opt-in tutorial source hand lanes", () => {
   it("abstains on explicit hands, missing lanes, sparse, overlapping or invalid pitch evidence", () => {
     for (const input of [
       [{ ...notes[0]!, hand: "R" as const }, ...notes.slice(1)],
-      notes.map(({ sourceLane, ...note }) => note),
+      notes.map(({ sourceLane: _sourceLane, ...note }) => note),
       [...lower.slice(0, 2), ...upper],
       [...lower, ...lane("blue keys", [50, 52, 55, 56, 57, 60, 61, 64])],
       [...lane("green keys", [40, 45, 48, 50, 52, 70, 80, 90]), ...lane("blue keys", [50, 52, 60, 70, 75, 80, 90, 95])],
@@ -46,9 +46,9 @@ describe("opt-in tutorial source hand lanes", () => {
 
   it("leaves existing/default and non-source reduction events unchanged; source opt-in reports inference", () => {
     const parsed = parseMidi(midi());
-    const withoutLanes = { ...parsed, notes: parsed.notes.map(({ sourceLane, ...note }) => note) };
+    const withoutLanes = { ...parsed, notes: parsed.notes.map(({ sourceLane: _sourceLane, ...note }) => note) };
     const events = (variants: ReturnType<typeof buildVariants>) => variants.map(variant => ({
-      level: variant.level, notes: variant.notes.map(({ sourceLane, ...note }) => note),
+      level: variant.level, notes: variant.notes.map(({ sourceLane: _sourceLane, ...note }) => note),
     }));
     const meta = { title: "Source lane fixture", artist: "Test" };
     for (const arrangementProfile of [undefined, "source", "learner"] as const) {
