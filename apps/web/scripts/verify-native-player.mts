@@ -13,12 +13,14 @@ const output = "/browser-results";
 const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 const sha = (bytes: Buffer | string) => createHash("sha256").update(bytes).digest("hex");
 
-function controlXml(nonce: string): string {
+export function controlXml(nonce: string): string {
   const measures = Array.from({ length: 16 }, (_, index) => `<measure number="${index + 1}">
     ${index === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><staves>2</staves></attributes><direction><sound tempo="120"/></direction>' : ""}
     <harmony><root><root-step>C</root-step></root><kind>major</kind></harmony>
     <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><staff>1</staff></note>
     <backup><duration>4</duration></backup><note><pitch><step>C</step><octave>3</octave></pitch><duration>4</duration><voice>2</voice><staff>2</staff></note>
+    <note><chord/><pitch><step>E</step><octave>3</octave></pitch><duration>4</duration><voice>2</voice><staff>2</staff></note>
+    <note><chord/><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration><voice>2</voice><staff>2</staff></note>
     </measure>`).join("");
   return `<score-partwise version="4.0"><work><work-title>Native software control ${nonce}</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
 }
@@ -66,10 +68,22 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     });
     for (const mode of ["original", "chords"] as const) {
       const page = await context.newPage();
-      const capture = await capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [] });
+      const capture = await capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [],
+        retainRawCapture: async ({ wav, ...metadata }) => {
+          if (wav.length > 2 * 1024 * 1024) throw new Error("Raw native capture exceeds2MiB");
+          writeFileSync(join(output, mode + ".wav"), wav, { flag: "wx" });
+          writeFileSync(join(output, mode + "-raw-capture.json"), JSON.stringify(metadata, null, 2), { flag: "wx" });
+          if (!metadata.samplerStarts.length) {
+            try {
+              writeFileSync(join(output, mode + "-failure-state.txt"), (await page.locator("body").innerText({ timeout: 2000 })).slice(0, 65536), { flag: "wx" });
+              await page.screenshot({ path: join(output, mode + "-failure.png"), timeout: 2000 });
+            } catch (error) {
+              writeFileSync(join(output, mode + "-diagnostic-error.txt"), String(error), { flag: "wx" });
+            }
+          }
+        } });
       expect([...capture.sampleAssets].sort((a, b) => a.url.localeCompare(b.url)))
         .toEqual([...bank.sampleAssetPins].sort((a, b) => a.url.localeCompare(b.url)));
-      savePlayerCapture(join(output, mode + ".wav"), capture);
       const { wav: _wav, beforeCompressor: _before, ...metadata } = capture;
       writeFileSync(join(output, mode + "-capture.json"), JSON.stringify(metadata, null, 2), { flag: "wx" });
       results.push({ kind: "sampled-playback", mode, rms: capture.rms, peak: capture.peak,
