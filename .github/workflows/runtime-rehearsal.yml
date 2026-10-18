@@ -9,6 +9,10 @@ on:
       - 'apps/web/Dockerfile'
       - 'apps/web/src/components/player/**'
       - 'apps/web/scripts/verify-native-player.mts'
+      - 'apps/web/scripts/prepare-native-piano.mts'
+      - 'apps/web/scripts/fixtures/native-piano-assets.json'
+      - 'apps/web/src/lib/native-player-assets*'
+      - 'apps/web/src/lib/player-reference-bank*'
       - 'apps/web/e2e/player-audio-capture.ts'
       - 'packages/player-core/**'
       - 'deploy/restore-app*'
@@ -63,6 +67,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Prepare the hash-pinned piano input outside the isolated container
+        timeout-minutes: 3
+        run: |
+          node --import tsx apps/web/scripts/prepare-native-piano.mts > "$KEYSPILLI_EVIDENCE/native-piano-preparation.json"
+          echo "KEYSPILLI_NATIVE_PIANO_DIR=$KEYSPILLI_SCRATCH/native-piano" >> "$GITHUB_ENV"
 
       - name: Build the public seed catalog
         run: |

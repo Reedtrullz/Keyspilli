@@ -53,7 +53,7 @@ export async function installPlayerPcmProbe(page: Page, capturePreCompressor = f
     return;
   }
   probedPages.set(page, capturePreCompressor);
-  await page.addInitScript(({ paired }) => {
+  const install = ({ paired }: { paired: boolean }) => {
     const NativeContext = window.AudioContext;
     const nativeConnect = AudioNode.prototype.connect;
     const nativeStart = AudioBufferSourceNode.prototype.start;
@@ -261,7 +261,10 @@ wav: floatWav(pre, 2), forwardWav: floatWav(mono, 1), sampleRate: context.sample
       chunks = null as unknown as Float32Array[];
       return captured;
     };
-  }, { paired: capturePreCompressor });
+  };
+  // tsx retains inner function names with __name; keep that compiler helper in
+  // the same browser script so initialization never depends on script ordering.
+  await page.addInitScript({ content: `var __name = (fn, name) => Object.defineProperty(fn, "name", { value: name, configurable: true });\n(${install.toString()})(${JSON.stringify({ paired: capturePreCompressor })});` });
 }
 
 /** Arm recording immediately before the real UI handler, without an automation round trip. */
