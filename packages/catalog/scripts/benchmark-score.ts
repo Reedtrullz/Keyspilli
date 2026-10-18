@@ -36,6 +36,7 @@ import { promisify } from "node:util";
 import { unzipSync, zipSync } from "fflate";
 import { parseMidi, parseMusicXmlNotes, writeMidi, type Note, type ParsedMidi } from "@keyspilli/midi";
 import { renderMidiToWav } from "../src/midi-renderer.js";
+import { stripTags } from "../src/markup-text.js";
 import {
   canonicalBenchmarkCorpusJson,
   createBenchmarkCorpusManifest,
@@ -507,7 +508,7 @@ function classifyRole(name: string): { role: ScorePartSummary["role"]; confidenc
 
 function scorePartName(xml: string, id: string): string {
   const part = xml.match(new RegExp(`<score-part\\b[^>]*\\bid=["']${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}['"][^>]*>([\\s\\S]*?)</score-part>`, "i"))?.[1] ?? "";
-  return firstMatch(part, /<part-name\b[^>]*>([\s\S]*?)<\/part-name>/i)?.replace(/<[^>]+>/g, "").trim() || id;
+  return stripTags(firstMatch(part, /<part-name\b[^>]*>([\s\S]*?)<\/part-name>/i) ?? "").trim() || id;
 }
 
 function scanParts(xml: string): PartScan[] {
@@ -1462,7 +1463,7 @@ export async function runBenchmarkScore(options: ScoreBenchmarkOptions): Promise
   await ensureOutputDirectory(normalizedDir, out, "normalized output directory");
   await ensureOutputDirectory(validationDir, out, "validation output directory");
   const timestamp = new Date().toISOString();
-  let manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
+  const manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
   try {
     if (manifest) await assertOutsideRepository(manifest, "corpus manifest");
     const scratch = await mkdtemp(join(omrDir, ".audiveris-"));

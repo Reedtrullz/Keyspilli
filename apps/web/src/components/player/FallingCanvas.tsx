@@ -554,7 +554,7 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
       rafRef.current = 0;
       if (drawRef.current === draw) drawRef.current = null;
     };
-  }, []);
+  }, [liveTime]);
 
   // A paused canvas still needs one frame when playback starts/stops. Cancel
   // any queued callback first so rapid play/pause toggles cannot create two

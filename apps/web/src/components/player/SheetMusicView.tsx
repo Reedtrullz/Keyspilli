@@ -104,6 +104,8 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
   const [followScore,setFollowScore] = useState(false);
   const scoreMeasuresRef = useRef(scoreMeasures); scoreMeasuresRef.current = scoreMeasures;
   const interactionRef = useRef(interaction); interactionRef.current = interaction;
+  const interactionSource = interaction?.source;
+  const interactionEnabled = interaction?.enabled;
   const pendingScoreFocusRef = useRef<{id:string;ready:boolean} | null>(null);
   useEffect(() => {
     pendingScoreFocusRef.current = null;
@@ -192,12 +194,12 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
         }
         if (!response.ok) throw new Error("sheet unavailable");
         let xml = await response.text();
-        if (interaction && renderMode === "virtual") {
-          if (!interaction.enabled) setScoreNotice("Score interaction requires the stored Original arrangement in its original key.");
+        if (interactionSource && renderMode === "virtual") {
+          if (!interactionEnabled) setScoreNotice("Score interaction requires the stored Original arrangement in its original key.");
           else {
             try {
               const {prepareScoreNavigation} = await import("./sheet-navigation");
-              const mapped = prepareScoreNavigation(xml,interaction.source,publicationRevision,response.headers.get("X-Publication-Revision"));
+              const mapped = prepareScoreNavigation(xml,interactionSource,publicationRevision,response.headers.get("X-Publication-Revision"));
               if (!current()) return;
               xml = mapped.xml; setScoreMeasures(mapped.measures);
             } catch (error) { if (!cancelled) setScoreNotice(error instanceof Error ? error.message : "Score correspondence is unavailable."); }
@@ -284,7 +286,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
       sessionRef.current = null;
       void session?.close();
     };
-  }, [suspended, songId, publicationRevision, renderMode, interaction?.source, interaction?.enabled]);
+  }, [suspended, songId, publicationRevision, renderMode, interactionSource, interactionEnabled]);
 
   useEffect(() => {
     if (suspended || renderMode !== "virtual" || pageCount < 1 || error) return;

@@ -1,4 +1,4 @@
-import { Note, ParsedMidi } from "./types.js";
+import { Note } from "./types.js";
 
 const SHARP_KEYS = ["C", "G", "D", "A", "E", "B", "F#", "C#"];
 const FLAT_KEYS = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "Cb"];

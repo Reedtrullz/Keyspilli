@@ -5,12 +5,10 @@ import {
   Grader,
   ChordGrader,
   dedupeChords,
-  resolveTimedNotes,
   completeChordDurations,
   detectSections,
   type TimedNote,
   type ChordLabel,
-  type PlayerSettings,
   DEFAULT_SETTINGS,
 } from "../src/index.js";
 

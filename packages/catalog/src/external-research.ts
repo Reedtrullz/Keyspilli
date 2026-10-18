@@ -11,7 +11,7 @@ import {
 import type { GenerationCandidateProvenanceClass } from "./generation-candidate-intake.js";
 import { createSongIdentity, type SongIdentity, type SongIdentityInput } from "./song-research.js";
 import type { CanonicalScore } from "./omr-canonical.js";
-import type { OmrEventInput, OmrPartInput, OmrRole, OmrScoreInput } from "./omr-consensus.js";
+import type { OmrEventInput, OmrPartInput, OmrScoreInput } from "./omr-consensus.js";
 
 export const EXTERNAL_RESEARCH_SCHEMA_VERSION = 1 as const;
 

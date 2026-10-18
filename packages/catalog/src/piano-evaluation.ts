@@ -7,7 +7,6 @@ import {
   writeMidi,
   type Note,
   type ParsedMidi,
-  type SongMeta,
 } from "@keyspilli/midi";
 import {
   normalizeSymbolicScore,
@@ -506,9 +505,18 @@ function inputScore(input: PianoCandidateInput, subject = "candidate"): { score:
   return { score: null, diagnostics };
 }
 
+/** Strip leading/trailing "-" in linear time (`/-+$/` is polynomial on long dash runs). */
+function trimDashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "-") start++;
+  while (end > start && value[end - 1] === "-") end--;
+  return value.slice(start, end);
+}
+
 function baseCandidateId(input: PianoCandidateInput, index: number): string {
   const raw = input.id ?? input.label ?? input.selector ?? "candidate";
-  const clean = basename(raw).replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  const clean = trimDashes(basename(raw).replace(/[^a-zA-Z0-9._-]+/g, "-"));
   return clean || `candidate-${index + 1}`;
 }
 

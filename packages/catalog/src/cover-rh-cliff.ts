@@ -433,7 +433,7 @@ function traceFunnel(trace: ProvenanceTraceEvent[] | undefined): { funnel: Cliff
       return an - bn || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
     })[0];
     let fate: CliffFate;
-    let operation: string | null = matching[0]?.operation ?? null;
+    const operation: string | null = matching[0]?.operation ?? null;
     if (!matching.length) fate = firstLossStage ? (lossReason?.toUpperCase().includes("COLLAP") ? "COLLAPSED" : "REJECTED") : "REJECTED";
     else if (matching.length > 1) fate = "MERGED";
     else if (!source.note || !matching[0]!.note) fate = "REPLACED";
