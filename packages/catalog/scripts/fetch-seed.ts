@@ -7,6 +7,7 @@ import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mergeSeedEntries, type ManifestEntry } from "../src/manifest.js";
+import { stripTags } from "../src/markup-text.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const SEED_DIR = join(ROOT, "data", "seed-midi");
@@ -27,17 +28,6 @@ interface Row {
 }
 
 const HTML_ENTITIES: Readonly<Record<string, string>> = { nbsp: " ", amp: "&", ndash: "-" };
-
-/** Remove markup tags, repeating until none are left so a nested or split tag cannot survive. */
-function stripTags(value: string): string {
-  let previous: string;
-  let current = value;
-  do {
-    previous = current;
-    current = current.replace(/<[^>]*>/g, "");
-  } while (current !== previous);
-  return current;
-}
 
 /** Plain text of a listing cell: tags removed, entities decoded once. */
 function strip(s: string): string {

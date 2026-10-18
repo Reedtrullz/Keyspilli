@@ -36,6 +36,7 @@ import { promisify } from "node:util";
 import { unzipSync, zipSync } from "fflate";
 import { parseMidi, parseMusicXmlNotes, writeMidi, type Note, type ParsedMidi } from "@keyspilli/midi";
 import { renderMidiToWav } from "../src/midi-renderer.js";
+import { stripTags } from "../src/markup-text.js";
 import {
   canonicalBenchmarkCorpusJson,
   createBenchmarkCorpusManifest,
@@ -503,17 +504,6 @@ function classifyRole(name: string): { role: ScorePartSummary["role"]; confidenc
     return { role: /\b(?:piano|keyboard)\b/.test(lower) ? "keyboard" : "accompaniment", confidence: "high" };
   }
   return { role: "unknown", confidence: "low" };
-}
-
-/** Remove markup tags, repeating until none are left so a nested or split tag cannot survive. */
-function stripTags(value: string): string {
-  let previous: string;
-  let current = value;
-  do {
-    previous = current;
-    current = current.replace(/<[^>]*>/g, "");
-  } while (current !== previous);
-  return current;
 }
 
 function scorePartName(xml: string, id: string): string {

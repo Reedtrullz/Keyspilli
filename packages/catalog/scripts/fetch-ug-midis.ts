@@ -11,6 +11,7 @@
 import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stripTags } from "../src/markup-text.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const SEED_DIR = join(ROOT, "data", "seed-midi");
@@ -121,17 +122,6 @@ function accepted(tab: Tab, pageTitleText: string): boolean {
   }
   if (titleSim >= 0.8) return true;
   return titleSim >= 0.55 && artistHit;
-}
-
-/** Remove markup tags, repeating until none are left so a nested or split tag cannot survive. */
-function stripTags(value: string): string {
-  let previous: string;
-  let current = value;
-  do {
-    previous = current;
-    current = current.replace(/<[^>]*>/g, "");
-  } while (current !== previous);
-  return current;
 }
 
 async function findMatch(tab: Tab): Promise<{ href: string; title: string } | null> {
