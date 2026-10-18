@@ -4,10 +4,27 @@ import { microphonePitchEdge } from "./microphone-pitch";
 
 export const MIC_SIGNAL_UNKNOWN = "Unknown signal quality";
 
+interface CaptureStream {
+  getTracks(): Array<{
+    stop(): void;
+    addEventListener(type: "ended", listener: () => void, options: { once: true }): void;
+  }>;
+}
+
+interface CaptureAnalyser {
+  fftSize: number;
+  getFloatTimeDomainData(buffer: Float32Array<ArrayBuffer>): void;
+}
+
 /** Browser capabilities used by the capture loop; injectable for tests. */
-export interface MicrophoneCaptureEnvironment {
-  getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
-  createAudioContext: () => AudioContext;
+export interface MicrophoneCaptureEnvironment<Stream extends CaptureStream = MediaStream, Analyser extends CaptureAnalyser = AnalyserNode> {
+  getUserMedia?: (constraints: MediaStreamConstraints) => Promise<Stream>;
+  createAudioContext: () => {
+    sampleRate: number;
+    close(): Promise<void>;
+    createAnalyser(): Analyser;
+    createMediaStreamSource(stream: Stream): { connect(destination: Analyser): void };
+  };
   requestFrame: (callback: () => void) => number;
   cancelFrame: (handle: number) => void;
   now: () => number;
@@ -24,7 +41,7 @@ function browserEnvironment(): MicrophoneCaptureEnvironment {
   };
 }
 
-export interface MicrophoneCaptureOptions {
+export interface MicrophoneCaptureOptions<Stream extends CaptureStream = MediaStream, Analyser extends CaptureAnalyser = AnalyserNode> {
   /** False once a newer request (or a release) has superseded this one. */
   isCurrent: () => boolean;
   /** Coarse signal-quality label, throttled to every 250 ms. */
@@ -33,7 +50,7 @@ export interface MicrophoneCaptureOptions {
   onPitch: (midi: number) => void;
   /** An audio track ended (device unplugged or permission revoked). */
   onEnded: () => void;
-  environment?: MicrophoneCaptureEnvironment;
+  environment?: MicrophoneCaptureEnvironment<Stream, Analyser>;
 }
 
 /**
@@ -43,10 +60,20 @@ export interface MicrophoneCaptureOptions {
  * while permission was pending (the stream is stopped immediately). Rejects
  * after releasing any partially opened stream/context.
  */
-export async function startMicrophoneCapture(options: MicrophoneCaptureOptions): Promise<(() => void) | null> {
-  const env = options.environment ?? browserEnvironment();
-  let stream: MediaStream | null = null;
-  let ctx: AudioContext | null = null;
+export async function startMicrophoneCapture<Stream extends CaptureStream = MediaStream, Analyser extends CaptureAnalyser = AnalyserNode>(
+  options: MicrophoneCaptureOptions<Stream, Analyser>,
+): Promise<(() => void) | null> {
+  return options.environment
+    ? captureWithEnvironment(options, options.environment)
+    : captureWithEnvironment(options, browserEnvironment());
+}
+
+async function captureWithEnvironment<Stream extends CaptureStream, Analyser extends CaptureAnalyser>(
+  options: Pick<MicrophoneCaptureOptions, "isCurrent" | "onSignal" | "onPitch" | "onEnded">,
+  env: MicrophoneCaptureEnvironment<Stream, Analyser>,
+): Promise<(() => void) | null> {
+  let stream: Stream | null = null;
+  let ctx: ReturnType<typeof env.createAudioContext> | null = null;
   try {
     if (!env.getUserMedia) throw new Error("This browser does not support microphone capture.");
     stream = await env.getUserMedia({ audio: true });
@@ -147,6 +174,7 @@ export function useMicrophoneInput(handlers: MicrophoneInputHandlers) {
         },
       });
       if (!cleanup) return;
+      if (!isCurrent()) { cleanup(); return; }
       micCleanupRef.current = cleanup;
       setMicReady(true);
     } catch (error) {
@@ -156,9 +184,14 @@ export function useMicrophoneInput(handlers: MicrophoneInputHandlers) {
     }
   }, [micPending, micReady, releaseMicrophone]);
 
-  useEffect(() => () => {
-    micRequestRef.current++;
-    micCleanupRef.current?.();
+  useEffect(() => {
+    const counter = micRequestRef;
+    const owner = micCleanupRef;
+    return () => {
+      counter.current++;
+      owner.current?.();
+      owner.current = null;
+    };
   }, []);
 
   return { micReady, micPending, micError, micSignal, setMicError, enableMicrophone, releaseMicrophone };

@@ -3,7 +3,7 @@ import type { MeasureInfo } from "@keyspilli/midi";
 import { MidiTakePanel,type MidiTakeInput } from "./MidiTakePanel";
 import { RhythmCoach } from "./RhythmCoach";
 import { LearningInspection } from "./LearningInspection";
-import {activeExportDigest,activeExportVariant,type ActiveExportSelection} from "./active-arrangement-export";
+import {activeExportDigest,activeExportSourceFingerprint,activeExportVariant,type ActiveExportSelection} from "./active-arrangement-export";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -2697,7 +2697,8 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
         onEnableMic={() => void enableMicrophone()} onInputChange={(input) => { if (input !== "microphone") releaseMicrophone(); }}
         onStart={beginPractice} onCancel={closePracticeSetup} />}
       {showDownload && <DownloadDialog publicationRevision={initial.publicationRevision} songId={initial.song.id} savedVersionLabel={initial.playerVersions?.find(version => version.id === initial.song.id)?.label} hasSheetXml={initial.song.hasSheetXml === 1} backgroundMode={settings.backgroundMode} transpose={settings.transpose}
-        activeExport={melodyArrangementRequested&&(melodyArrangementPending||melodyArrangementFailed)?undefined:{selection:activeExportSelection,sourceFingerprint:melodySourceFingerprint,
+        activeExport={melodyArrangementRequested&&(melodyArrangementPending||melodyArrangementFailed)?undefined:{selection:activeExportSelection,
+          sourceDigest:()=>activeExportSourceFingerprint(activeData),
           digest:()=>activeExportDigest(activeExportVariant(activeData,{...accompaniment,displayChords},activeExportSelection))}} onClose={() => {
         setShowDownload(false);
         window.requestAnimationFrame(() => downloadTriggerRef.current?.focus());

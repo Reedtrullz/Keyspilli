@@ -1,6 +1,6 @@
 {
   "name": "keyspilli",
-  "version": "0.1.0+codex.20261017grader",
+  "version": "0.1.0+codex.20261017abspath",
   "description": "Prepare playable Original and Chords previews, then publish approved songs to Keyspilli.",
   "author": {
     "name": "Reidar"

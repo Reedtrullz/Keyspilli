@@ -1,8 +1,100 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { KEYMAP } from "../../../packages/player-core/src/input";
+import { createMicrophoneProbe, installSyntheticPlayerMicrophone } from "./microphone-probe";
 
 const xml = `<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time></attributes>${["C", "D", "E", "F", "G", "A", "B", "C"].map(step => `<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>`).join("")}</measure></part></score-partwise>`;
+
+test.describe("microphone capture lifecycle", () => {
+  let probe: Awaited<ReturnType<typeof createMicrophoneProbe>>;
+  test.beforeAll(async () => { probe = await createMicrophoneProbe(); });
+  test.afterAll(async () => { await probe.close(); });
+  test.beforeEach(async ({page}) => {
+    await page.goto(probe.origin);
+    await expect.poll(() => page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().mounted)).toBe(true);
+  });
+  test.afterEach(async ({page}, info) => {
+    if (page.isClosed()) return;
+    await info.attach("capture-resource-state", {body: JSON.stringify(await page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot())), contentType: "application/json"});
+    await page.evaluate(() => window.__keyspilliMicrophoneProbe.dispose());
+  });
+
+  test("synthetic A4 is detected and repeated release/disconnection closes capture", async ({page}) => {
+    await page.getByRole("button", {name: "Enable synthetic microphone", exact: true}).click();
+    await expect(page.getByLabel("Capture status")).toContainText("Ready");
+    await expect.poll(() => page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().pitches)).toContain(69);
+    await page.getByRole("button", {name: "Release microphone", exact: true}).click();
+    await page.getByRole("button", {name: "Release microphone", exact: true}).click();
+    await expect.poll(() => page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().contexts.every(state => state === "closed"))).toBe(true);
+    expect(await page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().tracks)).toEqual(["ended"]);
+    await page.getByRole("button", {name: "Enable synthetic microphone", exact: true}).click();
+    await expect(page.getByLabel("Capture status")).toContainText("Ready");
+    await page.evaluate(() => window.__keyspilliMicrophoneProbe.endTrack());
+    await expect(page.getByLabel("Capture status")).toContainText("Microphone disconnected");
+    await expect.poll(() => page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().contexts.every(state => state === "closed"))).toBe(true);
+    expect(await page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().tracks)).toEqual(["ended", "ended"]);
+    expect(await page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().disconnects)).toBe(1);
+  });
+
+  for (const unmount of [false, true]) {
+    test(`pending synthetic permission is released after ${unmount ? "unmount" : "cancellation"}`, async ({page}) => {
+      await page.evaluate(() => { window.__keyspilliMicrophoneProbe.holdPermission = true; });
+      await page.getByRole("button", {name: "Enable synthetic microphone", exact: true}).click();
+      await expect(page.getByLabel("Capture status")).toContainText("Pending");
+      await expect.poll(() => page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().tracks.length)).toBe(1);
+      await page.getByRole("button", {name: unmount ? "Unmount microphone owner" : "Release microphone", exact: true}).click();
+      await page.evaluate(async () => { const state = window.__keyspilliMicrophoneProbe; state.releasePermission(); await state.requestDone; });
+      const state = await page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot());
+      expect(state.tracks).toEqual(["ended"]);
+      expect(state.contexts).toEqual([]);
+      expect(state.pitches).toEqual([]);
+      expect(state.mounted).toBe(!unmount);
+    });
+  }
+
+  test("unmount during capture setup releases the awaited cleanup handoff", async ({page}) => {
+    await page.evaluate(() => { window.__keyspilliMicrophoneProbe.unmountOnContext = true; });
+    await page.getByRole("button", {name: "Enable synthetic microphone", exact: true}).click();
+    await page.evaluate(() => window.__keyspilliMicrophoneProbe.requestDone);
+    const state = await page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot());
+    expect(state.mounted).toBe(false);
+    expect(state.tracks).toEqual(["ended"]);
+    await expect.poll(() => page.evaluate(() => window.__keyspilliMicrophoneProbe.snapshot().contexts)).toEqual(["closed"]);
+  });
+});
+
+test("Player opts into synthetic capture and releases it on input changes and setup cancellation", async ({page, request}) => {
+  const headers = {Authorization: "Bearer test-token-for-e2e", "Content-Type": "application/xml"};
+  const uploaded = await request.post("/api/uploads?title=Microphone%20Fixture&artist=Authored", {headers, data: Buffer.from(xml)});
+  expect(uploaded.ok(), await uploaded.text()).toBe(true);
+  const receipt = await uploaded.json(), id = receipt.songIds.find((value: string) => value.endsWith("-a"));
+  await page.addInitScript(installSyntheticPlayerMicrophone);
+  await page.addInitScript(() => localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({soundSource: "synth"})));
+  try {
+    await page.goto(`/player/${id}/beginner`);
+    expect(await page.evaluate(() => window.__keyspilliPlayerMicrophone.snapshot().tracks)).toEqual([]);
+    await page.getByRole("button", {name: "Practice", exact: true}).click();
+    const dialog = page.getByRole("dialog", {name: "Set up practice"});
+    await dialog.getByLabel("Input", {exact: true}).selectOption("microphone");
+    expect(await page.evaluate(() => window.__keyspilliPlayerMicrophone.snapshot().tracks)).toEqual([]);
+    await dialog.getByRole("button", {name: "Enable microphone", exact: true}).click();
+    await expect(dialog.getByRole("button", {name: "Microphone ready", exact: true})).toBeVisible();
+    await expect(dialog.getByRole("status")).toContainText("Single pitch detected (beta)");
+    await dialog.getByLabel("Input", {exact: true}).selectOption("keyboard");
+    expect(await page.evaluate(() => window.__keyspilliPlayerMicrophone.snapshot().tracks)).toEqual(["ended"]);
+    await expect.poll(() => page.evaluate(() => window.__keyspilliPlayerMicrophone.snapshot().contexts)).toEqual(["closed"]);
+    await dialog.getByLabel("Input", {exact: true}).selectOption("microphone");
+    await dialog.getByRole("button", {name: "Enable microphone", exact: true}).click();
+    await expect(dialog.getByRole("button", {name: "Microphone ready", exact: true})).toBeVisible();
+    await dialog.getByRole("button", {name: "Cancel", exact: true}).click();
+    await expect(dialog).toBeHidden();
+    expect(await page.evaluate(() => window.__keyspilliPlayerMicrophone.snapshot().tracks)).toEqual(["ended", "ended"]);
+    await expect.poll(() => page.evaluate(() => window.__keyspilliPlayerMicrophone.snapshot().contexts)).toEqual(["closed", "closed"]);
+  } finally {
+    if (!page.isClosed()) await page.evaluate(() => window.__keyspilliPlayerMicrophone?.dispose());
+    expect((await request.delete(`/api/songs/${receipt.baseId}`, {headers})).ok()).toBe(true);
+  }
+});
 
 test("speed changes preserve musical position and optional lesson tools leave room for the piano", async ({ page, request }) => {
   const longXml = xml.replace(/<measure number="1">([\s\S]*?)<\/measure>/, (_, contents) =>

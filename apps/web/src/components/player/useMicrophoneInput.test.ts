@@ -14,25 +14,26 @@ function fakeTrack() {
 
 function harness(frequency: number | null) {
   const track = fakeTrack();
-  const stream = { getTracks: () => [track] } as unknown as MediaStream;
+  const stream = { getTracks: () => [track] };
   const sampleRate = 44_100;
   const close = vi.fn(async () => {});
+  const analyser = {
+    fftSize: 0,
+    getFloatTimeDomainData(buffer: Float32Array) {
+      for (let index = 0; index < buffer.length; index += 1) {
+        buffer[index] = frequency === null ? 0 : 0.5 * Math.sin((2 * Math.PI * frequency * index) / sampleRate);
+      }
+    },
+  };
   const context = {
     sampleRate,
     close,
-    createAnalyser: () => ({
-      fftSize: 0,
-      getFloatTimeDomainData(buffer: Float32Array) {
-        for (let index = 0; index < buffer.length; index += 1) {
-          buffer[index] = frequency === null ? 0 : 0.5 * Math.sin((2 * Math.PI * frequency * index) / sampleRate);
-        }
-      },
-    }),
+    createAnalyser: () => analyser,
     createMediaStreamSource: () => ({ connect: () => {} }),
-  } as unknown as AudioContext;
+  };
   const frames: Array<() => void> = [];
   let clock = 0;
-  const environment: MicrophoneCaptureEnvironment = {
+  const environment: MicrophoneCaptureEnvironment<typeof stream, typeof analyser> = {
     getUserMedia: vi.fn(async () => stream),
     createAudioContext: () => context,
     requestFrame: (callback) => { frames.push(callback); return frames.length; },
@@ -53,7 +54,8 @@ describe("startMicrophoneCapture", () => {
     h.runFrame();
     expect(onSignal).toHaveBeenCalledWith("Single pitch detected (beta)");
     expect(onPitch).toHaveBeenCalledWith(69);
-    cleanup!();
+    if (!cleanup) throw new Error("Expected an active microphone capture");
+    cleanup();
     expect(h.track.stop).toHaveBeenCalled();
     expect(h.close).toHaveBeenCalled();
     expect(h.environment.cancelFrame).toHaveBeenCalled();
