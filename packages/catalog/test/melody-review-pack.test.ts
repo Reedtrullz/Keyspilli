@@ -4,6 +4,7 @@ import {
   buildMelodyReviewPack,
   canonicalMelodyReviewPackJson,
   melodyReviewPackMarkdown,
+  melodyReviewPackHtml,
   validateMelodyCorrectionLedger,
   type MelodyReviewInput,
 } from "../src/melody-review-pack.js";
@@ -239,5 +240,32 @@ describe("melody review pack", () => {
     const report = buildMelodyReviewPack(input([{ id: "harmony", review: { regions: [group("harmony", 1, { role: "harmony" })] } }]));
     expect(report.status).toBe("UNAVAILABLE");
     expect(report.nonClaims.some((claim) => /fabricat|human/i.test(claim))).toBe(true);
+  });
+
+  it("escapes backslashes before pipes in Markdown table cells (CodeQL #17)", () => {
+    const report = buildMelodyReviewPack(input([{
+      id: "song",
+      review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
+    }]));
+    const unit = report.bootstrap.decisions[0];
+    if (!unit) throw Error("Expected an unresolved review decision");
+    const markdown = melodyReviewPackMarkdown({ ...report, bootstrap: { ...report.bootstrap, decisions: [{ ...unit, title: "AC\\|DC" }] } });
+    // AC\|DC must become AC\\\|DC: an escaped backslash, then an escaped pipe.
+    expect(markdown).toContain("AC\\\\\\|DC");
+    expect(markdown).not.toMatch(/AC\\\|DC/);
+  });
+
+  it("preserves literal backslashes and pipes while escaping HTML review labels", () => {
+    const report = buildMelodyReviewPack(input([{
+      id: "song",
+      review: { regions: [group("song", 14, { page: 2, rootCauses: ["pitch"] })] },
+    }]));
+    const unit = report.bootstrap.decisions[0];
+    if (!unit) throw Error("Expected an unresolved review decision");
+    const html = melodyReviewPackHtml({ ...report, bootstrap: {
+      ...report.bootstrap, decisions: [{ ...unit, title: 'AC\\DC | <Lead> & "Voice"' }],
+    } });
+    expect(html).toContain('AC\\DC | &lt;Lead&gt; &amp; &quot;Voice&quot;');
+    expect(html).not.toContain("<Lead>");
   });
 });
