@@ -310,8 +310,8 @@ node -e "const D=require('better-sqlite3')('data/db.sqlite'); D.pragma('wal_chec
 
 # 2. Ship the data and swap it into the volume
 tar czf - -C data db.sqlite artifacts transcribed seed-midi \
-  | ssh "$KEYSPILLI_VPS_USER@$KEYSPILLI_VPS_HOST" 'mkdir -p /tmp/keyspilli-seed && tar xzf - -C /tmp/keyspilli-seed'
-ssh "$KEYSPILLI_VPS_USER@$KEYSPILLI_VPS_HOST" 'docker stop keyspilli keyspilli-worker && \
+  | ssh "${KEYSPILLI_VPS_USER:-deploy}@$KEYSPILLI_VPS_HOST" 'mkdir -p /tmp/keyspilli-seed && tar xzf - -C /tmp/keyspilli-seed'
+ssh "${KEYSPILLI_VPS_USER:-deploy}@$KEYSPILLI_VPS_HOST" 'docker stop keyspilli keyspilli-worker && \
   docker run --rm -v keyspilli_keyspilli_data:/data -v /tmp/keyspilli-seed:/src:ro \
     ghcr.io/reedtrullz/keyspilli:latest \
     sh -c "rm -f /data/db.sqlite-wal /data/db.sqlite-shm && cp -a /src/. /data/" && \
@@ -1118,10 +1118,22 @@ storage-loss limits.
 
 ## Active arrangement export
 
-Download defaults to Stored Original. Active MIDI/MusicXML/PDF requires the
-current publication pin, a bounded canonical selection and a digest of the
-actual resolved player note/chord timeline. The server recomputes that timeline
-and rejects stale or different selections. PDF uses the same validated active
+Download defaults to Stored Original. Active MIDI/MusicXML/PDF requires an
+explicit revision (the current publication pin, or `null` for legacy unpinned
+data), a bounded canonical selection and a digest of the actual resolved player
+note/chord timeline. A missing revision is invalid; `null` cannot read a later
+pinned publication. Requests also carry a canonical `active-source-v1` content
+hash of the complete loaded source in `sourceFingerprint`. This export-only
+identity leaves the Player's musical source fingerprint, notes, timing and
+approval pins unchanged, including when legacy data has no stored fingerprint.
+No publication marker or catalog migration is created by downloading.
+
+The server recomputes the timeline and rejects stale or different selections.
+It freshly rereads source, visibility and export metadata before returning
+bytes, bypassing React request memoization, and repeats this check after PDF
+rendering. Old pages with an earlier request identity must reload after an
+upgrade; they receive a conflict rather than exporting a different source.
+PDF uses the same validated active
 MusicXML and existing all-pages renderer. Exported notes describe symbolic key
 intervals; sound/timbre, mix and pedal resonance are not rendered audio or
 musical acceptance. Unsupported or out-of-range material is refused explicitly.

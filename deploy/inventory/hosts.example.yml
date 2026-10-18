@@ -14,7 +14,8 @@ all:
           ansible_host: VPS_HOST
           ansible_user: VPS_USER
           ansible_ssh_private_key_file: VPS_SSH_KEY
-          ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
+          ansible_ssh_common_args: "-o PreferredAuthentications=publickey"
+          ansible_ssh_extra_args: "-o IdentitiesOnly=yes -o IdentityAgent=none"
           ansible_python_interpreter: /usr/bin/python3
           app_domain: keys.reidar.tech
           app_host_port: 3008
