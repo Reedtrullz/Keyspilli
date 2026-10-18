@@ -150,7 +150,13 @@ function chordDescriptor(name: string, notes: number[]): { root?: number; qualit
   const parsed = tryParseChordSymbol(name);
   const root = parsed?.rootPc ?? pitchClassFromName(name);
   const quality = parsed?.quality ?? (() => {
-    const match = /^\s*[A-Ga-g](?:[#b♯♭]?)(.*?)(?:\/.*)?\s*$/.exec(name);
+    // Trim first so the quality capture cannot compete with trailing
+    // whitespace (that overlap made the old pattern polynomial). The quality
+    // is everything after the root up to an optional "/bass".
+    const trimmed = name.trim();
+    // Like the old pattern, a name with an inner line break has no quality.
+    if (/[\n\r\u2028\u2029]/.test(trimmed)) return undefined;
+    const match = /^[A-Ga-g][#b♯♭]?([^/]*)/.exec(trimmed);
     return match?.[1]?.replace(/\s+/g, "").toLowerCase() || undefined;
   })();
   const bass = parsed?.bassPc ?? (notes.length ? mod12(Math.min(...notes)) : undefined);

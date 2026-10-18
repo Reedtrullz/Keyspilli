@@ -1,4 +1,5 @@
 import { configurePlaybackSession } from "./audio-session.js";
+import { audioActivationPending, resumeAudioContext } from "./audio-activation.js";
 import { AudioEngine } from "./audio.js";
 import type { AudioLike } from "./engine.js";
 import type { TimedNote } from "./timeline.js";
@@ -150,6 +151,7 @@ export class OrganAudioEngine implements AudioLike {
   private ctx: AudioContext | null = null;
   onStateChange: ((state: string) => void) | null = null;
   get state(): string { return this.fallback?.state ?? this.ctx?.state ?? "uninitialized"; }
+  get activationPending(): boolean { return this.fallback?.activationPending ?? (this.ctx !== null && audioActivationPending(this.ctx)); }
   private compressor: DynamicsCompressorNode | null = null;
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
@@ -205,7 +207,8 @@ export class OrganAudioEngine implements AudioLike {
       }
     }
     if (!this.ctx) throw new Error("Organ audio initialization failed");
-    if (this.ctx.state === "suspended") void this.ctx.resume();
+    const context = this.ctx;
+    resumeAudioContext(context, () => { if (this.ctx === context) this.onStateChange?.(context.state); });
     return this.ctx;
   }
 

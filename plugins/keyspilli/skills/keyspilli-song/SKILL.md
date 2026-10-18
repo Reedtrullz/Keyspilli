@@ -53,7 +53,7 @@ MIDI, MusicXML or MXL delivery. Keep a failed renderer's preparation for recover
    exact authorized event with unchanged evidence pins. Preserve protected
    neighbors and retain failed candidates. Stop an unsupported repair method;
    obtain missing evidence or keep the result provisional.
-   For an awkward Chords gap (SKILL_DIR is the directory that holds this SKILL.md; call helpers by absolute path and stay in your working directory, which may be the checkout), first run `python3 SKILL_DIR/scripts/check_bridge_capability.py` and copy its
+   For an awkward Chords gap (SKILL_DIR is the directory that holds this SKILL.md; always run the helpers by absolute path from the Keyspilli checkout, or pass --checkout, and never from inside SKILL_DIR), first run `python3 SKILL_DIR/scripts/check_bridge_capability.py` and copy its
    "Bridge support unavailable" line verbatim if it fails, declaring nothing. Then preserve any existing source-written
    counterline or broken accompaniment. If Original continues while backing
    stops, prefer a brief, explicitly selected source-note bridge over invented

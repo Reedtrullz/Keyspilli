@@ -19,10 +19,10 @@
     "@keyspilli/engrave": "*",
     "@keyspilli/midi": "*",
     "@keyspilli/player-core": "*",
-    "next": "^15.5.25",
+    "next": "^15.5.28",
     "playwright": "1.64.1",
     "react": "^19.0.0",
-    "react-dom": "^19.3.0",
+    "react-dom": "^19.3.1",
     "smplr": "^1.1.0"
   },
   "devDependencies": {
@@ -33,6 +33,6 @@
     "@types/react-dom": "^19.3.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.0",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.5"
   }
 }
