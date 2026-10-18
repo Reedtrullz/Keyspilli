@@ -19,7 +19,7 @@ export function groupSongs(rows: SongRow[]): GroupedSong[] {
     byBase.set(r.baseId, arr);
   }
   const out: GroupedSong[] = [];
-  for (const [baseId, variants] of byBase) {
+  for (const [_baseId, variants] of byBase) {
     const levels = [...variants].sort((a, b) => a.difficultyScore - b.difficultyScore);
     const mostPlayed = levels.reduce((best, v) => (v.plays > best.plays ? v : best), levels[0]!);
     const easy = levels.find((v) => v.level === "e");

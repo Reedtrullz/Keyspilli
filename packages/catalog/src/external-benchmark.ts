@@ -266,6 +266,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function cleanText(value: unknown): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   return clean || null;
 }
@@ -286,6 +287,7 @@ function safeError(error: unknown): string {
     // Relative/quoted symbolic files are locators; logical refs such as A/B remain.
     .replace(/(?<![A-Za-z0-9_])(?:\.{0,2}[\\/]|[^\s"'<>;,)}\]]+[\\/])[^\s"'<>;,)}\]]+\.(?:mid|midi|musicxml|mxl|json|wav|mp3)(?=$|[\s"'<>;,)}\]])/gi, "[redacted-path]");
   return redacted.replace(/__EXTERNAL_URL_(\d+)__/g, (_match, index: string) => urls[Number(index)] ?? "[redacted-url]")
+    // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
     .replace(/[\u0000\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
 }
 

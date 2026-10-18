@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 function field(body: Record<string, unknown>, key: string, max = 160): string {
   return typeof body[key] === "string"
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     ? body[key].replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max)
     : "";
 }

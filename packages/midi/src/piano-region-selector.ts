@@ -430,7 +430,7 @@ function candidateFingerprint(candidate: PianoRegionCandidate): string {
   return `${notes.map(noteIdentity).join(";")}|${stableSerialize(metadata)}`;
 }
 
-function candidateBaseId(candidate: PianoRegionCandidate, index: number): string {
+function candidateBaseId(candidate: PianoRegionCandidate, _index: number): string {
   const explicit = [candidate.id, candidate.candidateId, candidate.name]
     .find((value) => typeof value === "string" && value.trim().length > 0);
   if (explicit) return explicit.trim();
