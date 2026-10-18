@@ -101,14 +101,42 @@ const LOGICAL_SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:/;
 const LOGICAL_SOURCE_KEY = /^(?:canonical)?sourceRef$/i;
 const PHYSICAL_ROOT = /^(?:[A-Za-z]:[\\/]|[\\/]|~[\\/]|\\\\)/;
 const PHYSICAL_FILE_URI = /^file:\/\/(?:(?:[A-Za-z]:[\\/])|(?:[\\/])|(?:~[\\/])|[^\\/\\\s]+[\\/])/i;
-const RELATIVE_MEDIA_FILE = /(?:^|[\\/])[^\\/]+\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#].*)?$/i;
+const RELATIVE_MEDIA_EXTENSIONS = ["musicxml", "midi", "mid", "mxl", "wav", "mp3", "json"] as const;
+const LINE_TERMINATOR = /[\n\r\u2028\u2029]/;
+
+/**
+ * Linear-time equivalent of
+ * /(?:^|[\\/])[^\\/]+\.(?:musicxml|midi|mid|mxl|wav|mp3|json)(?:[?#].*)?$/i,
+ * which backtracked polynomially (CodeQL js/polynomial-redos): some path
+ * segment ends in a media extension, followed by the end of the string or by
+ * a ?query/#fragment that runs to the end without a line break.
+ */
+function isRelativeMediaFile(value: string): boolean {
+  let lastLineBreak = -1;
+  for (let index = value.length - 1; index >= 0; index--) {
+    if (LINE_TERMINATOR.test(value.charAt(index))) { lastLineBreak = index; break; }
+  }
+  let segmentStart = 0;
+  for (let end = 0; end <= value.length; end++) {
+    const char = value[end];
+    const candidateEnd = end === value.length || ((char === "?" || char === "#") && end > lastLineBreak);
+    if (candidateEnd && segmentEndsWithMediaExtension(value, segmentStart, end)) return true;
+    if (char === "/" || char === "\\") segmentStart = end + 1;
+  }
+  return false;
+}
+
+function segmentEndsWithMediaExtension(value: string, start: number, end: number): boolean {
+  const tail = value.slice(Math.max(start, end - ".musicxml".length), end).toLowerCase();
+  return RELATIVE_MEDIA_EXTENSIONS.some((extension) => end - start >= extension.length + 2 && tail.endsWith(`.${extension}`));
+}
 const GENERIC_REFERENCE_MARKER = /benchmark|reference|evaluation[-_ ]?only|eval[_-]?only|protected/i;
 
 function isPhysicalSourceReference(value: string): boolean {
   const trimmed = value.trim();
   if (PHYSICAL_FILE_URI.test(trimmed) || PHYSICAL_ROOT.test(trimmed)) return true;
   if (LOGICAL_SCHEME.test(trimmed)) return false;
-  return RELATIVE_MEDIA_FILE.test(trimmed);
+  return isRelativeMediaFile(trimmed);
 }
 
 /**

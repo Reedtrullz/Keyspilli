@@ -11,6 +11,7 @@
 import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stripTags } from "../src/markup-text.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const SEED_DIR = join(ROOT, "data", "seed-midi");
@@ -130,7 +131,7 @@ async function findMatch(tab: Tab): Promise<{ href: string; title: string } | nu
     const results: { href: string; text: string }[] = [];
     const re = /<a[^>]+href="(\/[a-z0-9-]+-mid)"[^>]*>([\s\S]*?)<\/a>/g;
     for (const m of html.matchAll(re)) {
-      const text = (m[2] ?? "").replace(/<[^>]+>/g, "").trim();
+      const text = stripTags(m[2] ?? "").trim();
       if (text) results.push({ href: m[1]!, text });
     }
     if (results.length === 0) continue;
