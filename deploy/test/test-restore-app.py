@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -24,18 +25,20 @@ class RestoreRuntimeTests(unittest.TestCase):
         super().__init__(methodName)
         self.temporary = tempfile.TemporaryDirectory(prefix="keyspilli-restore-controller-")
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.manifest = self.root / "manifest.json"
         self.destination = self.root / "restored"
         self.report = self.destination / "restore-report.json"
+        self.bank = self.root / "native-piano"
         self.calls: list[list[str]] = []
 
     def setUp(self):
+        self.bank.mkdir()
         self.manifest.write_text(json.dumps({"images": {"web": {"id": IMAGE, "revision": REVISION}}}))
         (self.destination / "runtime").mkdir(parents=True)
         self.report.write_text(json.dumps({"catalogSchemaEpoch": 1}))
 
-    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False, fail_stage=None):
+    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False, fail_stage=None, bank_path=None):
         def docker(argv, **_kwargs):
             self.calls.append(argv)
             operation = argv[1]
@@ -59,7 +62,8 @@ class RestoreRuntimeTests(unittest.TestCase):
                 output = ""
             return subprocess.CompletedProcess(argv, 0, output, "")
         with patch.object(restore.subprocess, "run", side_effect=docker), contextlib.redirect_stdout(io.StringIO()), \
-                patch.object(restore.platform, "system", return_value="Linux"), patch.object(restore.platform, "machine", return_value="x86_64"):
+                patch.object(restore.platform, "system", return_value="Linux"), patch.object(restore.platform, "machine", return_value="x86_64"), \
+                patch.dict(os.environ, {"KEYSPILLI_NATIVE_PIANO_DIR": str(self.bank) if bank_path is None else bank_path}):
             restore.verify(self.manifest, self.destination, IMAGE, REVISION, "fixture", sampled=sampled)
 
     def test_actual_container_creation_uses_qualified_one_and_half_cpu_limit(self):
@@ -100,6 +104,22 @@ class RestoreRuntimeTests(unittest.TestCase):
                   "native" if any("verify-native-player.mts" in arg for arg in call) else "framing"
                   for call in self.calls if call[1] == "exec"]
         self.assertEqual(stages, ["ready", "native", "framing"])
+
+    def test_sampled_bank_is_a_read_only_input_separate_from_writable_outputs(self):
+        native = {"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"}
+        self.invoke(sampled=True, native=native)
+        create = next(call for call in self.calls if call[1] == "create")
+        self.assertTrue(any(arg.endswith(":/piano-input:ro") for arg in create))
+
+    def test_missing_relative_or_symlink_bank_is_rejected_before_container_creation(self):
+        linked = self.root / "linked-bank"
+        linked.symlink_to(self.bank, target_is_directory=True)
+        for path in ("", "relative-bank", str(self.root / "missing"), str(linked)):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(ValueError, "piano input"):
+                    self.invoke(sampled=True, bank_path=path)
+                self.assertFalse(any(call[1] == "create" for call in self.calls))
+                self.calls.clear()
 
     def test_each_sampled_stage_failure_stops_the_sequence_and_releases_the_container(self):
         native = {"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"}

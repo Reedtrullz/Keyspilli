@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { chromium, expect, request, type APIRequestContext, type Browser, type BrowserContext } from "@playwright/test";
 import { parseMidi, parseMusicXmlNotes } from "@keyspilli/midi";
 import { capturePlayerClip, savePlayerCapture } from "../e2e/player-audio-capture";
+import { readNativePianoBank } from "../src/lib/native-player-assets";
 
 type Mode = "original" | "chords";
 const origin = "http://127.0.0.1:3000";
@@ -38,6 +39,10 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
   const xml = controlXml(randomUUID());
   writeFileSync(join(output, "control.musicxml"), xml, { flag: "wx" });
   try {
+    const bank = readNativePianoBank("/piano-input");
+    results.push({ kind: "pinned-piano-input", assets: bank.assets.size, fixtureSha256: bank.fixtureSha256,
+      moduleVersion: bank.moduleVersion, moduleSha256: bank.moduleSha256, rightsSource: bank.rightsSource,
+      transport: "read-only local input; live CDN reachability is not tested" });
     api = await request.newContext({ baseURL: origin, extraHTTPHeaders: { Authorization: "Bearer test-token-for-e2e" } });
     const health: unknown = await (await api.get("/api/health")).json();
     if (!object(health) || health.version !== revision || health.status !== "healthy") throw new Error("Wrong candidate identity/readiness");
@@ -54,9 +59,16 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     if (!id) throw new Error("Advanced control was not prepared");
     browser = await chromium.launch({ headless: true });
     context = await browser.newContext({ baseURL: origin });
+    await context.route("https://smpldsnds.github.io/**", async route => {
+      const body = bank.assets.get(route.request().url());
+      if (!body) return route.abort();
+      await route.fulfill({ status: 200, contentType: "audio/ogg", body, headers: { "Access-Control-Allow-Origin": "*" } });
+    });
     for (const mode of ["original", "chords"] as const) {
       const page = await context.newPage();
       const capture = await capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [] });
+      expect([...capture.sampleAssets].sort((a, b) => a.url.localeCompare(b.url)))
+        .toEqual([...bank.sampleAssetPins].sort((a, b) => a.url.localeCompare(b.url)));
       savePlayerCapture(join(output, mode + ".wav"), capture);
       const { wav: _wav, beforeCompressor: _before, ...metadata } = capture;
       writeFileSync(join(output, mode + "-capture.json"), JSON.stringify(metadata, null, 2), { flag: "wx" });

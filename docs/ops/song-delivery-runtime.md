@@ -156,6 +156,26 @@ failed at the first browser page before PCM; browser overlap was confirmed,
 but PID exhaustion was not established. Its raw evidence remains retained.
 Native browser debug stderr is retained by the owned Docker lifecycle logs.
 
+The rehearsal stages the existing Player's complete 226-file Ogg bank before
+starting the network-disabled container. `prepare-native-piano.mts` uses the
+retained Chromium capture's URL/byte/SHA-256 pins, verifies the installed smplr
+1.1.0 module and full preset inventory, and reuses only verified read-only,
+single-link files. Writable or linked inputs are refused without chmod/repair.
+Acquisition has four workers, a two-minute total bound, a 256 MiB inventory cap
+and a 6 GiB free-space reserve. Failed/corrupt/foreign inputs are preserved and
+refused; they are never silently repaired. The managed run seals these inputs
+and diagnostics before releasing scratch on failure, cancellation or success.
+
+Set `KEYSPILLI_NATIVE_PIANO_DIR` to that canonical input directory for the
+sampled restore. It is mounted read-only at `/piano-input`; the browser fulfills
+only the pinned sample URLs from those bytes. All 226 actual transfers, decoding
+and signal assertions still run. This qualifies offline input transport, not
+live CDN reachability. Upstream [documents AKAI's samples as public domain](https://github.com/sfzinstruments/SplendidGrandPiano#splendid-grand-piano);
+the fixture records that authority and the retained capture hash. No bank is
+added to the production image or musical baselines. Historical reference-bank
+module pins remain unchanged. Recorder initialization is self-contained under
+tsx's function-name serialization; the existing PCM and timing checks remain.
+
 `native-player/result.json`, PCM, screenshots and exports are retained alongside
 the restore report and lifecycle reconstruction evidence. Failures, timeouts
 and cancellation cannot produce a successful application report; owned-container
