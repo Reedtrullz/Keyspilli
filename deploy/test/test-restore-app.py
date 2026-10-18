@@ -17,7 +17,9 @@ assert SPEC is not None and SPEC.loader is not None
 restore = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(restore)
 IMAGE = "sha256:" + "a" * 64
+WORKER_IMAGE = "sha256:" + "c" * 64
 REVISION = "b" * 40
+IMAGE_BYTES = {IMAGE: 700 * 1024 ** 2, WORKER_IMAGE: 600 * 1024 ** 2}
 
 
 class RestoreRuntimeTests(unittest.TestCase):
@@ -34,16 +36,24 @@ class RestoreRuntimeTests(unittest.TestCase):
 
     def setUp(self):
         self.bank.mkdir()
-        self.manifest.write_text(json.dumps({"images": {"web": {"id": IMAGE, "revision": REVISION}}}))
+        self.manifest.write_text(json.dumps({"images": {"web": {"id": IMAGE, "revision": REVISION},
+                                                       "worker": {"id": WORKER_IMAGE, "revision": REVISION}}}))
         (self.destination / "runtime").mkdir(parents=True)
         self.report.write_text(json.dumps({"catalogSchemaEpoch": 1}))
 
-    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False, fail_stage=None, bank_path=None):
+    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False, fail_stage=None, bank_path=None, image_bytes=None, unavailable_image=None, measure_images=False):
         def docker(argv, **_kwargs):
             self.calls.append(argv)
             operation = argv[1]
             if operation == "image":
-                output = "amd64" if "{{.Architecture}}" in argv else IMAGE
+                if argv[-1] == unavailable_image:
+                    raise subprocess.CalledProcessError(1, argv)
+                if "{{.Architecture}}" in argv:
+                    output = "amd64"
+                elif "{{.Size}}" in argv:
+                    output = str((IMAGE_BYTES if image_bytes is None else image_bytes).get(argv[-1], "missing"))
+                else:
+                    output = argv[-1]
             elif operation == "inspect":
                 output = json.dumps({"NanoCpus": quota, "Memory": 1_073_741_824, "PidsLimit": 128})
             elif operation == "exec":
@@ -63,8 +73,9 @@ class RestoreRuntimeTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, 0, output, "")
         with patch.object(restore.subprocess, "run", side_effect=docker), contextlib.redirect_stdout(io.StringIO()), \
                 patch.object(restore.platform, "system", return_value="Linux"), patch.object(restore.platform, "machine", return_value="x86_64"), \
-                patch.dict(os.environ, {"KEYSPILLI_NATIVE_PIANO_DIR": str(self.bank) if bank_path is None else bank_path}):
-            restore.verify(self.manifest, self.destination, IMAGE, REVISION, "fixture", sampled=sampled)
+                patch.dict(os.environ, {"KEYSPILLI_NATIVE_PIANO_DIR": str(self.bank) if bank_path is None else bank_path,
+                                        "KEYSPILLI_EVIDENCE_LIMIT_BYTES": str(16 * 1024 ** 3)}):
+            restore.verify(self.manifest, self.destination, IMAGE, REVISION, "fixture", sampled=sampled, measure_images=measure_images)
 
     def test_actual_container_creation_uses_qualified_one_and_half_cpu_limit(self):
         self.invoke()
@@ -110,6 +121,69 @@ class RestoreRuntimeTests(unittest.TestCase):
         self.invoke(sampled=True, native=native)
         create = next(call for call in self.calls if call[1] == "create")
         self.assertTrue(any(arg.endswith(":/piano-input:ro") for arg in create))
+
+    def test_standalone_sampled_accepts_web_only_manifest_without_worker_inspection(self):
+        self.manifest.write_text(json.dumps({"images": {"web": {"id": IMAGE, "revision": REVISION}}}))
+        self.invoke(sampled=True, native={"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"})
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "passed")
+        self.assertFalse(any("{{.Size}}" in call or WORKER_IMAGE in call for call in self.calls))
+
+    def test_standalone_sampled_does_not_require_unused_worker_locally(self):
+        self.invoke(sampled=True, native={"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"},
+                    unavailable_image=WORKER_IMAGE)
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "passed")
+        self.assertFalse(any("{{.Size}}" in call or WORKER_IMAGE in call for call in self.calls))
+
+    def test_native_report_retains_actual_sizes_for_both_pinned_images(self):
+        native = {"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"}
+        self.invoke(sampled=True, measure_images=True, native=native)
+        report = json.loads(self.report.read_text())
+        self.assertEqual(report["nativeImageSizes"], {
+            "web": {"id": IMAGE, "bytes": IMAGE_BYTES[IMAGE]},
+            "worker": {"id": WORKER_IMAGE, "bytes": IMAGE_BYTES[WORKER_IMAGE]},
+        })
+        self.assertEqual(report["nativeImageSizeLimitBytes"], 16 * 1024 ** 3)
+        self.assertEqual(len([call for call in self.calls if call[1] == "create"]), 1)
+        self.assertNotIn(WORKER_IMAGE, next(call for call in self.calls if call[1] == "create"))
+
+    def test_missing_malformed_or_nonpositive_image_sizes_refuse_before_container_creation(self):
+        for value in ("missing", "bad", 0, -1):
+            with self.subTest(value=value):
+                try:
+                    with self.assertRaisesRegex(ValueError, "image size"):
+                        self.invoke(sampled=True, measure_images=True, native={"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"},
+                                    image_bytes={IMAGE: IMAGE_BYTES[IMAGE], WORKER_IMAGE: value})
+                    self.assertFalse(any(call[1] == "create" for call in self.calls))
+                    self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
+                finally:
+                    (self.destination / "native-player").rmdir()
+                    self.calls.clear()
+
+    def test_image_total_above_existing_scratch_budget_refuses_before_container_creation(self):
+        with self.assertRaisesRegex(ValueError, "image size.*budget"):
+            self.invoke(sampled=True, measure_images=True, native={"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"},
+                        image_bytes={IMAGE: 16 * 1024 ** 3, WORKER_IMAGE: 1})
+        self.assertFalse(any(call[1] == "create" for call in self.calls))
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
+
+    def test_paired_qualification_requires_worker_metadata_or_local_image(self):
+        native = {"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"}
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.invoke(sampled=True, measure_images=True, native=native, unavailable_image=WORKER_IMAGE)
+        self.assertFalse(any(call[1] == "create" for call in self.calls))
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
+        (self.destination / "native-player").rmdir()
+        self.calls.clear()
+        self.manifest.write_text(json.dumps({"images": {"web": {"id": IMAGE, "revision": REVISION}}}))
+        with self.assertRaisesRegex(ValueError, "pinned image metadata"):
+            self.invoke(sampled=True, measure_images=True, native=native)
+        self.assertFalse(any(call[1] == "create" for call in self.calls))
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
+
+    def test_image_qualification_without_sampled_refuses_before_docker(self):
+        with self.assertRaisesRegex(ValueError, "requires sampled"):
+            self.invoke(measure_images=True)
+        self.assertFalse(self.calls)
 
     def test_missing_relative_or_symlink_bank_is_rejected_before_container_creation(self):
         linked = self.root / "linked-bank"
