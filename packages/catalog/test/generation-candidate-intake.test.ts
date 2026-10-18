@@ -284,4 +284,14 @@ describe("generation candidate intake", () => {
     expect(JSON.stringify(result.score)).not.toContain("/Users/reidar");
     expect(JSON.stringify(result.canonical)).not.toContain("/Users/reidar");
   });
+
+  it("keeps only http(s) URLs and safe logical refs as source references (CodeQL #18)", async () => {
+    const sourceRefOf = async (sourceRef: string) => (await intakeGenerationCandidate({ id: "scheme", version: "v1", bytes, format: "midi", sourceRef })).provenance.sourceRef;
+    for (const unsafe of ["vbscript:msgbox", "VBScript:msgbox", "javascript:alert(1)", "data:text/html,x", "blob:abc", "file:x.mid"]) {
+      expect(await sourceRefOf(unsafe), unsafe).toBe("[redacted-source-ref]");
+    }
+    expect(await sourceRefOf("provider:lead")).toBe("provider:lead");
+    expect(await sourceRefOf("youtube:abc123")).toBe("youtube:abc123");
+    expect(await sourceRefOf("https://user:pw@example.test/song.mid?token=x#y")).toBe("https://example.test/song.mid");
+  });
 });
