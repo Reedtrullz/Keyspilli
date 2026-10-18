@@ -146,9 +146,27 @@ export function serializeResearchReport(report: ResearchReport): string {
   return JSON.stringify(stable(redactReportValue(report)), null, 2) + "\n";
 }
 
+// The checks below used to be one alternation whose credential-URL and
+// media-filename branches backtracked polynomially (CodeQL js/polynomial-redos).
+// They are split into linear tests with the same meaning.
+const SENSITIVE_ERROR_WORD = /password|token|secret|cookie|authorization|--proxy/i;
+// The user part cannot contain ":", so there is only one way to split user:password.
+const CREDENTIAL_URL = /(?:https?|socks5h?):\/\/[^\s/@:]+:[^\s/@]+@/i;
+const PATH_PREFIX = /(?:^|[\s"'(:])(?:[A-Za-z]:[\\/]|~?[\\/]|\.\.?[\\/])/;
+// Applied per whitespace/quote-delimited token: at least one character, then a
+// media extension at the end of the token or before ")", ":" or ",".
+const MEDIA_FILE_TOKEN = /.\.(?:mid|midi|musicxml|xml|gp|gpx|mp3|wav|flac|json)(?:$|[):,])/i;
+
+function mentionsSensitiveDetail(message: string): boolean {
+  return SENSITIVE_ERROR_WORD.test(message)
+    || CREDENTIAL_URL.test(message)
+    || PATH_PREFIX.test(message)
+    || message.split(/[\s"']+/).some((token) => MEDIA_FILE_TOKEN.test(token));
+}
+
 function safeError(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
-  if (!message || /(?:password|token|secret|cookie|authorization|--proxy|(?:https?|socks5h?):\/\/[^\s/@]+:[^\s/@]+@|(?:^|[\s"'(:])(?:[A-Za-z]:[\\/]|~?[\\/]|\.\.?[\\/])|(?:^|[\s"'(:])[^\s"']+\.(?:mid|midi|musicxml|xml|gp|gpx|mp3|wav|flac|json)(?:$|[\s"'):,]))/i.test(message)) return fallback;
+  if (!message || mentionsSensitiveDetail(message)) return fallback;
   return message.replace(/[\r\n]+/g, " ").slice(0, 240) || fallback;
 }
 
