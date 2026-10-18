@@ -87,23 +87,29 @@ function bodyBytes(response: ExternalRetrievalResponseInput): Uint8Array | Array
   return null;
 }
 
+// Schemes a browser would execute or resolve to local content. A logical
+// reference may never use one, so it cannot turn into a live link later.
+const UNSAFE_LOGICAL_SCHEMES: ReadonlySet<string> = new Set(["javascript", "vbscript", "data", "file", "blob"]);
+const LOGICAL_SOURCE_REF = /^([A-Za-z][A-Za-z0-9+.-]*):[^?#\s\\/]+$/;
+
+/**
+ * Only http(s) URLs are kept as URLs (allowlist, parsed with `new URL`), with
+ * credentials, query and fragment removed. Anything else is accepted only as
+ * an opaque logical identifier such as `provider:lead` or `youtube:abc123`:
+ * no slashes, query, fragment or whitespace, and never a script/local scheme.
+ */
 function safeSourceRef(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) return "[redacted-source-ref]";
-  try {
-    const url = new URL(value.trim());
-    if (url.protocol === "http:" || url.protocol === "https:") {
-      url.username = ""; url.password = ""; url.search = ""; url.hash = "";
-      return url.toString();
-    }
-    if (/^(?:file|data|javascript|blob):$/i.test(url.protocol)) return "[redacted-source-ref]";
-    throw new Error("opaque logical source reference");
-  } catch { /* opaque logical refs are handled below */ }
   const trimmed = value.trim();
-  return /^(?:[A-Za-z][A-Za-z0-9+.-]*:)[^?#\s]+$/.test(trimmed)
-    && !/^(?:file|data|javascript|blob):/i.test(trimmed)
-    && !/[\\/]/.test(trimmed)
-    ? trimmed
-    : "[redacted-source-ref]";
+  let url: URL | null = null;
+  try { url = new URL(trimmed); } catch (error) { if (!(error instanceof TypeError)) throw error; }
+  if (url && (url.protocol === "http:" || url.protocol === "https:")) {
+    url.username = ""; url.password = ""; url.search = ""; url.hash = "";
+    return url.toString();
+  }
+  const logical = LOGICAL_SOURCE_REF.exec(trimmed);
+  const scheme = logical?.[1];
+  return scheme && !UNSAFE_LOGICAL_SCHEMES.has(scheme.toLowerCase()) ? trimmed : "[redacted-source-ref]";
 }
 
 function safeId(value: unknown): string {
