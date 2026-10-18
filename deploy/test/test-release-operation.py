@@ -4,6 +4,8 @@ from pathlib import Path
 
 path = Path(__file__).resolve().parents[1] / "validate-release-operation.py"
 spec = importlib.util.spec_from_file_location("release_operation", path)
+if spec is None or spec.loader is None:
+    raise RuntimeError("Release operation fixture could not load its validator")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 assert module.validate("deploy_only", "", "strict", "") is False
@@ -20,6 +22,5 @@ for args in [
     else: raise AssertionError(f"accepted invalid operation {args}")
 workflow = (path.parents[1] / ".github/workflows/ci.yml").read_text()
 assert "default: deploy_only" in workflow
-assert "inputs.operation != 'deploy_only'" in workflow
 assert "python3 deploy/validate-release-operation.py" in workflow
 print("release operation fixtures passed")

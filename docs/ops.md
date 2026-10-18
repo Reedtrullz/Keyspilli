@@ -719,6 +719,13 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
   workflow dispatch with `rebuild_target` and an explicit base ID, or `rebuild_all`
   with `REBUILD_ALL_CATALOG` (runs inside the worker container with
   `--keep-existing-tempo`). The default `deploy_only` skips this job.
+  Rebuild dispatches require main, successful validation/checks and both release
+  flags disabled. They use the installed worker; they do not publish or deploy
+  images. Scope validation still requires the explicit target or full-catalog
+  confirmation before any production SSH operation. The authenticated live web
+  revision must already match the dispatch SHA before catalog writes begin;
+  advancing main without deploying it causes a clean preflight refusal. The
+  same revision and requested target are verified again after the rebuild.
 
 ### Discovery-assisted private alpha deployment canary — 2026-09-05
 
