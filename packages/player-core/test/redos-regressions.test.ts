@@ -33,7 +33,7 @@ describe("ReDoS regressions", () => {
       { beat: 0, name: hostile, notes: [], sourceKind: "authored" },
       { beat: 1, name: hostile, notes: [], sourceKind: "authored" },
     ]));
-    expect(value.length).toBeLessThanOrEqual(1);
+    expect(value).toEqual([{ beat: 0, name: hostile, notes: [], sourceKind: "authored", durationBeats: 2 }]);
     expect(ms).toBeLessThan(BUDGET_MS);
   });
 });

@@ -114,7 +114,7 @@ const LINE_TERMINATOR = /[\n\r\u2028\u2029]/;
 function isRelativeMediaFile(value: string): boolean {
   let lastLineBreak = -1;
   for (let index = value.length - 1; index >= 0; index--) {
-    if (LINE_TERMINATOR.test(value[index]!)) { lastLineBreak = index; break; }
+    if (LINE_TERMINATOR.test(value.charAt(index))) { lastLineBreak = index; break; }
   }
   let segmentStart = 0;
   for (let end = 0; end <= value.length; end++) {

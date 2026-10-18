@@ -31,7 +31,9 @@ describe("ReDoS regressions", () => {
     // A line break after the last "#" stops the trailing `.*`, forcing the old
     // pattern to retry every split of the repeated segment.
     const hostile = `..mid#${"..mid#".repeat(30_000)}\nx`;
-    const { ms } = timed(() => { try { assertGenerationEvidence(evidence(hostile)); } catch { /* rejection is fine */ } });
+    const { ms } = timed(() => {
+      expect(() => assertGenerationEvidence(evidence(hostile))).toThrow(/credentials, query, or fragment/);
+    });
     expect(ms).toBeLessThan(BUDGET_MS);
   });
 

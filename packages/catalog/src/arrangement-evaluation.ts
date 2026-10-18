@@ -1672,36 +1672,48 @@ function redactEmbeddedPaths(value: string): string {
 // This scans for "://" and walks back over the scheme instead of using
 // /([A-Za-z][A-Za-z0-9+.-]*:\/\/)([^\/\s"'<>;,)\]]*)(\/[^\s"'<>;,)\]]*)?/g,
 // which retried the scheme at every letter and backtracked polynomially on long
-// runs of scheme characters (CodeQL js/polynomial-redos). It finds the same
-// matches as that pattern: the leftmost scheme start is the first letter of the
-// scheme-character run that ends at "://".
+// runs of scheme characters (CodeQL js/polynomial-redos). The leftmost scheme
+// start is the first letter of the scheme-character run that ends at "://".
 function redactEmbeddedUrls(value: string): string {
   const isSchemeChar = (char: string): boolean => /[A-Za-z0-9+.-]/.test(char);
   const isLetter = (char: string): boolean => /[A-Za-z]/.test(char);
   const isUrlStop = (char: string): boolean => /[\s"'<>;,)\]]/.test(char);
+  const isHardStop = (char: string): boolean => /[\s"'<>]/.test(char);
   let output = "";
   let copied = 0;
   let separator = value.indexOf("://");
   while (separator !== -1) {
     let runStart = separator;
-    while (runStart > copied && isSchemeChar(value[runStart - 1]!)) runStart--;
+    while (runStart > copied && isSchemeChar(value.charAt(runStart - 1))) runStart--;
     let schemeStart = runStart;
-    while (schemeStart < separator && !isLetter(value[schemeStart]!)) schemeStart++;
+    while (schemeStart < separator && !isLetter(value.charAt(schemeStart))) schemeStart++;
     if (schemeStart === separator) {
       separator = value.indexOf("://", separator + 1);
       continue;
     }
-    let authorityEnd = separator + 3;
-    while (authorityEnd < value.length && value[authorityEnd] !== "/" && !isUrlStop(value[authorityEnd]!)) authorityEnd++;
-    let pathEnd = authorityEnd;
-    if (value[pathEnd] === "/") {
+    let pathEnd = separator + 3;
+    let authorityEnd = -1;
+    let marker = -1;
+    let bracketedAuthority = false;
+    while (pathEnd < value.length) {
+      const char = value.charAt(pathEnd);
+      if (isHardStop(char)) break;
+      if (marker < 0 && (char === "?" || char === "#")) marker = pathEnd;
+      if (marker < 0) {
+        if (authorityEnd < 0 && char === "[") bracketedAuthority = true;
+        else if (bracketedAuthority && char === "]") bracketedAuthority = false;
+        else if (isUrlStop(char)) break;
+        if (authorityEnd < 0 && char === "/") authorityEnd = pathEnd;
+      }
+      // Query/fragment punctuation is data: consume its whole whitespace- or
+      // quote-delimited tail rather than leaving a secret suffix in prose.
       pathEnd++;
-      while (pathEnd < value.length && !isUrlStop(value[pathEnd]!)) pathEnd++;
     }
+    const safeEnd = marker < 0 ? pathEnd : marker;
+    if (authorityEnd < 0) authorityEnd = safeEnd;
     const authority = value.slice(separator + 3, authorityEnd);
-    const path = value.slice(authorityEnd, pathEnd);
-    const safeAuthority = authority.replace(/^[^@]*@/, "").split(/[?#]/, 1)[0] ?? "";
-    const safePath = path.split(/[?#]/, 1)[0] ?? "";
+    const safeAuthority = authority.slice(authority.lastIndexOf("@") + 1);
+    const safePath = value.slice(authorityEnd, safeEnd);
     output += value.slice(copied, schemeStart) + value.slice(schemeStart, separator + 3) + safeAuthority + safePath;
     copied = pathEnd;
     separator = value.indexOf("://", pathEnd);
