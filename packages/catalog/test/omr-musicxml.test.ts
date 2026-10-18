@@ -84,7 +84,11 @@ describe("MusicXML to OMR score adapter", () => {
   it("supports explicit role overrides and deterministic reordered input", () => {
     const options: OmrMusicXmlParseOptions = { partRoles: { P2: "harmony" }, staffRoles: { "P1:2": "rhythm" } };
     const first = parseOmrMusicXml(MUSIC_XML, options).score;
-    const reorderedXml = MUSIC_XML.replace('id="P1"', 'id="P1"');
+    // Swap the <score-part> declarations; the parse must not depend on part-list order.
+    const lead = '    <score-part id="P1"><part-name>Lead Voice</part-name></score-part>\n';
+    const rhythm = '    <score-part id="P2"><part-name>Rhythm Guitar</part-name></score-part>\n';
+    const reorderedXml = MUSIC_XML.replace(lead + rhythm, rhythm + lead);
+    expect(reorderedXml).not.toBe(MUSIC_XML);
     const second = parseOmrMusicXml(reorderedXml, options).score;
     expect(first).toEqual(second);
     expect(first.parts[1]!.role).toBe("harmony");

@@ -110,8 +110,15 @@ def anonymous_status(url: str) -> int:
         return error.code
 
 
-def tls_days(host: str) -> float:
+def tls_context() -> ssl.SSLContext:
+    """Certificate- and hostname-verifying client context that refuses TLS < 1.2."""
     context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    return context
+
+
+def tls_days(host: str) -> float:
+    context = tls_context()
     with socket.create_connection((host, 443), timeout=10) as raw:
         with context.wrap_socket(raw, server_hostname=host) as wrapped:
             expiry = ssl.cert_time_to_seconds(wrapped.getpeercert()["notAfter"])
