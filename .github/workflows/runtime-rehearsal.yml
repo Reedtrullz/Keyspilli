@@ -144,7 +144,7 @@ jobs:
           try:
               subprocess.run(["python3", "deploy/restore-app.py", str(manifests[0]), str(root / "restored"),
                               env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["KEYSPILLI_BACKUP_WEB_REVISION"],
-                              env["RESTORE_SONG_ID"], "--sampled"], check=True, timeout=420)
+                              env["RESTORE_SONG_ID"], "--sampled", "--image-sizes"], check=True, timeout=420)
           finally:
               shutil.copyfile(root / "restored" / "restore-report.json", Path("rehearsal-out/restore-report.json"))
               if (root / "restored" / "native-player").exists():
@@ -178,6 +178,8 @@ jobs:
               "webImageId": report["webImageId"],
               "canary": report.get("application"),
               "runtimeLimits": report["runtimeLimits"],
+              "nativeImageSizes": report["nativeImageSizes"],
+              "nativeImageSizeLimitBytes": report["nativeImageSizeLimitBytes"],
               "sampledBrowser": report["sampledBrowser"],
           }
           path = out / "runtime-rehearsal-receipt.json"
