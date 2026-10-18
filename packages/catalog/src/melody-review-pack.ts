@@ -115,7 +115,6 @@ const HASH = /^[a-f0-9]{64}$/i;
 const ROLES = new Set(["melody"]);
 const PRIORITY_RANK: Record<MelodyReviewUnit["priority"], number> = { high: 3, medium: 2, low: 1 };
 const STATE_RANK: Record<MelodyReviewUnit["state"], number> = { BROKEN: 2, REVIEW: 1 };
-const DECISIONS = new Set<MelodyReviewDecision>(["pending", "accepted", "rejected", "corrected", "skipped"]);
 const COMPLETED = new Set<Exclude<MelodyReviewDecision, "pending">>(["accepted", "rejected", "corrected", "skipped"]);
 
 type RecordValue = Record<string, unknown>;
@@ -465,7 +464,7 @@ export function canonicalMelodyReviewPackJson(pack: MelodyReviewPack): string {
 }
 
 function markdownCell(value: unknown): string {
-  return text(value, "").replace(/\|/g, "\\|") || "—";
+  return text(value, "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|") || "—";
 }
 
 export function melodyReviewPackMarkdown(pack: MelodyReviewPack): string {
@@ -494,7 +493,7 @@ export function melodyReviewPackMarkdown(pack: MelodyReviewPack): string {
 }
 
 function htmlEscape(value: unknown): string {
-  return markdownCell(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return (text(value, "") || "—").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 export function melodyReviewPackHtml(pack: MelodyReviewPack): string {

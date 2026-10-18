@@ -48,9 +48,6 @@ function slugTokens(value: string): string[] {
     .filter((token) => token.length > 1 && !STOP_TOKENS.has(token));
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 const TITLE_NOISE =
   /piano|cover|tutorial|transcription|synthesia|karaoke|lyrics|official|video|audio|hd|hq|4k/i;

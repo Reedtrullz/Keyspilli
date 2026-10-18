@@ -11,7 +11,7 @@ import {
 import type { GenerationCandidateProvenanceClass } from "./generation-candidate-intake.js";
 import { createSongIdentity, type SongIdentity, type SongIdentityInput } from "./song-research.js";
 import type { CanonicalScore } from "./omr-canonical.js";
-import type { OmrEventInput, OmrPartInput, OmrRole, OmrScoreInput } from "./omr-consensus.js";
+import type { OmrEventInput, OmrPartInput, OmrScoreInput } from "./omr-consensus.js";
 
 export const EXTERNAL_RESEARCH_SCHEMA_VERSION = 1 as const;
 
@@ -474,7 +474,6 @@ export async function ingestExternalSymbolicCandidate(input: ExternalSymbolicCan
   const bytes = input.bytes;
   const path = text(input.filePath ?? input.localFilePath ?? input.path);
   const formatInput = normalizeFormat(input.format ?? input.artifactType);
-  const rejectionReasons: string[] = [];
   if (bytes !== undefined && path) {
     return { status: "invalid", format: formatInput, candidate: null, score: null, normalizedScore: null, canonical: null, provenance: null, roles: [], warnings: [], rejectionReasons: ["provide either local bytes or a local file, not both"], error: "ambiguous local input" };
   }

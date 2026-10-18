@@ -7,7 +7,6 @@ import {
   writeMidi,
   type Note,
   type ParsedMidi,
-  type SongMeta,
 } from "@keyspilli/midi";
 import {
   normalizeSymbolicScore,
@@ -506,9 +505,18 @@ function inputScore(input: PianoCandidateInput, subject = "candidate"): { score:
   return { score: null, diagnostics };
 }
 
+/** Strip leading/trailing "-" in linear time (`/-+$/` is polynomial on long dash runs). */
+function trimDashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "-") start++;
+  while (end > start && value[end - 1] === "-") end--;
+  return value.slice(start, end);
+}
+
 function baseCandidateId(input: PianoCandidateInput, index: number): string {
   const raw = input.id ?? input.label ?? input.selector ?? "candidate";
-  const clean = basename(raw).replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  const clean = trimDashes(basename(raw).replace(/[^a-zA-Z0-9._-]+/g, "-"));
   return clean || `candidate-${index + 1}`;
 }
 
@@ -570,7 +578,6 @@ function referenceMetrics(reference: NormalizedSymbolicScore | null, candidate: 
   const exact = f1(exactCount, candidateGroups.length, referenceGroups.length);
   const pitchClass = f1(pitchClassCount, candidateGroups.length, referenceGroups.length);
   const onset = f1(matched.length, candidateGroups.length, referenceGroups.length);
-  const errors = matched.map((match) => match.onsetErrorBeats).sort((a, b) => a - b);
   const referencePitches = referenceGroups.map((group) => Math.max(...group.notes.map((note) => note.midi)));
   const candidatePitches = candidateGroups.map((group) => Math.max(...group.notes.map((note) => note.midi + aligned.transpositionSemitones)));
   const matchedContour = matched.flatMap((match) => {

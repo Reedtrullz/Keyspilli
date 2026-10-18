@@ -14,7 +14,7 @@
  */
 
 import { readFile, realpath, stat } from "node:fs/promises";
-import { basename, extname, isAbsolute, relative, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import { parseMidi, type ParsedMidi } from "@keyspilli/midi";
 import type { ExternalRoleDiagnostic } from "./external-research.js";
 import { sha256Hex } from "./fixture-evidence.js";
@@ -359,7 +359,6 @@ function externalRole(role: ShadowInstrumentRole, track: InternalTrack, division
   const pitches = pitched.map((note) => note.midi).sort((left, right) => left - right);
   const minPitch = pitches[0] ?? null;
   const maxPitch = pitches.at(-1) ?? null;
-  const starts = pitched.map((note) => note.startTick).sort((left, right) => left - right);
   const monophonic = pitched.length === 0 ? null : pitched.every((note, index) => {
     if (index === 0) return true;
     const previous = pitched.slice().sort((left, right) => left.startTick - right.startTick || left.midi - right.midi)[index - 1]!;
@@ -643,7 +642,7 @@ async function readLocalBytes(path: string, label: string, options: ShadowCorpus
  */
 export function adaptShadowCorpusMidiBytes(
   input: Uint8Array | ArrayBuffer,
-  options: { logicalRef?: string | null } = {},
+  _options: { logicalRef?: string | null } = {},
 ): ShadowCorpusMidiAdapterResult {
   const bytes = asBytes(input);
   let parsed: ParsedMidi;

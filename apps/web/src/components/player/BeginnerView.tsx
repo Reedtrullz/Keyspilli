@@ -32,7 +32,7 @@ export function BeginnerView({ data, time, settings, chords, provisionalTempo = 
       if (chord.beat >= m.startBeat && chord.beat < m.endBeat) at(chord.beat).chords.push(chord);
     }
     return [...events].sort(([a], [b]) => a - b).map(([start, event]) => ({ start, ...event }));
-  }, [data.notes, chords, m.startBeat, m.endBeat, settings.transpose]);
+  }, [data.notes, chords, m.startBeat, m.endBeat]);
   const activeIndex = columns.findIndex((column, i) => beat >= column.start && beat < (columns[i + 1]?.start ?? m.endBeat));
   useEffect(() => {
     const panel = scroller.current;

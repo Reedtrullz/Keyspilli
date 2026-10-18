@@ -16,7 +16,6 @@ interface VariantJson {
   tempoBpm: number;
 }
 
-const LEVELS = ["a", "m", "e"] as const;
 
 // Reference matching is a token-overlap heuristic: the seed filename must be
 // fully explained by the song's base slug + title (all its tokens known, >=2

@@ -1,4 +1,4 @@
-import { statSync } from "node:fs";
+import { fileFingerprint } from "./file-fingerprint.js";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { ROOT } from "./paths.js";
@@ -195,12 +195,7 @@ const SOURCE_MAP_CACHE_LIMIT = 8;
 const sourceMapCache = new Map<string, SourceMapCacheEntry>();
 
 function sourceMapFileSignature(path: string): string {
-  try {
-    const stat = statSync(path, { bigint: true });
-    return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
-  } catch {
-    return "missing";
-  }
+  return fileFingerprint(path);
 }
 
 function rememberSourceMap(path: string, entry: SourceMapCacheEntry): void {

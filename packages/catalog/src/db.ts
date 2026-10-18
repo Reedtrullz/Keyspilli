@@ -2,6 +2,7 @@ import { initializeCatalogSchema } from "./catalog-schema.js";
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { fileFingerprint } from "./file-fingerprint.js";
 import { dirname, join } from "node:path";
 import { ROOT, dataDir, dbPath } from "./paths.js";
 import type { JobRow, SongFilters, SongRow } from "./db-types.js";
@@ -40,16 +41,17 @@ export function invalidateSongReadModel(): void {
   songReadModelCache = undefined;
 }
 
+// inode + device catches atomic replacement at the same path; size, mtime
+// and ctime catch in-place edits.  A missing marker is part of the signature
+// so creating/removing a policy or WAL file forces a refresh as well.  SQLite
+// files skip content hashing: `data_version` already tracks commits and the
+// WAL/SHM bytes change on every write.
 function fileSignature(path: string): string {
-  try {
-    const stat = statSync(path);
-    // inode + device catches atomic replacement at the same path; size and
-    // mtime catch in-place edits.  A missing marker is part of the signature
-    // so creating/removing a policy or WAL file forces a refresh as well.
-    return `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}`;
-  } catch {
-    return `${path}:missing`;
-  }
+  return fileFingerprint(path, { contentHashMaxBytes: Number.MAX_SAFE_INTEGER });
+}
+
+function sqliteFileSignature(path: string): string {
+  return fileFingerprint(path, { contentHashMaxBytes: 0 });
 }
 
 function songDataSignature(conn: Database.Database): string {
@@ -57,7 +59,7 @@ function songDataSignature(conn: Database.Database): string {
   // markers additionally cover WAL/checkpoint/atomic-replace changes that a
   // long-lived process may otherwise not observe through its own connection.
   const dataVersion = conn.pragma("data_version", { simple: true }) as number;
-  return [dbPath(), `${dbPath()}-wal`, `${dbPath()}-shm`].map(fileSignature).concat(`data_version:${dataVersion}`).join("|");
+  return [dbPath(), `${dbPath()}-wal`, `${dbPath()}-shm`].map(sqliteFileSignature).concat(`data_version:${dataVersion}`).join("|");
 }
 
 function policySignature(): string {
@@ -333,7 +335,7 @@ export function listSongs(f: SongFilters = {}, limitCap = 200): SongRow[] {
  * levels attached. Filters match any variant of a song.
  */
 export function listSongsGrouped(f: SongFilters = {}): GroupedSong[] {
-  let grouped = groupedSongsForFilters(f);
+  const grouped = groupedSongsForFilters(f);
   const order = groupedOrder(f);
   grouped.sort(order);
   const { limit, offset } = pagination(f, 2000);

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream, constants } from "node:fs";
-import { open, readFile, stat, lstat } from "node:fs/promises";
+import { open, stat, lstat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { parseCompactJson } from "./music-review-jobs.js";
 
@@ -565,7 +565,7 @@ export async function readAccountBindingPin(path: string): Promise<AccountBindin
 }
 
 export function assembleAntiPrompt(prompt: string, responseSchemaJson?: string): string {
-  // eslint-disable-next-line no-control-regex -- matches every non-ASCII character (the range starts at NUL) to build ASCII-only slugs
+  // eslint-disable-next-line no-control-regex -- the NUL boundary defines ASCII; escape non-ASCII schema text as JSON Unicode sequences
   return responseSchemaJson ? `${prompt.trim()}\n\nRequested output schema: ${stableJson(JSON.parse(responseSchemaJson)).replace(/[^\x00-\x7f]/g,c=>`\\u${c.charCodeAt(0).toString(16).padStart(4,"0")}`)}` : prompt;
 }
 

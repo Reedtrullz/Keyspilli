@@ -226,7 +226,7 @@ function redact(value: unknown): unknown {
     const cleaned = value
       // Use fresh global expressions here so every occurrence is scrubbed
       // without sharing mutable RegExp state with the validation helpers.
-      .replace(/https?:\/\/[^\s/@]+:[^\s/@]+@/gi, "https://[redacted]@")
+      .replace(/https?:\/\/[^\s/@:]+:[^\s/@]+@/gi, "https://[redacted]@")
       .replace(/(?:^|[\s"'(=:])(?:file:|[A-Za-z]:[\\/]|~[\\/]|\.\.?[\\/]|\/|\\)(?:[^\s"']*)/gi, "[redacted-path]")
       // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
       .replace(/[\u0000-\u001f\u007f]/g, " ")
@@ -235,7 +235,10 @@ function redact(value: unknown): unknown {
       .slice(0, 1000);
     // Adapter diagnostics can contain a relative source filename. Preserve
     // generated logical paths, but do not echo external score/audio files.
-    if (/^(?!scores\/|reference\/)(?:[^\s/]+[\\/])+[^\s/]+\.(?:pdf|mid|midi|musicxml|xml|mxl|mscz|wav|mp3)(?:$|[?#])/i.test(cleaned)) return "[redacted-path]";
+    // Anchored with a single lazy scan so it runs in linear time; the former
+    // nested `(?:[^\s/]+[\\/])+` could backtrack exponentially on
+    // backslashes (CodeQL js/redos). It redacts a superset of what that matched.
+    if (/^(?!scores\/|reference\/)[^\s/\\]*[\\/]\S*?\.(?:pdf|mid|midi|musicxml|xml|mxl|mscz|wav|mp3)(?:$|[?#])/i.test(cleaned)) return "[redacted-path]";
     return cleaned;
   }
   if (Array.isArray(value)) return value.map(redact);

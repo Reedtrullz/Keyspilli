@@ -7,6 +7,7 @@ import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mergeSeedEntries, type ManifestEntry } from "../src/manifest.js";
+import { stripTags } from "../src/markup-text.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const SEED_DIR = join(ROOT, "data", "seed-midi");
@@ -26,12 +27,13 @@ interface Row {
   midUrl: string;
 }
 
+const HTML_ENTITIES: Readonly<Record<string, string>> = { nbsp: " ", amp: "&", ndash: "-" };
+
+/** Plain text of a listing cell: tags removed, entities decoded once. */
 function strip(s: string): string {
-  return s
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&ndash;/g, "-")
+  return stripTags(s)
+    // One pass, so "&amp;ndash;" stays the literal text "&ndash;".
+    .replace(/&(nbsp|amp|ndash);/g, (match, name: string) => HTML_ENTITIES[name] ?? match)
     .replace(/\s+/g, " ")
     .trim();
 }

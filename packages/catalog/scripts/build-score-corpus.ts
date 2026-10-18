@@ -14,7 +14,7 @@
  *     --pdf "/Users/reidar/Downloads/The Pretty Reckless - Kill Me.pdf" \
  *     --pdf "/Users/reidar/Downloads/Sleep Token - Take Me Back To Eden.pdf"
  */
-import { mkdir, readFile, realpath, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import {
   alignSymbolicScores,
@@ -40,7 +40,6 @@ import {
   type ScoreCorpusSong,
   type ScoreListeningPack,
 } from "../src/score-listening-pack.js";
-import { sha256Hex } from "../src/fixture-evidence.js";
 import {
   runBenchmarkScore,
   assertOutsideRepository,
@@ -310,15 +309,6 @@ function scoreDurationSeconds(report: ScoreValidationReport): number | null {
   return round((beats * 60) / tempo, 3);
 }
 
-async function readHash(path: string | undefined): Promise<{ bytes: number; sha256: string } | null> {
-  if (!path) return null;
-  try {
-    const bytes = new Uint8Array(await readFile(path));
-    return { bytes: bytes.byteLength, sha256: sha256Hex(bytes) };
-  } catch {
-    return null;
-  }
-}
 
 async function writeResearchArtifacts(
   songOut: string,

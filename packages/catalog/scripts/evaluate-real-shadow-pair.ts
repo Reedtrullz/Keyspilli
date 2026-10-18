@@ -48,14 +48,12 @@ import {
   SHADOW_CORPUS_MAX_BYTES,
   type ShadowCorpusAdapterPathOptions,
   type ShadowCorpusItem,
-  type ShadowCorpusTrackSummary,
 } from "../src/shadow-corpus-adapter.js";
 import {
   evaluateShadowCorpus,
   shadowItemToMetalStems,
   type ShadowCorpusItemInput,
   type ShadowCorpusManifestInput,
-  type ShadowTrackInput,
 } from "../src/shadow-evaluation.js";
 import { groupSongs } from "../src/group.js";
 import { projectPublicGroupedSongs, projectPublicSongRows, type PublicDifficultyLevel } from "../src/public-difficulty.js";
@@ -718,22 +716,6 @@ async function runProductionOnsets(audioPath: string, python = DEFAULT_PYTHON): 
   return parsed as number[];
 }
 
-function trackNotes(adapter: Awaited<ReturnType<typeof adaptShadowCorpusMidiFile>>): ShadowTrackInput[] {
-  const byTrack = new Map<number, Note[]>();
-  for (const note of adapter.notes) {
-    const notes = byTrack.get(note.trackIndex) ?? [];
-    notes.push({ midi: note.midi, start: note.startBeats, dur: Math.max(0.01, note.durationBeats), vel: note.velocity });
-    byTrack.set(note.trackIndex, notes);
-  }
-  return adapter.tracks.map((track: ShadowCorpusTrackSummary) => ({
-    id: track.id,
-    name: track.name,
-    role: track.role,
-    instrumentClass: track.instrumentClass,
-    percussion: track.percussion,
-    notes: byTrack.get(track.index) ?? [],
-  }));
-}
 
 function evaluationMedia(value: ShadowCorpusItem["symbolic"]): NonNullable<ShadowCorpusItemInput["symbolic"]> {
   return {
@@ -1158,7 +1140,7 @@ export async function evaluateRealShadowPair(options: RealShadowPairOptions): Pr
   const license = datasetLicense(dataset.license);
   const itemId = logicalId(item.id, options.itemId);
   const sourceRef = `guitar-techs:${itemId}`;
-  const truthMetadata = recordObject(item.truthMetadata);
+  const _truthMetadata = recordObject(item.truthMetadata);
   const localAdapterOptions: ShadowCorpusAdapterPathOptions = {
     repositoryRoot,
     ...(options.allowedRoot ? { allowedRoot: options.allowedRoot } : {}),

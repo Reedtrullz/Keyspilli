@@ -36,6 +36,7 @@ import { promisify } from "node:util";
 import { unzipSync, zipSync } from "fflate";
 import { parseMidi, parseMusicXmlNotes, writeMidi, type Note, type ParsedMidi } from "@keyspilli/midi";
 import { renderMidiToWav } from "../src/midi-renderer.js";
+import { stripTags } from "../src/markup-text.js";
 import {
   canonicalBenchmarkCorpusJson,
   createBenchmarkCorpusManifest,
@@ -508,7 +509,7 @@ function classifyRole(name: string): { role: ScorePartSummary["role"]; confidenc
 
 function scorePartName(xml: string, id: string): string {
   const part = xml.match(new RegExp(`<score-part\\b[^>]*\\bid=["']${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}['"][^>]*>([\\s\\S]*?)</score-part>`, "i"))?.[1] ?? "";
-  return firstMatch(part, /<part-name\b[^>]*>([\s\S]*?)<\/part-name>/i)?.replace(/<[^>]+>/g, "").trim() || id;
+  return stripTags(firstMatch(part, /<part-name\b[^>]*>([\s\S]*?)<\/part-name>/i) ?? "").trim() || id;
 }
 
 function scanParts(xml: string): PartScan[] {
@@ -1032,21 +1033,6 @@ function statusFor(errors: string[], warnings: ScoreWarning[]): ScoreValidationS
   return "PASS";
 }
 
-function emptyMetrics(): ScoreValidationMetrics {
-  return {
-    parsedNotes: 0,
-    parsedDurationBeats: 0,
-    pitchMin: null,
-    pitchMax: null,
-    duplicateEvents: 0,
-    multiOctaveJumps: 0,
-    malformedNoteElements: 0,
-    tuplets: 0,
-    ties: { starts: 0, stops: 0, orphanStarts: 0, orphanStops: 0 },
-    measures: [],
-    densityAnomalies: 0,
-  };
-}
 
 function baseReport(pdf: { fileName: string; sha256: string | null; pages: number | null }, options: ScoreBenchmarkOptions): ScoreValidationReport {
   return {
@@ -1361,7 +1347,6 @@ async function prepareArtifacts(xmlSource: XmlSource): Promise<PreparedArtifacts
   const errors = [...notation.errors];
   if (!/<score-partwise\b/i.test(xml)) errors.push("OMR output is not a score-partwise MusicXML document");
   if (!scans.length) errors.push("MusicXML contains no parts");
-  const notes = parsed.notes;
   const tracks = parsedPartList.flatMap((part) => [
     { name: `${part.name} RH`, notes: part.notes.filter((note) => note.hand !== "L") },
     { name: `${part.name} LH`, notes: part.notes.filter((note) => note.hand === "L") },
@@ -1479,7 +1464,7 @@ export async function runBenchmarkScore(options: ScoreBenchmarkOptions): Promise
   await ensureOutputDirectory(normalizedDir, out, "normalized output directory");
   await ensureOutputDirectory(validationDir, out, "validation output directory");
   const timestamp = new Date().toISOString();
-  let manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
+  const manifest: string | null = options.noCorpus ? null : resolve(options.corpusManifest ?? join(dirname(out), "benchmark-corpus.json"));
   try {
     if (manifest) await assertOutsideRepository(manifest, "corpus manifest");
     const scratch = await mkdtemp(join(omrDir, ".audiveris-"));

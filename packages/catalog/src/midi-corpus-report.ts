@@ -475,9 +475,6 @@ function integer(value: unknown): value is number {
   return finite(value) && Number.isInteger(value);
 }
 
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
 
 function round(value: number | null, digits = 3): number | null {
   if (value === null || !Number.isFinite(value)) return null;
@@ -658,7 +655,6 @@ function accompanimentRestrikes(notes: readonly CanonicalMidiNote[], tempoBpm: n
       intervals.push(current.start - previous.start);
     } else harmonicChanges += 1;
   }
-  const rootChanges = attacks.slice(1).filter((value, index) => value.root !== attacks[index]!.root).length;
   const seconds = tempoBpm && tempoBpm > 0 ? durationBeats * 60 / tempoBpm : null;
   const medianInterval = median(intervals);
   return {

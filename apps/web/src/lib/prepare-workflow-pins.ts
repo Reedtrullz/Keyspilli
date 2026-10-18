@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { closeSync, constants, fstatSync, lstatSync, openSync, opendirSync, readSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { assertSourceWorkload, canonicalPhrasePlan, compilePhrasePlan, parseMidi, type PhrasePlanV1 } from "@keyspilli/midi";
 
 export const KIND = "keyspilli-deterministic-preparation" as const;

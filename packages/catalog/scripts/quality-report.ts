@@ -396,7 +396,6 @@ for (const [baseId, row] of dbByBase) {
   // Attach library-computed arrangement quality for the advanced variant when
   // its notes are available. This replaces ad-hoc metric duplication with the
   // tested shared functions.
-  const advNotes = levelMetrics.a ? undefined : undefined; // notes not stored on LevelMetric
   try {
     const advDir = join(dataDir(), "artifacts", baseId, "a");
     const advRaw = await readFile(join(advDir, "notes.json"), "utf8");
