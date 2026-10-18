@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { loadStringList } from "@keyspilli/player-core";
 import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
@@ -56,12 +56,12 @@ export function SongBrowser() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  function navigate(next: LibraryQuery) {
+  const navigate = useCallback((next: LibraryQuery) => {
     const params = writeLibraryQuery(new URLSearchParams(window.location.search), next);
     window.history.pushState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`);
     setQuery(next);
-  }
-  function filter(next: Partial<LibraryQuery>) { navigate({ ...query, ...next, page: 1 }); }
+  }, []);
+  const filter = useCallback((next: Partial<LibraryQuery>) => { navigate({ ...query, ...next, page: 1 }); }, [navigate, query]);
 
   useEffect(() => {
     const restore = () => {
@@ -100,14 +100,13 @@ export function SongBrowser() {
       .catch(e => { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Could not load songs"); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [ready, query, favorites, retry]);
+  }, [ready, query, favorites, retry, navigate]);
 
   useEffect(() => {
     if (!ready || input === query.q) return;
     const timer = setTimeout(() => filter({ q: input.slice(0, 256) }), 200);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- filter() only closes over query, which is already a dependency
-  }, [input, ready, query]);
+  }, [input, ready, query.q, filter]);
 
   useEffect(() => {
     if (!ready || loading || error) return;

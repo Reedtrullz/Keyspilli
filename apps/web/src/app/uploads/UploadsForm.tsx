@@ -325,14 +325,14 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   }, [fileSwitch.previous]);
 
   useEffect(() => {
+    const discoveryCounter = discoveryGeneration;
+    const preflightCounter = preflightGenerationRef;
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- generation counter, not a DOM ref: unmount must bump the live value
-      discoveryGeneration.current++;
+      discoveryCounter.current++;
       searchAbortRef.current?.abort();
       uploadAbortRef.current?.abort();
       preflightAbortRef.current?.abort();
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- generation counter, not a DOM ref: unmount must bump the live value
-      preflightGenerationRef.current++;
+      preflightCounter.current++;
       const active = auditionRef.current;
       if (active) { clearTimeout(active.timer); active.engine.cancelAll(); active.engine.dispose(); auditionRef.current = null; }
     };

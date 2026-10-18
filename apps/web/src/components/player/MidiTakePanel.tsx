@@ -1,24 +1,21 @@
 "use client";
 import {writeMidi} from "@keyspilli/midi";
-import React,{useEffect,useRef,useState,type RefObject} from 'react';
+import React,{useCallback,useEffect,useRef,useState,type RefObject} from 'react';
 import {AudioEngine,MidiTakeRecorder,performedNotes,replayTakeNotes,type MidiTake,type MidiTakeContext,type TimedNote,type InputEventMetadata,type PracticeTarget} from '@keyspilli/player-core';
 export interface MidiTakeInput {note(midi:number,on:boolean,source:'keyboard'|'midi',identity:string,event?:InputEventMetadata):boolean;pedal(scope:string,event?:InputEventMetadata):boolean;interrupt():void}
 export function MidiTakePanel({inputRef,target,revision,targets,startBeat,endBeat,bpm,speed,transpose,device,channel,disabled,onPrepare,onDone}:{inputRef:RefObject<MidiTakeInput|null>;target:PracticeTarget|null;revision:string|null|undefined;targets:TimedNote[];startBeat:number;endBeat:number;bpm:number;speed:number;transpose:number;device:string|null;channel:number|null;disabled:boolean;onPrepare():boolean;onDone():void}) {
  const [take,setTake]=useState<MidiTake|null>(null),[phase,setPhase]=useState<'idle'|'recording'|'replay'>('idle'),[notice,setNotice]=useState(''),[seek,setSeek]=useState(0),[rate,setRate]=useState(1),[approved,setApproved]=useState(false);
  const recorder=useRef<MidiTakeRecorder|null>(null),phaseRef=useRef(phase),audio=useRef<AudioEngine|null>(null),frame=useRef(0),token=useRef(0);phaseRef.current=phase;
- function stopAudio(){token.current++;cancelAnimationFrame(frame.current);audio.current?.dispose();audio.current=null;}
- function finish(interrupted=false){stopAudio();const current=recorder.current;if(current){setTake(current.finish(performance.now(),interrupted?'interrupted':'stopped'));recorder.current=null;}phaseRef.current='idle';setPhase('idle');onDone();setNotice(interrupted?'Take interrupted. Unobserved releases remain unobserved.':'Take stopped. Target notes are unchanged.');}
+ const stopAudio=useCallback(()=>{token.current++;cancelAnimationFrame(frame.current);audio.current?.dispose();audio.current=null;},[]);
+ const finish=useCallback((interrupted=false)=>{stopAudio();const current=recorder.current;if(current){setTake(current.finish(performance.now(),interrupted?'interrupted':'stopped'));recorder.current=null;}phaseRef.current='idle';setPhase('idle');onDone();setNotice(interrupted?'Take interrupted. Unobserved releases remain unobserved.':'Take stopped. Target notes are unchanged.');},[stopAudio,onDone]);
  useEffect(()=>{
   inputRef.current={note(midi,on,source,identity,event){if(phaseRef.current==='replay')return true;if(phaseRef.current!=='recording')return false;if(source!=='midi')return true;
     const current=recorder.current;if(!current)return true;current.capture(on?'on':'off',identity,midi,event);if(!current.recording)finish(true);return true;},
    pedal(scope,event){if(phaseRef.current==='replay')return true;if(phaseRef.current!=='recording')return false;recorder.current?.capture('pedal',scope,64,event);if(recorder.current&&!recorder.current.recording)finish(true);return true;},interrupt(){if(phaseRef.current!=='idle')finish(true);}};
   return()=>{inputRef.current=null;recorder.current=null;stopAudio();onDone();};
- // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only input bridge; finish/onDone only touch refs and state setters
- },[inputRef]);
- // eslint-disable-next-line react-hooks/exhaustive-deps -- interrupt only when the take context changes, not when finish is recreated
- useEffect(()=>{if(phaseRef.current!=='idle')finish(true);setApproved(false);setSeek(0);},[target?.fingerprint,revision,startBeat,endBeat,bpm,speed,transpose,device,channel,disabled]);
- // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners read phaseRef; finish only touches refs and state setters
- useEffect(()=>{const blur=()=>{if(phaseRef.current!=='idle')finish(true);},hidden=()=>{if(document.hidden)blur();};window.addEventListener('blur',blur);document.addEventListener('visibilitychange',hidden);return()=>{window.removeEventListener('blur',blur);document.removeEventListener('visibilitychange',hidden);};},[]);
+ },[inputRef,finish,stopAudio,onDone]);
+ useEffect(()=>{if(phaseRef.current!=='idle')finish(true);setApproved(false);setSeek(0);},[target?.fingerprint,revision,startBeat,endBeat,bpm,speed,transpose,device,channel,disabled,finish]);
+ useEffect(()=>{const blur=()=>{if(phaseRef.current!=='idle')finish(true);},hidden=()=>{if(document.hidden)blur();};window.addEventListener('blur',blur);document.addEventListener('visibilitychange',hidden);return()=>{window.removeEventListener('blur',blur);document.removeEventListener('visibilitychange',hidden);};},[finish]);
  const eligible=!!target&&!!revision&&!!device&&channel!==null&&!disabled;
  function record(){
   if(!eligible||!approved||phaseRef.current!=='idle')return;

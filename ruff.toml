@@ -1,7 +1,7 @@
 # Python lint for deploy/, scripts/ and services/transcribe.
 # Run: ruff check .   (CI pins the version in .github/requirements-lint.txt)
 target-version = "py311"
-extend-exclude = ["docs", "output", "data", "node_modules", ".transcribe-test-venv"]
+extend-exclude = ["docs", "evidence", "output", "data", "node_modules", ".transcribe-test-venv"]
 
 [lint]
 # Real-bug rules: syntax/runtime errors (E9, F), import and statement

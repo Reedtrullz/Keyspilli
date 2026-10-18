@@ -1,4 +1,4 @@
-import { statSync } from "node:fs";
+import { fileFingerprint } from "./file-fingerprint.js";
 import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
@@ -107,12 +107,7 @@ const timelineCache = new Map<string, TimelineCacheEntry>();
 const timelineInflight = new Map<string, Promise<ChordTimelineResolution | null>>();
 
 function timelineFileSignature(path: string): string {
-  try {
-    const stat = statSync(path, { bigint: true });
-    return `${path}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}`;
-  } catch {
-    return `${path}:missing`;
-  }
+  return fileFingerprint(path);
 }
 
 interface TimelineInputEvent {

@@ -223,11 +223,8 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
     [activeOutsideWindow, visibleEnd, visibleStart],
   );
 
-  // Build the expensive chord/SVG subtree only when the timeline changes.
-  // During playback currentBeat changes every 100ms, so rebuilding 700+
-  // children here would otherwise dominate the React work. The initial active
-  // class is captured for SSR/hydration; subsequent active changes are limited
-  // to classList updates on the old and new elements below.
+  // Only the bounded visible window is reconciled when the active chord changes.
+  // Memoized ChordItem keeps unchanged keyboard shapes out of that work.
   const chordItems = useMemo(
     () => renderedIndices.map((index) => {
       const chord = chords[index]!;
@@ -251,8 +248,7 @@ export const ChordStrip = memo(function ChordStrip({ chords, currentBeat }: Chor
         </div>
       );
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeIdx is applied imperatively by the effect below so items are not rebuilt every beat
-    [chords, renderedIndices, showShapes],
+    [chords, renderedIndices, showShapes, activeIdx],
   );
 
   function handleScroll(event: React.UIEvent<HTMLDivElement>) {
