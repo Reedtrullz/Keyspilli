@@ -1084,7 +1084,7 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       }
     };
     audio.onStateChange = state => {
-      if (engineRef.current === engine && state !== "running" && (gradingRef.current || engine.playing || countInRef.current !== null)) interruptRef.current("Audio output was interrupted.");
+      if (engineRef.current === engine && state !== "running" && !audio.activationPending && (gradingRef.current || engine.playing || countInRef.current !== null)) interruptRef.current("Audio output was interrupted.");
     };
     engineRef.current = engine;
     if (audio instanceof SamplerAudioEngine) {
@@ -1153,7 +1153,10 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
       last = now;
       const eng = engineRef.current;
       if (!eng) return;
-      if (eng.audio.state && eng.audio.state !== "running") { interruptRef.current("Audio output was interrupted."); return; }
+      if (eng.audio.state && eng.audio.state !== "running") {
+        if (eng.audio.activationPending) { raf = requestAnimationFrame(tick); return; }
+        interruptRef.current("Audio output was interrupted."); return;
+      }
       eng.tick(dt);
       if (now - lastSync >= 100) {
         lastSync = now;
@@ -2859,7 +2862,6 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
     const controller = new AbortController();
     loadRequestRef.current = controller;
     setLoading(true);
-    setError("");
     try {
       const response = await fetch(`/api/songs/${encodeURIComponent(initial.song.id)}?revision=${encodeURIComponent(initial.publicationRevision ?? "unpinned")}`, {
         signal: controller.signal,
@@ -2877,6 +2879,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
       const pageNode = score?.querySelector<HTMLElement>(`[data-page="${page}"]`);
       const zoom = document.querySelector<HTMLSelectElement>('[aria-label="Score zoom"]');
       if (score && pageNode && zoom) sheetPositionRef.current = { zoom: Number(zoom.value), page, offset: pageNode.getBoundingClientRect().top, scrollLeft: score.scrollLeft };
+      setError("");
       setDetail(value as PlayerDetail);
       if (nextMode !== "sheet") {
         window.history.replaceState(null, "", `/player/${encodeURIComponent(initial.song.id)}/${nextMode}`);
@@ -3002,7 +3005,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
           <p>{error}</p>
           <button onClick={() => {
             void loadDetail(requestedMode);
-            window.requestAnimationFrame(() => loadControlsTriggerRef.current?.focus());
+            window.requestAnimationFrame(() => loadControlsTriggerRef.current?.focus({ preventScroll: true }));
           }} className="mt-2 rounded-lg border border-red-300 px-3 py-1.5 font-medium hover:bg-red-100">
             Retry
           </button>

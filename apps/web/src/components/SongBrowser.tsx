@@ -235,7 +235,7 @@ export function SongBrowser() {
                   <span>{s.representative.tempo} BPM</span>
                   <span className="ml-auto">{s.totalPlays > 0 ? `${s.totalPlays} plays` : ""}</span>
                 </div>
-                <Link href={`/player/${s.representative.id}`} onClick={event => rememberLibrary(s.representative.id, event)} className="font-semibold leading-tight hover:underline" title={s.representative.title}>
+                <Link href={`/player/${s.representative.id}`} prefetch={false} onClick={event => rememberLibrary(s.representative.id, event)} className="font-semibold leading-tight hover:underline" title={s.representative.title}>
                   {shown.title}
                 </Link>
                 <div className="text-sm text-zinc-500 flex gap-2">
@@ -255,6 +255,7 @@ export function SongBrowser() {
                     <Link
                       key={l.id}
                       href={`/player/${l.id}`}
+                      prefetch={false}
                       onClick={event => rememberLibrary(l.id, event)}
                       title={`${LEVEL_LABEL[l.difficulty] ?? l.difficulty} arrangement`}
                       aria-label={`Open ${LEVEL_LABEL[l.difficulty] ?? l.difficulty} level`}

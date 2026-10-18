@@ -4,6 +4,18 @@ on:
   pull_request:
     paths:
       - '.github/workflows/runtime-rehearsal.yml'
+      - 'package-lock.json'
+      - 'apps/web/package.json'
+      - 'apps/web/Dockerfile'
+      - 'apps/web/src/components/player/**'
+      - 'apps/web/scripts/verify-native-player.mts'
+      - 'apps/web/scripts/prepare-native-piano.mts'
+      - 'apps/web/scripts/fixtures/native-piano-assets.json'
+      - 'apps/web/src/lib/native-player-assets*'
+      - 'apps/web/src/lib/player-reference-bank*'
+      - 'apps/web/e2e/player-audio-capture.ts'
+      - 'packages/player-core/**'
+      - 'deploy/restore-app*'
   workflow_dispatch:
     inputs:
       expected_commit:
@@ -55,6 +67,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Prepare the hash-pinned piano input outside the isolated container
+        timeout-minutes: 3
+        run: |
+          node --import tsx apps/web/scripts/prepare-native-piano.mts > "$KEYSPILLI_EVIDENCE/native-piano-preparation.json"
+          echo "KEYSPILLI_NATIVE_PIANO_DIR=$KEYSPILLI_SCRATCH/native-piano" >> "$GITHUB_ENV"
 
       - name: Build the public seed catalog
         run: |
@@ -123,11 +141,19 @@ jobs:
           subprocess.run(["bash", "deploy/restore-drill.sh", str(manifests[0]), str(root / "restored"),
                           "--verify-app", env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["KEYSPILLI_BACKUP_WEB_REVISION"],
                           env["RESTORE_SONG_ID"]], check=True, timeout=420)
+          try:
+              subprocess.run(["python3", "deploy/restore-app.py", str(manifests[0]), str(root / "restored"),
+                              env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"], env["KEYSPILLI_BACKUP_WEB_REVISION"],
+                              env["RESTORE_SONG_ID"], "--sampled"], check=True, timeout=420)
+          finally:
+              shutil.copyfile(root / "restored" / "restore-report.json", Path("rehearsal-out/restore-report.json"))
+              if (root / "restored" / "native-player").exists():
+                  shutil.copytree(root / "restored" / "native-player", Path("rehearsal-out/native-player"))
           report = json.loads((root / "restored" / "restore-report.json").read_text())
-          shutil.copyfile(root / "restored" / "restore-report.json", Path("rehearsal-out/restore-report.json"))
           assert report["applicationVerification"] == "passed"
           assert report["restoredRevision"] == env["KEYSPILLI_BACKUP_WEB_REVISION"]
           assert report["webImageId"] == env["KEYSPILLI_BACKUP_WEB_IMAGE_ID"]
+          assert report["sampledBrowser"]["status"] == "passed"
           assert not subprocess.check_output(["docker", "ps", "-aq", "--filter", "name=^/keyspilli-restore-"], text=True).strip()
           PY
 
@@ -138,6 +164,7 @@ jobs:
           from pathlib import Path
           out = Path("rehearsal-out")
           report = json.loads((out / "restore-report.json").read_text())
+          assert report["sampledBrowser"]["status"] == "passed"
           receipt = {
               "kind": "keyspilli-runtime-rehearsal",
               "runtimeScope": "isolated-candidate-rehearsal",
@@ -150,6 +177,8 @@ jobs:
               "restoreAndCanary": report["applicationVerification"],
               "webImageId": report["webImageId"],
               "canary": report.get("application"),
+              "runtimeLimits": report["runtimeLimits"],
+              "sampledBrowser": report["sampledBrowser"],
           }
           path = out / "runtime-rehearsal-receipt.json"
           path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
