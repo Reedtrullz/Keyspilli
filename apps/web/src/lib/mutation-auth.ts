@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiAuthorization } from "./api-auth";
+import { apiAuthorization, verifyBearer } from "./api-auth";
 
 function firstForwardedValue(value: string): string | null {
   const first = value.split(",", 1)[0]?.trim();
@@ -66,7 +66,7 @@ function sameOriginGuard(req: Request): Response | null {
 export function checkMutationAuth(req: Request): Response | null {
   const token = process.env.KEYSPILLI_API_TOKEN;
   const auth = apiAuthorization(req);
-  if (token && auth === `Bearer ${token}`) return null;
+  if (verifyBearer(req, token)) return null;
   const originResponse = sameOriginGuard(req);
   if (originResponse) return originResponse;
   if (!auth && sameOriginBrowser(req)) return null;
