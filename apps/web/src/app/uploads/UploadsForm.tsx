@@ -153,7 +153,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         : data.status === "provider-not-configured"
           ? "provider-not-configured"
           : "no-candidates");
-    } catch (cause) {
+    } catch (_cause) {
       if (controller.signal.aborted || generation !== discoveryGeneration.current) return;
       setCandidateError("Source search is temporarily unavailable.");
       setSearchState("unavailable");

@@ -415,7 +415,6 @@ function confidence(row: OmrRoleQualityMeasure): number {
   return row.score ?? 0;
 }
 
-const STATE_RANK: Record<OmrRoleQualityState, number> = { AUTO_ACCEPT: 4, LIKELY_OK: 3, REVIEW: 2, BROKEN: 1 };
 
 function median(values: readonly number[]): number {
   const sorted = [...values].sort((left, right) => left - right);

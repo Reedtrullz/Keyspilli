@@ -1032,21 +1032,6 @@ function statusFor(errors: string[], warnings: ScoreWarning[]): ScoreValidationS
   return "PASS";
 }
 
-function emptyMetrics(): ScoreValidationMetrics {
-  return {
-    parsedNotes: 0,
-    parsedDurationBeats: 0,
-    pitchMin: null,
-    pitchMax: null,
-    duplicateEvents: 0,
-    multiOctaveJumps: 0,
-    malformedNoteElements: 0,
-    tuplets: 0,
-    ties: { starts: 0, stops: 0, orphanStarts: 0, orphanStops: 0 },
-    measures: [],
-    densityAnomalies: 0,
-  };
-}
 
 function baseReport(pdf: { fileName: string; sha256: string | null; pages: number | null }, options: ScoreBenchmarkOptions): ScoreValidationReport {
   return {
@@ -1361,7 +1346,6 @@ async function prepareArtifacts(xmlSource: XmlSource): Promise<PreparedArtifacts
   const errors = [...notation.errors];
   if (!/<score-partwise\b/i.test(xml)) errors.push("OMR output is not a score-partwise MusicXML document");
   if (!scans.length) errors.push("MusicXML contains no parts");
-  const notes = parsed.notes;
   const tracks = parsedPartList.flatMap((part) => [
     { name: `${part.name} RH`, notes: part.notes.filter((note) => note.hand !== "L") },
     { name: `${part.name} LH`, notes: part.notes.filter((note) => note.hand === "L") },

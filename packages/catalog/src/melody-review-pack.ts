@@ -115,7 +115,6 @@ const HASH = /^[a-f0-9]{64}$/i;
 const ROLES = new Set(["melody"]);
 const PRIORITY_RANK: Record<MelodyReviewUnit["priority"], number> = { high: 3, medium: 2, low: 1 };
 const STATE_RANK: Record<MelodyReviewUnit["state"], number> = { BROKEN: 2, REVIEW: 1 };
-const DECISIONS = new Set<MelodyReviewDecision>(["pending", "accepted", "rejected", "corrected", "skipped"]);
 const COMPLETED = new Set<Exclude<MelodyReviewDecision, "pending">>(["accepted", "rejected", "corrected", "skipped"]);
 
 type RecordValue = Record<string, unknown>;

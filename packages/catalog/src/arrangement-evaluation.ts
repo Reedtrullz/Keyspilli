@@ -1416,7 +1416,6 @@ function compareReferenceWindow(candidate: Note[], reference: Note[], window: Ev
   const cPitches = cGroups.map((group) => Math.max(...group.notes.map((note) => note.midi)));
   const rPitches = rGroups.map((group) => Math.max(...group.notes.map((note) => note.midi)));
   const cIntervals = cPitches.slice(1).map((pitch, index) => Math.abs(pitch - cPitches[index]!));
-  const rIntervals = rPitches.slice(1).map((pitch, index) => Math.abs(pitch - rPitches[index]!));
   const directionLength = Math.min(cPitches.length, rPitches.length) - 1;
   let directionMatches = 0;
   for (let index = 1; index <= directionLength; index++) {

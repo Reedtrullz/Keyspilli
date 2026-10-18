@@ -28,15 +28,6 @@ class FakeAudio extends AudioEngine {
 
 const DEFAULT_SONG = { tempoBpm: 120, timeSig: [4, 4] as [number, number] };
 
-function makeNotes(...starts: number[]): TimedNote[] {
-  return starts.map((start, i) => ({
-    midi: 60 + i,
-    startSec: start * 0.5, // 120 BPM => 0.5 sec/beat
-    durSec: 0.25,
-    vel: 80,
-    hand: "R" as const,
-  }));
-}
 
 describe("Full player pipeline integration", () => {
   it("loads notes and chords, plays through, and grades correctly", () => {

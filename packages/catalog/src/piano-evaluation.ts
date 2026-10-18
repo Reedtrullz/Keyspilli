@@ -578,7 +578,6 @@ function referenceMetrics(reference: NormalizedSymbolicScore | null, candidate: 
   const exact = f1(exactCount, candidateGroups.length, referenceGroups.length);
   const pitchClass = f1(pitchClassCount, candidateGroups.length, referenceGroups.length);
   const onset = f1(matched.length, candidateGroups.length, referenceGroups.length);
-  const errors = matched.map((match) => match.onsetErrorBeats).sort((a, b) => a - b);
   const referencePitches = referenceGroups.map((group) => Math.max(...group.notes.map((note) => note.midi)));
   const candidatePitches = candidateGroups.map((group) => Math.max(...group.notes.map((note) => note.midi + aligned.transpositionSemitones)));
   const matchedContour = matched.flatMap((match) => {

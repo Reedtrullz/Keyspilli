@@ -472,7 +472,6 @@ export async function ingestExternalSymbolicCandidate(input: ExternalSymbolicCan
   const bytes = input.bytes;
   const path = text(input.filePath ?? input.localFilePath ?? input.path);
   const formatInput = normalizeFormat(input.format ?? input.artifactType);
-  const rejectionReasons: string[] = [];
   if (bytes !== undefined && path) {
     return { status: "invalid", format: formatInput, candidate: null, score: null, normalizedScore: null, canonical: null, provenance: null, roles: [], warnings: [], rejectionReasons: ["provide either local bytes or a local file, not both"], error: "ambiguous local input" };
   }
