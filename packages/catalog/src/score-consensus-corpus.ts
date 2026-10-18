@@ -912,7 +912,7 @@ function safeDiagnostic(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const redacted = value
     .replace(/(['"])(?:[A-Za-z]:[\\/]|\/)[^'"]*\1/g, "[redacted-path]")
-    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s'"`;,\)\]\r\n]*/g, "[redacted-path]")
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s'"`;,)\]\r\n]*/g, "[redacted-path]")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 500);

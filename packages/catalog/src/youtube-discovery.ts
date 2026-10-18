@@ -42,6 +42,7 @@ function slugTokens(value: string): string[] {
   return value
     .toLowerCase()
     .normalize("NFKD")
+    // eslint-disable-next-line no-control-regex -- matches every non-ASCII character (the range starts at NUL) to build ASCII-only slugs
     .replace(/[^\x00-\x7f]/g, "")
     .split(/[^a-z0-9]+/)
     .filter((token) => token.length > 1 && !STOP_TOKENS.has(token));
@@ -55,7 +56,7 @@ const TITLE_NOISE =
  * Reduce a catalog title copied from an upload into searchable song text.
  */
 export function cleanCatalogTitle(title: string, artist: string): string {
-  const stripped = title.replace(/\([^()]*\)/g, " ").replace(/\[[^\[\]]*\]/g, " ")
+  const stripped = title.replace(/\([^()]*\)/g, " ").replace(/\[[^[\]]*\]/g, " ")
     .replace(/\s+(?:full\s+)?(?:hd|hq|4k|8k)(?:\s+upgrade)?\s*$/i, "");
   const segments = stripped.split(/\s*(?:[-\u2013\u2014]|\|)\s*/).map((s) => s.trim()).filter(Boolean);
   const meaningful = segments.filter((segment) => !TITLE_NOISE.test(segment));

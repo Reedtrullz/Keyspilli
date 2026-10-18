@@ -229,6 +229,7 @@ const round = (value: number, digits = 6): number => {
 
 function text(value: unknown, fallback: string | null = null, max = 240): string | null {
   if (typeof value !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
   return clean || fallback;
 }
@@ -803,6 +804,7 @@ function redactText(value: string): string {
     .replace(/file:\/\/[^\s"']+/gi, "[redacted-path]")
     .replace(/(^|[\s(=,:])\/(?:[^\s"'<>;,)]*\/)?(?:Users|private|tmp|var|home|root|opt|mnt|workspace|data|srv|etc)\/[^\s"'<>;,)]*/gi, (_match, prefix: string) => `${prefix}[redacted-path]`)
     .replace(/(^|[\s(=,:])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, (_match, prefix: string) => `${prefix}[redacted-path]`)
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

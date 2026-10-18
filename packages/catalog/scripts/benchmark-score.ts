@@ -261,7 +261,7 @@ export function sanitizeText(value: unknown, fallback = "unknown error"): string
   // filesystem-root allowlist covers the normal POSIX roots; the longer
   // fallback requires several path components so a logical two-segment label
   // is left useful in diagnostics.
-  const pathBoundary = `(^|[\\s(\"'=,;:\\[\\]])`;
+  const pathBoundary = `(^|[\\s("'=,;:\\[\\]])`;
   const pathComponent = `[A-Za-z0-9._~+@%!-]+`;
   const filesystemRoots = `(?:Users|private|tmp|var|home|root|opt|mnt|workspace|etc|srv|data|app|Applications|System|Volumes|Library|usr|bin|sbin|dev)`;
   return text
@@ -299,6 +299,7 @@ export function safeError(error: unknown, fallback = "score benchmark failed"): 
 function slugify(value: string): string {
   return value
     .normalize("NFKD")
+    // eslint-disable-next-line no-control-regex -- matches every non-ASCII character (the range starts at NUL) to build ASCII-only slugs
     .replace(/[^\x00-\x7f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

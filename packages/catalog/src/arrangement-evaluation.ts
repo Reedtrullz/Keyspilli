@@ -1618,10 +1618,10 @@ function redactEmbeddedPaths(value: string): string {
   const extensions = "(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)";
   const trimmed = value.trim();
   const pathOnlyPatterns = [
-    new RegExp(`^/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*$`, "i"),
-    new RegExp(`^[A-Za-z]:[\\\\/][^\"'<>;,)]*$`, "i"),
-    /^\\\\[^\"'<>;,)]*$/,
-    new RegExp(`^file:/{2,}(?:/?(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*|[A-Za-z]:[\\\\/][^\"'<>;,)]*)$`, "i"),
+    new RegExp(`^/(?:${roots})(?:[\\\\/][^"'<>;,)]*)*$`, "i"),
+    new RegExp(`^[A-Za-z]:[\\\\/][^"'<>;,)]*$`, "i"),
+    /^\\\\[^"'<>;,)]*$/,
+    new RegExp(`^file:/{2,}(?:/?(?:${roots})(?:[\\\\/][^"'<>;,)]*)*|[A-Za-z]:[\\\\/][^"'<>;,)]*)$`, "i"),
   ];
   if (pathOnlyPatterns.some((pattern) => pattern.test(trimmed))) {
     const start = value.indexOf(trimmed);
@@ -1632,37 +1632,37 @@ function redactEmbeddedPaths(value: string): string {
     // must not run first: they would redact only `/Users/reidar/Private` and
     // leave the rest of the filename visible.  Consume through a known file
     // extension in one pass for both POSIX and drive-qualified paths.
-    .replace(new RegExp(`${boundary}file:/{2,}((?:/?${roots})[^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
-    .replace(new RegExp(`${boundary}(/(?:${roots})[^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
-    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^\\s\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
-    .replace(new RegExp(`${boundary}(\\\\[^\"'<>;,)]*?(?:\\s+[^\\s\"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}file:/{2,}((?:/?${roots})[^\\s"'<>;,)]*?(?:\\s+[^\\s"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(/(?:${roots})[^\\s"'<>;,)]*?(?:\\s+[^\\s"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^\\s"'<>;,)]*?(?:\\s+[^\\s"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(\\\\[^"'<>;,)]*?(?:\\s+[^\\s"'<>;,)]*)*\\.${extensions})${endBoundary}`, "gi"), "$1[redacted-path]")
     // Extension-less paths are common for temporary working files.  These
     // patterns only start at an absolute/drive/UNC path boundary, avoiding
     // ordinary URL and logical-label values.
-    .replace(new RegExp(`${boundary}(/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)*)${endBoundary}`, "gi"), "$1[redacted-path]")
-    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^\"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
-    .replace(new RegExp(`${boundary}(\\\\[^\"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(/(?:${roots})(?:[\\\\/][^"'<>;,)]*)*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}([A-Za-z]:[\\\\/][^"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`${boundary}(\\\\[^"'<>;,)]*)${endBoundary}`, "gi"), "$1[redacted-path]")
     // Exact extension-less absolute paths are safe to redact as a whole.  A
     // prose fragment is intentionally left to the conservative token rules
     // below, preventing ordinary labels from being swallowed.
-    .replace(new RegExp(`^(\\s*)(/(?:${roots})(?:[\\\\/][^\"'<>;,)]*)+|[A-Za-z]:[\\\\/][^\"'<>;,)]*)\\s*$`, "gi"), "$1[redacted-path]")
+    .replace(new RegExp(`^(\\s*)(/(?:${roots})(?:[\\\\/][^"'<>;,)]*)+|[A-Za-z]:[\\\\/][^"'<>;,)]*)\\s*$`, "gi"), "$1[redacted-path]")
     // Handle file URIs before ordinary absolute paths.
-    .replace(new RegExp(`file:///?${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "[redacted-path]")
+    .replace(new RegExp(`file:///?${roots}(?:/[^\\s"'<>;,)]*)?`, "gi"), "[redacted-path]")
     // Require a non-URL boundary before POSIX paths so https://host/root is
     // not mistaken for a local path.
-    .replace(new RegExp(`(^|[\\s(\"'=,;\\[\\]])/${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
-    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s\"'<>;,)]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s(\"'=,;\[\]])[A-Za-z]:[\\/][^\s\"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(new RegExp(`(^|[\\s("'=,;\\[\\]])/${roots}(?:/[^\\s"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
     // A single-segment absolute filename (for example /score.mid) is still a
     // local path, even though it does not contain a directory component.
-    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\.[A-Za-z0-9_-]+)(?=$|[\s\"'<>;,\)])/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;[\]])\/(?:[A-Za-z0-9._-]+\.[A-Za-z0-9_-]+)(?=$|[\s"'<>;,)])/g, "$1[redacted-path]")
     // Also cover extension-less relative paths.  Require two path segments
     // so ordinary logical labels such as "guitar/lead" are less likely to be
     // mistaken for a path, while values such as Users/reidar/private/source
     // are still removed from reports.
-    .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(?:\.\.?\/|[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/)[^\s\"'<>;,\)]*(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]")
+    .replace(/(^|[\s"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(?:\.\.?\/|[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/)[^\s"'<>;,)]*(?=$|[\s"'<>;,)])/gi, "$1[redacted-path]")
     // Relative paths are redacted while URL schemes remain useful labels.
-    .replace(/(^|[\s\"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s\"']+\.(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)(?=$|[\s\"'<>;,\)])/gi, "$1[redacted-path]");
+    .replace(/(^|[\s"'=,;([\]])(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3|txt|pdf|xml|mxl|csv|log)(?=$|[\s"'<>;,)])/gi, "$1[redacted-path]");
 }
 
 /**

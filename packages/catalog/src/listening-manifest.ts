@@ -560,10 +560,10 @@ export function createListeningManifest(input: ListeningManifestInput): Listenin
 
 function redactPathLikeString(value: string): string {
   return value
-    .replace(/(^|[\s("'=,;:\[\]])file:\/\/[^\s"'<>;,)]*/gi, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;:\[\]])(?:~\/|\.\.?\/)[^\s"'<>;,)]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;:\[\]])\/(?:[^\s"'<>;,)]*\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s("'=,;:\[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])file:\/\/[^\s"'<>;,)]*/gi, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])(?:~\/|\.\.?\/)[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])\/(?:[^\s"'<>;,)]*\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;:[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
     .replace(/(^|\s)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|wav|mp3|sf2)(?=$|[\s"'])/gi, "$1[redacted-path]");
 }
 

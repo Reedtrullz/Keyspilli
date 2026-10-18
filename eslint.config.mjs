@@ -45,8 +45,6 @@ export default tseslint.config(
       "@typescript-eslint/no-this-alias": "warn",
       "@typescript-eslint/no-unused-expressions": "warn",
       "@typescript-eslint/no-empty-object-type": "warn",
-      "no-useless-escape": "warn",
-      "no-control-regex": "warn",
       "preserve-caught-error": "warn",
       "no-empty": "warn",
       "no-useless-assignment": "warn",

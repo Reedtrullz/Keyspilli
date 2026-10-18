@@ -226,6 +226,7 @@ function booleanOrNull(value: unknown): boolean | null {
 
 function textOrNull(value: unknown): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   return clean ? redactText(clean) : null;
 }
@@ -252,6 +253,7 @@ function auditIdList(value: unknown): IdListAudit {
   for (const item of value) {
     if (typeof item !== "string") return { ids: null, valid: false };
     const id = item.trim();
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     if (!id || /[\u0000-\u001f\u007f]/.test(id) || ids.includes(id)) return { ids: null, valid: false };
     ids.push(id);
   }
@@ -447,6 +449,7 @@ function auditReferenceWindows(reference: JsonObject): ReferenceWindowAudit {
   for (const entry of raw) {
     if (!isObject(entry) || typeof entry.id !== "string") return { count: null, bars: null, valid: false };
     const id = entry.id.trim();
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     if (!id || /[\u0000-\u001f\u007f]/.test(id) || ids.has(id)
       || !validBounds(entry.reference) || !validBounds(entry.candidate)) {
       return { count: null, bars: null, valid: false };
@@ -589,6 +592,7 @@ function benchmarkSection(value: JsonObject | null): ShadowMissionReport["benchm
       const id = record(raw).id;
       if (typeof id !== "string") return false;
       const normalized = id.trim();
+      // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
       if (!normalized || /[\u0000-\u001f\u007f]/.test(normalized) || songIdSet.has(normalized)) return false;
       songIdSet.add(normalized);
       return true;

@@ -190,6 +190,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function text(value: unknown, fallback: string | null = null): string | null {
   if (typeof value !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
   return clean || fallback;
 }
@@ -308,6 +309,7 @@ function hashBytes(input: Uint8Array | ArrayBuffer): string {
 function errorText(error: unknown): string {
   const value = error instanceof Error ? error.message : typeof error === "string" ? error : "external symbolic ingestion failed";
   return redactPhysicalText(value)
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240) || "external symbolic ingestion failed";
 }
 

@@ -15,6 +15,7 @@ function object(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 function text(value: unknown, label: string, max = 128): asserts value is string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   if (typeof value !== "string" || !value.trim() || value.length > max || /[\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} must be a bounded nonempty string`);
 }
 function duration(value: unknown): asserts value is number {

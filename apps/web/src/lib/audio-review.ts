@@ -565,6 +565,7 @@ export async function readAccountBindingPin(path: string): Promise<AccountBindin
 }
 
 export function assembleAntiPrompt(prompt: string, responseSchemaJson?: string): string {
+  // eslint-disable-next-line no-control-regex -- the NUL boundary defines ASCII; escape non-ASCII schema text as JSON Unicode sequences
   return responseSchemaJson ? `${prompt.trim()}\n\nRequested output schema: ${stableJson(JSON.parse(responseSchemaJson)).replace(/[^\x00-\x7f]/g,c=>`\\u${c.charCodeAt(0).toString(16).padStart(4,"0")}`)}` : prompt;
 }
 

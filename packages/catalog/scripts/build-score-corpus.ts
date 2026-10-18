@@ -140,6 +140,7 @@ export async function writeScoreCorpusJson(path: string, value: unknown, root?: 
 function slugify(value: string): string {
   return value
     .normalize("NFKD")
+    // eslint-disable-next-line no-control-regex -- matches every non-ASCII character (the range starts at NUL) to build ASCII-only slugs
     .replace(/[^\x00-\x7f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
