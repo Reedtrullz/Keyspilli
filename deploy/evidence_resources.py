@@ -28,21 +28,26 @@ def decode(value: object, run: str) -> Resource:
     raise ValueError("resource is not explicitly owned by this run")
 
 
-def close_builder(store, doc, name, persist):
+def builder_users(store, name):
     volume = "buildx_buildkit_" + name + "0_state"
     expected = "/buildx_buildkit_" + name + "0"
+    result = []
+    identities = set(store.docker("ps", "-aq", "--no-trunc", "--filter", "volume=" + volume).split())
+    identities.update(store.docker("ps", "-aq", "--no-trunc", "--filter", "name=^" + expected + "$").split())
+    for identity in sorted(identities):
+        info = json.loads(store.docker("inspect", identity))[0]
+        mounts = info.get("Mounts", [])
+        if info.get("Id") != identity or info.get("Name") != expected or not any(mount.get("Type") == "volume" and mount.get("Name") == volume for mount in mounts):
+            raise ValueError("builder state has a foreign or replaced container reference")
+        result.append(identity)
+    return sorted(result)
+
+
+def close_builder(store, doc, name, persist):
+    volume = "buildx_buildkit_" + name + "0_state"
 
     def users():
-        result = []
-        identities = set(store.docker("ps", "-aq", "--no-trunc", "--filter", "volume=" + volume).split())
-        identities.update(store.docker("ps", "-aq", "--no-trunc", "--filter", "name=^" + expected + "$").split())
-        for identity in sorted(identities):
-            info = json.loads(store.docker("inspect", identity))[0]
-            mounts = info.get("Mounts", [])
-            if info.get("Id") != identity or info.get("Name") != expected or not any(mount.get("Type") == "volume" and mount.get("Name") == volume for mount in mounts):
-                raise ValueError("builder state has a foreign or replaced container reference")
-            result.append(identity)
-        return sorted(result)
+        return builder_users(store, name)
 
     original = users()
     journal = doc.setdefault("builderContainers", {})
