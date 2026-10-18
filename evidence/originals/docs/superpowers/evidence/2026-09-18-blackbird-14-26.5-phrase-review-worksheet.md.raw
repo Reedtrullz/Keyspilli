@@ -1,0 +1,86 @@
+# One-phrase review worksheet — Blackbird `[14,26.5)`
+
+This is the smallest review packet for deciding whether the existing
+source-only temporal preview is musically acceptable on one phrase. It is not
+an implementation blocker: the preview can already be built without adding
+harmonic pitches. The review supplies the semantic evidence needed for a
+stronger musical claim.
+
+## Frozen input
+
+- Fixture: `docs/superpowers/evidence/2026-09-17-chords-v2-fixtures/the-beatles-blackbird/a/notes.json`
+- Source fingerprint: `variant:the-beatles-blackbird:a:the-beatles-blackbird-a:3fc3fd74d567da56dd10ff05689ef2f57641efbbe200532aabc0ea5fbcea1e75:notes:4529b839209ca52480d6dbab332ea211e709edfb660473b662a1a62ef56aa53e`
+- Window: beats `14` through `<26.5`, `120 BPM`
+- Source contents in this window: `47` notes at `30` attack positions
+- Audio pair: `docs/superpowers/evidence/2026-09-18-task-5-audio/blackbird-14-26.5/capture/`
+
+The IDs below are deterministic `sourceNoteIds` from the complete fixture.
+They identify source events only; the blank review column deliberately makes
+no melody, backing, hook, decoration, or rest judgment.
+
+## Minimal annotation
+
+For each attack position, mark the source IDs with one or more reviewer-owned
+labels: `M` melody, `B` backing to preserve, `H` hook/identity event, `D`
+decoration that may be dropped, `R` explicit rest/drop, or `U` unresolved.
+Also record the reviewer and source of the decision; do not infer a semantic
+role from the stored `L`/`R` hand field.
+
+| Beat | Source IDs | Review label(s) |
+|---:|---|---|
+| 14 | `[45,14,1.25,95,"L",null,null,null]#0`<br>`[60,14,0.625,95,"R",null,null,null]#0`<br>`[67,14,0.375,114,"R",null,null,null]#0` | ____ |
+| 14.375 | `[67,14.375,0.25,114,"R",null,null,null]#0` | ____ |
+| 14.625 | `[55,14.625,1.875,95,"L",null,null,null]#0`<br>`[67,14.625,0.375,114,"R",null,null,null]#0` | ____ |
+| 15 | `[65,15,0.25,114,"R",null,null,null]#0` | ____ |
+| 15.25 | `[47,15.25,1.25,95,"L",null,null,null]#0`<br>`[67,15.25,0.375,114,"R",null,null,null]#0` | ____ |
+| 15.625 | `[74,15.625,0.875,114,"R",null,null,null]#0` | ____ |
+| 16.5 | `[55,16.5,1.25,95,"L",null,null,null]#0`<br>`[71,16.5,0.625,95,"R",null,null,null]#0`<br>`[74,16.5,3.75,114,"R",null,null,null]#0` | ____ |
+| 17.125 | `[71,17.125,0.375,95,"R",null,null,null]#0` | ____ |
+| 17.5 | `[71,17.5,0.625,95,"R",null,null,null]#0` | ____ |
+| 17.75 | `[55,17.75,0.375,95,"L",null,null,null]#0` | ____ |
+| 18.125 | `[55,18.125,0.25,95,"L",null,null,null]#0` | ____ |
+| 18.375 | `[71,18.375,0.625,95,"R",null,null,null]#0` | ____ |
+| 19 | `[55,19,1.25,95,"L",null,null,null]#0`<br>`[71,19,0.375,95,"R",null,null,null]#0` | ____ |
+| 19.375 | `[71,19.375,0.25,95,"R",null,null,null]#0` | ____ |
+| 19.625 | `[71,19.625,1,95,"R",null,null,null]#0` | ____ |
+| 20.25 | `[55,20.25,0.375,95,"L",null,null,null]#0` | ____ |
+| 20.625 | `[55,20.625,0.25,95,"L",null,null,null]#0` | ____ |
+| 20.875 | `[71,20.875,0.625,95,"R",null,null,null]#0` | ____ |
+| 21.5 | `[48,21.5,1.25,95,"L",null,null,null]#0`<br>`[64,21.5,0.625,95,"R",null,null,null]#0`<br>`[71,21.5,0.375,114,"R",null,null,null]#0` | ____ |
+| 21.875 | `[69,21.875,0.25,114,"R",null,null,null]#0` | ____ |
+| 22.125 | `[55,22.125,0.625,95,"L",null,null,null]#0`<br>`[67,22.125,0.625,114,"R",null,null,null]#0` | ____ |
+| 22.75 | `[49,22.75,1.25,95,"L",null,null,null]#0`<br>`[67,22.75,0.625,95,"R",null,null,null]#0`<br>`[69,22.75,0.375,114,"R",null,null,null]#0` | ____ |
+| 23.125 | `[69,23.125,0.25,114,"R",null,null,null]#0` | ____ |
+| 23.375 | `[55,23.375,0.625,95,"L",null,null,null]#0`<br>`[69,23.375,1.25,114,"R",null,null,null]#0` | ____ |
+| 24 | `[50,24,1.25,95,"L",null,null,null]#0`<br>`[66,24,0.625,95,"R",null,null,null]#0` | ____ |
+| 24.625 | `[55,24.625,0.625,95,"L",null,null,null]#0`<br>`[67,24.625,0.375,114,"R",null,null,null]#0` | ____ |
+| 25 | `[72,25,0.875,114,"R",null,null,null]#0` | ____ |
+| 25.25 | `[51,25.25,1.25,95,"L",null,null,null]#0`<br>`[69,25.25,0.625,95,"R",null,null,null]#0` | ____ |
+| 25.875 | `[55,25.875,0.625,95,"L",null,null,null]#0`<br>`[74,25.875,0.375,114,"R",null,null,null]#0` | ____ |
+| 26.25 | `[71,26.25,0.875,114,"R",null,null,null]#0` | ____ |
+
+Reviewer: ____________________  Date: ____________________  Source/reference: ____________________
+
+## Current decision to resolve
+
+Compare the durable Original and Automatic captures and answer one question:
+
+> Can the Automatic candidate be accepted as a recognizable, source-only
+> temporal simplification for this phrase while preserving every reviewed
+> `M`/`H` event and without adding new pitches?
+
+Record exactly one outcome:
+
+- `accept-source-reduction`: the reviewed IDs and listening notes support the
+  candidate; record any dropped `D` IDs and keep the source fingerprint.
+- `retain-source-reduction-partial`: the candidate is useful as an engineering
+  preview but not yet musically accepted; keep Original as the default and
+  record the failing identity/rhythm/comfort reason.
+- `reject-and-review`: the candidate changes a reviewed identity event or is
+  audibly/physically unacceptable; record the smallest offending source-ID
+  set.
+
+The listener can complete this decision now, before any new source annotation.
+The four required musical notes are: recognizability, backing usefulness,
+melody audibility, and hand comfort with normal sustain. They are acceptance
+ratings, not claims inferred from hashes, event counts, or waveform duration.

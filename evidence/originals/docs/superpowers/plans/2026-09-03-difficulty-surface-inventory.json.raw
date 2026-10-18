@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "kind": "DIFFICULTY_SURFACE_INVENTORY",
+  "revision": {
+    "startingReviewRevision": "1cc49b71538a8b73a5be2af724c2db2b3cdb318b",
+    "head": "acd13bbeaadee057646f143815ca2c8d18ff24cf",
+    "note": "Working-tree changes are listed separately; this artifact does not own them."
+  },
+  "classificationValues": ["physical", "public", "legacy", "unchanged"],
+  "ladder": {
+    "physicalOrder": ["very-beginner", "beginner", "very-easy", "easy", "medium", "advanced"],
+    "publicOrder": ["very-beginner", "beginner", "easy", "medium", "advanced"],
+    "physicalScores": {
+      "very-beginner": 1,
+      "beginner": 1.4,
+      "very-easy": 2,
+      "easy": 2.6,
+      "medium": 3.4,
+      "advanced": 4.6
+    },
+    "artifactCodes": {
+      "very-beginner": "vb",
+      "beginner": "b",
+      "very-easy": "ve",
+      "easy": "e",
+      "medium": "m",
+      "advanced": "a"
+    },
+    "storageOrderHardToEasy": ["a", "b", "e", "m", "ve", "vb"],
+    "publicAlias": {
+      "hiddenPhysicalLevel": "very-easy",
+      "stableRepresentative": "easy",
+      "legacyReadOptIn": "legacy=1"
+    }
+  },
+  "surfaces": [
+    {
+      "id": "midi-generation-validation-and-writing",
+      "classification": "physical",
+      "paths": [
+        "packages/midi/src/types.ts",
+        "packages/midi/src/simplify.ts",
+        "packages/midi/src/validate.ts",
+        "packages/midi/src/roundtrip.ts",
+        "packages/midi/src/writeMidi.ts"
+      ],
+      "contract": "Build and validate six physical learner variants, then render canonical MIDI/MusicXML artifacts."
+    },
+    {
+      "id": "catalog-storage-ingest-publication",
+      "classification": "physical",
+      "paths": [
+        "packages/catalog/src/db-types.ts",
+        "packages/catalog/src/db.ts",
+        "packages/catalog/src/ingest.ts",
+        "packages/catalog/src/publish.ts",
+        "packages/catalog/src/group.ts",
+        "packages/catalog/scripts/pipeline.ts",
+        "packages/catalog/scripts/repair-artifacts.ts",
+        "packages/catalog/scripts/verify-catalog.ts",
+        "data/artifacts"
+      ],
+      "contract": "Persist, group, and publish complete six-level physical rows/artifacts using a,b,e,m,ve,vb codes."
+    },
+    {
+      "id": "transcription-and-upload-selection",
+      "classification": "physical",
+      "paths": ["services/transcribe/src/worker.ts", "packages/catalog/src/transcribe.ts"],
+      "contract": "Keep generated six-level output intact while selecting the stable physical Easy (-e) song for entry links."
+    },
+    {
+      "id": "public-difficulty-projection",
+      "classification": "public",
+      "paths": [
+        "packages/midi/src/types.ts",
+        "packages/catalog/src/public-difficulty.ts",
+        "packages/catalog/src/index.ts",
+        "apps/web/src/app/api/songs/route.ts",
+        "apps/web/src/app/api/uploads/route.ts",
+        "apps/web/src/app/artist/[slug]/page.tsx",
+        "apps/web/src/app/page.tsx",
+        "apps/web/src/app/uploads/page.tsx",
+        "apps/web/src/app/player/[id]/page.tsx",
+        "apps/web/src/app/player/[id]/[mode]/page.tsx",
+        "apps/web/src/components/level-labels.ts",
+        "apps/web/src/components/SongBrowser.tsx",
+        "apps/web/src/components/player/Player.tsx",
+        "apps/web/src/lib/catalog-api.ts",
+        "apps/web/src/lib/song-update.ts"
+      ],
+      "contract": "Expose five public levels, hide Very Easy by default, preserve a legacy grouped read, and use physical Easy as the public representative."
+    },
+    {
+      "id": "public-projection-regressions",
+      "classification": "public",
+      "paths": [
+        "apps/web/e2e/app.spec.ts",
+        "apps/web/src/app/api/songs/route.test.ts",
+        "apps/web/src/app/api/uploads/route.test.ts",
+        "apps/web/src/lib/catalog-api.test.ts",
+        "apps/web/src/lib/song-update.test.ts",
+        "packages/catalog/test/public-difficulty.test.ts",
+        "packages/midi/test/public-difficulty.test.ts"
+      ],
+      "contract": "Lock public five-level ordering/filtering/projection and Easy representative behavior at route/UI boundaries."
+    },
+    {
+      "id": "legacy-six-level-compatibility",
+      "classification": "legacy",
+      "paths": [
+        "packages/catalog/src/legacy-migration.ts",
+        "packages/catalog/scripts/migrate-artifacts.ts",
+        "packages/catalog/test/legacy-migration.test.ts"
+      ],
+      "contract": "Retain old six-code names and complete six-level mirror checks for migration and explicit legacy reads."
+    },
+    {
+      "id": "difficulty-evaluation-and-evidence",
+      "classification": "unchanged",
+      "paths": [
+        "packages/catalog/src/arrangement-evaluation.ts",
+        "packages/catalog/src/independent-current-evaluation.ts",
+        "packages/catalog/src/local-reference-builder.ts",
+        "packages/catalog/src/score-reference-corpus.ts",
+        "packages/catalog/src/shadow-evaluation.ts",
+        "packages/catalog/scripts/calibrate-limits.ts",
+        "packages/catalog/scripts/learner-audit.ts",
+        "packages/catalog/scripts/review-difficulty-ladder.ts",
+        "packages/catalog/test/arrangement-evaluation.test.ts",
+        "packages/catalog/test/beginner-sparse-lh-promotion-control.test.ts",
+        "packages/catalog/test/difficulty-ladder.test.ts",
+        "packages/catalog/test/independent-current-evaluation.test.ts",
+        "docs/superpowers/plans/2026-09-02-difficulty-ladder-baseline.json",
+        "docs/superpowers/plans/2026-09-02-difficulty-ladder.md",
+        "docs/superpowers/plans/2026-09-02-difficulty-ladder-results.md",
+        "docs/superpowers/plans/2026-09-02-easy-lineage-baseline.json",
+        "docs/superpowers/plans/2026-09-03-current-production-difficulty-differentiation-review.json",
+        "docs/superpowers/plans/2026-09-03-current-production-difficulty-differentiation-review.md",
+        "docs/superpowers/plans/beginner-sparse-lh-independent-current-eval-preregistration.json"
+      ],
+      "contract": "Read-only diagnostics and evidence consume the six-level ladder; they do not alter production generation or public payloads."
+    },
+    {
+      "id": "external-symbolic-exception",
+      "classification": "unchanged",
+      "paths": [
+        "packages/catalog/src/external-symbolic-pipeline.ts",
+        "packages/catalog/scripts/evaluate-external-symbolic.ts"
+      ],
+      "contract": "Separate symbolic route intentionally evaluates Advanced/Medium/Easy only; it is not the six-level catalog publication contract."
+    }
+  ],
+  "artifactSnapshot": {
+    "baseCount": 457,
+    "physicalLevelsPerBase": 6,
+    "levelDirectoryCounts": {"a": 457, "b": 457, "e": 457, "m": 457, "ve": 457, "vb": 457},
+    "checkedPath": "data/artifacts"
+  },
+  "parityEvidence": {
+    "testPath": "packages/catalog/test/difficulty-ladder.test.ts",
+    "fixture": "inline sourceNotes()/learnerVariants() synthetic ladder",
+    "writer": "@keyspilli/midi writeVariantArtifacts",
+    "scope": "non-musical structural MIDI round-trip and canonical-byte parity",
+    "assertions": [
+      "all six levels are emitted in LEVEL_ORDER",
+      "parsed MIDI event digest equals source variant event digest",
+      "parsed MIDI tempo remains within the writer tolerance",
+      "canonical MIDI SHA-256 remains fixed per level"
+    ],
+    "canonicalMidiSha256": {
+      "very-beginner": "b85b94214cbebc168b54f4898260b6301554c3eec7fa3be80bafb1b0f9d4d52c",
+      "beginner": "6eca3c2220a658482130f130887145597887915b64132ffe2ede1d72f1e49b32",
+      "very-easy": "2e113869849a2a90ed676411973d5722e219c087b008b91e5965f27b248b4838",
+      "easy": "2e113869849a2a90ed676411973d5722e219c087b008b91e5965f27b248b4838",
+      "medium": "6676e7472f34c9f59df2fa9c0ed183b97d27446b0a089184ea654b9b723ec711",
+      "advanced": "6676e7472f34c9f59df2fa9c0ed183b97d27446b0a089184ea654b9b723ec711"
+    }
+  },
+  "diffAudit": {
+    "physicalBehaviorChangesSinceStartingReviewRevision": [],
+    "committedNonPhysicalChangesSinceStartingReviewRevision": [
+      {"path": "packages/catalog/package.json", "classification": "unchanged", "note": "Adds read-only ladder review command."},
+      {"path": "packages/catalog/scripts/review-difficulty-ladder.ts", "classification": "unchanged", "note": "Read-only synthetic/current ladder diagnostics."}
+    ],
+    "currentTrackedWorktreeChangesObserved": [
+      {"path": "apps/web/e2e/app.spec.ts", "classification": "public"},
+      {"path": "apps/web/src/app/api/songs/route.test.ts", "classification": "public"},
+      {"path": "apps/web/src/app/api/songs/route.ts", "classification": "public"},
+      {"path": "apps/web/src/app/api/uploads/route.ts", "classification": "public"},
+      {"path": "apps/web/src/app/artist/[slug]/page.tsx", "classification": "public"},
+      {"path": "apps/web/src/app/page.tsx", "classification": "public"},
+      {"path": "apps/web/src/app/uploads/page.tsx", "classification": "public"},
+      {"path": "apps/web/src/components/SongBrowser.tsx", "classification": "public"},
+      {"path": "apps/web/src/components/player/Player.tsx", "classification": "public"},
+      {"path": "packages/catalog/src/index.ts", "classification": "public"},
+      {"path": "packages/midi/src/types.ts", "classification": "public", "note": "Adds public order/type guard; physical LEVEL_ORDER and generation are unchanged."}
+    ],
+    "physicalPathsChecked": [
+      "packages/midi/src/types.ts",
+      "packages/midi/src/simplify.ts",
+      "packages/midi/src/validate.ts",
+      "packages/midi/src/roundtrip.ts",
+      "packages/catalog/src/ingest.ts",
+      "packages/catalog/src/publish.ts",
+      "packages/catalog/src/legacy-migration.ts",
+      "services/transcribe/src/worker.ts",
+      "data/artifacts"
+    ],
+    "accidentalPhysicalChanges": [],
+    "untrackedPreserved": [".tmp-source-audit/", "pnpm-lock.yaml"]
+  }
+}

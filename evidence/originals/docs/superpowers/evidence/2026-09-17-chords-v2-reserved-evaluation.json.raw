@@ -1,0 +1,786 @@
+{
+  "schemaVersion": 2,
+  "candidateCommit": "ea68729045e82ef9ced14e0e0916c86991eeba4a",
+  "instrument": "browser AudioEngine synth",
+  "capturePacketRoot": "docs/superpowers/evidence/2026-09-17-chords-v2-capture-packet",
+  "sourceSelectionFrozenBeforeCandidatePlayback": true,
+  "tuningPerformedOnReservedOutputs": false,
+  "humanRating": "pending",
+  "automaticAndManualAreSeparate": true,
+  "durationSanityCheck": {
+    "decodedPcm": "Decoded sample count / sampleRate must cover the requested capture duration.",
+    "toleranceSeconds": 0.25,
+    "allAcceptedCapturesComplete": true
+  },
+  "distinctnessMethod": {
+    "producerEventMultiset": "Deterministic window-clipped [midi,start,dur,vel] multisets from buildMelodyAccompaniment with Player arrangementEnd=max(note end, measure end), source fingerprint, selection, allowRests=true, coherent-phrase, and empty phrase overrides.",
+    "scheduledEventMultiset": "Canonical oscillator events are retained as observed capture diagnostics only; duplicate entries are retained.",
+    "decodedPcm": "Decoded mono PCM sampled every 128 samples and aligned over the best overlapping shift within +/-32 sample-grid bins; retained as observed capture diagnostics only. rmsTolerance is 0.02.",
+    "fileSha256": "Integrity checksum only; never used as proof of audible or musical difference."
+  },
+  "repeatControl": {
+    "songId": "the-beatles-blackbird-a-scratch",
+    "mode": "Original arrangement",
+    "seekSeconds": 2,
+    "durationMs": 2500,
+    "first": {
+      "mode": "Original development repeat control",
+      "status": "captured",
+      "bytes": 40554,
+      "decodedDurationSeconds": 2.5199773242630386,
+      "requestedDurationSeconds": 2.5,
+      "oscillatorEvents": 33,
+      "triangleOscillatorEvents": 22,
+      "sha256": "cc352f8940f42ef4ef4b99229570fdf3c7c53483d309a15c0581e8201e4ce127",
+      "canonicalScheduledEventCount": 33,
+      "canonicalScheduledEventHash": "d41e9259674fb7a063efc4f031892a0110470aa20c220ea874520c52fff80f34",
+      "scheduledEventMultisetChanged": false,
+      "signal": {
+        "rms": 0.07087349082324391,
+        "peak": 0.44670265913009644,
+        "samples": 111131
+      },
+      "audio": "controls/control-blackbird-original-a.webm",
+      "metadata": "controls/control-blackbird-original-a.json"
+    },
+    "repeat": {
+      "mode": "Original development repeat control",
+      "status": "captured",
+      "bytes": 41520,
+      "decodedDurationSeconds": 2.5799773242630386,
+      "requestedDurationSeconds": 2.5,
+      "oscillatorEvents": 33,
+      "triangleOscillatorEvents": 22,
+      "sha256": "96c92eb9bd5224c154f29c8855c7152570eb38557e22335eaba257c0ad791900",
+      "canonicalScheduledEventCount": 33,
+      "canonicalScheduledEventHash": "d41e9259674fb7a063efc4f031892a0110470aa20c220ea874520c52fff80f34",
+      "scheduledEventMultisetChanged": false,
+      "alignedPcmComparison": {
+        "sampleRate": 44100,
+        "stride": 128,
+        "shiftBins": -5,
+        "shiftSamples": -640,
+        "overlap": 869,
+        "meanAbsoluteError": 0.050925228998849215,
+        "rmsError": 0.08217182954289001,
+        "maxAbsoluteError": 0.437461,
+        "rmsTolerance": 0.02,
+        "withinTolerance": false
+      },
+      "signal": {
+        "rms": 0.0703909494468239,
+        "peak": 0.42013996839523315,
+        "samples": 113777
+      },
+      "audio": "controls/control-blackbird-original-b.webm",
+      "metadata": "controls/control-blackbird-original-b.json"
+    },
+    "interpretation": "Repeat metrics varied; capture metrics are observed capture variation only. Arrangement change relies on deterministic producer [midi,start,dur,vel] multisets."
+  },
+  "outcomes": [
+    {
+      "id": "w-h-doane-near-the-cross-a-scratch",
+      "title": "Near the Cross",
+      "artist": "W. H. Doane",
+      "bpm": 112,
+      "window": {
+        "startBeat": 24,
+        "endBeat": 48,
+        "measures": 4,
+        "meter": "6/4",
+        "notes": 50,
+        "attacks": 13,
+        "mixedOnset": 0.923,
+        "held": 0.62,
+        "offgrid": null,
+        "upperDecoration": null
+      },
+      "selectionBasis": "source-only max mixed-onset four-measure window",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 0,
+        "endBeat": 24,
+        "measures": 4,
+        "meter": "6/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
+      "seekSeconds": 12.357142857142858,
+      "durationMs": 13858,
+      "producer": {
+        "original": {
+          "eventCount": 50,
+          "eventMultisetHash": "b27d90b18c829212b21d89e19beb6793fa7c3c11ace13d00e014f6c0011f78b7",
+          "changedFromOriginal": false,
+          "windowStartBeat": 24,
+          "windowEndBeat": 48,
+          "arrangementEndBeats": 96
+        },
+        "automatic": {
+          "eventCount": 46,
+          "eventMultisetHash": "e087862c2b3fc5a546f7b89c3ad3025ec04c9c2c2226fbec33f0ad0810f91b48",
+          "changedFromOriginal": true,
+          "windowStartBeat": 24,
+          "windowEndBeat": 48,
+          "arrangementEndBeats": 96
+        },
+        "manual": {
+          "eventCount": 47,
+          "eventMultisetHash": "471d29886110c555e41fb0f377b09566043f8cc31042c71831ad2d40d5038491",
+          "changedFromOriginal": true,
+          "windowStartBeat": 24,
+          "windowEndBeat": 48,
+          "arrangementEndBeats": 96
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 49,
+            "eventMultisetHash": "d1c87db967c690076c84d22f06a6efdf2090dd3a37aec9271603c3da7d01cb73",
+            "changedFromOriginal": false,
+            "windowStartBeat": 0,
+            "windowEndBeat": 24,
+            "arrangementEndBeats": 96
+          },
+          "automatic": {
+            "eventCount": 44,
+            "eventMultisetHash": "c8b6abb9a1ee6e0086f0124797c187ee4fedf3a07274016c05f4b52dffdadb4f",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 24,
+            "arrangementEndBeats": 96
+          },
+          "manual": {
+            "eventCount": 45,
+            "eventMultisetHash": "464d4cee73981798c5a33c0534dd666dd7e34d401a91757784d5b9c91814e6d7",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 24,
+            "arrangementEndBeats": 96
+          }
+        }
+      },
+      "captures": {
+        "original": {
+          "mode": "Original full arrangement",
+          "status": "captured",
+          "bytes": 223145,
+          "decodedDurationSeconds": 13.92,
+          "requestedDurationSeconds": 13.858,
+          "oscillatorEvents": 162,
+          "triangleOscillatorEvents": 108,
+          "sha256": "5bdf06dbd1a0d62587b70d65d8281cf4f29c81729202c4829c54a4a96d59e0bf",
+          "producerEventCount": 50,
+          "producerEventMultisetHash": "b27d90b18c829212b21d89e19beb6793fa7c3c11ace13d00e014f6c0011f78b7",
+          "producerEventMultisetChanged": false,
+          "canonicalScheduledEventCount": 162,
+          "canonicalScheduledEventHash": "ffd5c722c46b84c49ec28b1bf4e2b399650e30541748d5e84f3c588fa530c540",
+          "scheduledEventMultisetChanged": false,
+          "signal": {
+            "rms": 0.10152646664110736,
+            "peak": 0.7304616570472717,
+            "samples": 204624
+          },
+          "audio": "captures/reserved-w-h-doane-near-the-cross-original.webm",
+          "metadata": "captures/reserved-w-h-doane-near-the-cross-original.json"
+        },
+        "automatic": {
+          "mode": "Automatic melody plus accompaniment",
+          "status": "captured",
+          "bytes": 223145,
+          "decodedDurationSeconds": 13.92,
+          "requestedDurationSeconds": 13.858,
+          "oscillatorEvents": 150,
+          "triangleOscillatorEvents": 100,
+          "sha256": "7b285f1dfdbb04c231c57a055af85fedb7b7edf3490eaacb4a2427ed634718d7",
+          "producerEventCount": 46,
+          "producerEventMultisetHash": "e087862c2b3fc5a546f7b89c3ad3025ec04c9c2c2226fbec33f0ad0810f91b48",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 150,
+          "canonicalScheduledEventHash": "8d8227c7a344ffec57aef73116b8e67c18511dd3e2c94c63e984f810c2699620",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": 30,
+            "shiftSamples": 3840,
+            "overlap": 4766,
+            "meanAbsoluteError": 0.07314733843894265,
+            "rmsError": 0.1214152419358636,
+            "maxAbsoluteError": 0.722665,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.0902098589016032,
+            "peak": 0.5992082357406616,
+            "samples": 204624
+          },
+          "audio": "captures/reserved-w-h-doane-near-the-cross-automatic.webm",
+          "metadata": "captures/reserved-w-h-doane-near-the-cross-automatic.json"
+        },
+        "manual": {
+          "mode": "User-confirmed right-hand melody plus accompaniment",
+          "status": "captured",
+          "bytes": 223777,
+          "decodedDurationSeconds": 13.92,
+          "requestedDurationSeconds": 13.858,
+          "oscillatorEvents": 153,
+          "triangleOscillatorEvents": 102,
+          "sha256": "5831f18fe5cc7f881464d3c28e932ed18f5de363f3e2f5c3b844270eba839db5",
+          "producerEventCount": 47,
+          "producerEventMultisetHash": "471d29886110c555e41fb0f377b09566043f8cc31042c71831ad2d40d5038491",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 153,
+          "canonicalScheduledEventHash": "94ab8b212ba03d8c63bc2f6fd41885b4620d16d62032014d1212a998b54ae5e5",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": -2,
+            "shiftSamples": -256,
+            "overlap": 4794,
+            "meanAbsoluteError": 0.06308381435127232,
+            "rmsError": 0.11711822521865638,
+            "maxAbsoluteError": 0.837314,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.09548465280633901,
+            "peak": 0.6621390581130981,
+            "samples": 204624
+          },
+          "audio": "captures/reserved-w-h-doane-near-the-cross-manual.webm",
+          "metadata": "captures/reserved-w-h-doane-near-the-cross-manual.json"
+        }
+      }
+    },
+    {
+      "id": "c-v-alkan-prelude-a-scratch",
+      "title": "Prélude",
+      "artist": "C.-V. Alkan",
+      "bpm": 60,
+      "window": {
+        "startBeat": 16,
+        "endBeat": 32,
+        "measures": 4,
+        "meter": "4/4",
+        "notes": 115,
+        "attacks": 28,
+        "mixedOnset": 1,
+        "held": null,
+        "offgrid": 0.252,
+        "upperDecoration": 0.569
+      },
+      "selectionBasis": "source-only max upper-decoration/off-grid four-measure window",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 0,
+        "endBeat": 16,
+        "measures": 4,
+        "meter": "4/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
+      "seekSeconds": 15.5,
+      "durationMs": 17000,
+      "producer": {
+        "original": {
+          "eventCount": 115,
+          "eventMultisetHash": "b149f36e9c0ee1c20f7029f471124ef47877200e5c800e4d0e6ff577653bdeb4",
+          "changedFromOriginal": false,
+          "windowStartBeat": 16,
+          "windowEndBeat": 32,
+          "arrangementEndBeats": 40
+        },
+        "automatic": {
+          "eventCount": 86,
+          "eventMultisetHash": "1783373dc5ebbed12b1db2ce6f212b0b24cc6e925b73cb5e7901285aff5d94dd",
+          "changedFromOriginal": true,
+          "windowStartBeat": 16,
+          "windowEndBeat": 32,
+          "arrangementEndBeats": 40
+        },
+        "manual": {
+          "eventCount": 105,
+          "eventMultisetHash": "195b89d8b98fec558b94c89bb8a558e226008125c75f07fc933dfdae4486832c",
+          "changedFromOriginal": true,
+          "windowStartBeat": 16,
+          "windowEndBeat": 32,
+          "arrangementEndBeats": 40
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 113,
+            "eventMultisetHash": "284fabd2bdf97b10ff8bd382b0f7c5a5063f8dc25cf2ad49bcc2f360f7b06a7d",
+            "changedFromOriginal": false,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 40
+          },
+          "automatic": {
+            "eventCount": 86,
+            "eventMultisetHash": "99eb2ec0ba47a2e7ae8d5d977f60f8719374bd05b1f84447e07a0344f491a476",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 40
+          },
+          "manual": {
+            "eventCount": 115,
+            "eventMultisetHash": "59f12ba796b8e6f7d3e07a3d9b585a9e1a44de5844edd3a31d7530409c06bd77",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 40
+          }
+        }
+      },
+      "captures": {
+        "original": {
+          "mode": "Original full arrangement",
+          "status": "captured",
+          "bytes": 274326,
+          "decodedDurationSeconds": 17.039977324263038,
+          "requestedDurationSeconds": 17,
+          "oscillatorEvents": 357,
+          "triangleOscillatorEvents": 238,
+          "sha256": "45a55effd4f1df1d0b8067b5c6599fdad8bdf4c12d76adc4b8b905afa33099bd",
+          "producerEventCount": 115,
+          "producerEventMultisetHash": "b149f36e9c0ee1c20f7029f471124ef47877200e5c800e4d0e6ff577653bdeb4",
+          "producerEventMultisetChanged": false,
+          "canonicalScheduledEventCount": 357,
+          "canonicalScheduledEventHash": "47bcd413e503b59ad51eca615c2cf8775e3c2cc9c8b1d5fdaf70140692d3833d",
+          "scheduledEventMultisetChanged": false,
+          "signal": {
+            "rms": 0.1368218161625578,
+            "peak": 0.8340291976928711,
+            "samples": 187866
+          },
+          "audio": "captures/reserved-c-v-alkan-prelude-original.webm",
+          "metadata": "captures/reserved-c-v-alkan-prelude-original.json"
+        },
+        "automatic": {
+          "mode": "Automatic melody plus accompaniment",
+          "status": "captured",
+          "bytes": 274008,
+          "decodedDurationSeconds": 17.039977324263038,
+          "requestedDurationSeconds": 17,
+          "oscillatorEvents": 267,
+          "triangleOscillatorEvents": 178,
+          "sha256": "59e56ce52bdd7c6ac682d71f936215881479dcd7a9a003454d8f603b9ce23e93",
+          "producerEventCount": 86,
+          "producerEventMultisetHash": "1783373dc5ebbed12b1db2ce6f212b0b24cc6e925b73cb5e7901285aff5d94dd",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 267,
+          "canonicalScheduledEventHash": "65c669d73be68b7406dd727efbe6020d388b9f0e5a96e36381e134d107e9978a",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": 1,
+            "shiftSamples": 128,
+            "overlap": 5870,
+            "meanAbsoluteError": 0.10025940545144811,
+            "rmsError": 0.16106103524050563,
+            "maxAbsoluteError": 1.0727419999999999,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.11151464301554476,
+            "peak": 0.5800864696502686,
+            "samples": 187866
+          },
+          "audio": "captures/reserved-c-v-alkan-prelude-automatic.webm",
+          "metadata": "captures/reserved-c-v-alkan-prelude-automatic.json"
+        },
+        "manual": {
+          "mode": "User-confirmed right-hand melody plus accompaniment",
+          "status": "captured",
+          "bytes": 274640,
+          "decodedDurationSeconds": 17.039977324263038,
+          "requestedDurationSeconds": 17,
+          "oscillatorEvents": 327,
+          "triangleOscillatorEvents": 218,
+          "sha256": "fb955a9fb457f96f8d88508c86c019f4f75c62d3ae85b00d1c33f6013f52c4b5",
+          "producerEventCount": 105,
+          "producerEventMultisetHash": "195b89d8b98fec558b94c89bb8a558e226008125c75f07fc933dfdae4486832c",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 327,
+          "canonicalScheduledEventHash": "b57486c60daefb91a90e31659c93bf1b20273c6ad448fc2cc46f24c39a3ba82a",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": -10,
+            "shiftSamples": -1280,
+            "overlap": 5861,
+            "meanAbsoluteError": 0.1231970363419213,
+            "rmsError": 0.18772698795855536,
+            "maxAbsoluteError": 1.020735,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.14100378919838658,
+            "peak": 0.8405587673187256,
+            "samples": 187866
+          },
+          "audio": "captures/reserved-c-v-alkan-prelude-manual.webm",
+          "metadata": "captures/reserved-c-v-alkan-prelude-manual.json"
+        }
+      }
+    },
+    {
+      "id": "beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-a-scratch",
+      "title": "Easy Piano Jumbo Songbook - Pay Me My Money Down",
+      "artist": "Beginner Piano Tutorial",
+      "bpm": 152,
+      "window": {
+        "startBeat": 28,
+        "endBeat": 44,
+        "measures": 4,
+        "meter": "4/4",
+        "notes": 35,
+        "attacks": 19,
+        "mixedOnset": 0.368,
+        "held": 0.314,
+        "offgrid": 0.514,
+        "upperDecoration": null
+      },
+      "selectionBasis": "source-only max mixed/off-grid four-measure window among usable Pay Me windows",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 0,
+        "endBeat": 16,
+        "measures": 4,
+        "meter": "4/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
+      "seekSeconds": 10.552631578947368,
+      "durationMs": 7316,
+      "producer": {
+        "original": {
+          "eventCount": 34,
+          "eventMultisetHash": "ff761094d5256cecf585d613a70034e8610e241d8c994d7760d3d579078150ea",
+          "changedFromOriginal": false,
+          "windowStartBeat": 28,
+          "windowEndBeat": 44,
+          "arrangementEndBeats": 84
+        },
+        "automatic": {
+          "eventCount": 34,
+          "eventMultisetHash": "e16da1f5ab6941d1e7261800b122677d267c3933c60d60ce2b26a57741169e62",
+          "changedFromOriginal": true,
+          "windowStartBeat": 28,
+          "windowEndBeat": 44,
+          "arrangementEndBeats": 84
+        },
+        "manual": {
+          "eventCount": 34,
+          "eventMultisetHash": "f139c83897038d458507046cd90a5b3c755df38dd4de40393ae3a4b46d231fc6",
+          "changedFromOriginal": true,
+          "windowStartBeat": 28,
+          "windowEndBeat": 44,
+          "arrangementEndBeats": 84
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 17,
+            "eventMultisetHash": "38c9f4600a3db8e50977d8616b428c319a3632fda74e7fc41b898f1aa0d5a9af",
+            "changedFromOriginal": false,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 84
+          },
+          "automatic": {
+            "eventCount": 16,
+            "eventMultisetHash": "4ecdac5344866413392795bb1d4894ab78892aa8690440e36f0b1964f74cc8af",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 84
+          },
+          "manual": {
+            "eventCount": 17,
+            "eventMultisetHash": "48ee614e48d87267465f575d8b64345d23c14fd86f1e2eda7a788860e092ff3d",
+            "changedFromOriginal": true,
+            "windowStartBeat": 0,
+            "windowEndBeat": 16,
+            "arrangementEndBeats": 84
+          }
+        }
+      },
+      "captures": {
+        "original": {
+          "mode": "Original full arrangement",
+          "status": "captured",
+          "bytes": 118169,
+          "decodedDurationSeconds": 7.379977324263039,
+          "requestedDurationSeconds": 7.316,
+          "oscillatorEvents": 114,
+          "triangleOscillatorEvents": 76,
+          "sha256": "38150ada3bae3b0c7f65510c42b281983a03148fe9b93a9c366697b3510497a7",
+          "producerEventCount": 34,
+          "producerEventMultisetHash": "ff761094d5256cecf585d613a70034e8610e241d8c994d7760d3d579078150ea",
+          "producerEventMultisetChanged": false,
+          "canonicalScheduledEventCount": 114,
+          "canonicalScheduledEventHash": "ae5422ecad2b7ccbe70d913a15c37e9bba784c11ac434de7cfca01b5063eac1d",
+          "scheduledEventMultisetChanged": false,
+          "signal": {
+            "rms": 0.07791126536755057,
+            "peak": 0.5144747495651245,
+            "samples": 162729
+          },
+          "audio": "captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-original.webm",
+          "metadata": "captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-original.json"
+        },
+        "automatic": {
+          "mode": "Automatic melody plus accompaniment",
+          "status": "captured",
+          "bytes": 118169,
+          "decodedDurationSeconds": 7.379977324263039,
+          "requestedDurationSeconds": 7.316,
+          "oscillatorEvents": 111,
+          "triangleOscillatorEvents": 74,
+          "sha256": "d79fc2d671e83c957c7f0f2a7b0e71c7a1a2cae80190aea921dc9b5f37a45faf",
+          "producerEventCount": 34,
+          "producerEventMultisetHash": "e16da1f5ab6941d1e7261800b122677d267c3933c60d60ce2b26a57741169e62",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 111,
+          "canonicalScheduledEventHash": "3ca59bd7af4bcd76c9e827aa58541dc555be9f139e1a6b835bc72dd87c1a484a",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": 7,
+            "shiftSamples": 896,
+            "overlap": 2536,
+            "meanAbsoluteError": 0.04495845820189273,
+            "rmsError": 0.08401716494341226,
+            "maxAbsoluteError": 0.72238,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.0747812562848439,
+            "peak": 0.45417407155036926,
+            "samples": 162729
+          },
+          "audio": "captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-automatic.webm",
+          "metadata": "captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-automatic.json"
+        },
+        "manual": {
+          "mode": "User-confirmed right-hand melody plus accompaniment",
+          "status": "captured",
+          "bytes": 118487,
+          "decodedDurationSeconds": 7.379977324263039,
+          "requestedDurationSeconds": 7.316,
+          "oscillatorEvents": 114,
+          "triangleOscillatorEvents": 76,
+          "sha256": "7f150ad3170cca7f1257230adf843157949e8ecfd18ffd348cf88657f5107c78",
+          "producerEventCount": 34,
+          "producerEventMultisetHash": "f139c83897038d458507046cd90a5b3c755df38dd4de40393ae3a4b46d231fc6",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 114,
+          "canonicalScheduledEventHash": "69583e4c6b4486a3936cb05dbeccc58e7cfd8e4f6ede3388834115beb2d95929",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": 2,
+            "shiftSamples": 256,
+            "overlap": 2541,
+            "meanAbsoluteError": 0.0501999268004722,
+            "rmsError": 0.0958054216108148,
+            "maxAbsoluteError": 0.726979,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.07733183438319156,
+            "peak": 0.5174198150634766,
+            "samples": 162729
+          },
+          "audio": "captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-manual.webm",
+          "metadata": "captures/reserved-beginner-piano-tutorial-easy-piano-jumbo-songbook-pay-me-my-money-down-mslzx940-manual.json"
+        }
+      }
+    },
+    {
+      "id": "dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-a-scratch",
+      "title": "Avenged Sevenfold - Dear God - Piano Cover",
+      "artist": "Dadebrayant",
+      "bpm": 75,
+      "window": {
+        "startBeat": 96,
+        "endBeat": 128,
+        "measures": 8,
+        "meter": "4/4",
+        "notes": 166,
+        "attacks": 75,
+        "mixedOnset": 0.453,
+        "held": null,
+        "offgrid": 0.476,
+        "upperDecoration": 0.525
+      },
+      "selectionBasis": "source-only max mixed/off-grid/upper-decoration eight-measure window",
+      "retrospectiveAdditionalWindow": {
+        "startBeat": 64,
+        "endBeat": 96,
+        "measures": 8,
+        "meter": "4/4",
+        "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout"
+      },
+      "seekSeconds": 76.3,
+      "durationMs": 26600,
+      "producer": {
+        "original": {
+          "eventCount": 165,
+          "eventMultisetHash": "0f299488abfdaba0a88acc697e0ffc1570c8a5f992ca751243875dd7a8dd2a29",
+          "changedFromOriginal": false,
+          "windowStartBeat": 96,
+          "windowEndBeat": 128,
+          "arrangementEndBeats": 504
+        },
+        "automatic": {
+          "eventCount": 154,
+          "eventMultisetHash": "a71ed7bac629f8f00ecd35de0a29ddc3a315cc03ee03bd548444e5480108b740",
+          "changedFromOriginal": true,
+          "windowStartBeat": 96,
+          "windowEndBeat": 128,
+          "arrangementEndBeats": 504
+        },
+        "manual": {
+          "eventCount": 165,
+          "eventMultisetHash": "c9e95388aa657602f718c37f47609bb13c59151137505e4788d507dd00b9b0dc",
+          "changedFromOriginal": true,
+          "windowStartBeat": 96,
+          "windowEndBeat": 128,
+          "arrangementEndBeats": 504
+        },
+        "retrospectiveAdditionalEvaluation": {
+          "selectionBasis": "retrospective non-overlapping control window selected after primary freeze; not an untouched holdout",
+          "original": {
+            "eventCount": 181,
+            "eventMultisetHash": "ab4896093f15197b30af4b643267a30f215d2583b6382e973fc5164e99429bc9",
+            "changedFromOriginal": false,
+            "windowStartBeat": 64,
+            "windowEndBeat": 96,
+            "arrangementEndBeats": 504
+          },
+          "automatic": {
+            "eventCount": 153,
+            "eventMultisetHash": "eafb06646cc70d2483603732ad2015c44b6c69fabc305658bc262c4a25f649af",
+            "changedFromOriginal": true,
+            "windowStartBeat": 64,
+            "windowEndBeat": 96,
+            "arrangementEndBeats": 504
+          },
+          "manual": {
+            "eventCount": 181,
+            "eventMultisetHash": "4e41d9608f8f58158687dd7e5002cfce9cec430ecda5fef859da0b1848b9b499",
+            "changedFromOriginal": true,
+            "windowStartBeat": 64,
+            "windowEndBeat": 96,
+            "arrangementEndBeats": 504
+          }
+        }
+      },
+      "captures": {
+        "original": {
+          "mode": "Original full arrangement",
+          "status": "captured",
+          "bytes": 429200,
+          "decodedDurationSeconds": 26.64,
+          "requestedDurationSeconds": 26.6,
+          "oscillatorEvents": 531,
+          "triangleOscillatorEvents": 354,
+          "sha256": "13b80eb93ebfca5a22193246fcd3688c1dc394233fa5595ee604b89e121fedbe",
+          "producerEventCount": 165,
+          "producerEventMultisetHash": "0f299488abfdaba0a88acc697e0ffc1570c8a5f992ca751243875dd7a8dd2a29",
+          "producerEventMultisetChanged": false,
+          "canonicalScheduledEventCount": 531,
+          "canonicalScheduledEventHash": "7dc13b931de53a1bf51692c02718efc12ee0ad075c8e52354d3e8049b4892a80",
+          "scheduledEventMultisetChanged": false,
+          "signal": {
+            "rms": 0.07872765329621596,
+            "peak": 0.5988132953643799,
+            "samples": 234965
+          },
+          "audio": "captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-original.webm",
+          "metadata": "captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-original.json"
+        },
+        "automatic": {
+          "mode": "Automatic melody plus accompaniment",
+          "status": "captured",
+          "bytes": 429200,
+          "decodedDurationSeconds": 26.64,
+          "requestedDurationSeconds": 26.6,
+          "oscillatorEvents": 492,
+          "triangleOscillatorEvents": 328,
+          "sha256": "031c9de2b88bae1aa07c5309b1ae7f6e2a817d57a80859620ed3c5e3ec17d146",
+          "producerEventCount": 154,
+          "producerEventMultisetHash": "a71ed7bac629f8f00ecd35de0a29ddc3a315cc03ee03bd548444e5480108b740",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 492,
+          "canonicalScheduledEventHash": "d7b4e7db483fb2b0e96a78d0470067be07949b16bbb50a65f11dcebccff21ea3",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": -10,
+            "shiftSamples": -1280,
+            "overlap": 9169,
+            "meanAbsoluteError": 0.06037291634856567,
+            "rmsError": 0.10006178519470042,
+            "maxAbsoluteError": 0.803597,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.07549765473516926,
+            "peak": 0.5849670171737671,
+            "samples": 234965
+          },
+          "audio": "captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-automatic.webm",
+          "metadata": "captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-automatic.json"
+        },
+        "manual": {
+          "mode": "User-confirmed right-hand melody plus accompaniment",
+          "status": "captured",
+          "bytes": 430166,
+          "decodedDurationSeconds": 26.7,
+          "requestedDurationSeconds": 26.6,
+          "oscillatorEvents": 531,
+          "triangleOscillatorEvents": 354,
+          "sha256": "5e31417315e9e1e9137f4f91f5e216b1ed3829efff85409bff6cfa5588fc55ee",
+          "producerEventCount": 165,
+          "producerEventMultisetHash": "c9e95388aa657602f718c37f47609bb13c59151137505e4788d507dd00b9b0dc",
+          "producerEventMultisetChanged": true,
+          "canonicalScheduledEventCount": 531,
+          "canonicalScheduledEventHash": "ceae3410b5548ca08892a7ad500985cd370777f665268d3728577c4f08bef03f",
+          "scheduledEventMultisetChanged": true,
+          "alignedPcmComparison": {
+            "sampleRate": 44100,
+            "stride": 128,
+            "shiftBins": -1,
+            "shiftSamples": -128,
+            "overlap": 9179,
+            "meanAbsoluteError": 0.050975115589933395,
+            "rmsError": 0.09457977598060635,
+            "maxAbsoluteError": 0.851335,
+            "rmsTolerance": 0.02,
+            "withinTolerance": false
+          },
+          "signal": {
+            "rms": 0.07741295681723463,
+            "peak": 0.6021601557731628,
+            "samples": 235494
+          },
+          "audio": "captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-manual.webm",
+          "metadata": "captures/reserved-dadebrayant-avenged-sevenfold-dear-god-piano-cover-msm014zo-manual.json"
+        }
+      }
+    }
+  ]
+}

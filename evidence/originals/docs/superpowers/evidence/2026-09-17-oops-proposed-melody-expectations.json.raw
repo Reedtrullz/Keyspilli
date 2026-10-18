@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "fixture": "britney-spears-oops-i-did-it-again-a-scratch",
+  "sourceFingerprint": "variant:britney-spears-oops-i-did-it-again:a:britney-spears-oops-i-did-it-again-a:64d18aa4c23f7625a6eb0a7a234843a7a2278003d75cba9ea04efde7d8225ad4:notes:84153b6de3857351ce92086c8f5a28f9147073070948ed96fd39e6d6f8f212ae",
+  "sourceNoteIdMethod": "sourceNoteIds() from packages/player-core/src/accompaniment.ts; IDs include exact [midi,start,dur,vel,hand,sourceLane,identitySource,lyrics] values and occurrence suffix",
+  "sourceLaneFeasibility": {
+    "livePayload": "not recoverable from the frozen API artifact: sourceLane and identitySource are absent",
+    "availableOwnershipSignal": "hand L/R only",
+    "recoveredOriginalSource": "local backup MusicXML is available read-only; one Piano part exposes staff/voice 1/1 (1443 elements) and 2/2 (465 elements), but no semantic melody legend",
+    "recoveryEvidence": "docs/superpowers/evidence/2026-09-17-oops-original-source-findings.md",
+    "recoveryPrerequisite": "source staff/voice review or a separate bounded re-import, kept separate from runtime algorithm tuning",
+    "goldStatus": "not available"
+  },
+  "reviewStatus": "candidate RH-part override evidence; automatic musical role is unverified; not gold labels and not a human musical judgment",
+  "ruleForActivePhrases": "Use R-labelled notes with duration >= 0.5 beats only as candidate anchors for an explicit RH-part override review; reject short 0.125-beat R decorations unless a later source review promotes them. Never train or assert automatic melody from these annotations.",
+  "expectations": [
+    {
+      "id": "intro-control",
+      "rangeBeats": [0, 16],
+      "sourceSection": "Intro 1",
+      "expectedState": "RH part rests; automatic musical role unverified",
+      "rightHandPartSourceIds": [],
+      "rightHandPartRestIntervals": [[0, 16]],
+      "automaticMelodyExpectation": "unverified",
+      "evidence": { "sourceNotes": 24, "attacks": 18, "handCounts": { "L": 24, "R": 0 }, "reason": "every source event in the control window is L-labelled; no R-labelled re-entry exists" }
+    },
+    {
+      "id": "intro-development",
+      "rangeBeats": [16, 32],
+      "sourceSection": "Intro 1",
+      "expectedState": "RH-part re-entry then RH-part rest; automatic musical role unverified",
+      "rightHandPartSourceIds": ["[73,16,2,100,\"R\",null,null,null]#0", "[85,16,2,100,\"R\",null,null,null]#0", "[73,24,1.875,100,\"R\",null,null,null]#0", "[85,24,1.875,100,\"R\",null,null,null]#0"],
+      "rightHandPartRestIntervals": [[18, 24], [25.875, 32]],
+      "automaticMelodyExpectation": "unverified",
+      "evidence": { "sourceNotes": 32, "attacks": 28, "handCounts": { "L": 28, "R": 4 }, "reason": "the only R-labelled events are two two-note re-entry attacks; the remaining source is L-labelled" }
+    },
+    {
+      "id": "section-2",
+      "rangeBeats": [64, 108],
+      "sourceSection": "Section 2",
+      "annotationKind": "RH-part override candidate anchors only; automatic melody unverified",
+      "expectedState": "RH candidate anchors; automatic musical role unverified",
+      "proposedMelodySourceIds": ["[78,64,2,100,\"R\",null,null,null]#0", "[75,68,1.5,100,\"R\",null,null,null]#0", "[83,75.5,2,100,\"R\",null,null,null]#0", "[66,78,0.5,100,\"R\",null,null,null]#0", "[80,80,0.5,100,\"R\",null,null,null]#0", "[75,86,0.5,100,\"R\",null,null,null]#0", "[76,88,2,100,\"R\",null,null,null]#0", "[76,92,2,100,\"R\",null,null,null]#0", "[78,94,0.5,100,\"R\",null,null,null]#0", "[80,96,0.5,100,\"R\",null,null,null]#0", "[75,102,0.5,100,\"R\",null,null,null]#0", "[81,103.5,1,100,\"R\",null,null,null]#0", "[76,104,2.5,100,\"R\",null,null,null]#0", "[80,104.5,0.5,100,\"R\",null,null,null]#0", "[76,106.5,0.625,100,\"R\",null,null,null]#0"],
+      "proposedRestIntervals": [],
+      "evidence": { "sourceNotes": 327, "attacks": 89, "handCounts": { "L": 58, "R": 269 }, "longRAnchors": 15, "reason": "R is dense and includes short chord-decoration attacks; no independent rest is established from the payload" }
+    },
+    {
+      "id": "section-3-transition",
+      "rangeBeats": [108, 124],
+      "sourceSection": "Section 3",
+      "annotationKind": "RH-part override candidate anchors only; automatic melody unverified",
+      "expectedState": "RH candidate anchors in chordal/voice-uncertain texture; automatic musical role unverified",
+      "proposedMelodySourceIds": ["[68,108,0.5,100,\"R\",null,null,null]#0", "[72,108,0.5,100,\"R\",null,null,null]#0", "[75,108,0.5,100,\"R\",null,null,null]#0", "[80,108,0.5,100,\"R\",null,null,null]#0", "[68,109,0.625,100,\"R\",null,null,null]#0", "[72,109,0.625,100,\"R\",null,null,null]#0", "[75,109,0.625,100,\"R\",null,null,null]#0", "[80,109,0.625,100,\"R\",null,null,null]#0", "[72,110,0.5,100,\"R\",null,null,null]#0", "[75,110,0.5,100,\"R\",null,null,null]#0", "[78,110,0.5,100,\"R\",null,null,null]#0", "[80,110,1.125,100,\"R\",null,null,null]#0", "[68,111,0.75,100,\"R\",null,null,null]#0", "[73,111,0.875,100,\"R\",null,null,null]#0", "[73,112,1.875,100,\"R\",null,null,null]#0", "[85,112,1.75,100,\"R\",null,null,null]#0"],
+      "proposedRestIntervals": [],
+      "evidence": { "sourceNotes": 71, "attacks": 27, "handCounts": { "L": 27, "R": 44 }, "longRAnchors": 16, "reason": "simultaneous R stacks are present from the transition start; source does not identify one voice within them" }
+    },
+    {
+      "id": "section-4",
+      "rangeBeats": [124, 188],
+      "sourceSection": "Section 4",
+      "annotationKind": "RH-part override candidate anchors only; automatic melody unverified",
+      "expectedState": "RH candidate anchors; automatic musical role unverified",
+      "proposedMelodySourceIds": ["[73,128,0.5,100,\"R\",null,null,null]#0", "[85,128,1.875,100,\"R\",null,null,null]#0", "[73,129,1,100,\"R\",null,null,null]#0", "[75,130,2.125,100,\"R\",null,null,null]#0", "[76,132,3,100,\"R\",null,null,null]#0", "[78,144,2,100,\"R\",null,null,null]#0", "[75,148,1.5,100,\"R\",null,null,null]#0", "[83,155.5,2.125,100,\"R\",null,null,null]#0", "[68,158.5,1.125,100,\"R\",null,null,null]#0", "[80,160,0.5,100,\"R\",null,null,null]#0", "[75,166,0.5,100,\"R\",null,null,null]#0", "[76,168,2,100,\"R\",null,null,null]#0", "[76,172,2,100,\"R\",null,null,null]#0", "[78,174,0.5,100,\"R\",null,null,null]#0", "[80,176,0.5,100,\"R\",null,null,null]#0", "[85,176,0.5,100,\"R\",null,null,null]#0", "[75,182,0.5,100,\"R\",null,null,null]#0", "[81,183.5,1,100,\"R\",null,null,null]#0", "[76,184,2.5,100,\"R\",null,null,null]#0", "[80,184.5,0.5,100,\"R\",null,null,null]#0", "[76,186.5,0.625,100,\"R\",null,null,null]#0"],
+      "proposedRestIntervals": [],
+      "evidence": { "sourceNotes": 475, "attacks": 133, "handCounts": { "L": 94, "R": 381 }, "longRAnchors": 21, "reason": "R remains dense and contains repeated short decorations; no source-backed rest can be asserted" }
+    },
+    {
+      "id": "section-2-ambiguity",
+      "rangeBeats": [83.5, 89.5],
+      "sourceSection": "Section 2",
+      "annotationKind": "RH-part override candidate anchors only; automatic melody unverified",
+      "expectedState": "RH candidate anchors in contextual ambiguity window; automatic musical role unverified",
+      "proposedMelodySourceIds": ["[75,86,0.5,100,\"R\",null,null,null]#0", "[76,88,2,100,\"R\",null,null,null]#0"],
+      "proposedRestIntervals": [],
+      "evidence": { "sourceNotes": 48, "attacks": 12, "handCounts": { "L": 8, "R": 40 }, "longRAnchors": 2, "targetWindowAutomaticAmbiguitySpans": [[83.5, 83.875]], "contextualAutomaticAmbiguitySpans": [[91.5, 91.875], [94.5, 94.75], [95, 95.625], [99.5, 99.875]], "reason": "the source is R-dense but the current ambiguity path evidence includes contextual spans outside this target window; musical identity remains unresolved" }
+    }
+  ]
+}

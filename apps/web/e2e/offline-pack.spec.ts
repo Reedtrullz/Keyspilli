@@ -1,7 +1,46 @@
 import {expect,test} from "@playwright/test";
 import {readFile} from "node:fs/promises";
 import {join} from "node:path";
+import {createServer} from "node:http";
 const xml=`<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>${['C','D','E','F','G','A','B','C'].map(step=>`<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration></note>`).join('')}</measure></part></score-partwise>`;
+test("offline document retains framing protection after service-worker caching", async ({page, context, baseURL}) => {
+ if (!baseURL) throw Error("The maintained app base URL is required");
+ const frameErrors:string[]=[];
+ page.on("console", message => {if(message.type()==="error")frameErrors.push(message.text());});
+ const server=createServer((_request,response)=>{response.writeHead(200,{"Content-Type":"text/html"});response.end(`<iframe src="${baseURL}/offline/index.html"></iframe>`);});
+ await new Promise<void>((resolve,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",()=>resolve());});
+ const address=server.address();
+ if(!address||typeof address==="string")throw Error("No loopback fixture address");
+ const parent=`http://127.0.0.1:${address.port}`;
+ const assertBlocked=async()=>{
+  frameErrors.length=0;
+  await page.goto(parent);
+  await expect.poll(()=>frameErrors.some(message=>/frame-ancestors|X-Frame-Options/i.test(message))).toBe(true);
+  expect(page.frames().some(frame=>frame.url()===`${baseURL}/offline/index.html`)).toBe(false);
+ };
+ const install=await context.newPage();
+ try{
+  await assertBlocked();
+  await install.goto("/offline/index.html");
+  await install.evaluate(async()=>{
+   await navigator.serviceWorker.register("/offline/sw.js",{scope:"/offline/"});
+   await navigator.serviceWorker.ready;
+   if(!navigator.serviceWorker.controller)await new Promise<void>(resolve=>navigator.serviceWorker.addEventListener("controllerchange",()=>resolve(),{once:true}));
+  });
+  const cached=await install.evaluate(async()=>{
+   const key=(await caches.keys()).find(key=>key.startsWith("keyspilli.offline.shell."));
+   if(!key)throw Error("No installed shell cache");
+   const response=await(await caches.open(key)).match("/offline/index.html");
+   if(!response)throw Error("No cached document");
+   return Object.fromEntries(response.headers);
+  });
+  expect(cached["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(cached["x-frame-options"]).toBe("DENY");
+  expect(cached["x-content-type-options"]).toBe("nosniff");
+  expect(cached["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  await assertBlocked();
+ }finally{await install.close();await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}
+});
 test("one opted-in pack opens and practices offline; lock, staleness, quota refusal and removal stay explicit",async({page,context,request})=>{
  const headers={Authorization:"Bearer test-token-for-e2e","Content-Type":"application/xml"},created=await request.post("/api/uploads?title=Offline%20Fixture&artist=Owner",{headers,data:Buffer.from(xml)});expect(created.ok(),await created.text()).toBe(true);const receipt=await created.json(),id=receipt.songIds.find((v:string)=>v.endsWith("-a")),path=join(process.env.KEYSPILLI_E2E_SCRATCH_DIR!,"artifacts",receipt.baseId,"a","notes.json"),before=await readFile(path);
  try{
