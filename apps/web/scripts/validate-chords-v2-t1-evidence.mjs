@@ -6,8 +6,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const baselinePath = join(repoRoot, "docs/superpowers/evidence/2026-09-17-chords-v2-baseline.json");
-const captureManifestPath = join(repoRoot, "docs/superpowers/evidence/2026-09-17-chords-v2-oops-phrase-captures.json");
+const baselinePath = join(repoRoot, "evidence/superpowers/2026-09-17-chords-v2-baseline.json");
+const captureManifestPath = join(repoRoot, "evidence/superpowers/2026-09-17-chords-v2-oops-phrase-captures.json");
 const baseline = JSON.parse(readFileSync(baselinePath, "utf8"));
 const captureManifest = JSON.parse(readFileSync(captureManifestPath, "utf8"));
 const failures = [];
@@ -34,8 +34,8 @@ function checkFixture(root, item, label) {
   }
 }
 
-for (const item of baseline.productionFixtures) checkFixture("docs/superpowers/evidence/2026-09-17-chords-v2-fixtures", item, `production/${item.baseId}`);
-for (const item of baseline.evaluationReservation) checkFixture("docs/superpowers/evidence/2026-09-17-chords-v2-evaluation-fixtures", item, `evaluation/${item.baseId}`);
+for (const item of baseline.productionFixtures) checkFixture("evidence/superpowers/2026-09-17-chords-v2-fixtures", item, `production/${item.baseId}`);
+for (const item of baseline.evaluationReservation) checkFixture("evidence/superpowers/2026-09-17-chords-v2-evaluation-fixtures", item, `evaluation/${item.baseId}`);
 
 if (captureManifest.entries.length !== 19) failures.push(`capture manifest: expected 19 entries, got ${captureManifest.entries.length}`);
 for (const entry of captureManifest.entries) {

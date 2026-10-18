@@ -9,7 +9,7 @@ unknown material was intentionally retained.
 * Branch: `codex/metal-inference-lane-lock`; local HEAD `52a6541c859007349d24a70beb37dcd890e12756`.
 * Data-volume free space: approximately 15.4 GiB (97% used), below the 30 GiB verification floor.
 * Repository: approximately 1.61 GiB allocated; `.git` approximately 22 MiB; ignored runtime `data/` approximately 818 MiB; ignored `output/` approximately 34 MiB.
-* Keyspilli-named `/private/tmp` artifacts: approximately 23.85 GiB across 234 top-level directories. The full measured inventory is `docs/research/keyspilli-evidence/storage-inventory.json`.
+* Keyspilli-named `/private/tmp` artifacts: approximately 23.85 GiB across 234 top-level directories. The full measured inventory is `evidence/research/storage-inventory.json`.
 * The topic branch was 153 commits ahead of the remote topic ref; no remote-only commits were found.
 
 ## Ponytail audit
@@ -44,7 +44,7 @@ to avoid a non-fast-forward history rewrite during this backup.
 ## Research preservation
 
 The durable path-free ledger is under
-`docs/research/keyspilli-evidence/`: chronology, experiment JSON, reproduction
+`evidence/research/`: chronology, experiment JSON, reproduction
 provenance, storage policy, and measured inventory. It preserves the direct-metal
 failure, Defence reference/listening findings, OMR decision, seven-song benchmark
 status (0/7 independent aligned candidates), AMT A/B evidence, and the
@@ -130,7 +130,7 @@ performed.
    reported in the closeout response. The immutable checkpoint remains
    `research-metal-evidence-2026-09-01` at `b426507...`.
 7. Checkpoint tag: `research-metal-evidence-2026-09-01` (verified remotely; peeled commit `b426507589108c10cf42d58ca6e995ff38d5a048`).
-8. Preserved evidence: `docs/research/keyspilli-evidence/README.md` records direct-metal/source-aware and semantic-harmony conclusions, Defence reference/listening findings, the OMR/Audiveris/HOMR decision, seven benchmark status, AMT route results, architecture decisions, and alignment/readiness gates. `experiment-ledger.json` carries stable experiment IDs, commits, metrics, decisions, and report hashes; `reproduction-manifest.md` records model/tool/config boundaries; `storage-inventory.json` and `storage-policy.md` preserve measured storage and retention rules. Raw reports are represented by summaries/hashes, not media or copyrighted note arrays.
+8. Preserved evidence: `evidence/research/README.md` records direct-metal/source-aware and semantic-harmony conclusions, Defence reference/listening findings, the OMR/Audiveris/HOMR decision, seven benchmark status, AMT route results, architecture decisions, and alignment/readiness gates. `experiment-ledger.json` carries stable experiment IDs, commits, metrics, decisions, and report hashes; `reproduction-manifest.md` records model/tool/config boundaries; `storage-inventory.json` and `storage-policy.md` preserve measured storage and retention rules. Raw reports are represented by summaries/hashes, not media or copyrighted note arrays.
 9. Private irreplacable assets: seven benchmark MIDI files, available score PDFs, supplied/reference Defence files, and private recordings/source stems still under active review.
 10. Storage: private Downloads and bounded private work directories; no independent private remote was configured.
 11. Deleted: generated WAV/stems/listening packs, deterministic twins, temporary OMR/raster/XML/transcription outputs, duplicate benchmark experiment outputs, selected reacquirable model/cache material, stale registered worktrees via `git worktree remove`, the generated web build cache, and untracked package-manager/scratch files. Private originals, active runtime data, unknown paths, accepted compact corpus, and protected output13 were retained.

@@ -53,7 +53,7 @@ For each task: add focused regression, observe its expected failure, implement m
 
 ## T1 — Freeze full-song evidence and source contracts
 
-**Files:** create `docs/superpowers/evidence/2026-09-19-chords-finish/manifest.json`, `findings.md`, `source-contract.md`; reuse frozen fixtures under `2026-09-17-chords-v2-fixtures` and existing capture tools. Read `packages/midi/src/types.ts`, `apps/web/src/lib/catalog-api.ts`, `apps/web/src/components/player/chord-sources.ts`, source import/normalization callers identified there.
+**Files:** create `evidence/superpowers/2026-09-19-chords-finish/manifest.json`, `findings.md`, `source-contract.md`; reuse frozen fixtures under `2026-09-17-chords-v2-fixtures` and existing capture tools. Read `packages/midi/src/types.ts`, `apps/web/src/lib/catalog-api.ts`, `apps/web/src/components/player/chord-sources.ts`, source import/normalization callers identified there.
 
 **Interface:** manifest records exact song ID/variant, source file hashes, baseline SHA, original note/chord files, tempo, timing evidence, melody/harmony evidence, and decision/blocker. No empty acceptance cells interpreted as pass.
 

@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 
 const repoRoot = resolve(__dirname, "../..");
 const sourceRoot = process.env.KEYSPILLI_T1_FIXTURE_ROOT
-  ?? join(repoRoot, "docs/superpowers/evidence/2026-09-17-chords-v2-fixtures");
+  ?? join(repoRoot, "evidence/superpowers/2026-09-17-chords-v2-fixtures");
 process.env.KEYSPILLI_T1_MODE = "1";
 const t1ManifestPath = join(repoRoot, "apps/web/test-results/oops-phrase-captures.json");
 rmSync(t1ManifestPath, { force: true });

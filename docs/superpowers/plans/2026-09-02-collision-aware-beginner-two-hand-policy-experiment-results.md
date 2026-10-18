@@ -73,7 +73,7 @@ No human audit, audio render, replay, production replay, deployment, reference M
 
 - Frozen starting revision: `1998bd6`
 - Preregistration commit: `3397e80`
-- Preregistration: `docs/superpowers/plans/2026-09-02-collision-aware-beginner-two-hand-policy-preregistration.json`
+- Preregistration: `evidence/plans/2026-09-02-collision-aware-beginner-two-hand-policy-preregistration.json`
 - Corrected Task 3 report: `.superpowers/sdd/2026-09-02-collision-aware-beginner-two-hand-policy-experiment/task-3-report.md`
 - Logical evaluator ID: `collision-aware-eval-20260902`
 - Scratch evaluator output SHA-256: `784611c4bcf0907a51d1618f1b4f9526a5359e3a7a98d71dcfc7193d3c96afcd`

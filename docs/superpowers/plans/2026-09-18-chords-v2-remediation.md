@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing TypeScript, `@keyspilli/player-core`, `@keyspilli/midi`, React/Next.js, Vitest, Playwright, Node 22. No new dependency, model service, catalogue rebuild, or production mutation.
 
-**Spec:** `docs/superpowers/plans/2026-09-17-musically-useful-chords-mode.md`; corrected audit `docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit.md`.
+**Spec:** `docs/superpowers/plans/2026-09-17-musically-useful-chords-mode.md`; corrected audit `evidence/superpowers/2026-09-18-pr100-chords-v2-skeptical-audit.md`.
 
 ## Global Constraints
 
@@ -30,7 +30,7 @@
 
 - Modify: `packages/player-core/src/accompaniment.ts` around `accompanimentNote`, `enforceAccompanimentSoundingLimits`, and the final event pipeline.
 - Test: `packages/player-core/test/melody-accompaniment.test.ts`.
-- Evidence: update the remediation evidence under `docs/superpowers/evidence/` only after tests establish the behavior.
+- Evidence: update the remediation evidence under `evidence/superpowers/` only after tests establish the behavior.
 
 **Interfaces:** Consume selected melody and retained-unclassified events plus source support lineage. Produce final `ArrangementEvent[]` with support assigned to `L` or `R`, preserving mandatory events and source IDs.
 
@@ -48,7 +48,7 @@
 
 - Modify: `packages/player-core/src/accompaniment.ts` in source reduction, sparse support, phrase/event selection, and provenance.
 - Test: `packages/player-core/test/melody-accompaniment.test.ts`.
-- Reproduce: `docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts` and its JSON output.
+- Reproduce: `evidence/superpowers/2026-09-18-pr100-chords-v2-skeptical-audit-reproduce.ts` and its JSON output.
 
 **Interfaces:** Consume supported harmonic events, source attack groups, selected melody/protected hooks, validated meter/phase when present, and prior voicing. Produce one chosen phrase candidate with honest `strategy`, `change`, `supportModes`, fallback spans, and exact event lineage.
 
@@ -87,7 +87,7 @@
 
 - Modify: `apps/web/src/components/player/Player.tsx`, `apps/web/src/components/player/SoundControls.tsx`, and only the smallest related tests.
 - Test: `apps/web/e2e/melody-accompaniment.spec.ts` and `apps/web/src/components/player/SoundControls.test.tsx`.
-- Evidence: `docs/superpowers/evidence/2026-09-18-pr100-chords-v2-skeptical-audit.md`, reproduction script/results, and a new remediation checkpoint file.
+- Evidence: `evidence/superpowers/2026-09-18-pr100-chords-v2-skeptical-audit.md`, reproduction script/results, and a new remediation checkpoint file.
 
 - [ ] Add failing assertions for actual phrase status: use neutral `unchanged` for unchanged/no-reason intervals, fallback only for real blocked spans, and source-reduction success not presented as generated backing. Do not treat exact equality as musical validation.
 - [ ] Add failing assertions that Full/Melody/Accompaniment, audio, guidance, and grading all use the same derived event result and that no duplicate chord audio is scheduled.
@@ -99,7 +99,7 @@
 
 **Files:**
 
-- Update: `docs/superpowers/evidence/` checkpoint/report files and the SDD ledger.
+- Update: `evidence/superpowers/` checkpoint/report files and the SDD ledger.
 - No production/catalogue files or live systems.
 
 - [ ] Re-run the disk guard and Node 22 checks.
