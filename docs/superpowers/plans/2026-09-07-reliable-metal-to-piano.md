@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing TypeScript/Node 22 monorepo, Python audio environment, Demucs/Basic Pitch baseline, Vitest and existing local evaluators. No new model dependency selected by this plan.
 
-**Spec:** `docs/research/keyspilli-evidence/metal-to-midi-audit-2026-09-07.md` and the user's requirement that the metal-to-piano system actually works automatically.
+**Spec:** `evidence/research/metal-to-midi-audit-2026-09-07.md` and the user's requirement that the metal-to-piano system actually works automatically.
 
 ## Global Constraints
 
@@ -134,4 +134,4 @@ If no tested route recovers sufficiently correct notes, stop feature expansion. 
 
 ## Execution checkpoint — 7 September 2026
 
-See `docs/research/keyspilli-evidence/metal-delivery-progress-2026-09-07.md` and its development scorecard.12 full-song A/B pairs generated;22/24 structural passes, musical/source-accuracy gate incomplete. Reidar rejected the initial A/B previews as far below acceptable quality. Independent reference coverage remains incomplete; musical promotion failed. No release holdout predictions or deployment. Unchecked tasks remain open even where generation is finished.
+See `evidence/research/metal-delivery-progress-2026-09-07.md` and its development scorecard.12 full-song A/B pairs generated;22/24 structural passes, musical/source-accuracy gate incomplete. Reidar rejected the initial A/B previews as far below acceptable quality. Independent reference coverage remains incomplete; musical promotion failed. No release holdout predictions or deployment. Unchecked tasks remain open even where generation is finished.

@@ -534,6 +534,87 @@ class Lifecycle(unittest.TestCase):
         self.assertEqual(len(rejected), 1)
         self.assertFalse(rejected[0].exists())
 
+    def test_successful_builds_release_only_their_owned_builder_cache(self):
+        fake = self.root.parent / "cache-docker"
+        audit = self.root.parent / "docker-audit.jsonl"
+        fake.write_text("#!" + sys.executable + "\n" + r'''
+import json, os, pathlib, sys
+args = sys.argv[1:]
+root = pathlib.Path(os.environ["KEYSPILLI_SCRATCH"])
+cache = root / "simulated-build-cache"
+name = "keyspilli-evidence-" + os.environ["KEYSPILLI_EVIDENCE_RUN"]
+with pathlib.Path(os.environ["FIXTURE_AUDIT"]).open("a") as log:
+    log.write(json.dumps(args) + "\n")
+if args[0] == "info":
+    print("fixture-daemon")
+elif args[:2] == ["buildx", "create"]:
+    pass
+elif args[:2] == ["buildx", "build"]:
+    if cache.exists():
+        sys.exit("previous build cache overlaps the next image build")
+    cache.write_bytes(b"cache" * 1024)
+    print("retained-build-result")
+    if os.environ.get("FIXTURE_BUILD_FAILURE") == "1":
+        sys.exit(17)
+elif args[0] == "ps":
+    print("a" * 64)
+elif args[0] == "inspect":
+    print(json.dumps([dict(Id="a" * 64, Name="/foreign" if os.environ.get("FIXTURE_FOREIGN") else "/buildx_buildkit_" + name + "0",
+        Mounts=[dict(Type="volume", Name="buildx_buildkit_" + name + "0_state")])]))
+elif args[:2] == ["buildx", "prune"]:
+    assert args == ["buildx", "prune", "--builder", name, "--all", "--force"]
+    assert pathlib.Path(os.environ["BUILDX_CONFIG"]) == root / "buildx-config"
+    if os.environ.get("FIXTURE_PRUNE_FAILURE"):
+        sys.exit(19)
+    cache.unlink()
+    print("retained-cache-release-result")
+else:
+    sys.exit("unexpected fixture operation: " + repr(args))
+''')
+        fake.chmod(0o700)
+        self.env.update(KEYSPILLI_REAL_DOCKER=str(fake), FIXTURE_AUDIT=str(audit),
+                        KEYSPILLI_EVIDENCE_LIMIT_BYTES=str(2 * 1024 ** 3))
+        doc = json.loads(self.cli("begin", "--peak-bytes", str(1024 ** 3),
+                                  "--owner-pid", str(self.dead_pid)).stdout)
+        env = {**self.env, "KEYSPILLI_EVIDENCE_ROOT": str(self.root), "KEYSPILLI_EVIDENCE_RUN": doc["id"]}
+        configured = json.loads(subprocess.check_output([sys.executable, str(SCRIPT), "environment"], env=env, text=True))
+        env.update(configured)
+        command = [str(SCRIPT.with_name("evidence-docker.py")), "build", "-t", "keyspilli-test:fixture", "."]
+        for _ in range(2):
+            result = subprocess.run([sys.executable, *command], env=env, capture_output=True, text=True, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertFalse((Path(configured["KEYSPILLI_SCRATCH"]) / "simulated-build-cache").exists())
+        calls = [json.loads(line) for line in audit.read_text().splitlines()]
+        self.assertEqual(sum(row[:2] == ["buildx", "create"] for row in calls), 1)
+        self.assertEqual(sum(row[:2] == ["buildx", "prune"] for row in calls), 2)
+        self.assertFalse(any(row[:2] == ["image", "rm"] for row in calls))
+        records = self.documents()[0]
+        self.assertEqual(sum(row["kind"] == "image" for row in records["resources"]), 2)
+        logs = "".join(p.read_text() for p in (self.root / "evidence" / doc["id"]).glob("docker-*.log"))
+        self.assertIn("retained-build-result", logs)
+        self.assertIn("retained-cache-release-result", logs)
+        audit.write_text("")
+        result = subprocess.run([sys.executable, *command], env={**env, "FIXTURE_BUILD_FAILURE": "1"},
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 17, result.stdout + result.stderr)
+        self.assertFalse(any(json.loads(row)[:2] == ["buildx", "prune"] for row in audit.read_text().splitlines()))
+        cache = Path(configured["KEYSPILLI_SCRATCH"]) / "simulated-build-cache"
+        cache.unlink()
+        audit.write_text("")
+        result = subprocess.run([sys.executable, *command], env={**env, "FIXTURE_FOREIGN": "1"},
+                                capture_output=True, text=True, timeout=15)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("foreign or replaced", result.stderr)
+        self.assertFalse(any(json.loads(row)[:2] == ["buildx", "prune"] for row in audit.read_text().splitlines()))
+        cache.unlink()
+        result = subprocess.run([sys.executable, *command], env={**env, "FIXTURE_PRUNE_FAILURE": "1"},
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 19, result.stdout + result.stderr)
+        self.assertTrue(cache.exists())
+        measurements = [json.loads(p.read_text()) for p in (self.root / "evidence" / doc["id"]).glob("builder-cache-*.json")]
+        self.assertEqual(sorted(row["exitCode"] for row in measurements), [0, 0, 19])
+        self.assertTrue(all(row["availableBefore"] > 0 and row["availableAfter"] > 0 for row in measurements))
+
     def test_private_builder_config_survives_a_different_finalizer_home(self):
         docker_peak = 1024 ** 3
         self.env["KEYSPILLI_EVIDENCE_LIMIT_BYTES"] = str(2 * docker_peak)
@@ -541,12 +622,16 @@ class Lifecycle(unittest.TestCase):
         fake.write_text('#!' + sys.executable + '\n' +
             'import os,pathlib,sys\n'
             'args=sys.argv[1:]\n'
+            f'record=pathlib.Path({str(self.root.parent / "builder-state")!r})\n'
             'if args[0]=="info": print("fixture-daemon")\n'
             'elif args[:2]==["buildx","create"]:\n'
-            ' p=pathlib.Path(os.environ["BUILDX_CONFIG"]); p.mkdir(parents=True); (p/"builder").write_text(args[args.index("--name")+1])\n'
+            ' p=pathlib.Path(os.environ["BUILDX_CONFIG"]); p.mkdir(parents=True); (p/"builder").write_text(args[args.index("--name")+1]); record.write_text(args[args.index("--name")+1])\n'
             'elif args[:2]==["buildx","build"]: print("build-result")\n'
+            'elif args[0]=="ps": print("a"*64) if record.exists() else None\n'
+            'elif args[0]=="inspect":\n'
+            ' import json; n=record.read_text(); print(json.dumps([dict(Id="a"*64,Name="/buildx_buildkit_"+n+"0",Mounts=[dict(Type="volume",Name="buildx_buildkit_"+n+"0_state")])]))\n'
             'elif args[:2]==["buildx","ls"]: print((pathlib.Path(os.environ["BUILDX_CONFIG"])/"builder").read_text())\n'
-            'elif args[:2]==["buildx","rm"]: (pathlib.Path(os.environ["BUILDX_CONFIG"])/"builder").unlink()\n')
+            'elif args[:2]==["buildx","rm"]: (pathlib.Path(os.environ["BUILDX_CONFIG"])/"builder").unlink(); record.unlink()\n')
         fake.chmod(0o700)
         self.env["KEYSPILLI_REAL_DOCKER"] = str(fake)
         code = 'import subprocess; subprocess.run(["docker","build","-t","keyspilli-test:fixture","."],check=True)'

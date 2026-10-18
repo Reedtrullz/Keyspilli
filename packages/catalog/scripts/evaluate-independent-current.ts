@@ -20,7 +20,7 @@ const realFixtures = [
   ["pop", "Hello", "Adele", "data/artifacts/adele-hello/a/notes.json"],
 ] as const;
 
-const preregistrationPath = join(ROOT, "docs/superpowers/plans/beginner-sparse-lh-independent-current-eval-preregistration.json");
+const preregistrationPath = join(ROOT, "evidence/plans/beginner-sparse-lh-independent-current-eval-preregistration.json");
 
 function summary(variant: Variant): Record<string, unknown> {
   const notes = variant.notes;

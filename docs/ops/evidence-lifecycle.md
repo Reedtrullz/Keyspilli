@@ -55,7 +55,16 @@ arguments. Docker output is streamed to its original stdout/stderr and retained
 in separate raw log files. Only test tags are accepted for builds; aliases map
 to unique run tags/names. Containers carry the exact run label. Each run gets a
 private buildx builder and its state is removed through buildx, not filesystem
-deletion. `BUILDX_CONFIG` is inside that run's scratch and is used explicitly by
+deletion. After each successful image import, the wrapper releases unused cache
+from that exact private builder before the next image build. It verifies the
+run is running and unpinned, the daemon identity, and the recorded builder
+container/volume references. A foreign or replaced builder is refused. This
+builder-scoped operation preserves imported images and their pins; no global
+Docker prune is allowed. Failure or cancellation keeps the original build
+result and leaves teardown to the existing finalizer/recovery path. Cache
+release failures remain nonzero. Raw output and before/after free-byte readings
+are durable evidence; those readings can also include unrelated host activity.
+`BUILDX_CONFIG` is inside that run's scratch and is used explicitly by
 both the original client and a different-user/root recovery finalizer. Writable binds must be inside that run's scratch; other binds are
 read-only. All container references, extra image aliases/digests, backup image
 pins and pending deployment metadata prevent image retirement.
