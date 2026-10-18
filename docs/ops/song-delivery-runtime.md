@@ -126,6 +126,35 @@ quota produced `Data limit exceeded` across both retained runner attempts; the
 existing bounded retries cannot clear that quota. Registry acquisition does not
 skip the edge, restore, browser or image checks.
 
+## Native browser rehearsal
+
+The existing `runtime-rehearsal.yml` builds the web and worker on native Linux
+amd64 using the public seed catalog. Its opt-in `deploy/restore-app.py ...
+--sampled` check runs Chromium **inside** the restored web container, with an
+inspected 1.5 CPU quota, 1 GiB memory and 128 PID limit. The host and immutable
+image must both be amd64. Host-side playback or emulation does not qualify this
+check. The five-argument restore command remains an HTTP/framing canary; its
+`browserPlaybackAcceptance: not_tested` field is intentionally unchanged.
+
+The sampled check mounts only the allowlisted test SDK and source paths read-only.
+Its generated MusicXML software control is uploaded into the owned writable
+restore copy, then deleted through the application API. It records six seconds
+of actual Original and Chords PCM with the maintained Player capture helper,
+including the full sampled-bank transfer barrier and unchanged readiness,
+signal and clipping assertions. A separate idle, paired recorder control must
+remain silent. MIDI and MusicXML are downloaded through the actual active UI
+selection and checked for mode, hash and note/time parity. PDF requests reuse
+that selection after the capture browser exits; this part checks the API path,
+not a PDF button click. No provider inference is called.
+
+`native-player/result.json`, PCM, screenshots and exports are retained alongside
+the restore report and lifecycle reconstruction evidence. Failures, timeouts
+and cancellation cannot produce a successful application report; owned-container
+cleanup still runs. A cleanup failure remains a failure. The job's existing
+45-minute and restore-step 12-minute bounds are unchanged. This synthetic runtime
+check does not establish musical, physical-keyboard, independent listening,
+production-catalog or production-deployment acceptance.
+
 ## Acceptance scope
 
 Keep code review, stock-renderer operation, actual browser handoff, independent
