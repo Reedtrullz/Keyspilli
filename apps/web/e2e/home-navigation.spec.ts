@@ -38,7 +38,9 @@ async function holdHome(page: Page, pathname = "/") {
   let release!: () => void, requests = 0;
   const pending = new Promise<void>(resolve => { release = resolve; });
   await page.route(url => url.pathname === pathname && url.searchParams.has("_rsc"), async route => {
-    requests++; await pending; await route.continue();
+    // Count navigations only: Next 16 issues separate segment prefetches for the same URL.
+    if (!route.request().headers()["next-router-prefetch"]) requests++;
+    await pending; await route.continue();
   });
   return { release, requests: () => requests };
 }
@@ -83,6 +85,35 @@ for (const [name, keyboard] of [["Home", false], ["Keyspilli", true], ["Return t
   });
 }
 
+
+for (const action of ["tab", "download"] as const) {
+  test(`pending Home preserves a native ${action} action for the same destination`, async ({ page }) => {
+    const hold = await holdHome(page);
+    try {
+      await page.goto("/player/ui-fixture-m");
+      await page.getByRole("link", { name: "Home", exact: true }).first().click();
+      await expect(page.getByRole("status").filter({ hasText: "Opening Home" })).toBeVisible();
+      await page.evaluate(action => {
+        const link = document.createElement("a");
+        link.href = "/";
+        link.textContent = "Native destination action";
+        if (action === "tab") link.target = "_blank";
+        else link.download = "native-home.html";
+        document.body.append(link);
+      }, action);
+      const link = page.getByRole("link", { name: "Native destination action", exact: true });
+      if (action === "tab") {
+        const [popup] = await Promise.all([page.waitForEvent("popup", { timeout: 5_000 }), link.click()]);
+        try { await expect(popup).toHaveURL("http://127.0.0.1:3110/"); }
+        finally { await popup.close(); }
+      } else {
+        const [download] = await Promise.all([page.waitForEvent("download", { timeout: 5_000 }), link.click()]);
+        expect(download.suggestedFilename()).toBe("native-home.html");
+        expect(await download.failure()).toBeNull();
+      }
+    } finally { hold.release(); }
+  });
+}
 
 test("pending Home stops rhythm audio and tap capture", async ({ page }) => {
   const hold = await holdHome(page);
