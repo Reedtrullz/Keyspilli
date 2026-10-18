@@ -20,16 +20,10 @@ import {
   evaluateDifficultyLadder,
   type DifficultyLadderClassification,
   type DifficultyLadderEvaluation,
-  type DifficultyLadderLevelMetrics,
 } from "../src/arrangement-evaluation.js";
 import { ROOT } from "../src/paths.js";
 
 const ONSET_TOLERANCE = 0.08;
-const REAL_FIXTURES = [
-  ["classical", "Clair de lune", "Claude Debussy", "data/artifacts/c-debussy-suite-bergamasque-clair-de-lune/a/notes.json"],
-  ["cover", "River Flows in You", "Yiruma", "data/artifacts/paul-gassa-yiruma-river-flows-in-you-emotional-piano-cover-msl98ing/a/notes.json"],
-  ["pop", "Hello", "Adele", "data/artifacts/adele-hello/a/notes.json"],
-] as const;
 
 type FixtureSpec = {
   id: string;

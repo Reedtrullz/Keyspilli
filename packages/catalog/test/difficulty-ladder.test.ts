@@ -138,7 +138,7 @@ function legacyTransportDigest(bytes: Uint8Array): string {
 describe("difficulty ladder calibration", () => {
   it("uses the canonical six-level order and emits deterministic all-level diagnostics", () => {
     const first = learnerVariants();
-    const second = learnerVariants([...sourceNotes()].reverse());
+    const _second = learnerVariants([...sourceNotes()].reverse());
     const firstReport = evaluateDifficultyLadder({
       fixture: { id: "synthetic-ladder" },
       sourceNotes: sourceNotes(),

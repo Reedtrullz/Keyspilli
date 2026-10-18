@@ -64,7 +64,7 @@ async function main(): Promise<number> {
             await run(process.execPath, args, { timeout: 100000, maxBuffer: 2 * 1024 * 1024 });
             audio = await joinSavedAudioObservation(input, join(audioOut, "report.json"));
         }
-        catch (error) {
+        catch (_error) {
             let attempts = 0;
             try {
                 attempts = JSON.parse(await readFile(join(audioOut, "state.json"), "utf8")).attemptsUsed;

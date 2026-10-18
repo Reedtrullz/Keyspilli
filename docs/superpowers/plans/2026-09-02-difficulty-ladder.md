@@ -17,7 +17,7 @@ external/reference MIDI, audio, AMT, separator, source research, catalog
 mutation, production replay, or deployment was used.
 
 The reproducible machine report is
-[`2026-09-02-difficulty-ladder-baseline.json`](./2026-09-02-difficulty-ladder-baseline.json).
+[`2026-09-02-difficulty-ladder-baseline.json`](../../../evidence/plans/2026-09-02-difficulty-ladder-baseline.json).
 The narrative results and review packet are
 [`2026-09-02-difficulty-ladder-results.md`](./2026-09-02-difficulty-ladder-results.md)
 and [`2026-09-02-difficulty-ladder-audit-packet.md`](./2026-09-02-difficulty-ladder-audit-packet.md).

@@ -18,8 +18,8 @@ afterEach(() => vi.restoreAllMocks());
 const env = preparationEnvironment(scratch, process.execPath);
 const base = { command: "fixture", executable: process.execPath, cwd: root, env, timeoutMs: 3000, stdout: (_bytes: Buffer) => {}, stderr: (_bytes: Buffer) => {} };
 
-const retained = (test: () => Promise<void>) => async () => {
-  try { await test(); }
+const retained = <Args extends unknown[]>(test: (...args: Args) => Promise<void>) => async (...args: Args) => {
+  try { await test(...args); }
   catch (error) { retainDiagnostic = true; throw error; }
 };
 
@@ -198,15 +198,24 @@ describe("owned child groups", () => {
     expect(result.signals).toContain("SIGTERM");
   }));
 
-  it("refuses closure first observed after the passive deadline even when the delayed poll finds no group", retained(async () => {
+  it.each([false, true])("refuses closure first observed after the passive deadline even when the delayed poll finds no group (transient fixture failure: %s)", retained(async (transientFailure: boolean) => {
     const schedule = setTimeout, actualPresent = ownedGroups.groupPresent;
-    let group: number | undefined, heldPoll = false, absentBeforeRelease = false;
+    let group: number | undefined, heldPoll = false, absentBeforeRelease = false, fixtureFailures = 0;
+    const observationErrors: string[] = [];
+    const observe = () => {
+      if (transientFailure && fixtureFailures === 0) {
+        fixtureFailures++;
+        throw new Error("controlled fixture observation timeout");
+      }
+      return actualPresent(group!);
+    };
     vi.spyOn(globalThis, "setTimeout").mockImplementation(((callback: (...args: unknown[]) => void, ms?: number, ...args: unknown[]) => {
       if (group !== undefined && ms === 25 && !heldPoll) {
         heldPoll = true;
         const stopObservingAt = Date.now() + 1000;
         const releaseAfterNaturalClosure = () => {
-          absentBeforeRelease = !actualPresent(group!);
+          try { absentBeforeRelease = !observe(); }
+          catch (error) { observationErrors.push(String(error)); }
           if (absentBeforeRelease || Date.now() >= stopObservingAt) callback(...args);
           else schedule(releaseAfterNaturalClosure, 5);
         };
@@ -216,6 +225,9 @@ describe("owned child groups", () => {
     }) as typeof setTimeout);
     const result = await descendant({ finite: true, finiteMs: 350, timeoutMs: 1737,
       onFirstProbe: pid => { group = pid; } });
+    writeFileSync(join(scratch, `delayed-poll-${transientFailure}.json`), JSON.stringify({ observationErrors, fixtureFailures, absentBeforeRelease, receipt: result.receipt }) + "\n");
+    expect(fixtureFailures).toBe(Number(transientFailure));
+    if (transientFailure) expect(observationErrors).toContain("Error: controlled fixture observation timeout");
     expect(result.firstProbe).toBe(true); expect(heldPoll).toBe(true); expect(absentBeforeRelease).toBe(true);
     expect(result.receipt).toEqual({ command: "fixture", exitCode: 0, signal: null, termination: "descendants", groupClosed: true });
     expect(result.journal.map(entry => entry.event)).toEqual(["ready", "armed", "natural-completion"]);

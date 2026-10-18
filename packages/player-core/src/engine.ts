@@ -16,6 +16,7 @@ const DEFAULT_CHORD_DURATION_SEC = 1.2;
 export interface AudioLike {
   ensure(): unknown;
   readonly state?: string;
+  readonly activationPending?: boolean;
   onStateChange?: ((state: string) => void) | null;
   prepareTimbre?(): boolean | void;
   noteOn(n: TimedNote, when?: number): void;

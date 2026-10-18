@@ -42,7 +42,7 @@ The existing project-owned shadow fixture is `synthetic-full-band` (32 notes,
 12 onsets, 7.75 beats; source SHA-256
 `c8672d6923c8701408d54cc2e4dde671fbc0e9f0ca635c033e6b3a2ab7325518`). The
 complete freeze record and baseline digests are in
-[`2026-09-02-easy-preservation-baseline.json`](./2026-09-02-easy-preservation-baseline.json).
+[`2026-09-02-easy-preservation-baseline.json`](../../../evidence/plans/2026-09-02-easy-preservation-baseline.json).
 
 ## Baseline → final outputs
 

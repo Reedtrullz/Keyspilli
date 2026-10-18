@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing Node22.22.3/TypeScript, Python3.11 private runtime, FFmpeg, Demucs/Basic Pitch, NumPy/SoundFile/librosa, SQLite, Vitest, Playwright. Add no model or platform without the experiment and license checks below.
 
-**Spec:** `docs/research/keyspilli-evidence/metal-recovery-decision-2026-09-07.md`, `metal-delivery-progress-2026-09-07.md`, and the decisions below. This plan supersedes the execution order of `2026-09-07-reliable-metal-to-piano.md`; its completed evidence and untouched holdouts remain valid.
+**Spec:** `evidence/research/metal-recovery-decision-2026-09-07.md`, `metal-delivery-progress-2026-09-07.md`, and the decisions below. This plan supersedes the execution order of `2026-09-07-reliable-metal-to-piano.md`; its completed evidence and untouched holdouts remain valid.
 
 ## 1. Agreed product and autonomy decisions
 

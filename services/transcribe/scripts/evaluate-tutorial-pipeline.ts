@@ -68,7 +68,7 @@ export function matchesIdentity(actual: {title?:string;artist?:string}, expected
  const normalize=(s:string)=>s.normalize('NFKD').toLowerCase().replace(/^the /,'').replace(/[^a-z0-9]/g,'');
  return typeof actual.title==='string' && typeof actual.artist==='string' && normalize(actual.title)===normalize(expected.expectedTitle) && normalize(actual.artist)===normalize(expected.expectedArtist);
 }
-export async function loadSealedManifest(path=resolve(repoRoot,'docs/research/keyspilli-evidence/tutorial-evaluation-manifest.json')) {
+export async function loadSealedManifest(path=resolve(repoRoot,'evidence/research/tutorial-evaluation-manifest.json')) {
  if(!path.endsWith('.json')) throw Error('manifest must be a JSON file');
  const manifestBytes=await readFile(path);
  const frozenHash=(await readFile(path.slice(0,-5)+'.sha256','utf8')).split(/\s/)[0]!;

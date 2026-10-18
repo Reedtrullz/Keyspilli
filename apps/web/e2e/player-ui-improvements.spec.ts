@@ -232,6 +232,79 @@ test("sheet-only entry retains zoom and its reader position after failure, retry
   expect(requests).toBe(2);
 });
 
+test("loading controls preserves the page reached while the reader request is pending", async ({ page }) => {
+  let release: (() => void) | undefined;
+  let requested = false;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/v1/sheet/*", route => route.fulfill({ contentType: "application/xml", body: sheetXml }));
+  await page.route(url => url.pathname === "/api/songs/ui-fixture-m", async route => {
+    requested = true;
+    await pending;
+    await route.continue();
+  });
+  try {
+    await page.goto(`${song}/sheet`);
+    await page.getByLabel("Score zoom", { exact: true }).selectOption("150");
+    await page.getByRole("button", { name: "Load practice controls", exact: true }).click();
+    await expect.poll(() => requested).toBe(true);
+    const secondPage = page.locator('.sheet-svg [data-page="2"]');
+    await secondPage.scrollIntoViewIfNeeded();
+    await expect(page.locator(".sheet-svg")).toHaveAttribute("data-active-page", "2");
+    const offset = await secondPage.evaluate(el => el.getBoundingClientRect().top);
+    if (!release) throw new Error("Reader request fixture was not initialized");
+    release();
+    await expect(page.getByRole("button", { name: "Practice", exact: true })).toBeVisible();
+    await expect(page.locator(".sheet-svg")).toHaveAttribute("data-active-page", "2");
+    await expect.poll(async () => Math.abs(await secondPage.evaluate(el => el.getBoundingClientRect().top) - offset)).toBeLessThan(5);
+  } finally { release?.(); }
+});
+
+test("Play waits for native audio activation and still stops on a later suspension", async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeContext = window.AudioContext;
+    let release: (() => void) | undefined;
+    const activation = new Promise<void>(resolve => { release = resolve; });
+    window.addEventListener("keyspilli-test:resume", () => release?.());
+    window.AudioContext = class extends NativeContext {
+      private activating = true;
+      constructor(options?: AudioContextOptions) {
+        super(options);
+        window.addEventListener("keyspilli-test:suspend", () => { void this.suspend(); });
+        window.addEventListener("keyspilli-test:inspect", () => {
+          window.dispatchEvent(new CustomEvent("keyspilli-test:state", { detail: this.state }));
+        });
+      }
+      get state(): AudioContextState { return this.activating ? "suspended" : super.state; }
+      resume(): Promise<void> {
+        this.activating = true;
+        return Promise.all([super.resume(), activation]).then(() => {})
+          .finally(() => { this.activating = false; });
+      }
+    };
+  });
+  await page.goto(song);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await page.evaluate(() => new Promise<void>(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  const activatingStates = await page.evaluate(() => {
+    const states: string[] = [];
+    const collect = (event: Event) => {
+      if (event instanceof CustomEvent && typeof event.detail === "string") states.push(event.detail);
+    };
+    window.addEventListener("keyspilli-test:state", collect);
+    window.dispatchEvent(new Event("keyspilli-test:inspect"));
+    window.removeEventListener("keyspilli-test:state", collect);
+    return states;
+  });
+  expect(activatingStates).toContain("suspended");
+  await page.evaluate(() => window.dispatchEvent(new Event("keyspilli-test:resume")));
+  await expect.poll(async () => Number(await page.getByRole("slider", { name: "Seek", exact: true }).inputValue())).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event("keyspilli-test:suspend")));
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+});
+
 test("falling canvas renders notes and animates while playback advances", async ({ page }) => {
   await page.goto(song);
   const canvas = page.getByLabel("Falling notes player", { exact: true });

@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { closeSync, constants, fstatSync, lstatSync, openSync, opendirSync, readSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 import { assertSourceWorkload, canonicalPhrasePlan, compilePhrasePlan, parseMidi, type PhrasePlanV1 } from "@keyspilli/midi";
 
 export const KIND = "keyspilli-deterministic-preparation" as const;
@@ -56,6 +56,7 @@ export function validHash(value: unknown, label: string): asserts value is strin
   requireThat(typeof value === "string" && /^[a-f0-9]{64}$/.test(value), `${label} must be an explicit lowercase SHA-256`);
 }
 export function absolutePath(value: unknown, label: string): string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   requireThat(typeof value === "string" && value.length > 0 && value.length <= 4096 && !/[\x00-\x1f\x7f\\]/.test(value), `${label} is not a valid path`);
   requireThat(isAbsolute(value) && value === resolve(value) && !value.split(sep).some(part => part === "." || part === ".."), `${label} must be absolute and contain no traversal`);
   return value;
@@ -186,6 +187,7 @@ function supplied(value: unknown, label: string): SuppliedFile {
 export function parseRequest(value: unknown): PreparationRequest {
   const v = object(value, ["schemaVersion", "kind", "sourceMidi", "phrasePlan", "instructions", "title", "artist"], "request", ["phrasePlan"]);
   requireThat(v.schemaVersion === 1 && v.kind === KIND, "unsupported deterministic preparation request contract");
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   for (const key of ["title", "artist"] as const) requireThat(typeof v[key] === "string" && v[key].trim().length > 0 && v[key].length <= 256 && !/[\x00-\x1f\x7f]/.test(v[key]), `${key} must be a nonempty string of at most 256 characters without controls`);
   requireThat(Array.isArray(v.instructions) && v.instructions.length >= 1 && v.instructions.length <= CONFIG.instructionFiles, "instructions must contain 1 to 8 explicitly pinned files");
   const sourceMidi = supplied(v.sourceMidi, "sourceMidi"), phrasePlan = v.phrasePlan === undefined ? undefined : supplied(v.phrasePlan, "phrasePlan");

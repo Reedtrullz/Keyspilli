@@ -690,7 +690,7 @@ function buildMetrics(
   reference: NormalizedSymbolicScore,
   candidate: NormalizedSymbolicScore,
   hypothesis: Hypothesis,
-  tolerance: number,
+  _tolerance: number,
 ): SymbolicAlignmentMetrics {
   const exact = hypothesis.matches.filter((match) => match.exactPitch).length;
   const pitchClass = hypothesis.matches.filter((match) => match.pitchClass).length;

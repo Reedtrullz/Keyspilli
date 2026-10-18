@@ -20,9 +20,9 @@ COPY catalog/learner-review.json catalog/learner-review.json
 COPY catalog/transcription-overrides.json catalog/transcription-overrides.json
 COPY catalog/chord-sources.json catalog/chord-sources.json
 COPY catalog/chord-timelines catalog/chord-timelines
-# better-sqlite3 normally downloads a prebuilt binary. Keep the fallback path
-# deterministic when that download is unavailable (for example, a transient
-# ECONNRESET in CI) by providing the node-gyp toolchain in the build stage.
+# better-sqlite3 13 ships its prebuilt N-API binaries inside the npm package,
+# so nothing is downloaded at install time. The node-gyp toolchain stays in the
+# build stage as a fallback for native packages without a matching prebuild.
 RUN npm run typecheck -w @keyspilli/transcribe
 
 FROM node:22-slim

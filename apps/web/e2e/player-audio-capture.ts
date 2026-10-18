@@ -43,6 +43,17 @@ type ProbeWindow = Window & {
     firstSampleContextSeconds: number;
   }>;
 };
+export type RawPlayerCapture = Omit<Awaited<ReturnType<ProbeWindow["__playerCaptureStop"]>>, "wav"> & { wav: Buffer };
+
+/** Keep rejected signal evidence without changing its acceptance criteria. */
+export async function checkPlayerCapture(result: RawPlayerCapture, signalControl?: "silence" | "below-level",
+  retain?: (result: RawPlayerCapture) => void | Promise<void>): Promise<void> {
+  await retain?.(result);
+  if (signalControl === "silence") {
+    if (result.samplerStarts.length || result.rms !== 0 || result.peak !== 0 || result.beforeCompressor?.peak !== 0) throw new Error("Silence recorder control contains signal or sampled starts");
+  } else if (!result.samplerStarts.length) throw new Error("No sampled buffer starts were observed");
+  if (result.oscillatorStarts !== 0) throw new Error(`Sampled Player used oscillator fallback (${result.oscillatorStarts} oscillator starts)`);
+}
 const probedPages = new WeakMap<Page, boolean>();
 const preferenceInitPages = new WeakSet<Page>();
 
@@ -53,7 +64,7 @@ export async function installPlayerPcmProbe(page: Page, capturePreCompressor = f
     return;
   }
   probedPages.set(page, capturePreCompressor);
-  await page.addInitScript(({ paired }) => {
+  const install = ({ paired }: { paired: boolean }) => {
     const NativeContext = window.AudioContext;
     const nativeConnect = AudioNode.prototype.connect;
     const nativeStart = AudioBufferSourceNode.prototype.start;
@@ -261,7 +272,10 @@ wav: floatWav(pre, 2), forwardWav: floatWav(mono, 1), sampleRate: context.sample
       chunks = null as unknown as Float32Array[];
       return captured;
     };
-  }, { paired: capturePreCompressor });
+  };
+  // tsx retains inner function names with __name; keep that compiler helper in
+  // the same browser script so initialization never depends on script ordering.
+  await page.addInitScript({ content: `var __name = (fn, name) => Object.defineProperty(fn, "name", { value: name, configurable: true });\n(${install.toString()})(${JSON.stringify({ paired: capturePreCompressor })});` });
 }
 
 /** Arm recording immediately before the real UI handler, without an automation round trip. */
@@ -275,6 +289,7 @@ export async function startPlayerCaptureAndPlay(page: Page): Promise<void> {
 }
 
 export async function capturePlayerClip(page: Page, options: {
+  retainRawCapture?: (result: RawPlayerCapture) => void | Promise<void>;
   capturePreCompressor?: boolean;
   signalControl?: "silence" | "below-level";
   songId: string; mode: "original" | "chords"; durationMs: number; expectedAttackSeconds: number[];
@@ -354,10 +369,7 @@ export async function capturePlayerClip(page: Page, options: {
   const wav = Buffer.from(result.wav);
   const hash = createHash("sha256").update(wav).digest("hex");
   const durationSeconds = (wav.length - 44) / (result.sampleRate * 2);
-  if (options.signalControl === "silence") {
-    if (result.samplerStarts.length || result.rms !== 0 || result.peak !== 0 || result.beforeCompressor?.peak !== 0) throw new Error("Silence recorder control contains signal or sampled starts");
-  } else if (!result.samplerStarts.length) throw new Error("No sampled buffer starts were observed");
-  if (result.oscillatorStarts !== 0) throw new Error(`Sampled Player used oscillator fallback (${result.oscillatorStarts} oscillator starts)`);
+  await checkPlayerCapture({ ...result, wav }, options.signalControl, options.retainRawCapture);
   const expectedByBus = options.expectedAttackSecondsByBus;
   const sourceClockOffsetsSeconds: Partial<Record<"voice" | "backing", number>> = {};
   if (expectedByBus) {

@@ -1,4 +1,5 @@
 import { configurePlaybackSession } from "./audio-session.js";
+import { audioActivationPending, resumeAudioContext } from "./audio-activation.js";
 import type { TimedNote } from "./timeline.js";
 
 const NOTE_FREQ = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
@@ -14,6 +15,7 @@ export class AudioEngine {
   private ctx: AudioContext | null = null;
   onStateChange: ((state: string) => void) | null = null;
   get state(): string { return this.ctx?.state ?? "uninitialized"; }
+  get activationPending(): boolean { return this.ctx !== null && audioActivationPending(this.ctx); }
   private compressor: DynamicsCompressorNode | null = null;
   private master: GainNode | null = null;
   private voiceGainNode: GainNode | null = null;
@@ -53,7 +55,8 @@ export class AudioEngine {
       this.pianoGainNode.connect(this.master);
       this.applyGains();
     }
-    if (this.ctx.state === "suspended") void this.ctx.resume();
+    const context = this.ctx;
+    resumeAudioContext(context, () => { if (this.ctx === context) this.onStateChange?.(context.state); });
     return this.ctx;
   }
 
