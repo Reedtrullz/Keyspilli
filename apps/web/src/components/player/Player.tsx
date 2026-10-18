@@ -10,14 +10,13 @@ import Link from "next/link";
 import { NavigationFeedback } from "../NavigationFeedback";
 import { LibraryReturnLink } from "./LibraryReturnLink";
 import { transferLibraryReturn } from "../../lib/library-navigation";
-import { microphonePitchEdge } from "./microphone-pitch";
+import { useMicrophoneInput } from "./useMicrophoneInput";
 import {
   AudioEngine,
   OrganAudioEngine,
   SamplerAudioEngine,
   ChordGrader,
   buildMelodyAccompaniment,
-  detectPitch,
   filterAccompanimentChords,
   KeyboardInput,
   keyboardReachability,
@@ -449,11 +448,17 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
   const [countIn, setCountIn] = useState<number | null>(null);
   const countInRef = useRef<number | null>(null);
   const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const micCleanupRef = useRef<(() => void) | null>(null);
-  const micRequestRef = useRef(0);
-  const [micReady, setMicReady] = useState(false);
-  const [micPending, setMicPending] = useState(false);
-  const [micError, setMicError] = useState("");
+  const { micReady, micPending, micError, micSignal, setMicError, enableMicrophone, releaseMicrophone } = useMicrophoneInput({
+    onPitch: (midi) => {
+      if (gradingRef.current && countInRef.current === null && practiceSetupRef.current.input === "microphone") {
+        engineRef.current?.handleMicNote(midi);
+        syncTransportState();
+      }
+    },
+    onDisconnected: () => {
+      if (gradingRef.current) interruptRef.current("Microphone disconnected; this run is incomplete.");
+    },
+  });
   const [chordPracticeActive, setChordPracticeActive] = useState(false);
   const chordPracticePresence = usePresence(chordPracticeActive);
   const [modeMenuIdx, setModeMenuIdx] = useState(-1);
@@ -462,7 +467,6 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
   const [gradeResult, setGradeResult] = useState<GradeResult | null>(null);
   const [pressedKeys, setPressedKeys] = useState<Map<number, number>>(new Map());
   const interruptRef = useRef<(reason: string) => void>(() => {});
-  const [micSignal, setMicSignal] = useState("Unknown signal quality");
   const [midiConnected, setMidiConnected] = useState(false);
   const [midiDevices, setMidiDevices] = useState<Array<{ id: string; name: string }>>([]);
   const [midiSelection, setMidiSelection] = useState<{ device: string | null; channel: number | null }>({ device: null, channel: null });
@@ -1380,77 +1384,6 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     return true;
   }
 
-  function releaseMicrophone() {
-    micRequestRef.current++;
-    micCleanupRef.current?.();
-    micCleanupRef.current = null;
-    setMicReady(false);
-    setMicPending(false);
-  }
-
-  async function enableMicrophone() {
-    if (micPending || micReady) return;
-    const request = ++micRequestRef.current;
-    setMicPending(true);
-    setMicError("");
-    let stream: MediaStream | null = null;
-    let ctx: AudioContext | null = null;
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not support microphone capture.");
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (request !== micRequestRef.current) { stream.getTracks().forEach((track) => track.stop()); return; }
-      ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 2048;
-      ctx.createMediaStreamSource(stream).connect(analyser);
-      const buffer = new Float32Array(analyser.fftSize);
-      let raf = 0;
-      let lastMidi: number | null = null;
-      let lastFire = 0;
-      let lastSignalUpdate = 0;
-      const tick = () => {
-        if (request !== micRequestRef.current) return;
-        analyser.getFloatTimeDomainData(buffer);
-        const midi = detectPitch(buffer, ctx!.sampleRate);
-        const now = performance.now();
-        if (now - lastSignalUpdate >= 250) {
-          lastSignalUpdate = now;
-          const rms = Math.sqrt(buffer.reduce((sum, value) => sum + value * value, 0) / buffer.length);
-          setMicSignal(rms < 0.01 ? "Quiet / no reliable pitch" : midi === null ? "Signal present; pitch unresolved" : "Single pitch detected (beta)");
-        }
-        const edge = microphonePitchEdge(midi, lastMidi, now - lastFire);
-        lastMidi = edge.lastMidi;
-        if (edge.fire && midi !== null) {
-          lastFire = now;
-          if (gradingRef.current && countInRef.current === null && practiceSetupRef.current.input === "microphone") {
-            engineRef.current?.handleMicNote(midi);
-            syncTransportState();
-          }
-        }
-        raf = requestAnimationFrame(tick);
-      };
-      micCleanupRef.current = () => {
-        cancelAnimationFrame(raf);
-        stream?.getTracks().forEach((track) => track.stop());
-        void ctx?.close();
-      };
-      stream.getTracks().forEach((track) => track.addEventListener("ended", () => {
-        if (request !== micRequestRef.current) return;
-        releaseMicrophone();
-        setMicError("Microphone disconnected.");
-        if (gradingRef.current) interruptRef.current("Microphone disconnected; this run is incomplete.");
-      }, { once: true }));
-      raf = requestAnimationFrame(tick);
-      setMicReady(true);
-    } catch (error) {
-      stream?.getTracks().forEach((track) => track.stop());
-      void ctx?.close();
-      if (request === micRequestRef.current) setMicError(`Microphone unavailable: ${error instanceof Error ? error.message : "permission denied"}`);
-    } finally {
-      if (request === micRequestRef.current) setMicPending(false);
-    }
-  }
-
   function cancelCountIn() {
     if (countInTimerRef.current !== null) clearTimeout(countInTimerRef.current);
     countInTimerRef.current = null;
@@ -1461,8 +1394,6 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
 
   useEffect(() => () => {
     if (countInTimerRef.current !== null) clearTimeout(countInTimerRef.current);
-    micRequestRef.current++;
-    micCleanupRef.current?.();
   }, []);
 
   function toggleLoop() {
