@@ -1,3 +1,10 @@
+# Version updates: weekly npm, monthly pip and GitHub Actions; majors are
+# ignored here and taken deliberately.
+#
+# Security updates are separate from this file: they need "Dependabot alerts"
+# and "Dependabot security updates" turned on in Settings -> Code security.
+# Once enabled, the security-updates groups below batch all security fixes
+# for an ecosystem into one PR, independent of the version-update PR limits.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -7,6 +14,10 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: [version-update:semver-major]
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
   - package-ecosystem: pip
     directory: /services/transcribe
     schedule: { interval: monthly }
@@ -14,6 +25,10 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: [version-update:semver-major]
+    groups:
+      pip-security:
+        applies-to: security-updates
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }
