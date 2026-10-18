@@ -15,8 +15,8 @@ function installRepeatActivationGuard() {
   installed = true;
   document.addEventListener("click", event => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const anchor = (event.target as Element | null)?.closest?.("a[href]");
-    if (!(anchor instanceof HTMLAnchorElement)) return;
+    const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("download") || (anchor.target && anchor.target.toLowerCase() !== "_self")) return;
     if (pendingHref !== null && anchor.href === pendingHref) { event.preventDefault(); return; }
     lastActivatedHref = anchor.href;
   }, true);

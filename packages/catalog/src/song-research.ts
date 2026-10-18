@@ -520,7 +520,12 @@ function stable(value: unknown): unknown {
 const SENSITIVE_KEY = /(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|authorization|credential|cookie|session)/i;
 const PATH_KEY = /(?:path|filename|file|artifactref)/i;
 const URL_KEY = /(?:url|uri|href|sourceYoutubeUrl)$/i;
-const SENSITIVE_QUERY = /^(?:token|access_token|refresh_token|api_key|apikey|key|secret|password|passwd|auth|authorization|cookie|session|sig|signature|.*(?:token|secret|password|credential|auth|api[_-]?key|signature).*)$/i;
+// Exact sensitive names plus substrings that are sensitive anywhere in a key.
+// Kept as two simple tests: the former single `^(?:...|.*(?:...).*)$` pattern
+// backtracked polynomially on long keys (CodeQL js/polynomial-redos).
+const SENSITIVE_QUERY_NAME = /^(?:key|apikey|passwd|cookie|session|sig)$/i;
+const SENSITIVE_QUERY_PART = /token|secret|password|credential|auth|api[_-]?key|signature/i;
+const SENSITIVE_QUERY = { test: (key: string): boolean => SENSITIVE_QUERY_NAME.test(key) || SENSITIVE_QUERY_PART.test(key) };
 
 function safeUrl(value: string): string | null {
   try {

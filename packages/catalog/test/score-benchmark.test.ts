@@ -273,4 +273,10 @@ describe("score benchmark core", () => {
     expect(canonical).not.toContain("token=secret");
     expect(validateBenchmarkCorpusManifest(JSON.parse(canonical)).valid).toBe(true);
   });
+
+  it("decodes XML entities in part names exactly once (CodeQL #16)", () => {
+    const xml = validXml.replace("<part-name>Piano</part-name>", "<part-name>R&amp;lt;B &amp; Soul &#65;&#x42;</part-name>");
+    expect(xml).not.toBe(validXml);
+    expect(validateMusicXmlStructure(xml).parts[0]?.partName).toBe("R&lt;B & Soul AB");
+  });
 });
