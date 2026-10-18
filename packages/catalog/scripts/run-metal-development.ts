@@ -46,10 +46,10 @@ async function cachedStems(root: string): Promise<StemMidi[]> {
     return { role: s.role, noteSource: s.sourceStem, midi: new Uint8Array(await readFile(join(root, s.midiFile))) };
   }));
 }
-async function codeIdentity(repo: string): Promise<string> {
+export async function codeIdentity(repo: string): Promise<string> {
   const paths = ['packages/midi/src', 'packages/catalog/src', 'services/transcribe/src'];
   const files = [fileURLToPath(import.meta.url)];
-  for (const dir of paths) for (const name of await readdir(join(repo, dir))) if (/\.(ts|py)$/.test(name)) files.push(join(repo, dir, name));
+  for (const dir of paths) for (const name of await readdir(join(repo, dir), { recursive: true })) if (/\.(ts|py)$/.test(name)) files.push(join(repo, dir, name));
   return hash((await Promise.all(files.sort().map(async p => `${p.slice(repo.length)}:${hash(await readFile(p))}`))).join('\n'));
 }
 export async function main(argv = process.argv.slice(2)): Promise<void> {

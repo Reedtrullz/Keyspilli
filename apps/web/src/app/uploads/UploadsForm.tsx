@@ -153,7 +153,7 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
         : data.status === "provider-not-configured"
           ? "provider-not-configured"
           : "no-candidates");
-    } catch (cause) {
+    } catch (_cause) {
       if (controller.signal.aborted || generation !== discoveryGeneration.current) return;
       setCandidateError("Source search is temporarily unavailable.");
       setSearchState("unavailable");
@@ -325,12 +325,14 @@ export default function UploadsForm({ tutorialEnabled }: { tutorialEnabled: bool
   }, [fileSwitch.previous]);
 
   useEffect(() => {
+    const discoveryCounter = discoveryGeneration;
+    const preflightCounter = preflightGenerationRef;
     return () => {
-      discoveryGeneration.current++;
+      discoveryCounter.current++;
       searchAbortRef.current?.abort();
       uploadAbortRef.current?.abort();
       preflightAbortRef.current?.abort();
-      preflightGenerationRef.current++;
+      preflightCounter.current++;
       const active = auditionRef.current;
       if (active) { clearTimeout(active.timer); active.engine.cancelAll(); active.engine.dispose(); auditionRef.current = null; }
     };

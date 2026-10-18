@@ -226,6 +226,7 @@ function booleanOrNull(value: unknown): boolean | null {
 
 function textOrNull(value: unknown): string | null {
   if (typeof value !== "string") return null;
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   return clean ? redactText(clean) : null;
 }
@@ -252,6 +253,7 @@ function auditIdList(value: unknown): IdListAudit {
   for (const item of value) {
     if (typeof item !== "string") return { ids: null, valid: false };
     const id = item.trim();
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     if (!id || /[\u0000-\u001f\u007f]/.test(id) || ids.includes(id)) return { ids: null, valid: false };
     ids.push(id);
   }
@@ -447,6 +449,7 @@ function auditReferenceWindows(reference: JsonObject): ReferenceWindowAudit {
   for (const entry of raw) {
     if (!isObject(entry) || typeof entry.id !== "string") return { count: null, bars: null, valid: false };
     const id = entry.id.trim();
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     if (!id || /[\u0000-\u001f\u007f]/.test(id) || ids.has(id)
       || !validBounds(entry.reference) || !validBounds(entry.candidate)) {
       return { count: null, bars: null, valid: false };
@@ -589,6 +592,7 @@ function benchmarkSection(value: JsonObject | null): ShadowMissionReport["benchm
       const id = record(raw).id;
       if (typeof id !== "string") return false;
       const normalized = id.trim();
+      // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
       if (!normalized || /[\u0000-\u001f\u007f]/.test(normalized) || songIdSet.has(normalized)) return false;
       songIdSet.add(normalized);
       return true;
@@ -598,7 +602,7 @@ function benchmarkSection(value: JsonObject | null): ShadowMissionReport["benchm
     const id = normalizedId(item.id, `song-${index + 1}`);
     const freeze = freezeSummary(id, item.freeze);
     const reference = record(item.reference);
-    const output = record(item.output);
+    const _output = record(item.output);
     const readiness = record(item.readiness ?? item.humanReadiness);
     const windowAudit = auditReferenceWindows(reference);
     return {
@@ -864,7 +868,7 @@ function redactText(value: string): string {
   return result.replace(/__SHADOW_URL_(\d+)__/g, (_match, index: string) => urls[Number(index)] ?? "[redacted-url]");
 }
 
-function stableValue(value: unknown, key = ""): unknown {
+function stableValue(value: unknown, _key = ""): unknown {
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return null;
     const rounded = Math.round(value * 1_000_000) / 1_000_000;

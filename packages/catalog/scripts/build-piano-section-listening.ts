@@ -15,7 +15,7 @@
  */
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { basename, dirname, extname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   type CandidateCoverageWindow,
   type PianoRegionCoverageGateOptions,
@@ -178,9 +178,6 @@ interface BundleExcerptMetadata {
 
 type BundleExcerptMap = Record<string, Record<string, BundleExcerptMetadata>>;
 
-interface SectionBuilderOutputMap {
-  [key: string]: unknown;
-}
 
 const OUTPUTS = [
   { id: "C-original-easy", label: "C original Easy" },

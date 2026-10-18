@@ -23,8 +23,6 @@ import {
   renderListeningWorksheetMarkdown,
   type ListeningAudioDiagnostics,
   type ListeningCandidateInput,
-  type ListeningExcerptRecord,
-  type ListeningManifest,
 } from "../src/listening-manifest.js";
 
 const execFile = promisify(execFileCallback);

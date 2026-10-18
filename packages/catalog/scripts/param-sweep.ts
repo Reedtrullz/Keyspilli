@@ -23,7 +23,6 @@ import { ROOT } from "../src/paths.js";
 
 const execFileP = promisify(execFile);
 const BASIC_PITCH = join(ROOT, "services", "transcribe", ".venv", "bin", "basic-pitch");
-const BP_TIMEOUT_MS = 300_000;
 
 export const ONSET_THRESHOLDS = [0.5, 0.6, 0.65, 0.7, 0.8];
 export const FRAME_THRESHOLDS = [0.3, 0.4, 0.45, 0.5, 0.6];
@@ -104,24 +103,6 @@ export function computeMetrics(notes: Note[], tempoBpm: number): SweepMetrics {
   };
 }
 
-async function runBasicPitch(
-  audioPath: string,
-  onsetThreshold: number,
-  frameThreshold: number,
-  outDir: string,
-): Promise<Uint8Array | null> {
-  try {
-    await execFileP(BASIC_PITCH, [
-      outDir, audioPath, "--save-midi",
-      "--onset-threshold", String(onsetThreshold),
-      "--frame-threshold", String(frameThreshold),
-    ], { timeout: BP_TIMEOUT_MS, maxBuffer: 32 * 1024 * 1024 });
-    const midiPath = join(outDir, "audio_basic_pitch.mid");
-    return new Uint8Array(await readFile(midiPath));
-  } catch {
-    return null;
-  }
-}
 
 async function readFixtureMidi(
   fixturesDir: string,
