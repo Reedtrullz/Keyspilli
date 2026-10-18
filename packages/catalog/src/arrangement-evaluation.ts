@@ -1677,7 +1677,6 @@ function redactEmbeddedPaths(value: string): string {
 function redactEmbeddedUrls(value: string): string {
   const isSchemeChar = (char: string): boolean => /[A-Za-z0-9+.-]/.test(char);
   const isLetter = (char: string): boolean => /[A-Za-z]/.test(char);
-  const isUrlStop = (char: string): boolean => /[\s"'<>;,)\]]/.test(char);
   const isHardStop = (char: string): boolean => /[\s"'<>]/.test(char);
   let output = "";
   let copied = 0;
@@ -1694,19 +1693,13 @@ function redactEmbeddedUrls(value: string): string {
     let pathEnd = separator + 3;
     let authorityEnd = -1;
     let marker = -1;
-    let bracketedAuthority = false;
     while (pathEnd < value.length) {
       const char = value.charAt(pathEnd);
       if (isHardStop(char)) break;
       if (marker < 0 && (char === "?" || char === "#")) marker = pathEnd;
-      if (marker < 0) {
-        if (authorityEnd < 0 && char === "[") bracketedAuthority = true;
-        else if (bracketedAuthority && char === "]") bracketedAuthority = false;
-        else if (isUrlStop(char)) break;
-        if (authorityEnd < 0 && char === "/") authorityEnd = pathEnd;
-      }
-      // Query/fragment punctuation is data: consume its whole whitespace- or
-      // quote-delimited tail rather than leaving a secret suffix in prose.
+      if (marker < 0 && authorityEnd < 0 && char === "/") authorityEnd = pathEnd;
+      // Punctuation can be credential or query data. Only whitespace, quotes
+      // and angle brackets delimit the URL; never expose a discarded suffix.
       pathEnd++;
     }
     const safeEnd = marker < 0 ? pathEnd : marker;

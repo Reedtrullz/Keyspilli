@@ -857,6 +857,10 @@ describe("arrangement evaluation", () => {
     ["https://user:secret@[2001:db8::1]:8443/path#SYNTHETIC_IPV6", "https://[2001:db8::1]:8443/path"],
     ["https://host.test/path?key=SYNTHETIC_HEAD;SYNTHETIC_TAIL", "https://host.test/path"],
     ["https://host.test?key=SYNTHETIC_HEAD,SYNTHETIC_TAIL)/suffix]", "https://host.test"],
+    ["https://user:SYNTHETIC_HEAD;SYNTHETIC_TAIL@host.test/path", "https://host.test/path"],
+    ["https://user:SYNTHETIC_HEAD,SYNTHETIC_TAIL@host.test/path", "https://host.test/path"],
+    ["https://user:SYNTHETIC_HEAD)SYNTHETIC_TAIL@host.test/path", "https://host.test/path"],
+    ["https://user:SYNTHETIC_HEAD]SYNTHETIC_TAIL@[::1]/path", "https://[::1]/path"],
   ])("removes bracketed-authority and punctuation-bearing URL secrets: %s", (source, expected) => {
     const report = evaluateArrangement({
       ...input([{ midi: 60, start: 0, dur: 1, vel: 90, hand: "R" }]),
