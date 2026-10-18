@@ -77,7 +77,7 @@ describe("mutator export discovery", () => {
   });
 });
 
-async function guardsMutation(body: string): Promise<boolean> {
+async function guardsMutation(body: string, method = "POST"): Promise<boolean> {
   const exports: Record<string, unknown> = {};
   let guardCalls = 0;
   const bearerBoundary = (req: Request) => { guardCalls += 1; return requireBearer(req); };
@@ -97,7 +97,9 @@ async function guardsMutation(body: string): Promise<boolean> {
   if (handlers.length !== 1) throw new Error("Expected exactly one isolated API handler");
   const handler = handlers[0];
   if (typeof handler !== "function") throw new Error("API handler is missing");
-  const result: unknown = await handler(request({ authorization: "Bearer invalid" }), {
+  const result: unknown = await handler(new Request("http://127.0.0.1/api/test", {
+    method, headers: { authorization: "Bearer invalid" },
+  }), {
     params: Promise.resolve({ id: "unauthorized-test" }),
   });
   return guardCalls > 0 && result instanceof Response && result.status === 401 &&
@@ -105,6 +107,16 @@ async function guardsMutation(body: string): Promise<boolean> {
 }
 
 describe("route auth coverage rejects ineffective guards", () => {
+  const previousToken = process.env.KEYSPILLI_API_TOKEN;
+  beforeEach(() => { process.env.KEYSPILLI_API_TOKEN = "guard-fixture"; });
+  afterEach(() => {
+    if (previousToken === undefined) delete process.env.KEYSPILLI_API_TOKEN;
+    else process.env.KEYSPILLI_API_TOKEN = previousToken;
+  });
+  it("exercises the exported HTTP method instead of a different guarded branch", async () => {
+    const body = 'export function DELETE(req: Request) { if (req.method === "POST") { const denied = requireBearer(req); if (denied) return denied; } return new Response("ok"); }';
+    await expect(guardsMutation(body, "DELETE")).resolves.toBe(false);
+  });
   it.each([
     "export async function POST(req: Request) { /* requireBearer(req) */ return new Response('ok'); }",
     "export async function POST(req: Request) { if (false) requireBearer(req); return new Response('ok'); }",
@@ -191,7 +203,7 @@ describe("API route auth coverage", () => {
   const handlers = routeFiles(apiRoot).flatMap((path) => {
     const source = readFileSync(path, "utf8");
     const file = relative(apiRoot, path).split("\\").join("/");
-    return mutationHandlers(source).map(({ method, body }) => ({ id: `${file} ${method}`, source, body }));
+    return mutationHandlers(source).map(({ method, body }) => ({ id: `${file} ${method}`, method, source, body }));
   });
 
   it("finds the mutating handlers", () => {
@@ -200,7 +212,7 @@ describe("API route auth coverage", () => {
 
   it.each(handlers.map((handler) => [handler.id, handler] as const))("%s uses the shared auth boundary", async (id, handler) => {
     if (EDGE_ONLY[id]) return;
-    await expect(guardsMutation(handler.body)).resolves.toBe(true);
+    await expect(guardsMutation(handler.body, handler.method)).resolves.toBe(true);
   });
 
   it("has no route-local bearer comparisons", () => {
