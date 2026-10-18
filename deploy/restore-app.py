@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Opt-in restore proof using a local immutable web image; never starts a worker."""
 import json
+import platform
 import re
 import subprocess
 import sys
@@ -9,7 +10,9 @@ import uuid
 from pathlib import Path
 
 
-def verify(manifest_path, destination, image_id, revision, song_id):
+def verify(manifest_path, destination, image_id, revision, song_id, sampled=False):
+    if sampled and (platform.system() != "Linux" or platform.machine() not in ("x86_64", "amd64")):
+        raise ValueError("sampled verification requires native Linux amd64")
     manifest = json.loads(Path(manifest_path).read_text())
     report_path = Path(destination).resolve() / "restore-report.json"
     report = json.loads(report_path.read_text())
@@ -32,20 +35,51 @@ def verify(manifest_path, destination, image_id, revision, song_id):
     if actual != image_id:
         raise ValueError("local immutable image is unavailable")
     name = f"keyspilli-restore-{uuid.uuid4().hex[:12]}"
+    mounts = []
+    native_output = report_path.parent / "native-player"
+    if sampled:
+        if docker("image", "inspect", "--format", "{{.Architecture}}", image_id).strip() != "amd64":
+            raise ValueError("sampled verification requires an amd64 image")
+        checkout = Path(__file__).resolve().parents[1]
+        for relative in ("node_modules", "packages", "package.json", "tsconfig.base.json", "apps/web/e2e",
+                         "apps/web/scripts/verify-native-player.mts"):
+            source = checkout / relative
+            if not source.exists() or source.is_symlink() or ":" in str(source):
+                raise ValueError("native browser probe source is unavailable")
+            mounts.extend(("-v", f"{source}:/qualification-source/{relative}:ro"))
+        native_output.mkdir(mode=0o700)
+        mounts.extend(("-v", f"{native_output}:/browser-results",
+                       "-e", "KEYSPILLI_NATIVE_PROBE_SCOPE=owned-restore",
+                       "-e", "KEYSPILLI_API_TOKEN=test-token-for-e2e"))
     created = False
     started = time.monotonic()
     report["applicationVerification"] = "failed"
     try:
         docker("create", "--pull=never", "--name", name, "--network", "none",
+               "--cpus", "1.5", "--memory", "1g", "--pids-limit", "128",
                "--read-only", "--tmpfs", "/tmp:rw,nosuid,size=512m",
                "-v", f"{runtime}:/data", "-v", f"{verifier}:/restore-app-verifier.mjs:ro",
                "-e", "HOSTNAME=127.0.0.1", "-e", "PORT=3000", "-e", "HOME=/tmp",
                "-e", "KEYSPILLI_DATA_DIR=/data", "-e", "KEYSPILLI_ORIGIN=http://127.0.0.1:3000",
-               "-e", "KEYSPILLI_TUTORIAL_BETA=0", image_id)
+               "-e", "KEYSPILLI_TUTORIAL_BETA=0", *mounts, image_id)
         created = True
+        limits = json.loads(docker("inspect", "--format", "{{json .HostConfig}}", name))
+        if limits.get("NanoCpus") != 1_500_000_000:
+            raise ValueError("restored application CPU limit does not match 1.5 CPUs")
+        if limits.get("Memory") != 1_073_741_824 or limits.get("PidsLimit") != 128:
+            raise ValueError("restored application memory/PID limits do not match the contract")
+        report["runtimeLimits"] = {key: limits[key] for key in ("NanoCpus", "Memory", "PidsLimit")}
         docker("start", name)
         proof = json.loads(docker("exec", name, "node", "/restore-app-verifier.mjs",
                                   revision, song_id, str(report["catalogSchemaEpoch"]), timeout=240))
+        if sampled:
+            native = json.loads(docker("exec", name, "node", "--import",
+                                       "/qualification-source/node_modules/tsx/dist/loader.mjs",
+                                       "/qualification-source/apps/web/scripts/verify-native-player.mts",
+                                       revision, timeout=240))
+            if native.get("kind") != "keyspilli-native-sampled" or native.get("revision") != revision or native.get("status") != "passed":
+                raise ValueError("native sampled browser proof is incomplete")
+            report["sampledBrowser"] = native
         report.update(applicationVerification="passed", application=proof, webImageId=image_id,
                       restoredRevision=revision)
     finally:
@@ -64,9 +98,9 @@ def verify(manifest_path, destination, image_id, revision, song_id):
 
 if __name__ == "__main__":
     try:
-        if len(sys.argv) != 6:
-            raise ValueError("expected manifest, fresh destination, image ID, revision and song ID")
-        verify(*sys.argv[1:])
+        if len(sys.argv) not in (6, 7) or (len(sys.argv) == 7 and sys.argv[6] != "--sampled"):
+            raise ValueError("expected manifest, fresh destination, image ID, revision, song ID and optional --sampled")
+        verify(*sys.argv[1:6], sampled=len(sys.argv) == 7)
     except Exception:
         print("restore app verification failed; inspect the isolated restore report", file=sys.stderr)
         sys.exit(1)
