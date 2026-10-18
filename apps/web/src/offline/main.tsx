@@ -1,4 +1,4 @@
-import React,{useEffect,useRef,useState} from "react";
+import React,{useCallback,useEffect,useRef,useState} from "react";
 import {createRoot} from "react-dom/client";
 import {AudioEngine,PlaybackEngine,KeyboardInput,DEFAULT_SETTINGS,resolveSourcePedalNotes,resolveTimedNotes,secPerBeat,learnerPitch,type GradeResult} from "@keyspilli/player-core";
 import {BeginnerView} from "../components/player/BeginnerView";
@@ -7,13 +7,14 @@ const settings={...DEFAULT_SETTINGS,soundSource:"synth" as const,mode:"beginner"
 function OfflinePlayer(){
  const [pack,setPack]=useState<OfflinePack|null>(null),[unlocked,setUnlocked]=useState(false),[notice,setNotice]=useState(""),[time,setTime]=useState(0),[playing,setPlaying]=useState(false),[result,setResult]=useState<GradeResult|null>(null),[waiting,setWaiting]=useState<number[]>([]);
  const engine=useRef<PlaybackEngine|null>(null),keyboard=useRef<KeyboardInput|null>(null),stage=useRef<HTMLDivElement|null>(null),generation=useRef(0);
- function stop(){keyboard.current?.releaseAll();engine.current?.finishGrading();engine.current?.stop();engine.current?.audio.cancelAll();setPlaying(false);setWaiting([]);}
- function lock(){stop();setUnlocked(false);setResult(null);setTime(0);}
+ const stop=useCallback(()=>{keyboard.current?.releaseAll();engine.current?.finishGrading();engine.current?.stop();engine.current?.audio.cancelAll();setPlaying(false);setWaiting([]);},[]);
+ const lock=useCallback(()=>{stop();setUnlocked(false);setResult(null);setTime(0);},[stop]);
  useEffect(()=>{
+  const counter=generation;
   let live=true;async function load(){const turn=++generation.current;lock();setPack(null);try{const value=await loadOfflinePack();if(live&&generation.current===turn){setPack(value);setNotice(value?"Local screen lock. Unlock only on your private device.":"No selected pack. Prepare one online; uncached songs require network.");}}catch(error){if(live&&generation.current===turn)setNotice(error instanceof Error?error.message:"Offline storage unavailable.");}}
   void load();const channel=typeof BroadcastChannel!=="undefined"?new BroadcastChannel("keyspilli.offline"):null;if(channel)channel.onmessage=()=>void load();const hidden=()=>{if(document.hidden)lock();};const leaving=()=>lock();document.addEventListener("visibilitychange",hidden);window.addEventListener("pagehide",leaving);window.addEventListener("blur",leaving);
-  return ()=>{live=false;generation.current++;channel?.close();document.removeEventListener("visibilitychange",hidden);window.removeEventListener("pagehide",leaving);window.removeEventListener("blur",leaving);};
- },[]);
+  return ()=>{live=false;counter.current++;channel?.close();document.removeEventListener("visibilitychange",hidden);window.removeEventListener("pagehide",leaving);window.removeEventListener("blur",leaving);};
+ },[lock]);
  useEffect(()=>{
   if(!pack||!unlocked)return;
   const audio=new AudioEngine(),notes=resolveSourcePedalNotes(pack.data,1,0),guidance=resolveTimedNotes(pack.data,1,0),duration=Math.max(...notes.map(n=>n.startSec+(n.soundingDurSec??n.durSec))),owner=new PlaybackEngine(audio,notes,duration,{tempoBpm:pack.data.tempoBpm,timeSig:pack.data.timeSig},settings,[],guidance);
@@ -22,7 +23,7 @@ function OfflinePlayer(){
   const interrupt=()=>{if(owner.playing||owner.grader){stop();setNotice("Playback interrupted. Restart deliberately; no device timing or mastery is measured.");}};audio.onStateChange=state=>{if(state!=="running")interrupt();};
   let frame=0,last=performance.now();const tick=(now:number)=>{const delta=(now-last)/1000;last=now;if(Date.now()>=Date.parse(pack.expiresAt)){lock();setPack(null);void removeOfflinePack().then(()=>setNotice("Expired pack removed."),()=>setNotice("Pack expired; storage removal failed. Retry Remove pack."));return;}if(delta>.3)interrupt();else owner.tick(delta);frame=requestAnimationFrame(tick);};frame=requestAnimationFrame(tick);
   return ()=>{cancelAnimationFrame(frame);keyboard.current?.releaseAll();keyboard.current=null;owner.onChange=null;audio.onStateChange=null;owner.finishGrading();owner.stop();audio.dispose();if(engine.current===owner)engine.current=null;};
- },[pack,unlocked]);
+ },[pack,unlocked,lock,stop]);
  async function remove(){lock();try{await removeOfflinePack();setPack(null);setNotice("Private pack removed from this browser. Downloaded copies are separate.");}catch{setNotice("Removal failed; close other offline tabs and retry.");}}
  async function stale(){if(!pack)return;setNotice("Checking current publication online…");try{const response=await fetch(`/api/songs/${encodeURIComponent(pack.variantId)}?revision=${encodeURIComponent(pack.revision)}`,{cache:"no-store",signal:AbortSignal.timeout(3000)});setNotice(response.status===409||response.status===404?"Stored pack is stale or no longer published. Remove it and prepare a fresh pack online.":response.ok?"Publication still matches this stored revision. Offline revocation of local copies is not promised.":"Current publication could not be checked. Stored snapshot remains local.");}catch{setNotice("Offline: current publication is unknown. This is the stored snapshot, not a freshness guarantee.");}}
  function start(practice:boolean){const owner=engine.current;if(!owner)return;stop();owner.seek(0);setNotice("");try{if(practice)owner.startGrading(true,{startSec:0,endSec:owner.duration});else owner.start();stage.current?.focus();}catch{setNotice("Playback unavailable; unlock again or prepare a supported pack online.");}}

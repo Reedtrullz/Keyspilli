@@ -256,7 +256,7 @@ export function capPolyphony(notes: Note[], maxPolyphony: number): Note[] {
     bySlice.set(k, arr);
   }
   const out: Note[] = [];
-  for (const [k, ns] of bySlice) {
+  for (const [_k, ns] of bySlice) {
     if (ns.length <= maxPolyphony) {
       out.push(...ns);
       continue;

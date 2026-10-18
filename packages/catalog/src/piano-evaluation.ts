@@ -7,7 +7,6 @@ import {
   writeMidi,
   type Note,
   type ParsedMidi,
-  type SongMeta,
 } from "@keyspilli/midi";
 import {
   normalizeSymbolicScore,
@@ -579,7 +578,6 @@ function referenceMetrics(reference: NormalizedSymbolicScore | null, candidate: 
   const exact = f1(exactCount, candidateGroups.length, referenceGroups.length);
   const pitchClass = f1(pitchClassCount, candidateGroups.length, referenceGroups.length);
   const onset = f1(matched.length, candidateGroups.length, referenceGroups.length);
-  const errors = matched.map((match) => match.onsetErrorBeats).sort((a, b) => a - b);
   const referencePitches = referenceGroups.map((group) => Math.max(...group.notes.map((note) => note.midi)));
   const candidatePitches = candidateGroups.map((group) => Math.max(...group.notes.map((note) => note.midi + aligned.transpositionSemitones)));
   const matchedContour = matched.flatMap((match) => {
@@ -727,9 +725,9 @@ function redactEmbeddedPaths(value: string): string {
     .replace(new RegExp(`file:///?${roots}(?:/[^\\s"'<>;,)]*)?`, "gi"), "[redacted-path]")
     // Require a non-URL boundary before POSIX paths. Without this boundary,
     // /root in https://host/root/file.mid would corrupt a logical URL.
-    .replace(new RegExp(`(^|[\\s(\"'=,;\\[\\]])/${roots}(?:/[^\\s\"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
-    .replace(/(^|[\s(\"'=,;\[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
-    .replace(/(^|[\s(\"'=,;\[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(new RegExp(`(^|[\\s("'=,;\\[\\]])/${roots}(?:/[^\\s"'<>;,)]*)?`, "gi"), "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;[\]])\/(?:[A-Za-z0-9._-]+\/)+[^\s"'<>;,)]*/g, "$1[redacted-path]")
+    .replace(/(^|[\s("'=,;[\]])[A-Za-z]:[\\/][^\s"'<>;,)]*/g, "$1[redacted-path]")
     // Relative paths are still redacted, but URL schemes are deliberately
     // excluded so logical source URLs remain useful in diagnostics.
     .replace(/(^|\s)(?!(?:[A-Za-z][A-Za-z0-9+.-]*:)?\/\/)(\.\.?\/|[^\s/]+\/)[^\s"']+\.(?:mid|midi|json|wav|mp3)(?=$|[\s"'])/gi, "$1[redacted-path]");

@@ -108,7 +108,6 @@ function validateVariant(v: Variant, opts: VariantValidationOptions): string[] {
   let maxSim = 0;
   let maxSounding = 0;
   let span = 0;
-  let validCount = 0;
   let tooLong = 0;
   const validNotes: Note[] = [];
   const tempoBpm = Number.isFinite(v.tempoBpm) && v.tempoBpm > 0 ? v.tempoBpm : 120;
@@ -128,7 +127,6 @@ function validateVariant(v: Variant, opts: VariantValidationOptions): string[] {
       out.push(`${v.level}: invalid duration ${n.dur}`);
       continue;
     }
-    validCount++;
     validNotes.push(n);
     if (maxDurBeats !== undefined && n.dur > maxDurBeats + 1e-6) tooLong++;
     const k = n.start.toFixed(3);

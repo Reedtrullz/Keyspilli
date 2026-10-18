@@ -1,5 +1,5 @@
 /** Read-only whole-catalog quality audit. */
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseMidi, parseMusicXmlNotes } from "@keyspilli/midi";
 import { getDb } from "../src/db.js";

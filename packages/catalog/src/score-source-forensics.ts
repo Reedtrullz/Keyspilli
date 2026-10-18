@@ -137,6 +137,7 @@ function cleanText(value: unknown, limit = 240): string | null {
     .replace(/\\n/g, " ")
     .replace(/\\r/g, " ")
     .replace(/\\t/g, " ")
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -429,6 +430,7 @@ export async function inspectScoreSourceForensics(
   options: ScoreSourceForensicsOptions = {},
 ): Promise<ScoreSourceForensicsReport> {
   const dependencies = options.dependencies ?? {};
+  // eslint-disable-next-line no-control-regex -- NUL and newlines are matched on purpose, to reject or flatten them in paths and log text
   if (typeof pdfPath !== "string" || !pdfPath || !isAbsolute(pdfPath) || /[\u0000\r\n]/.test(pdfPath)) {
     return emptyReport([error("unsafe-path", "PDF path must be an absolute path without NUL or newline characters")]);
   }
