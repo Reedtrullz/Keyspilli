@@ -70,16 +70,20 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
             raise ValueError("restored application memory/PID limits do not match the contract")
         report["runtimeLimits"] = {key: limits[key] for key in ("NanoCpus", "Memory", "PidsLimit")}
         docker("start", name)
-        proof = json.loads(docker("exec", name, "node", "/restore-app-verifier.mjs",
-                                  revision, song_id, str(report["catalogSchemaEpoch"]), timeout=240))
         if sampled:
-            native = json.loads(docker("exec", name, "node", "--import",
+            ready = json.loads(docker("exec", name, "node", "/restore-app-verifier.mjs",
+                                      revision, song_id, str(report["catalogSchemaEpoch"]), "--ready-only", timeout=240))
+            if ready != {"startupReadiness": "passed"}:
+                raise ValueError("restored application startup readiness is incomplete")
+            native = json.loads(docker("exec", "-e", "DEBUG=pw:browser", name, "node", "--import",
                                        "/qualification-source/node_modules/tsx/dist/loader.mjs",
                                        "/qualification-source/apps/web/scripts/verify-native-player.mts",
                                        revision, timeout=240))
             if native.get("kind") != "keyspilli-native-sampled" or native.get("revision") != revision or native.get("status") != "passed":
                 raise ValueError("native sampled browser proof is incomplete")
             report["sampledBrowser"] = native
+        proof = json.loads(docker("exec", name, "node", "/restore-app-verifier.mjs",
+                                  revision, song_id, str(report["catalogSchemaEpoch"]), timeout=240))
         report.update(applicationVerification="passed", application=proof, webImageId=image_id,
                       restoredRevision=revision)
     finally:
