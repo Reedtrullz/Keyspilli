@@ -20,19 +20,22 @@ REVISION = "b" * 40
 
 
 class RestoreRuntimeTests(unittest.TestCase):
-    def setUp(self):
+    def __init__(self, methodName: str = "runTest"):
+        super().__init__(methodName)
         self.temporary = tempfile.TemporaryDirectory(prefix="keyspilli-restore-controller-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.manifest = self.root / "manifest.json"
-        self.manifest.write_text(json.dumps({"images": {"web": {"id": IMAGE, "revision": REVISION}}}))
         self.destination = self.root / "restored"
-        (self.destination / "runtime").mkdir(parents=True)
         self.report = self.destination / "restore-report.json"
-        self.report.write_text(json.dumps({"catalogSchemaEpoch": 1}))
-        self.calls = []
+        self.calls: list[list[str]] = []
 
-    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False):
+    def setUp(self):
+        self.manifest.write_text(json.dumps({"images": {"web": {"id": IMAGE, "revision": REVISION}}}))
+        (self.destination / "runtime").mkdir(parents=True)
+        self.report.write_text(json.dumps({"catalogSchemaEpoch": 1}))
+
+    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False, fail_stage=None):
         def docker(argv, **_kwargs):
             self.calls.append(argv)
             operation = argv[1]
@@ -41,11 +44,15 @@ class RestoreRuntimeTests(unittest.TestCase):
             elif operation == "inspect":
                 output = json.dumps({"NanoCpus": quota, "Memory": 1_073_741_824, "PidsLimit": 128})
             elif operation == "exec":
+                stage = "ready" if argv[-1] == "--ready-only" else \
+                    "native" if any("verify-native-player.mts" in arg for arg in argv) else "framing"
                 if exec_error:
                     raise exec_error
-                if fail_exec:
+                if fail_exec or stage == fail_stage:
                     raise subprocess.CalledProcessError(73, argv)
-                output = json.dumps(native if any("verify-native-player.mts" in arg for arg in argv) else {"exportValidation": "framing_only", "browserPlaybackAcceptance": "not_tested"})
+                output = json.dumps({"startupReadiness": "passed"} if argv[-1] == "--ready-only" else
+                                    native if any("verify-native-player.mts" in arg for arg in argv) else
+                                    {"exportValidation": "framing_only", "browserPlaybackAcceptance": "not_tested"})
             elif operation == "rm" and fail_cleanup:
                 raise subprocess.CalledProcessError(74, argv)
             else:
@@ -85,6 +92,26 @@ class RestoreRuntimeTests(unittest.TestCase):
         self.assertIn("KEYSPILLI_NATIVE_PROBE_SCOPE=owned-restore", create)
         self.assertTrue(any(arg.endswith("/qualification-source/node_modules:ro") for arg in create))
         self.assertFalse(any(arg.endswith(":/qualification-source") for arg in create))
+
+    def test_native_capture_precedes_pdf_capable_verification_after_readiness(self):
+        native = {"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"}
+        self.invoke(sampled=True, native=native)
+        stages = ["ready" if call[-1] == "--ready-only" else
+                  "native" if any("verify-native-player.mts" in arg for arg in call) else "framing"
+                  for call in self.calls if call[1] == "exec"]
+        self.assertEqual(stages, ["ready", "native", "framing"])
+
+    def test_each_sampled_stage_failure_stops_the_sequence_and_releases_the_container(self):
+        native = {"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"}
+        for stage, count in (("ready", 1), ("native", 2), ("framing", 3)):
+            with self.subTest(stage=stage):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    self.invoke(sampled=True, native=native, fail_stage=stage)
+                self.assertEqual(len([call for call in self.calls if call[1] == "exec"]), count)
+                self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
+                self.assertTrue(any(call[1:3] == ["rm", "-f"] for call in self.calls))
+                (self.destination / "native-player").rmdir()
+                self.calls.clear()
 
     def test_missing_failed_or_wrong_revision_native_receipts_fail_closed(self):
         for native in ({}, {"kind": "keyspilli-native-sampled", "revision": "c" * 40, "status": "passed"},

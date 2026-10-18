@@ -147,6 +147,15 @@ selection and checked for mode, hash and note/time parity. PDF requests reuse
 that selection after the capture browser exits; this part checks the API path,
 not a PDF button click. No provider inference is called.
 
+The controller waits for startup without rendering PDFs, runs the native probe,
+then runs all seven full HTTP/framing checks, including both PDF layouts.
+This prevents the server's cached PDF Chromium from overlapping the recorder's
+Chromium before capture. Readiness alone is never full application acceptance.
+The first native run at test merge `8a5714b723059d96d800868749063911a2183754`
+failed at the first browser page before PCM; browser overlap was confirmed,
+but PID exhaustion was not established. Its raw evidence remains retained.
+Native browser debug stderr is retained by the owned Docker lifecycle logs.
+
 `native-player/result.json`, PCM, screenshots and exports are retained alongside
 the restore report and lifecycle reconstruction evidence. Failures, timeouts
 and cancellation cannot produce a successful application report; owned-container
