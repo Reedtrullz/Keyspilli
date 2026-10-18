@@ -467,6 +467,7 @@ export async function applySongMetadata(id: string, patch: SongPatch, options: {
 
   for (const [field, limit] of [["title",160],["artist",160],["category",80],["style",64],["mood",64]] as const) {
     const value = patch[field];
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     if (value !== undefined && (typeof value !== "string" || value.length > limit || (field !== "artist" && !value.trim()) || /[\u0000-\u001f]/.test(value))) throw new SongUpdateError(400, `${field} must contain up to ${limit} printable characters`);
   }
   const checkExpectedRevision = async () => {

@@ -51,6 +51,7 @@ let testProvider: SourceCandidateProvider | null | undefined;
 
 function cleanText(value: unknown, max = 500): string {
   return typeof value === "string"
+    // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
     ? value.replace(/<[^>]*>/g, " ").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max)
     : "";
 }

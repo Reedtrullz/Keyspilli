@@ -5,7 +5,6 @@ import {
   ingestExternalSymbolicCandidate,
   researchExternalCandidates,
   serializeExternalResearchInventory,
-  type ExternalResearchInventory,
 } from "../src/external-research.js";
 import { adaptNativeSymbolicBytes } from "../src/native-score-adapter.js";
 

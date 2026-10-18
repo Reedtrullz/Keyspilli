@@ -69,6 +69,7 @@ function stable(value: unknown): unknown {
 }
 
 function cleanText(value: unknown, fallback: string): string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   return typeof value === "string" && value.trim() ? value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240) : fallback;
 }
 
