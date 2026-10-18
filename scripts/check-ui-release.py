@@ -10,6 +10,7 @@ ALLOWED=[re.compile(p) for p in (
  r'apps/web/src/app/(?!api/).+',
  r'apps/web/e2e/.+',
  r'docs/.+',
+ r'evidence/.+',
  r'.+\.test\.[jt]sx?',
 )]
 

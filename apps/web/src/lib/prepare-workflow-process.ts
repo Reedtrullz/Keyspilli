@@ -61,7 +61,7 @@ export async function runOwnedProcess(input: {
       if (!present) groupGone = true;
       return present;
     }
-    catch (error) {
+    catch (_error) {
       // Uncertain presence cannot become a success after a later clean probe.
       unsafe = true; return true;
     }

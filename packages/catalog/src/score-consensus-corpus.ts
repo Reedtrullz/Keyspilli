@@ -912,7 +912,7 @@ function safeDiagnostic(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const redacted = value
     .replace(/(['"])(?:[A-Za-z]:[\\/]|\/)[^'"]*\1/g, "[redacted-path]")
-    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s'"`;,\)\]\r\n]*/g, "[redacted-path]")
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s'"`;,)\]\r\n]*/g, "[redacted-path]")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 500);
@@ -983,23 +983,6 @@ function homrUnavailable(): OmrBackendRun {
   return { id: "homr", version: "unavailable", status: "unavailable", error: "optional homr backend is not configured" };
 }
 
-function omrRunFromResult(result: OmrResult, score: OmrScoreInput | null): OmrBackendRun {
-  return {
-    id: result.backend,
-    version: result.version,
-    status: result.status === "pass" ? "available" : result.status,
-    ...(result.health ? { health: result.health } : {}),
-    ...(result.pages ? { pages: result.pages.map((page) => ({ ...page })) } : {}),
-    ...(result.invocation
-      ? { invocation: typeof result.invocation === "string" ? result.invocation : { ...result.invocation } }
-      : {}),
-    ...(result.model
-      ? { model: typeof result.model === "string" ? result.model : { ...result.model } }
-      : {}),
-    ...(score ? { score } : {}),
-    ...(result.errors.length ? { error: result.errors.join("; ") } : {}),
-  };
-}
 
 function isHomrAuto(value: string): boolean {
   return value === HOMR_AUTO_MODE;

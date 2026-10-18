@@ -6,6 +6,6 @@ const repoRoot = resolve(__dirname, "../..");
 
 export default defineConfig({
   ...baseConfig,
-  testDir: resolve(repoRoot, "docs/superpowers/evidence/2026-09-19-cathedral-organ-gain"),
+  testDir: resolve(repoRoot, "evidence/superpowers/2026-09-19-cathedral-organ-gain"),
   testMatch: "organ-gain-probe.spec.ts",
 });

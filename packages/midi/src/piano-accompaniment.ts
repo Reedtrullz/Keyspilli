@@ -385,7 +385,7 @@ function normalizeConfig(config: PianoAccompanimentConfig = {}): NormalizedConfi
   };
 }
 
-function clusterFromNotes(notes: readonly Note[], config: NormalizedConfig): PianoAttackCluster | undefined {
+function clusterFromNotes(notes: readonly Note[], _config: NormalizedConfig): PianoAttackCluster | undefined {
   const sorted = validSortedNotes(notes);
   const first = sorted[0];
   if (!first) return undefined;
@@ -727,7 +727,7 @@ function evaluateRoot(
     rootPc + 7,
   ].map(mod12));
   let unmatched = 0;
-  for (const [pc, support] of supports) {
+  for (const [pc, _support] of supports) {
     if (!expected.has(pc)) unmatched += supportFor(supports, pc);
   }
   let score = rootSupport * 0.4
@@ -796,7 +796,7 @@ function qualityFor(candidate: RootCandidate, config: NormalizedConfig): PianoHa
   return "unknown";
 }
 
-function confidenceFor(candidate: RootCandidate, quality: PianoHarmonyQuality, config: NormalizedConfig): number {
+function confidenceFor(candidate: RootCandidate, quality: PianoHarmonyQuality, _config: NormalizedConfig): number {
   let confidence = 0.28 + candidate.score * 0.66;
   if (quality === "unknown") confidence -= 0.14;
   if (quality === "power" && candidate.qualitySupport > 0) confidence -= 0.09;
@@ -846,7 +846,7 @@ function qualityRunKey(event: RawHarmonyDecision): string {
   return `${event.candidate.rootPc}:${event.quality}`;
 }
 
-function connectedAttacks(previous: RawHarmonyDecision | undefined, current: RawHarmonyDecision | undefined, config: NormalizedConfig): boolean {
+function connectedAttacks(previous: RawHarmonyDecision | undefined, current: RawHarmonyDecision | undefined, _config: NormalizedConfig): boolean {
   if (!previous || !current) return false;
   return current.start - previous.start <= 1.5 + EPS;
 }

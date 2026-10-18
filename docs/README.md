@@ -13,7 +13,7 @@
 - [Chords tuning and verification](chords-tuning.md)
 - [Listening decisions](listening-review.md)
 - [Release gates: source, structural, musical and operational](decisions/0004-release-gates.md)
-- [Song preparation and upload automation evidence](research/keyspilli-evidence/chords-upload-automation-2026-09-27.md)
+- [Song preparation and upload automation evidence](../evidence/research/chords-upload-automation-2026-09-27.md)
 - [Native symbolic adapter](native-symbolic-adapter.md)
 - [Legacy audio worker](legacy-audio-worker.md)
 
@@ -21,7 +21,7 @@
 
 - [External symbolic-source evidence architecture](architecture/external-symbolic-first.md)
 - [Synthetic shadow corpus](architecture/shadow-corpus.md)
-- [Research evidence ledger](research/keyspilli-evidence/README.md)
+- [Research evidence ledger](../evidence/research/README.md)
 - [Historical evidence downloads and unresolved task reports](archive/README.md)
 - [Original product reference analysis](research/supersimplepiano-analysis.md)
 

@@ -33,6 +33,7 @@ function object(value: unknown, expected: readonly string[]): Record<string, unk
   return value as Record<string, unknown>;
 }
 function text(value: unknown, max: number, pattern?: RegExp): string {
+  // eslint-disable-next-line no-control-regex -- control characters are matched on purpose, to strip or reject them in untrusted text
   if (typeof value !== "string" || !value.trim() || value.length > max || /[\u0000-\u001f\u007f]/.test(value) || (pattern && !pattern.test(value))) throw new Error("Invalid musical review field");
   return value;
 }

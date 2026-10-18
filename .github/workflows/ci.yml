@@ -61,6 +61,35 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  lint:
+    name: Lint (ESLint + ruff)
+    if: ${{ github.event_name != 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # Existing violations are baselined as warnings in eslint.config.mjs;
+      # errors (including react-hooks/rules-of-hooks) fail the job.
+      - name: ESLint
+        run: npm run lint
+
+      - name: Ruff
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ruff-venv"
+          "$RUNNER_TEMP/ruff-venv/bin/python" -m pip install --disable-pip-version-check --no-cache-dir --require-hashes -r .github/requirements-lint.txt
+          "$RUNNER_TEMP/ruff-venv/bin/ruff" check --output-format=github .
+
   checks:
     defaults:
       run:
@@ -147,7 +176,9 @@ jobs:
           sudo env KEYSPILLI_TEST_NODE="$(command -v node)" python3 -B deploy/test/test-evidence.py
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
+          python3 -B deploy/test/test-restore-app.py
           python3 deploy/test/test-release-operation.py
+          python3 deploy/test/test-render-inventory.py
           python3 scripts/test_check_music_release.py
           python3 scripts/test_check_ui_release.py
           python3 scripts/test_ui_release_workflow.py
@@ -465,6 +496,11 @@ jobs:
     environment:
       name: production
       url: https://keys.reidar.tech
+    env:
+      # Production host stays out of the repository: set the KEYSPILLI_VPS_HOST
+      # secret (IP or DNS name). KEYSPILLI_VPS_USER is an optional variable.
+      VPS_HOST: ${{ secrets.KEYSPILLI_VPS_HOST }}
+      VPS_USER: ${{ vars.KEYSPILLI_VPS_USER || 'deploy' }}
 
     steps:
       - name: Check out repository
@@ -486,10 +522,16 @@ jobs:
         env:
           VPS_SSH_HOST_KEY: ${{ vars.VPS_SSH_HOST_KEY || secrets.VPS_SSH_HOST_KEY }}
         run: |
+          if [[ -z "${VPS_HOST:-}" ]]; then
+            echo "KEYSPILLI_VPS_HOST secret must be set before production SSH." >&2
+            exit 1
+          fi
+          KEYSPILLI_VPS_HOST="$VPS_HOST" KEYSPILLI_VPS_USER="$VPS_USER" \
+            KEYSPILLI_VPS_SSH_KEY="$HOME/.ssh/keyspilli_deploy" python3 deploy/render-inventory.py
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_racknerd
-          chmod 600 ~/.ssh/id_rsa_racknerd
+          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/keyspilli_deploy
+          chmod 600 ~/.ssh/keyspilli_deploy
 
           normalize_host_keys() {
             sed -e 's/\r$//' -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d' | sort -u
@@ -501,7 +543,7 @@ jobs:
             exit 1
           fi
 
-          scanned_host_key="$(ssh-keyscan -T 10 -t ed25519 198.23.137.16 2>/dev/null | normalize_host_keys)"
+          scanned_host_key="$(ssh-keyscan -T 10 -t ed25519 "$VPS_HOST" 2>/dev/null | normalize_host_keys)"
           if [[ -z "$scanned_host_key" ]]; then
             echo "Unable to scan VPS SSH host key." >&2
             exit 1
@@ -513,7 +555,7 @@ jobs:
           fi
 
           printf '%s\n' "$expected_host_key" > ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_rsa_racknerd -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
+          ssh -i ~/.ssh/keyspilli_deploy -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" 'echo "SSH OK"'
 
       - name: Deploy immutable image tags
         shell: bash
@@ -609,11 +651,22 @@ jobs:
   reingest-youtube-catalog:
     name: Rebuild production catalog on VPS
     runs-on: ubuntu-24.04
-    needs: [deploy]
+    needs: [checks]
     timeout-minutes: 60
-    if: github.event_name == 'workflow_dispatch' && inputs.operation != 'deploy_only'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.promote_reviewed == false &&
+      inputs.ui_only_release == false &&
+      (inputs.operation == 'rebuild_target' || inputs.operation == 'rebuild_all') &&
+      needs.checks.result == 'success'
     environment:
       name: production
+    env:
+      # Production host stays out of the repository: set the KEYSPILLI_VPS_HOST
+      # secret (IP or DNS name). KEYSPILLI_VPS_USER is an optional variable.
+      VPS_HOST: ${{ secrets.KEYSPILLI_VPS_HOST }}
+      VPS_USER: ${{ vars.KEYSPILLI_VPS_USER || 'deploy' }}
 
     steps:
       - name: Check out repository
@@ -635,10 +688,16 @@ jobs:
         env:
           VPS_SSH_HOST_KEY: ${{ vars.VPS_SSH_HOST_KEY || secrets.VPS_SSH_HOST_KEY }}
         run: |
+          if [[ -z "${VPS_HOST:-}" ]]; then
+            echo "KEYSPILLI_VPS_HOST secret must be set before production SSH." >&2
+            exit 1
+          fi
+          KEYSPILLI_VPS_HOST="$VPS_HOST" KEYSPILLI_VPS_USER="$VPS_USER" \
+            KEYSPILLI_VPS_SSH_KEY="$HOME/.ssh/keyspilli_deploy" python3 deploy/render-inventory.py
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_racknerd
-          chmod 600 ~/.ssh/id_rsa_racknerd
+          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/keyspilli_deploy
+          chmod 600 ~/.ssh/keyspilli_deploy
 
           expected_host_key="$(printf '%s\n' "${VPS_SSH_HOST_KEY:-}" | sed -e 's/\r$//' -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d' | sort -u)"
           if [[ -z "$expected_host_key" ]]; then
@@ -646,14 +705,23 @@ jobs:
             exit 1
           fi
 
-          scanned_host_key="$(ssh-keyscan -T 10 -t ed25519 198.23.137.16 2>/dev/null | sed -e 's/\r$//' -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d' | sort -u)"
+          scanned_host_key="$(ssh-keyscan -T 10 -t ed25519 "$VPS_HOST" 2>/dev/null | sed -e 's/\r$//' -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d' | sort -u)"
           if [[ "$scanned_host_key" != "$expected_host_key" ]]; then
             echo "VPS SSH host key mismatch; refusing to update known_hosts." >&2
             exit 1
           fi
 
           printf '%s\n' "$expected_host_key" > ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_rsa_racknerd -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes deploy@198.23.137.16 'echo "SSH OK"'
+          ssh -i ~/.ssh/keyspilli_deploy -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" 'echo "SSH OK"'
+
+      - name: Verify installed revision before rebuilding
+        shell: bash
+        env:
+          KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
+          KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
+          KEYSPILLI_DEPLOY_URL: https://keys.reidar.tech
+          KEYSPILLI_EXPECTED_SHA: ${{ github.sha }}
+        run: python3 deploy/keyspilli-live-verifier.py
 
       - name: Re-ingest all sources and repair artifacts on VPS
         shell: bash
@@ -661,8 +729,8 @@ jobs:
           REBUILD_BASE_ID: ${{ inputs.rebuild_base_id }}
           REBUILD_TRANSCRIPTION_MODE: ${{ inputs.rebuild_transcription_mode }}
         run: |
-          HOST="deploy@198.23.137.16"
-          SSH="ssh -i ~/.ssh/id_rsa_racknerd -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          HOST="$VPS_USER@$VPS_HOST"
+          SSH="ssh -i ~/.ssh/keyspilli_deploy -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o StrictHostKeyChecking=yes"
           COMPOSE="docker compose -f /opt/apps/keyspilli/compose.production.yml"
           if [ -n "$REBUILD_BASE_ID" ] && [[ ! "$REBUILD_BASE_ID" =~ ^[a-z0-9][a-z0-9-]{0,119}$ ]]; then
             echo "Invalid rebuild_base_id; expected a catalog base id slug." >&2

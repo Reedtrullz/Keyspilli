@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { developmentEntries, developmentCacheKey } from '../scripts/run-metal-development.js';
+import { developmentEntries, developmentCacheKey, codeIdentity } from '../scripts/run-metal-development.js';
 
 describe('development runner boundary', () => {
   const entries = [
@@ -38,5 +38,27 @@ describe('development runner boundary', () => {
     expect(developmentCacheKey({ ...input, sourceSha256: 'c'.repeat(64) })).not.toBe(original);
     expect(developmentCacheKey({ ...input, codeSha256: 'd'.repeat(64) })).not.toBe(original);
     expect(developmentCacheKey({ ...input, config: { model: 'four', tempo: 120 } })).not.toBe(original);
+  });
+
+  it('invalidates a development cache when an extracted implementation changes without changing its facade', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'keyspilli-development-'));
+    try {
+      for (const directory of ['packages/midi/src/metal-arrange', 'packages/catalog/src', 'services/transcribe/src']) {
+        mkdirSync(join(root, directory), { recursive: true });
+      }
+      const facade = join(root, 'packages/midi/src/metal-arrange.ts');
+      const nested = join(root, 'packages/midi/src/metal-arrange/shared.ts');
+      const facadeSource = 'export { select } from "./metal-arrange/shared.js";';
+      writeFileSync(facade, facadeSource);
+      writeFileSync(nested, 'export const select = (notes: number[]) => notes.slice(0, 1);');
+      const before = await codeIdentity(root);
+      const input = { sourceSha256: 'a'.repeat(64), config: { mode: 'cached-stem-replay-no-inference' } };
+      const priorKey = developmentCacheKey({ ...input, codeSha256: before });
+      writeFileSync(nested, 'export const select = (notes: number[]) => notes.slice(0, 2);');
+      expect(readFileSync(facade, 'utf8')).toBe(facadeSource);
+      const after = await codeIdentity(root);
+      expect(after).not.toBe(before);
+      expect(developmentCacheKey({ ...input, codeSha256: after })).not.toBe(priorKey);
+    } finally { rmSync(root, { recursive: true, force: true }); }
   });
 });

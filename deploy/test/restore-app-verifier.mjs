@@ -1,5 +1,33 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { verifyRestoredApp } from "../restore-app-verifier.mjs";
+
+const { waitForRestoredApp } = await import("../restore-app-verifier.mjs");
+const readinessCalls = [];
+let readinessAttempts = 0;
+await waitForRestoredApp(async (url) => {
+  readinessCalls.push(url);
+  return new Response("", { status: ++readinessAttempts === 1 ? 503 : 200 });
+});
+assert.deepEqual(readinessCalls, ["http://127.0.0.1:3000/api/health/live", "http://127.0.0.1:3000/api/health/live"]);
+const nativeNow = Date.now;
+let clockCalls = 0;
+try {
+  Date.now = () => clockCalls++ === 0 ? 0 : 30_000;
+  await assert.rejects(waitForRestoredApp(async () => new Response("", { status: 503 })), /startup deadline/);
+} finally {
+  Date.now = nativeNow;
+}
+const readyOnly = spawnSync(process.execPath, ["--import", "data:text/javascript," + encodeURIComponent(`
+  globalThis.fetch = async url => {
+    if (url !== "http://127.0.0.1:3000/api/health/live") throw new Error("Readiness entered full verification");
+    return new Response("");
+  };
+`), fileURLToPath(new URL("../restore-app-verifier.mjs", import.meta.url)), "a".repeat(40), "restored-easy", "1", "--ready-only"],
+{ encoding: "utf8", timeout: 5000 });
+assert.equal(readyOnly.status, 0, readyOnly.stderr);
+assert.deepEqual(JSON.parse(readyOnly.stdout), { startupReadiness: "passed" });
 
 const revision = "a".repeat(40);
 const calls = [];

@@ -22,6 +22,7 @@
 #   - KEYSPILLI_ACCESS_USERNAME/PASSWORD: operator edge credentials (password
 #     >=20 characters; Ansible hashes it with bcrypt and never logs plaintext)
 # Usage:
+#   KEYSPILLI_VPS_HOST=... python3 deploy/render-inventory.py   # writes the gitignored inventory
 #   APP_VERSION=$(git rev-parse HEAD) ansible-playbook \
 #     -i deploy/inventory/hosts.yml deploy/playbook.yml \
 #     -e "docker_image=ghcr.io/reedtrullz/keyspilli:$(git rev-parse --short=12 HEAD)" \
