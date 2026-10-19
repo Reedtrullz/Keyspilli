@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 export default function HomePage() {
   const popular = projectPublicGroupedSongs(listSongsGrouped({ sort: "popular", limit: 12 }));
-  const recent = projectPublicGroupedSongs(listSongsGrouped({ limit: 200 })).sort((a, b) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : -1)).slice(0, 12);
+  // Over-fetch slightly: projection drops groups without a public variant.
+  const recent = projectPublicGroupedSongs(listSongsGrouped({ sort: "recent", limit: 24 })).slice(0, 12);
   const plays = (getDb().prepare("SELECT COALESCE(SUM(plays),0) AS s FROM songs").get() as { s: number }).s;
   const total = countSongs();
 

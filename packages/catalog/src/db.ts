@@ -463,6 +463,8 @@ function groupedOrder(f: SongFilters): (a: GroupedSong, b: GroupedSong) => numbe
         ? (a: GroupedSong, b: GroupedSong) => a.representative.artist.localeCompare(b.representative.artist)
         : f.sort === "difficulty"
         ? (a: GroupedSong, b: GroupedSong) => a.representative.difficultyScore - b.representative.difficultyScore
+        : f.sort === "recent"
+        ? (a: GroupedSong, b: GroupedSong) => (a.lastCreatedAt < b.lastCreatedAt ? 1 : a.lastCreatedAt > b.lastCreatedAt ? -1 : 0)
         : (a: GroupedSong, b: GroupedSong) => b.totalPlays - a.totalPlays;
   return order;
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   AudioEngine,
   OrganAudioEngine,
@@ -34,14 +35,7 @@ import type { SongRow } from "@keyspilli/catalog";
 import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { FallingCanvas } from "./FallingCanvas";
 import { ChordStrip } from "./ChordStrip";
-import { ChordPracticePanel } from "./ChordPracticePanel";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
-import { BeginnerView } from "./BeginnerView";
-import { LeadSheetView } from "./LeadSheetView";
-import { SheetMusicView } from "./SheetMusicView";
-import { SettingsDialog } from "./SettingsDialog";
-import { DownloadDialog } from "./DownloadDialog";
-import { GradingPanel } from "./GradingPanel";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
 import { displaySong } from "../song-display";
@@ -51,6 +45,25 @@ import {
   selectChordSource,
   type ChordSourceId,
 } from "./chord-sources";
+
+// Falling notes is the default view; everything else loads on demand so the
+// first player paint does not pay for sheet music, lead sheets, dialogs or
+// the practice panels.
+function ViewSkeleton() {
+  return <div className="loading-skeleton h-[22rem] w-full rounded-xl" aria-hidden="true" />;
+}
+const BeginnerView = dynamic(() => import("./BeginnerView").then((m) => m.BeginnerView), { loading: ViewSkeleton });
+const LeadSheetView = dynamic(() => import("./LeadSheetView").then((m) => m.LeadSheetView), { loading: ViewSkeleton });
+const SheetMusicView = dynamic(() => import("./SheetMusicView").then((m) => m.SheetMusicView), { loading: ViewSkeleton });
+const ChordPracticePanel = dynamic(() => import("./ChordPracticePanel").then((m) => m.ChordPracticePanel));
+const GradingPanel = dynamic(() => import("./GradingPanel").then((m) => m.GradingPanel));
+const SettingsDialog = dynamic(() => import("./SettingsDialog").then((m) => m.SettingsDialog), { ssr: false });
+const DownloadDialog = dynamic(() => import("./DownloadDialog").then((m) => m.DownloadDialog), { ssr: false });
+
+function preloadDialogs() {
+  void import("./SettingsDialog");
+  void import("./DownloadDialog");
+}
 
 export interface PlayerDetail {
   song: SongRow;
@@ -106,6 +119,13 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     return s;
   });
   const [time, setTime] = useState(0);
+  // Warm the dialog chunks once the page is idle so opening them is instant.
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const handle = idle(preloadDialogs);
+    return () => cancel(handle);
+  }, []);
   const [playing, setPlaying] = useState(false);
   const timeRef = useRef(time);
   const hasPlayedRef = useRef(false);

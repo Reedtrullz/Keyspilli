@@ -92,4 +92,16 @@ describe("grouped catalogue read-model cache", () => {
     unlinkSync(manifest);
     expect(countSongsGrouped({ artist: "Cache Test" })).toBe(10_002);
   });
+
+  it("sorts groups newest-first for the recent order", () => {
+    const newest = row(20_000);
+    upsertSong(newest);
+    getDb().prepare("UPDATE songs SET created_at = ? WHERE base_id = ?").run("2026-12-31T00:00:00Z", newest.baseId);
+    invalidateSongReadModel();
+    const recent = listSongsGroupedWithTotal({ sort: "recent", limit: 3 }).songs;
+    expect(recent).toHaveLength(3);
+    expect(recent[0]!.representative.baseId).toBe(newest.baseId);
+    expect(recent[0]!.lastCreatedAt >= recent[1]!.lastCreatedAt).toBe(true);
+    expect(recent[1]!.lastCreatedAt >= recent[2]!.lastCreatedAt).toBe(true);
+  });
 });
