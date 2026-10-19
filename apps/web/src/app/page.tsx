@@ -5,6 +5,7 @@ import { displaySong } from "../components/song-display";
 import { OwnerStateTools } from "../components/OwnerStateTools";
 import { HomePractice } from "../components/HomePractice";
 import { PracticeSets } from "../components/PracticeSets";
+import { ContinueSection } from "../components/ContinueSection";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,9 @@ export default function HomePage() {
         </p>
       </section>
       <OwnerStateTools />
+
+      <ContinueSection />
+
       <section className="mb-8 motion-rise-in">
         <h2 className="page-title text-xl font-semibold mb-3">Most played</h2>
         <SongGrid songs={popular} />
