@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type RefObject } from "react";
+import { createTimeStore } from "./live-time";
 import { secPerBeat, type LoopRegion } from "@keyspilli/player-core";
 
 /** The part of the playback engine the transport state mirrors. */
@@ -28,10 +29,13 @@ export interface LoopDraft {
  * re-render. `seekVersion` increments on every user seek.
  */
 export function usePlayerTransport(engineRef: RefObject<TransportSource | null>) {
-  const [time, setTime] = useState(0);
+  // The clock lives in an external store so a 10 Hz tick re-renders only the
+  // components that subscribe to it, not the whole player.
+  const timeStore = useMemo(() => createTimeStore(0), []);
+  const setTime = timeStore.set;
   const [seekVersion, setSeekVersion] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const timeRef = useRef(time);
+  const timeRef = useRef(0);
   const playingRef = useRef(playing);
   const syncTransportState = useCallback(() => {
     const engine = engineRef.current;
@@ -41,7 +45,7 @@ export function usePlayerTransport(engineRef: RefObject<TransportSource | null>)
     setTime(timeRef.current);
     setPlaying(playingRef.current);
   }, [engineRef]);
-  return { time, setTime, seekVersion, setSeekVersion, playing, setPlaying, timeRef, playingRef, syncTransportState };
+  return { timeStore, setTime, seekVersion, setSeekVersion, playing, setPlaying, timeRef, playingRef, syncTransportState };
 }
 
 /** Seconds for a beat-anchored loop at the given tempo and playback speed. */
