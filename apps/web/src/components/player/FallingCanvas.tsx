@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef } from "react";
+import type { TimeStore } from "./live-time";
 import {
   createFallingChordIndex,
   createFallingNoteIndex,
@@ -36,7 +37,9 @@ interface Props {
   midiConnected?: boolean;
   onResetOctave?: () => void;
   notes: TimedNote[];
-  time: number;
+  time?: number;
+  /** Clock store: redraws a paused canvas on seek without re-rendering the player. */
+  timeStore?: TimeStore;
   /** Live engine clock. When supplied it wins over the time prop so the
    * canvas can redraw at frame rate without re-rendering the whole player. */
   timeRef?: { current: number };
@@ -71,7 +74,7 @@ export function beatGridPoints(
   return [...points].sort((a, b) => a - b);
 }
 
-export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, sourceKey="C", timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeStore, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, sourceKey="C", timeSig = [4, 4] }: Props) {
   const keyLabels=useMemo(()=>Array.from({length:128},(_,midi)=>({compact:learnerPitch({midi:midi-settings.transpose},settings.transpose,sourceKey,false).label,full:learnerPitch({midi:midi-settings.transpose},settings.transpose,sourceKey,true).label})),[sourceKey,settings.transpose]);
   const keyLabelsRef=useRef(keyLabels);keyLabelsRef.current=keyLabels;
   const keyLabel=(midi:number,full=false)=>keyLabelsRef.current[midi]?.[full?"full":"compact"]??noteLabel(midi,full);
@@ -105,7 +108,7 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
   inputOctaveRef.current = inputOctave;
 
   // Individual refs for each prop — draw loop reads these instead of closures
-  const fallbackTimeRef = useRef(time);
+  const fallbackTimeRef = useRef(time ?? timeStore?.get() ?? 0);
   const notesRef = useRef(notes);
   const noteIndexRef = useRef<FallingNoteIndex | null>(null);
   const settingsRef = useRef(settings);
@@ -123,7 +126,11 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
   const rafRef = useRef(0);
 
   // Lightweight sync: props → refs (no rAF involved)
-  useEffect(() => { fallbackTimeRef.current = time; }, [time]);
+  useEffect(() => { if (time !== undefined) fallbackTimeRef.current = time; }, [time]);
+  useEffect(() => timeStore?.subscribe(() => {
+    fallbackTimeRef.current = timeStore.get();
+    if (!playingRef.current) drawRef.current?.();
+  }), [timeStore]);
   useEffect(() => {
     notesRef.current = notes;
     noteIndexRef.current = createFallingNoteIndex(notes);
@@ -146,7 +153,7 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
   // the refs directly and does not need an extra React-driven draw.
   useEffect(() => {
     if (!playingRef.current) drawRef.current?.();
-  }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig, inputOctave, measures, countIn, readingWindow, showLyrics, sourceKey]);
+  }, [notes, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, timeSig, inputOctave, measures, countIn, readingWindow, showLyrics, sourceKey]);
 
   // Single rAF loop — draws once on mount and only schedules frames while
   // playing, reading state from refs.

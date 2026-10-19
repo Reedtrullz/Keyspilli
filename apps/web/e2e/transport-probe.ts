@@ -66,7 +66,7 @@ export async function createTransportProbe() {
       const [tempo, setTempo] = useState(120), [speed, setSpeed] = useState(1);
       const [ready, setReady] = useState(false);
       const loops = useLoopRegion(tempo, speed);
-      read = () => ({mounted: ready, song, time: transport.time, playing: transport.playing,
+      read = () => ({mounted: ready, song, time: transport.timeStore.get(), playing: transport.playing,
         timeRef: transport.timeRef.current, playingRef: transport.playingRef.current,
         seekVersion: transport.seekVersion, engineTime: engineRef.current?.time ?? null,
         enginePlaying: engineRef.current?.playing ?? false, loop: loops.loop, loopBeats: loops.loopBeats});

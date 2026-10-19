@@ -36,7 +36,7 @@ describe("player transport helpers", () => {
       const transport = usePlayerTransport(engineRef);
       const loop = useLoopRegion(120, 1);
       transport.syncTransportState(); // no engine yet: must be a no-op
-      snapshot = { time: transport.time, playing: transport.playing, seekVersion: transport.seekVersion, timeRef: transport.timeRef.current, loop: loop.loop, loopBeats: loop.loopBeats, loopDraft: loop.loopDraft };
+      snapshot = { time: transport.timeStore.get(), playing: transport.playing, seekVersion: transport.seekVersion, timeRef: transport.timeRef.current, loop: loop.loop, loopBeats: loop.loopBeats, loopDraft: loop.loopDraft };
       return null;
     }
     renderToStaticMarkup(createElement(Probe));
