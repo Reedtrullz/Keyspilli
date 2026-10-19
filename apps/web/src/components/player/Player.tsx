@@ -373,14 +373,16 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   }, [playing]);
 
   useEffect(() => {
-    const save = () => {
+    const saveWhenHidden = () => {
       if (document.visibilityState !== "hidden") return;
       savePositionRef.current();
     };
-    document.addEventListener("visibilitychange", save);
+    // pagehide can fire while visibilityState is still "visible", so it saves unconditionally.
+    const save = () => savePositionRef.current();
+    document.addEventListener("visibilitychange", saveWhenHidden);
     window.addEventListener("pagehide", save);
     return () => {
-      document.removeEventListener("visibilitychange", save);
+      document.removeEventListener("visibilitychange", saveWhenHidden);
       window.removeEventListener("pagehide", save);
       savePositionRef.current();
     };
@@ -394,7 +396,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     seekToMeasure(m);
     params.delete("m");
     const query = params.toString();
-    window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : ""));
+    window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
