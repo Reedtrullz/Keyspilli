@@ -34,7 +34,7 @@ import {
 import type { SongRow } from "@keyspilli/catalog";
 import { PUBLIC_DIFFICULTY_ORDER, isPublicDifficultyLevel } from "@keyspilli/midi";
 import { FallingCanvas } from "./FallingCanvas";
-import { ChordStrip } from "./ChordStrip";
+import { LiveChordStrip, SeekBar, TimeReadout, createTimeStore, useTimeSelector, type TimeStore } from "./live-time";
 import { buildChordPracticeTargets, selectPracticeChords } from "./chord-practice";
 import { useAnimatedSwitch, usePresence } from "./player-motion";
 import { levelLabel } from "../level-labels";
@@ -54,6 +54,17 @@ function ViewSkeleton() {
 }
 const BeginnerView = dynamic(() => import("./BeginnerView").then((m) => m.BeginnerView), { loading: ViewSkeleton });
 const LeadSheetView = dynamic(() => import("./LeadSheetView").then((m) => m.LeadSheetView), { loading: ViewSkeleton });
+
+// The note views need the live clock; subscribing here keeps the 10 Hz tick
+// out of FullPlayer's own render.
+function LiveBeginnerView({ store, ...props }: { store: TimeStore } & Omit<React.ComponentProps<typeof BeginnerView>, "time">) {
+  const time = useTimeSelector(store, (t) => t);
+  return <BeginnerView {...props} time={time} />;
+}
+function LiveLeadSheetView({ store, ...props }: { store: TimeStore } & Omit<React.ComponentProps<typeof LeadSheetView>, "time">) {
+  const time = useTimeSelector(store, (t) => t);
+  return <LeadSheetView {...props} time={time} />;
+}
 const SheetMusicView = dynamic(() => import("./SheetMusicView").then((m) => m.SheetMusicView), { loading: ViewSkeleton });
 const ChordPracticePanel = dynamic(() => import("./ChordPracticePanel").then((m) => m.ChordPracticePanel));
 const GradingPanel = dynamic(() => import("./GradingPanel").then((m) => m.GradingPanel));
@@ -118,7 +129,10 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     if (mode) s.mode = mode;
     return s;
   });
-  const [time, setTime] = useState(0);
+  // Engine clock lives in an external store: only components that display it
+  // re-render on a tick, not this whole component.
+  const timeStore = useMemo(() => createTimeStore(0), []);
+  const setTime = timeStore.set;
   // Warm the dialog chunks once the page is idle so opening them is instant.
   useEffect(() => {
     const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
@@ -127,7 +141,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     return () => cancel(handle);
   }, []);
   const [playing, setPlaying] = useState(false);
-  const timeRef = useRef(time);
+  const timeRef = useRef(0);
   const hasPlayedRef = useRef(false);
   const savePositionRef = useRef(() => {});
   const playingRef = useRef(playing);
@@ -274,12 +288,9 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
     () => selectedChordSource.source?.chords ?? [],
     [selectedChordSource.source],
   );
-  const currentMeasure = measureIndex(
-    time,
-    initial.data.tempoBpm,
-    settings.speed,
-    initial.data.timeSig,
-    initial.data.measures.length,
+  // Selector: re-renders only when the measure changes, not on every tick.
+  const currentMeasure = useTimeSelector(timeStore, (t) =>
+    measureIndex(t, initial.data.tempoBpm, settings.speed, initial.data.timeSig, initial.data.measures.length),
   );
   // Freeze chord-practice targets at session start: a seek changes the
   // current measure but must not silently discard accumulated progress.
@@ -804,12 +815,14 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
         ? "Generated fallback"
         : selectedChordSource.source.label
       : "Piano fallback";
-  const currentBeat = time / secPerBeat(initial.data.tempoBpm, settings.speed);
-  const activeSection = sections.find((s) => {
+  // Ids of the sections containing the playhead, joined so the selector
+  // returns a primitive and re-renders only when the active set changes.
+  const activeSectionKey = useTimeSelector(timeStore, (t) => {
     const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
-    return time >= s.startBeat * spb && time < s.endBeat * spb;
+    return sections.filter((s) => t >= s.startBeat * spb && t < s.endBeat * spb).map((s) => s.id).join("|");
   });
-  const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+  const activeSectionIds = activeSectionKey ? activeSectionKey.split("|") : [];
+  const activeSection = sections.find((s) => activeSectionIds.includes(String(s.id)));
   const renderSectionContent = (collapsed: boolean) => collapsed ? (
     <span className="text-xs text-zinc-500 truncate">{activeSection?.label ?? "Sections hidden"}</span>
   ) : (
@@ -817,7 +830,7 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
       const spb = secPerBeat(initial.data.tempoBpm, settings.speed);
       const startSec = s.startBeat * spb;
       const endSec = s.endBeat * spb;
-      const active = time >= startSec && time < endSec;
+      const active = activeSectionIds.includes(String(s.id));
       const isLooping = loop && loop.startSec === startSec && loop.endSec === endSec;
       return (
         <span key={s.id} className="inline-flex items-center rounded-full border text-xs min-h-9 overflow-hidden shrink-0">
@@ -842,11 +855,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
   );
   const renderModeView = (viewMode: ViewMode) => (
     <>
-      {viewMode === "falling" && <ChordStrip chords={visualChords} currentBeat={currentBeat} />}
+      {viewMode === "falling" && <LiveChordStrip store={timeStore} chords={visualChords} tempoBpm={initial.data.tempoBpm} speed={settings.speed} />}
       {viewMode === "falling" && (
         <FallingCanvas
           notes={notes}
-          time={time}
+          timeStore={timeStore}
           timeRef={timeRef}
           playing={playing}
           settings={settings}
@@ -859,8 +872,8 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
           waitNote={waitNote}
         />
       )}
-      {viewMode === "beginner" && <BeginnerView data={initial.data} time={time} settings={settings} chords={chords} />}
-      {viewMode === "leadsheet" && <LeadSheetView data={initial.data} time={time} settings={settings} chords={chords} />}
+      {viewMode === "beginner" && <LiveBeginnerView store={timeStore} data={initial.data} settings={settings} chords={chords} />}
+      {viewMode === "leadsheet" && <LiveLeadSheetView store={timeStore} data={initial.data} settings={settings} chords={chords} />}
       {viewMode === "sheet" && <SheetMusicView songId={initial.song.id} />}
     </>
   );
@@ -1099,28 +1112,11 @@ function FullPlayer({ initial, mode, focusTarget }: { initial: PlayerDetail; mod
               </span>
             </span>
           </div>
-          <output role="timer" aria-label="Elapsed time" className="ml-auto text-xs text-zinc-500 font-mono tabular-nums text-right select-none flex items-center gap-1.5">
-            <span>{fmtTime(time)}</span>
-            <span className="text-zinc-300">/</span>
-            <span>{fmtTime(duration)}</span>
-            <span className="text-zinc-500">(-{fmtTime(Math.max(0, duration - time))})</span>
-          </output>
+          <TimeReadout store={timeStore} duration={duration} />
         </div>
 
         <div className="px-4 pb-3 border-b border-zinc-100">
-          <input
-            type="range"
-            min={0}
-            max={Math.max(1, duration)}
-            step={0.01}
-            value={Math.min(time, duration)}
-            onChange={(e) => seek(Number(e.target.value))}
-            className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-zinc-900"
-            style={{
-              background: `linear-gradient(to right, #18181b 0%, #18181b ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 ${(time / Math.max(1, duration)) * 100}%, #e4e4e7 100%)`,
-            }}
-            aria-label="Seek"
-          />
+          <SeekBar store={timeStore} duration={duration} onSeek={seek} />
         </div>
         {sections.length > 1 && (
           <div role="navigation" aria-label="Song sections" className="px-4 py-2 border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto">

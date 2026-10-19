@@ -22,7 +22,10 @@ import {
 
 interface Props {
   notes: TimedNote[];
-  time: number;
+  /** Static fallback clock for callers without a live store or ref. */
+  time?: number;
+  /** Clock store: a seek while paused redraws without re-rendering the canvas. */
+  timeStore?: { get(): number; subscribe(listener: () => void): () => void };
   /** Live engine clock. When supplied it wins over the time prop so the
    * canvas can redraw at frame rate without re-rendering the whole player. */
   timeRef?: { current: number };
@@ -39,7 +42,7 @@ interface Props {
   waitNote?: TimedNote | null;
 }
 
-export function FallingCanvas({ notes, time, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
+export function FallingCanvas({ notes, time = 0, timeStore, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig = [4, 4] }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Individual refs for each prop — draw loop reads these instead of closures
@@ -86,6 +89,16 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     if (!playingRef.current) drawRef.current?.();
   }, [notes, time, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNote, timeSig]);
 
+  // Seeks while paused arrive through the store; the playing loop reads the
+  // live ref each frame and ignores these notifications.
+  useEffect(() => {
+    if (!timeStore) return;
+    return timeStore.subscribe(() => {
+      fallbackTimeRef.current = timeStore.get();
+      if (!playingRef.current) drawRef.current?.();
+    });
+  }, [timeStore]);
+
   // Single rAF loop — draws once on mount and only schedules frames while
   // playing, reading state from refs.
   useEffect(() => {
@@ -112,6 +125,99 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
     const activeChordNotes = new Set<number>();
     let activeChordIndex = -2;
     let activeChordIndexSource: FallingChordIndex<Props["chords"][number]> | null = null;
+
+    // Keyboard drawing is split per key so the static bed can be cached while
+    // highlighted keys (pressed, chord, wait) are redrawn on top.
+    type KeyRect = { midi: number; x: number; w: number };
+    const drawWhiteKey = (c: CanvasRenderingContext2D, w: KeyRect, pressed: boolean, isChord: boolean, isWait: boolean) => {
+      const kx = w.x + LEFT_MARGIN;
+      c.globalAlpha = 1;
+      c.fillStyle = pressed ? pitchColor(w.midi) : "#ffffff";
+      c.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+      c.strokeStyle = "#d4d4d8";
+      c.lineWidth = 1;
+      c.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
+      c.font = "600 12px system-ui, sans-serif";
+      c.textAlign = "center";
+      c.textBaseline = "alphabetic";
+      if (isWait) {
+        c.fillStyle = "#fbbf24";
+        c.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+        c.strokeStyle = "#f59e0b";
+        c.lineWidth = 3;
+        c.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
+        c.fillStyle = "#78350f";
+      } else if (isChord) {
+        // Chord key: tinted body + thick colored strip + border
+        c.globalAlpha = 0.4;
+        c.fillStyle = pitchColor(w.midi);
+        c.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+        c.globalAlpha = 1;
+        c.fillStyle = pitchColor(w.midi);
+        c.fillRect(kx, H - 44, w.w - 1, 44);
+        c.fillStyle = "#ffffff";
+        c.font = "700 13px system-ui, sans-serif";
+        c.strokeStyle = pitchColor(w.midi);
+        c.lineWidth = 2;
+        c.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
+      } else {
+        c.fillStyle = pressed ? "#ffffff" : "#52525b";
+      }
+      c.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+    };
+    const drawBlackKey = (c: CanvasRenderingContext2D, b: KeyRect, pressed: boolean, isChordB: boolean, isWaitB: boolean) => {
+      const kx = b.x + LEFT_MARGIN;
+      c.globalAlpha = 1;
+      c.fillStyle = pressed ? pitchColor(b.midi) : "#27272a";
+      c.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
+      if (isWaitB) {
+        c.fillStyle = "#f59e0b";
+        c.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+        c.strokeStyle = "#b45309";
+        c.lineWidth = 3;
+        c.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+      } else if (isChordB) {
+        c.fillStyle = pitchColor(b.midi);
+        c.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+        c.strokeStyle = pitchColor(b.midi);
+        c.lineWidth = 2;
+        c.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
+      }
+      if (b.w >= 17) {
+        c.font = "600 9px system-ui, sans-serif";
+        c.textAlign = "center";
+        c.textBaseline = "alphabetic";
+        c.fillStyle = pressed || isChordB ? "#ffffff" : "#d4d4d8";
+        c.fillText(noteLabel(b.midi), kx + b.w / 2, H - 16);
+      }
+    };
+    // Offscreen strip holding the idle keyboard at the canvas' backing
+    // resolution. Rebuilt only when the key range or pixel size changes.
+    let blackNeighbors: number[][] = [];
+    let keyboardBase: HTMLCanvasElement | null = null;
+    let keyboardBaseKey = "";
+    let keyboardBaseTop = 0;
+    const ensureKeyboardBase = (kb: NonNullable<typeof keyboardCache>): HTMLCanvasElement | null => {
+      const key = `${keyboardLowCache}|${keyboardHighCache}|${canvas.width}x${canvas.height}`;
+      if (keyboardBase && keyboardBaseKey === key) return keyboardBase;
+      const sx = canvas.width / W;
+      const sy = canvas.height / H;
+      const top = Math.floor((H - KB_H) * sy);
+      const strip = keyboardBase ?? document.createElement("canvas");
+      strip.width = canvas.width;
+      strip.height = Math.max(1, canvas.height - top);
+      const sctx = strip.getContext("2d");
+      if (!sctx) return null;
+      // Integer device-pixel offset keeps the blit aligned with direct drawing.
+      sctx.setTransform(sx, 0, 0, sy, 0, -top);
+      for (const w of kb.whites) drawWhiteKey(sctx, w, false, false, false);
+      for (const b of kb.blacks) drawBlackKey(sctx, b, false, false, false);
+      keyboardBase = strip;
+      keyboardBaseKey = key;
+      keyboardBaseTop = top;
+      return strip;
+    };
+
 
     const draw = () => {
       rafRef.current = 0;
@@ -237,75 +343,50 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       }
 
       // --- Keyboard ---
+      // The key bed is static between pressed/chord/wait changes, so it is
+      // drawn once to an offscreen strip and blitted; only keys in a
+      // highlighted state are redrawn on top each frame.
       if (keyboardLowCache !== low || keyboardHighCache !== high || !keyboardCache) {
         keyboardLowCache = low;
         keyboardHighCache = high;
-        keyboardCache = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
+        const rects = keyboardRects({ width: KEYBOARD_W, lowMidi: low, highMidi: high, whiteHeight: KB_H });
+        keyboardCache = rects;
+        blackNeighbors = rects.whites.map((w) => {
+          const hits: number[] = [];
+          rects.blacks.forEach((b, j) => {
+            if (b.x < w.x + w.w && b.x + b.w > w.x) hits.push(j);
+          });
+          return hits;
+        });
+        keyboardBaseKey = "";
       }
       const kb = keyboardCache!;
-     for (const w of kb.whites) {
-       const kx = w.x + LEFT_MARGIN;
-       const isChord = s.chordKeys && activeChordNotes.has(w.midi) && !pk.has(w.midi);
-       const isWait = currentWaitNote && w.midi === currentWaitNote.midi && !pk.has(w.midi);
-       ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
-       ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-       ctx.strokeStyle = "#d4d4d8";
-       ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
-       ctx.font = "600 12px system-ui, sans-serif";
-       ctx.textAlign = "center";
-       ctx.textBaseline = "alphabetic";
-       if (isWait) {
-         ctx.fillStyle = "#fbbf24";
-         ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-         ctx.strokeStyle = "#f59e0b";
-         ctx.lineWidth = 3;
-         ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
-         ctx.fillStyle = "#78350f";
-       } else if (isChord) {
-         // Chord key: tinted body + thick colored strip + border
-          ctx.globalAlpha = 0.4;
-          ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = pitchColor(w.midi);
-          ctx.fillRect(kx, H - 44, w.w - 1, 44);
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "700 13px system-ui, sans-serif";
-          ctx.strokeStyle = pitchColor(w.midi);
-          ctx.lineWidth = 2;
-          ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
-        } else {
-          ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
-        }
-        ctx.fillText(noteLabel(w.midi), kx + w.w / 2, H - 18);
+      const base = ensureKeyboardBase(kb);
+      if (base) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(base, 0, keyboardBaseTop);
+        ctx.restore();
       }
-     for (const b of kb.blacks) {
-       const kx = b.x + LEFT_MARGIN;
-       const isChordB = s.chordKeys && activeChordNotes.has(b.midi) && !pk.has(b.midi);
-       const isWaitB = currentWaitNote && b.midi === currentWaitNote.midi && !pk.has(b.midi);
-       ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
-       ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
-       if (isWaitB) {
-         ctx.fillStyle = "#f59e0b";
-         ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
-         ctx.strokeStyle = "#b45309";
-         ctx.lineWidth = 3;
-         ctx.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
-       } else if (isChordB) {
-         ctx.fillStyle = pitchColor(b.midi);
-          ctx.fillRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
-          ctx.strokeStyle = pitchColor(b.midi);
-          ctx.lineWidth = 2;
-          ctx.strokeRect(kx, H - KB_H * 0.62, b.w, KB_H * 0.62);
-        }
-        if (b.w >= 17) {
-          ctx.font = "600 9px system-ui, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = pk.has(b.midi) || isChordB ? "#ffffff" : "#d4d4d8";
-          ctx.fillText(noteLabel(b.midi), kx + b.w / 2, H - 16);
-        }
-      }
+      const waitMidi = currentWaitNote ? currentWaitNote.midi : -1;
+      const redrawBlack = new Uint8Array(kb.blacks.length);
+      if (!base) redrawBlack.fill(1);
+      kb.whites.forEach((w, i) => {
+        const pressed = pk.has(w.midi);
+        const isChord = s.chordKeys && activeChordNotes.has(w.midi) && !pressed;
+        const isWait = w.midi === waitMidi && !pressed;
+        if (base && !pressed && !isChord && !isWait) return;
+        drawWhiteKey(ctx, w, pressed, isChord, isWait);
+        // A redrawn white key paints over the black keys that straddle it.
+        for (const j of blackNeighbors[i]!) redrawBlack[j] = 1;
+      });
+      kb.blacks.forEach((b, j) => {
+        const pressed = pk.has(b.midi);
+        const isChordB = s.chordKeys && activeChordNotes.has(b.midi) && !pressed;
+        const isWaitB = b.midi === waitMidi && !pressed;
+        if (pressed || isChordB || isWaitB) redrawBlack[j] = 1;
+        if (redrawBlack[j]) drawBlackKey(ctx, b, pressed, isChordB, isWaitB);
+      });
 
       // Upcoming-note strips
       for (const key of kb.whites) {
@@ -332,6 +413,10 @@ export function FallingCanvas({ notes, time, timeRef, playing, settings, pressed
       ctx.stroke();
       ctx.fillStyle = "#18181b";
       ctx.font = "12px monospace";
+      // Previously inherited from the last key label drawn; set explicitly now
+      // that idle keys are blitted rather than drawn each frame.
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
       ctx.fillText(`${now.toFixed(1)}s`, LEFT_MARGIN + 4, areaHeight - 6);
 
       // --- Loop region (dashed lines + tinted band) ---
