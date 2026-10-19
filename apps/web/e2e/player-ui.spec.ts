@@ -70,10 +70,10 @@ test("full width mode expands the player and persists across reload", async ({ p
   expect(expandedClass).not.toContain("max-w-6xl");
 
   await page.reload();
+  // The saved preference is restored in a mount effect, so wait for it instead of reading the class once.
   const rootAfterReload = page.locator("main > div").first();
-  const persistedClass = await rootAfterReload.getAttribute("class");
-  expect(persistedClass).toContain("w-full");
-  expect(persistedClass).not.toContain("max-w-6xl");
+  await expect(rootAfterReload).toHaveClass(/w-full/);
+  await expect(rootAfterReload).not.toHaveClass(/max-w-6xl/);
 });
 
 test("full width player fits the 390px mobile viewport without horizontal scroll", async ({ browser }) => {
