@@ -1191,6 +1191,59 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     syncTransportState();
   }, [cancelSoundPreview]);
 
+  // Remember the measure for "Continue where you left off". A song that ran
+  // to the end restarts from measure 0.
+  const hasPlayedRef = useRef(false);
+  const savePositionRef = useRef(() => {});
+  savePositionRef.current = () => {
+    if (!hasPlayedRef.current) return;
+    const t = engineRef.current?.time ?? timeRef.current;
+    const finished = t >= duration - 0.5;
+    recordRecent({
+      id: initial.song.id,
+      baseId: initial.song.baseId,
+      title: initial.song.title,
+      artist: initial.song.artist,
+      difficulty: initial.song.difficulty,
+      measure: finished ? 0 : measureIndex(t, activeData.tempoBpm, settings.speed, activeData.timeSig, navigationMeasures.length, navigationMeasures),
+    });
+  };
+
+  useEffect(() => {
+    if (!playing) savePositionRef.current();
+  }, [playing]);
+
+  useEffect(() => {
+    const saveWhenHidden = () => {
+      if (document.visibilityState !== "hidden") return;
+      savePositionRef.current();
+    };
+    // pagehide can fire while visibilityState is still "visible", so it saves unconditionally.
+    const save = () => savePositionRef.current();
+    document.addEventListener("visibilitychange", saveWhenHidden);
+    window.addEventListener("pagehide", save);
+    return () => {
+      document.removeEventListener("visibilitychange", saveWhenHidden);
+      window.removeEventListener("pagehide", save);
+      savePositionRef.current();
+    };
+  }, []);
+
+  // Arriving from a Continue card: ?m=<measure> seeks there once the engine
+  // exists, then drops the param (keeping any #hash). Out-of-range values are ignored.
+  useEffect(() => {
+    if (!engineReady) return;
+    const params = new URLSearchParams(window.location.search);
+    const m = Number(params.get("m"));
+    if (!params.has("m") || !Number.isInteger(m)) return;
+    const target = navigationMeasures[m];
+    if (target) seek(target.startBeat * secPerBeat(activeData.tempoBpm, settings.speed));
+    params.delete("m");
+    const query = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engineReady]);
+
   function togglePlay() {
     if (playing) stopPlayback();
     else startPlayback();
@@ -1251,14 +1304,9 @@ function FullPlayer({ initial, mode, focusTarget, sheetPosition, versionControls
     if (!engineRef.current?.playing && engineRef.current?.audio instanceof SamplerAudioEngine) setPracticeError("Piano samples are not ready. Wait or choose synthesis fallback in Sound.");
     syncTransportState();
     void fetch(`/api/songs/${encodeURIComponent(initial.song.id)}/play`, { method: "POST" }).catch(() => {});
-    recordRecent({
-      id: initial.song.id,
-      baseId: initial.song.baseId,
-      title: initial.song.title,
-      artist: initial.song.artist,
-      difficulty: initial.song.difficulty,
-    });
-  }, [cancelSoundPreview, chordPracticeActive, initial.song, navigationPendingRef]);
+    hasPlayedRef.current = true;
+    savePositionRef.current();
+  }, [cancelSoundPreview, chordPracticeActive, initial.song.id, navigationPendingRef]);
 
   // Outside-click closes the mode menu.
   useEffect(() => {
