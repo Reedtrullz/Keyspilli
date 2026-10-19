@@ -20,7 +20,10 @@ test("home page shows the catalog", async ({ page }) => {
 
 test("song library filters by difficulty", async ({ page }) => {
   await page.goto("/songs");
-  await page.getByLabel("Difficulty", { exact: true }).selectOption("beginner");
+  // Difficulty is a group of toggle buttons, not a <select>.
+  const difficulty = page.getByRole("group", { name: "Difficulty", exact: true });
+  await difficulty.getByRole("button", { name: "Beginner", exact: true }).click();
+  await expect(difficulty.getByRole("button", { name: "Beginner", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Beginner level" }).first()).toBeVisible();
 });
@@ -179,6 +182,8 @@ test("direct sheet RSC payload excludes the large player detail", async ({ page 
 
 test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
+  // Loop and display controls live behind the "Display & loop" toggle.
+  await page.getByRole("button", { name: "Display & loop" }).click();
   await page.getByRole("button", { name: /LOOP OFF/ }).click();
   await expect(page.getByRole("button", { name: /LOOP ON/ })).toBeVisible();
   await page.getByRole("button", { name: "Decrease speed" }).click();
@@ -286,7 +291,13 @@ test("PDF export rejects unknown layouts with a stable safe error", async ({ req
 
 test("upload flow creates a playable song", async ({ request }) => {
   const fs = await import("node:fs");
-  const buf = fs.readFileSync("../../data/seed-midi/f-abt-vocalise-o-1.mid");
+  const path = await import("node:path");
+  // seed-midi is gitignored; CI fetches it before the e2e run.
+  const seed = path.join(process.env.KEYSPILLI_DATA_DIR ?? "../../data", "seed-midi", "f-abt-vocalise-o-1.mid");
+  if (!fs.existsSync(seed)) {
+    throw new Error(`Missing ${seed}. Run: npx tsx packages/catalog/scripts/fetch-seed.ts`);
+  }
+  const buf = fs.readFileSync(seed);
   const res = await request.post("/api/uploads?title=Upload Test&artist=Keyspilli", {
     data: buf,
     headers: { authorization: "Bearer test-token-for-e2e" },
@@ -301,9 +312,11 @@ test("uploads page shows the wizard", async ({ page }) => {
   await expect(page.getByText("Drop your .mid, .midi, .musicxml or .mxl here")).toBeVisible();
 });
 
-test("youtube page validates URLs", async ({ page }) => {
+test("youtube page explains the symbolic-first flow and links to uploads", async ({ page }) => {
   await page.goto("/youtube");
-  await page.getByPlaceholder(/youtube\.com/).fill("https://example.com/not-a-video");
-  await page.getByRole("button", { name: "Convert" }).click();
-  await expect(page.getByText(/valid YouTube URL|paste a valid/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create a lesson from a symbolic file" })).toBeVisible();
+  await expect(page.getByText(/does not create lessons directly from YouTube audio/i)).toBeVisible();
+  await expect(page.getByPlaceholder(/youtube\.com/)).toHaveCount(0);
+  await page.getByRole("main").getByRole("link", { name: "Add a song" }).click();
+  await expect(page).toHaveURL(/\/uploads$/);
 });
