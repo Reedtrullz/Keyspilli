@@ -20,7 +20,9 @@ test("home page shows the catalog", async ({ page }) => {
 
 test("song library filters by difficulty", async ({ page }) => {
   await page.goto("/songs");
-  await page.getByLabel("Difficulty", { exact: true }).selectOption("beginner");
+  const beginner = page.getByRole("group", { name: "Difficulty" }).getByRole("button", { name: "Beginner", exact: true });
+  await beginner.click();
+  await expect(beginner).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("a[href^='/player/']").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Beginner level" }).first()).toBeVisible();
 });
@@ -179,6 +181,7 @@ test("direct sheet RSC payload excludes the large player detail", async ({ page 
 
 test("player controls: loop, tempo, transpose, hands", async ({ page }) => {
   await page.goto(`/player/${SONG}`);
+  await page.getByRole("button", { name: "Display & loop", exact: true }).click();
   await page.getByRole("button", { name: /LOOP OFF/ }).click();
   await expect(page.getByRole("button", { name: /LOOP ON/ })).toBeVisible();
   await page.getByRole("button", { name: "Decrease speed" }).click();
