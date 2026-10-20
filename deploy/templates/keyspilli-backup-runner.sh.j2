@@ -8,6 +8,7 @@ if [[ -z "$image" ]]; then
 fi
 
 exec /usr/bin/docker run --rm \
+  --user 0:0 \
   --volumes-from keyspilli-worker \
   -v /backups:/backups \
   -v {{ app_dir }}/backup.sh:/usr/local/bin/keyspilli-backup:ro \

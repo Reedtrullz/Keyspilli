@@ -57,5 +57,8 @@ RUN python3 -m venv /app/.venv \
       torch==2.1.2 torchaudio==2.1.2 \
     && /app/.venv/bin/pip install --no-cache-dir --quiet demucs==4.0.1 \
     && /app/.venv/bin/python -c "from demucs.pretrained import get_model; get_model('htdemucs_6s')"
+# Run unprivileged; the torch cache baked above stays root-owned and read-only.
+RUN mkdir -p /data && chown node:node /data
+USER node
 VOLUME /data
 CMD ["node", "--import", "tsx", "services/transcribe/src/worker.ts"]
