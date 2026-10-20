@@ -111,20 +111,27 @@ class RestoreRuntimeTests(unittest.TestCase):
         self.assertEqual(len([call for call in self.calls if call[1] == "rm"]), 2)
         self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
 
-    def test_native_results_return_to_the_caller_after_probe_failure(self):
+    def test_native_probe_keeps_caller_owned_results_after_failure(self):
         with self.assertRaises(subprocess.CalledProcessError):
             self.invoke(sampled=True, image_user="node", fail_stage="native")
         helpers = [call for call in self.calls if call[1] == "create" and "--entrypoint" in call]
-        self.assertEqual(len(helpers), 2)
-        self.assertEqual(helpers[0][-4:], ["-R", "1000:1000", "/data", "/browser-results"])
-        self.assertEqual(helpers[1][-3:], ["-R", f"{os.getuid()}:{os.getgid()}", "/browser-results"])
+        self.assertEqual(len(helpers), 1)
+        self.assertEqual(helpers[0][-3:], ["-R", "1000:1000", "/data"])
+        self.assertFalse(any("/browser-results" in arg for arg in helpers[0]))
+        native = next(call for call in self.calls if call[1] == "exec" and any("verify-native-player.mts" in arg for arg in call))
+        self.assertEqual(native[native.index("--user") + 1], f"{os.getuid()}:{os.getgid()}")
         self.assertEqual((self.destination / "native-player").stat().st_mode & 0o777, 0o700)
         self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
 
-    def test_native_results_return_to_the_caller_after_success(self):
+    def test_native_probe_keeps_caller_owned_results_after_success(self):
         self.invoke(sampled=True, image_user="node", native={"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"})
         helpers = [call for call in self.calls if call[1] == "create" and "--entrypoint" in call]
-        self.assertEqual(helpers[-1][-3:], ["-R", f"{os.getuid()}:{os.getgid()}", "/browser-results"])
+        self.assertEqual(len(helpers), 1)
+        native = next(call for call in self.calls if call[1] == "exec" and any("verify-native-player.mts" in arg for arg in call))
+        self.assertEqual(native[native.index("--user") + 1], f"{os.getuid()}:{os.getgid()}")
+        output = self.destination / "native-player"
+        self.assertEqual((output.stat().st_uid, output.stat().st_gid), (os.getuid(), os.getgid()))
+        self.assertEqual(output.stat().st_mode & 0o777, 0o700)
         self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "passed")
 
     def test_ownership_cannot_follow_a_runtime_symlink_outside_the_restore(self):
