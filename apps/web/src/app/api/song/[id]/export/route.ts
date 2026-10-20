@@ -7,6 +7,10 @@ export const maxDuration = 120;
 
 let browserPromise: Promise<Browser> | null = null;
 
+// Renders can take ~40s and each holds a Chromium page; shed load instead of queueing.
+const MAX_CONCURRENT_PDFS = 2;
+let activePdfRenders = 0;
+
 class PdfRenderError extends Error {}
 
 async function getBrowser(): Promise<Browser> {
@@ -135,6 +139,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     let page: Page | null = null;
     let browser: Browser | null = null;
+    if (activePdfRenders >= MAX_CONCURRENT_PDFS) {
+      return NextResponse.json(
+        { error: "PDF generation is busy, try again shortly", code: "PDF_BUSY" },
+        { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "15" } },
+      );
+    }
+    activePdfRenders += 1;
     try {
       browser = await getBrowser();
       page = await browser.newPage({ viewport: { width: 1240, height: 1754 } });
@@ -159,6 +170,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       if (browser && !browser.isConnected()) browserPromise = null;
       return pdfErrorResponse(renderFailure ? "PDF_RENDER_FAILED" : "PDF_GENERATION_UNAVAILABLE");
     } finally {
+      activePdfRenders -= 1;
       // A page is request-scoped. Always close it, including navigation,
       // readiness, and PDF failures, so repeated downloads do not leak tabs.
       await page?.close().catch(() => undefined);

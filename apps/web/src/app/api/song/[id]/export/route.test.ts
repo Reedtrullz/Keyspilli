@@ -52,4 +52,24 @@ describe("song export route PDF failures", () => {
     });
     expect(launch).not.toHaveBeenCalled();
   });
+
+  it("sheds a third concurrent PDF with 429 and frees slots when renders finish", async () => {
+    let failLaunch!: (error: Error) => void;
+    launch.mockReturnValueOnce(new Promise((_, reject) => { failLaunch = reject; }));
+
+    const first = GET(requestFor("type=pdf&layout=simplify"), { params });
+    const second = GET(requestFor("type=pdf&layout=simplify"), { params });
+    const busy = await GET(requestFor("type=pdf&layout=simplify"), { params });
+
+    expect(busy.status).toBe(429);
+    expect(busy.headers.get("Retry-After")).toBe("15");
+    await expect(busy.json()).resolves.toMatchObject({ code: "PDF_BUSY" });
+
+    failLaunch(new Error("boom"));
+    expect((await first).status).toBe(503);
+    expect((await second).status).toBe(503);
+
+    launch.mockRejectedValueOnce(new Error("boom"));
+    expect((await GET(requestFor("type=pdf&layout=simplify"), { params })).status).toBe(503);
+  });
 });
