@@ -37,6 +37,7 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
     actual = docker("image", "inspect", "--format", "{{.Id}}", image_id).strip()
     if actual != image_id:
         raise ValueError("local immutable image is unavailable")
+    uses_node = docker("image", "inspect", "--format", "{{.Config.User}}", image_id).strip() == "node"
     name = f"keyspilli-restore-{uuid.uuid4().hex[:12]}"
     mounts = []
     native_output = report_path.parent / "native-player"
@@ -60,7 +61,24 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
         mounts.extend(("-v", f"{native_output}:/browser-results",
                        "-e", "KEYSPILLI_NATIVE_PROBE_SCOPE=owned-restore",
                        "-e", "KEYSPILLI_API_TOKEN=test-token-for-e2e"))
+
+    def own_restore_paths(owner: str, paths: tuple[str, ...]) -> None:
+        helper = f"{name}-ownership-{uuid.uuid4().hex[:8]}"
+        binds = ["-v", f"{runtime}:/data"]
+        if sampled:
+            binds.extend(("-v", f"{native_output}:/browser-results"))
+        docker("create", "--pull=never", "--name", helper, "--network", "none",
+               "--read-only", "--user", "0:0", "--cpus", "1", "--memory", "128m", "--pids-limit", "32",
+               *binds, "--entrypoint", "chown", image_id, "-R", owner, *paths)
+        try:
+            docker("start", "-a", helper, timeout=120)
+            if docker("inspect", "--format", "{{.State.ExitCode}}", helper).strip() != "0":
+                raise RuntimeError("restore ownership preparation failed")
+        finally:
+            docker("rm", "-f", helper)
+
     created = False
+    return_native_owner = False
     started = time.monotonic()
     report["applicationVerification"] = "failed"
     try:
@@ -100,6 +118,12 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
         if limits.get("Memory") != 1_073_741_824 or limits.get("PidsLimit") != 128:
             raise ValueError("restored application memory/PID limits do not match the contract")
         report["runtimeLimits"] = {key: limits[key] for key in ("NanoCpus", "Memory", "PidsLimit")}
+        if uses_node:
+            if runtime.is_symlink() or not runtime.is_dir() or runtime.resolve() != runtime:
+                raise ValueError("restore ownership requires a canonical runtime directory")
+            # Only the extracted copy and generated outputs change; backup sources stay untouched.
+            return_native_owner = sampled
+            own_restore_paths("1000:1000", ("/data", "/browser-results") if sampled else ("/data",))
         docker("start", name)
         if sampled:
             ready = json.loads(docker("exec", name, "node", "/restore-app-verifier.mjs",
@@ -121,7 +145,11 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
         report["applicationElapsedSeconds"] = round(time.monotonic() - started, 3)
         if created:
             try:
-                docker("rm", "-f", name)
+                try:
+                    docker("rm", "-f", name)
+                finally:
+                    if return_native_owner:
+                        own_restore_paths(f"{os.getuid()}:{os.getgid()}", ("/browser-results",))
             except Exception:
                 report["applicationVerification"] = "failed"
                 report["cleanup"] = "failed"

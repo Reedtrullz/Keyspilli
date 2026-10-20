@@ -41,7 +41,7 @@ class RestoreRuntimeTests(unittest.TestCase):
         (self.destination / "runtime").mkdir(parents=True)
         self.report.write_text(json.dumps({"catalogSchemaEpoch": 1}))
 
-    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False, fail_stage=None, bank_path=None, image_bytes=None, unavailable_image=None, measure_images=False):
+    def invoke(self, quota=1_500_000_000, fail_exec=False, sampled=False, native=None, exec_error=None, fail_cleanup=False, fail_stage=None, bank_path=None, image_bytes=None, unavailable_image=None, measure_images=False, image_user="", ownership_exit=0):
         def docker(argv, **_kwargs):
             self.calls.append(argv)
             operation = argv[1]
@@ -52,10 +52,12 @@ class RestoreRuntimeTests(unittest.TestCase):
                     output = "amd64"
                 elif "{{.Size}}" in argv:
                     output = str((IMAGE_BYTES if image_bytes is None else image_bytes).get(argv[-1], "missing"))
+                elif "{{.Config.User}}" in argv:
+                    output = image_user
                 else:
                     output = argv[-1]
             elif operation == "inspect":
-                output = json.dumps({"NanoCpus": quota, "Memory": 1_073_741_824, "PidsLimit": 128})
+                output = str(ownership_exit) if "{{.State.ExitCode}}" in argv else json.dumps({"NanoCpus": quota, "Memory": 1_073_741_824, "PidsLimit": 128})
             elif operation == "exec":
                 stage = "ready" if argv[-1] == "--ready-only" else \
                     "native" if any("verify-native-player.mts" in arg for arg in argv) else "framing"
@@ -82,6 +84,57 @@ class RestoreRuntimeTests(unittest.TestCase):
         create = next(call for call in self.calls if call[1] == "create")
         self.assertIn("--cpus", create)
         self.assertEqual(create[create.index("--cpus") + 1], "1.5")
+
+    def test_node_owns_restored_data_before_the_default_application_starts(self):
+        self.invoke(image_user="node")
+        helper = next(call for call in self.calls if call[1] == "create" and "--entrypoint" in call)
+        self.assertIn(f"{self.destination / 'runtime'}:/data", helper)
+        self.assertEqual(helper[-3:], ["-R", "1000:1000", "/data"])
+        self.assertEqual(helper[helper.index("--user") + 1], "0:0")
+        self.assertIn("--read-only", helper)
+        self.assertEqual(helper[helper.index("--network") + 1], "none")
+        application = next(call for call in self.calls if call[1] == "create" and "--entrypoint" not in call)
+        self.assertNotIn("--user", application)
+        start = next(i for i, call in enumerate(self.calls) if call[1] == "start" and "-a" not in call)
+        prepared = next(i for i, call in enumerate(self.calls) if call[1] == "inspect" and "{{.State.ExitCode}}" in call)
+        self.assertLess(prepared, start)
+        self.assertEqual(len([call for call in self.calls if call[1] == "rm"]), 2)
+
+    def test_root_image_does_not_need_an_ownership_helper(self):
+        self.invoke()
+        self.assertEqual(len([call for call in self.calls if call[1] == "create"]), 1)
+
+    def test_failed_ownership_preparation_refuses_application_start_and_cleans_up(self):
+        with self.assertRaisesRegex(RuntimeError, "ownership"):
+            self.invoke(image_user="node", ownership_exit=1)
+        self.assertFalse(any(call[1] == "start" and "-a" not in call for call in self.calls))
+        self.assertEqual(len([call for call in self.calls if call[1] == "rm"]), 2)
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
+
+    def test_native_results_return_to_the_caller_after_probe_failure(self):
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.invoke(sampled=True, image_user="node", fail_stage="native")
+        helpers = [call for call in self.calls if call[1] == "create" and "--entrypoint" in call]
+        self.assertEqual(len(helpers), 2)
+        self.assertEqual(helpers[0][-4:], ["-R", "1000:1000", "/data", "/browser-results"])
+        self.assertEqual(helpers[1][-3:], ["-R", f"{os.getuid()}:{os.getgid()}", "/browser-results"])
+        self.assertEqual((self.destination / "native-player").stat().st_mode & 0o777, 0o700)
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "failed")
+
+    def test_native_results_return_to_the_caller_after_success(self):
+        self.invoke(sampled=True, image_user="node", native={"kind": "keyspilli-native-sampled", "revision": REVISION, "status": "passed"})
+        helpers = [call for call in self.calls if call[1] == "create" and "--entrypoint" in call]
+        self.assertEqual(helpers[-1][-3:], ["-R", f"{os.getuid()}:{os.getgid()}", "/browser-results"])
+        self.assertEqual(json.loads(self.report.read_text())["applicationVerification"], "passed")
+
+    def test_ownership_cannot_follow_a_runtime_symlink_outside_the_restore(self):
+        runtime = self.destination / "runtime"
+        runtime.rmdir()
+        runtime.symlink_to(self.bank, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "canonical runtime"):
+            self.invoke(image_user="node")
+        self.assertFalse(any(call[1] == "create" and "--entrypoint" in call for call in self.calls))
+        self.assertFalse(any(call[1] == "start" for call in self.calls))
 
     def test_reported_wrong_quota_refuses_before_start_and_releases_owned_container(self):
         with self.assertRaisesRegex(ValueError, "CPU"):
