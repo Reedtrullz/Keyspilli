@@ -1,4 +1,11 @@
 {$DOMAIN:localhost} {
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "frame-ancestors 'none'"
+		-Server
+	}
 	# Keep Caddy's default text/JSON/XML encodings and include the vendor
 	# MusicXML MIME emitted by /api/v1/sheet (not covered by application/xml*).
 	encode zstd gzip {

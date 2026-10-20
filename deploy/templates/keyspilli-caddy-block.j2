@@ -4,6 +4,17 @@
   basicauth {
     {{ keyspilli_access_username }} {{ keyspilli_access_password_hash }}
   }
+  # A full script CSP is deferred: Next inline scripts, Verovio WASM and
+  # sample loading need browser verification first. frame-ancestors is safe now.
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "same-origin"
+    X-Frame-Options "DENY"
+    Content-Security-Policy "frame-ancestors 'none'"
+    Permissions-Policy "camera=(), geolocation=(), payment=()"
+    -Server
+  }
   # Caddy's default response matcher excludes the vendor MusicXML MIME, so
   # keep the standard encodings and add it explicitly for sheet responses.
   encode zstd gzip {
