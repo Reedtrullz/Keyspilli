@@ -480,7 +480,8 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
       const addSpan = (key: KeyRect) => {
         const st = stateOf(key.midi);
         if (!(st.pressed || st.wait || st.chord)) return;
-        spans.push([Math.max(0, Math.floor((key.x + LEFT_MARGIN - 1) * dpr)), Math.min(canvas.width, Math.ceil((key.x + LEFT_MARGIN + key.w + 1) * dpr))]);
+        // A waiting black key has a 3 px outline that spills 1.5 px past the key, so pad by 3.
+        spans.push([Math.max(0, Math.floor((key.x + LEFT_MARGIN - 3) * dpr)), Math.min(canvas.width, Math.ceil((key.x + LEFT_MARGIN + key.w + 3) * dpr))]);
       };
       kb.whites.forEach(addSpan);
       kb.blacks.forEach(addSpan);

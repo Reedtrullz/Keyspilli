@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { DEFAULT_SETTINGS } from "@keyspilli/player-core";
+import { DEFAULT_SETTINGS, keyboardRects } from "@keyspilli/player-core";
 import { FallingCanvas } from "./FallingCanvas";
 
 const hooks = vi.hoisted(() => ({
@@ -135,5 +135,29 @@ it("keeps octave landmarks and computer hints distinct when note labels change",
   expect(fillText.mock.calls.some(([text, , y]) => text === "A" && y === 349)).toBe(true);
   hooks.canvas.clientHeight = 140; fillText.mockClear(); redraw();
   expect(fillText.mock.calls.some(([text]) => text === "A" || text === "W")).toBe(false);
+  for (const cleanup of cleanups) cleanup?.();
+});
+
+it("repaints the full outline of a waiting black key, which spills past the key by 1.5 px", () => {
+  const rect = vi.fn();
+  const ctx = new Proxy({ rect, measureText: (text: string) => ({ width: text.length * 7 }) }, {
+    get: (target, key) => key in target ? target[key as keyof typeof target] : vi.fn(),
+  });
+  hooks.canvas = { clientWidth: 390, clientHeight: 400, width: 0, height: 0, getContext: () => ctx };
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  vi.stubGlobal("requestAnimationFrame", vi.fn()); vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  vi.stubGlobal("window", { devicePixelRatio: 1, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  FallingCanvas({
+    notes: [], time: 0, playing: false, settings: DEFAULT_SETTINGS, pressedKeys: new Map(), chords: [],
+    waitNotes: [{ midi: 70, startSec: 0, durSec: 1, vel: 80 }],
+    tempoBpm: 120, lowMidi: 48, highMidi: 84, loop: null,
+  });
+  const cleanups = hooks.effects.map((effect) => effect());
+  // 390 px wide: left margin 16 (no chords), right margin 4, so the keyboard is 370 px wide.
+  const black = keyboardRects({ width: 370, lowMidi: 48, highMidi: 84, whiteHeight: 140 }).blacks.find((key) => key.midi === 70)!;
+  const left = black.x + 16;
+  const clips = rect.mock.calls.map(([x, , width]) => [x as number, (x as number) + (width as number)]);
+  expect(clips.some(([from, to]) => from <= left - 3 && to >= left + black.w + 3)).toBe(true);
   for (const cleanup of cleanups) cleanup?.();
 });
