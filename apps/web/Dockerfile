@@ -64,7 +64,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgbm1 libpango-1.0-0 libcairo2 libasound2 fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=browser-assets /ms-playwright /ms-playwright
-COPY --from=build /app/apps/web/.next/standalone ./
+COPY --chown=node:node --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 COPY --from=build /app/catalog/learner-review.json ./catalog/learner-review.json
@@ -72,6 +72,7 @@ COPY --from=build /app/catalog/manifest.json ./catalog/manifest.json
 COPY --from=build /app/catalog/chord-sources.json ./catalog/chord-sources.json
 COPY --from=build /app/catalog/chord-timelines ./catalog/chord-timelines
 RUN mkdir -p /data/uploads && chown -R 1000:1000 /data
+USER node
 VOLUME /data
 EXPOSE 3000
 ARG VERSION=dev

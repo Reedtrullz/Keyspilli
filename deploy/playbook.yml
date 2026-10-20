@@ -538,6 +538,28 @@
             mode: '0644'
           tags: [deploy]
 
+        - name: Hand the existing data volume to the unprivileged container user
+          ansible.builtin.command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --network
+              - none
+              - --user
+              - '0:0'
+              - --entrypoint
+              - chown
+              - --volumes-from
+              - "{{ worker_container_name }}"
+              - "{{ worker_image }}"
+              - -R
+              - '1000:1000'
+              - /data
+          when: previous_worker_exists | bool
+          changed_when: true
+          tags: [deploy]
+
         - name: Start Keyspilli with Docker Compose
           community.docker.docker_compose_v2:
             project_src: "{{ app_dir }}"
