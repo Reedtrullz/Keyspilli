@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSongDetail } from "@/lib/catalog-api";
-import { apiAuthorization } from "../../../../lib/api-auth";
+import { checkTokenAuth } from "../../../../lib/api-auth";
 import { applySongMetadata, resolveBaseId, SongUpdateError, type SongPatch } from "@/lib/song-update";
 import { parseTempoRequest, TempoRequestError, type TempoRequestPatch } from "@/lib/tempo-request";
 import { readdir, rm } from "node:fs/promises";
@@ -15,22 +15,6 @@ import { join } from "node:path";
 
 export const dynamic = "force-dynamic";
 
-function checkAuth(req: Request): Response | null {
-  const token = process.env.KEYSPILLI_API_TOKEN;
-  if (!token) {
-    console.error("KEYSPILLI_API_TOKEN is not configured; rejecting mutation request");
-    return NextResponse.json(
-      { error: "server authentication is not configured" },
-      { status: 503 },
-    );
-  }
-  const auth = apiAuthorization(req);
-  if (auth !== `Bearer ${token}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  return null;
-}
-
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const detail = await getSongDetail(id);
@@ -39,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const authResponse = checkAuth(req);
+  const authResponse = checkTokenAuth(req);
   if (authResponse) return authResponse;
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -72,7 +56,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const authResponse = checkAuth(_req);
+  const authResponse = checkTokenAuth(_req);
   if (authResponse) return authResponse;
   const { id } = await params;
   // Variant ids and base ids both work; resolve before deleting so jobs
