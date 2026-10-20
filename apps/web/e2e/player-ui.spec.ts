@@ -469,17 +469,14 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1740, height: 137
 
 test("Fit passage keeps keyboard labels fixed across bars and speed changes", async ({ page }) => {
   await page.addInitScript(() => {
-    const clear = CanvasRenderingContext2D.prototype.clearRect;
+    // The keyboard is cached between frames, so labels are drawn when it is built or repainted, not on
+    // every frame. Collect every distinct label (text at x) ever drawn; a stable layout adds no new ones.
     const text = CanvasRenderingContext2D.prototype.fillText;
-    CanvasRenderingContext2D.prototype.clearRect = function (...args) {
-      this.canvas.dataset.keyboardLabels = "[]";
-      return clear.apply(this, args);
-    };
     CanvasRenderingContext2D.prototype.fillText = function (...args) {
       if (args[2] === this.canvas.clientHeight - 18) {
-        const labels = JSON.parse(this.canvas.dataset.keyboardLabels ?? "[]");
-        labels.push([args[0], args[1]]);
-        this.canvas.dataset.keyboardLabels = JSON.stringify(labels);
+        const labels = new Set<string>(JSON.parse(this.canvas.dataset.keyboardLabels ?? "[]"));
+        labels.add(`${args[0]}@${args[1]}`);
+        this.canvas.dataset.keyboardLabels = JSON.stringify([...labels].sort());
       }
       return text.apply(this, args);
     };
@@ -498,7 +495,7 @@ test("Fit passage keeps keyboard labels fixed across bars and speed changes", as
     await canvas.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     return canvas.getAttribute("data-keyboard-labels");
   };
-  await expect.poll(labels).toMatch(/^\[\[/);
+  await expect.poll(labels).toMatch(/^\["/);
   const before = await labels();
   for (const value of [4, "last"] as const) {
     await seekToBar(page, value);

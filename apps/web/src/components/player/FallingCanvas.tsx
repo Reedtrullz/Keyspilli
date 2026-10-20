@@ -74,6 +74,10 @@ export function beatGridPoints(
   return [...points].sort((a, b) => a - b);
 }
 
+type KeyRect = ReturnType<typeof keyboardRects>["whites"][number];
+interface KeyState { pressed: boolean; wait: boolean; chord: boolean }
+const IDLE_KEY: KeyState = { pressed: false, wait: false, chord: false };
+
 export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures = [], countIn = null, inputEnabled = true, onKeyDown, onKeyUp, inputOctave = 2, midiConnected = false, onResetOctave, notes, time, timeStore, timeRef, playing, settings, pressedKeys, chords, tempoBpm, lowMidi, highMidi, loop, waitNotes, sourceKey="C", timeSig = [4, 4] }: Props) {
   const keyLabels=useMemo(()=>Array.from({length:128},(_,midi)=>({compact:learnerPitch({midi:midi-settings.transpose},settings.transpose,sourceKey,false).label,full:learnerPitch({midi:midi-settings.transpose},settings.transpose,sourceKey,true).label})),[sourceKey,settings.transpose]);
   const keyLabelsRef=useRef(keyLabels);keyLabelsRef.current=keyLabels;
@@ -170,6 +174,12 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
     let keyboardLowCache = Number.NaN;
     let keyboardHighCache = Number.NaN;
     let keyboardCache: ReturnType<typeof keyboardRects> | null = null;
+    let keyLayer: ImageBitmap | null = null;
+    let keyLayerSig = "";
+    let keyLayerLabels: unknown = null;
+    let keyLayerPending: { sig: string; labels: unknown } | null = null;
+    let keyLayerDisabled = false;
+    let disposed = false;
     const barsCache: ReturnType<typeof fallingBarsIndexed> = [];
     const upcomingCache = new Set<number>();
     const noteRangeCache = { start: 0, end: 0 };
@@ -338,95 +348,177 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
       }
       const showLabel = (midi: number) => s.keyboardLabels === "notes" || (s.keyboardLabels === "octaves" && midi % 12 === 0);
       const hintFor = (midi: number) => Object.entries(KEYMAP).find(([, base]) => base + (inputOctaveRef.current - 2) * 12 === midi)?.[0].toUpperCase();
-     for (const w of kb.whites) {
+      // Key drawing is a pure function of (key, state), so the idle keyboard
+      // can be rendered once into an offscreen strip and only keys that are
+      // pressed, waiting or chord-marked are repainted per frame.
+      const stateOf = (midi: number): KeyState => {
+        const pressed = pk.has(midi);
+        return { pressed, wait: !pressed && currentWaitMidis.has(midi), chord: !pressed && s.chordKeys && activeChordNotes.has(midi) };
+      };
+      const drawWhiteKey = (c: CanvasRenderingContext2D, w: KeyRect, st: KeyState) => {
        const kx = w.x + LEFT_MARGIN;
-       const isChord = s.chordKeys && activeChordNotes.has(w.midi) && !pk.has(w.midi);
-       const isWait = currentWaitMidis.has(w.midi) && !pk.has(w.midi);
-       ctx.fillStyle = pk.has(w.midi) ? pitchColor(w.midi) : "#ffffff";
-       ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-       ctx.lineWidth = 1;
-       ctx.strokeStyle = "#d4d4d8";
-       ctx.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
-       if (pk.has(w.midi)) {
-         ctx.strokeStyle = "#18181b"; ctx.lineWidth = 2;
-         ctx.strokeRect(kx + 2, H - KB_H + 2, Math.max(1, w.w - 5), KB_H - 7);
-         ctx.lineWidth = 1;
+       c.fillStyle = st.pressed ? pitchColor(w.midi) : "#ffffff";
+       c.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+       c.lineWidth = 1;
+       c.strokeStyle = "#d4d4d8";
+       c.strokeRect(kx, H - KB_H, w.w - 1, KB_H);
+       if (st.pressed) {
+         c.strokeStyle = "#18181b"; c.lineWidth = 2;
+         c.strokeRect(kx + 2, H - KB_H + 2, Math.max(1, w.w - 5), KB_H - 7);
+         c.lineWidth = 1;
        }
-       ctx.font = "600 12px system-ui, sans-serif";
-       ctx.textAlign = "center";
-       ctx.textBaseline = "alphabetic";
-       if (isWait) {
-         ctx.fillStyle = "#fbbf24";
-         ctx.fillRect(kx, H - KB_H, w.w - 1, KB_H);
-         ctx.strokeStyle = "#f59e0b";
-         ctx.lineWidth = 3;
-         ctx.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
-         ctx.fillStyle = "#78350f";
+       c.font = "600 12px system-ui, sans-serif";
+       c.textAlign = "center";
+       c.textBaseline = "alphabetic";
+       if (st.wait) {
+         c.fillStyle = "#fbbf24";
+         c.fillRect(kx, H - KB_H, w.w - 1, KB_H);
+         c.strokeStyle = "#f59e0b";
+         c.lineWidth = 3;
+         c.strokeRect(kx + 1, H - KB_H, w.w - 3, KB_H);
+         c.fillStyle = "#78350f";
        } else {
-          ctx.fillStyle = pk.has(w.midi) ? "#ffffff" : "#52525b";
+          c.fillStyle = st.pressed ? "#ffffff" : "#52525b";
         }
-        if (showLabel(w.midi) && ctx.measureText(keyLabel(w.midi)).width + 4 <= w.w) {
-          const labelWidth = ctx.measureText(keyLabel(w.midi)).width;
-          ctx.fillStyle = "#ffffff"; ctx.fillRect(kx + (w.w - labelWidth) / 2 - 1, H - 30, labelWidth + 2, 15);
-          ctx.fillStyle = "#3f3f46"; ctx.fillText(keyLabel(w.midi), kx + w.w / 2, H - 18);
+        if (showLabel(w.midi) && c.measureText(keyLabel(w.midi)).width + 4 <= w.w) {
+          const labelWidth = c.measureText(keyLabel(w.midi)).width;
+          c.fillStyle = "#ffffff"; c.fillRect(kx + (w.w - labelWidth) / 2 - 1, H - 30, labelWidth + 2, 15);
+          c.fillStyle = "#3f3f46"; c.fillText(keyLabel(w.midi), kx + w.w / 2, H - 18);
         }
         // Small bevels give keys depth without an animated shadow or new draw loop.
-        ctx.fillStyle = "#18181b18"; ctx.fillRect(kx, H - 4, w.w - 1, 4);
-        ctx.fillStyle = "#ffffff66"; ctx.fillRect(kx + 1, H - KB_H + 1, 1, KB_H - 6);
-        if (w.midi === 60) { ctx.fillStyle = "#4338ca"; ctx.fillRect(kx + w.w / 2 - 2, H - 10, 4, 3); }
+        c.fillStyle = "#18181b18"; c.fillRect(kx, H - 4, w.w - 1, 4);
+        c.fillStyle = "#ffffff66"; c.fillRect(kx + 1, H - KB_H + 1, 1, KB_H - 6);
+        if (w.midi === 60) { c.fillStyle = "#4338ca"; c.fillRect(kx + w.w / 2 - 2, H - 10, 4, 3); }
         const hint = s.showKeyBindings && KB_H >= 130 ? hintFor(w.midi) : undefined;
-        if (hint && ctx.measureText(hint).width + 4 <= w.w) {
-          ctx.fillStyle = "#f4f4f5"; ctx.fillRect(kx + w.w / 2 - Math.min(14, w.w - 2) / 2, H - 63, Math.min(14, w.w - 2), 15);
-          ctx.fillStyle = "#3f3f46"; ctx.fillText(hint, kx + w.w / 2, H - 51);
+        if (hint && c.measureText(hint).width + 4 <= w.w) {
+          c.fillStyle = "#f4f4f5"; c.fillRect(kx + w.w / 2 - Math.min(14, w.w - 2) / 2, H - 63, Math.min(14, w.w - 2), 15);
+          c.fillStyle = "#3f3f46"; c.fillText(hint, kx + w.w / 2, H - 51);
         }
-        if (isChord && !isWait) {
-          ctx.beginPath();
-          ctx.arc(kx + w.w / 2, H - 36, Math.min(4, w.w / 4), 0, Math.PI * 2);
-          ctx.fillStyle = "#6366f1"; ctx.fill();
-          ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
+        if (st.chord && !st.wait) {
+          c.beginPath();
+          c.arc(kx + w.w / 2, H - 36, Math.min(4, w.w / 4), 0, Math.PI * 2);
+          c.fillStyle = "#6366f1"; c.fill();
+          c.strokeStyle = "#ffffff"; c.lineWidth = 1.5; c.stroke();
         }
-      }
-     for (const b of kb.blacks) {
+      };
+      const drawBlackKey = (c: CanvasRenderingContext2D, b: KeyRect, st: KeyState) => {
        const kx = b.x + LEFT_MARGIN;
-       const isChordB = s.chordKeys && activeChordNotes.has(b.midi) && !pk.has(b.midi);
-       const isWaitB = currentWaitMidis.has(b.midi) && !pk.has(b.midi);
-       ctx.fillStyle = pk.has(b.midi) ? pitchColor(b.midi) : "#27272a";
-       ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
-       ctx.fillStyle = "#ffffff22"; ctx.fillRect(kx + 2, H - KB_H + 2, Math.max(1, b.w - 4), 2);
-       ctx.fillStyle = "#00000055"; ctx.fillRect(kx, H - KB_H * 0.38 - 4, b.w, 4);
-       if (pk.has(b.midi)) {
-         ctx.strokeStyle = "#fafafa"; ctx.lineWidth = 2;
-         ctx.strokeRect(kx + 2, H - KB_H + 2, Math.max(1, b.w - 4), KB_H * 0.62 - 4);
-         ctx.lineWidth = 1;
+       c.fillStyle = st.pressed ? pitchColor(b.midi) : "#27272a";
+       c.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
+       c.fillStyle = "#ffffff22"; c.fillRect(kx + 2, H - KB_H + 2, Math.max(1, b.w - 4), 2);
+       c.fillStyle = "#00000055"; c.fillRect(kx, H - KB_H * 0.38 - 4, b.w, 4);
+       if (st.pressed) {
+         c.strokeStyle = "#fafafa"; c.lineWidth = 2;
+         c.strokeRect(kx + 2, H - KB_H + 2, Math.max(1, b.w - 4), KB_H * 0.62 - 4);
+         c.lineWidth = 1;
        }
-       if (isWaitB) {
-         ctx.fillStyle = "#f59e0b";
-         ctx.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
-         ctx.strokeStyle = "#b45309";
-         ctx.lineWidth = 3;
-         ctx.strokeRect(kx, H - KB_H, b.w, KB_H * 0.62);
+       if (st.wait) {
+         c.fillStyle = "#f59e0b";
+         c.fillRect(kx, H - KB_H, b.w, KB_H * 0.62);
+         c.strokeStyle = "#b45309";
+         c.lineWidth = 3;
+         c.strokeRect(kx, H - KB_H, b.w, KB_H * 0.62);
        }
-        if (isChordB && !isWaitB) {
-          ctx.beginPath();
-          ctx.arc(kx + b.w / 2, H - KB_H * 0.38 - 25, Math.min(4, b.w / 4), 0, Math.PI * 2);
-          ctx.fillStyle = "#6366f1"; ctx.fill();
-          ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
+        if (st.chord && !st.wait) {
+          c.beginPath();
+          c.arc(kx + b.w / 2, H - KB_H * 0.38 - 25, Math.min(4, b.w / 4), 0, Math.PI * 2);
+          c.fillStyle = "#6366f1"; c.fill();
+          c.strokeStyle = "#ffffff"; c.lineWidth = 1.5; c.stroke();
         }
         if (b.w >= 17) {
-          ctx.font = "600 11px system-ui, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "alphabetic";
-          ctx.fillStyle = pk.has(b.midi) ? "#ffffff" : "#d4d4d8";
-          if (showLabel(b.midi) && ctx.measureText(keyLabel(b.midi)).width + 4 <= b.w) {
-            ctx.fillStyle = "#27272a"; ctx.fillRect(kx + 1, H - KB_H * 0.38 - 21, b.w - 2, 15);
-            ctx.fillStyle = "#fafafa"; ctx.fillText(keyLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
+          c.font = "600 11px system-ui, sans-serif";
+          c.textAlign = "center";
+          c.textBaseline = "alphabetic";
+          c.fillStyle = st.pressed ? "#ffffff" : "#d4d4d8";
+          if (showLabel(b.midi) && c.measureText(keyLabel(b.midi)).width + 4 <= b.w) {
+            c.fillStyle = "#27272a"; c.fillRect(kx + 1, H - KB_H * 0.38 - 21, b.w - 2, 15);
+            c.fillStyle = "#fafafa"; c.fillText(keyLabel(b.midi), kx + b.w / 2, H - KB_H * 0.38 - 8);
           }
           const hint = s.showKeyBindings && KB_H * 0.62 >= 52 ? hintFor(b.midi) : undefined;
-          if (hint && ctx.measureText(hint).width + 4 <= b.w) {
-            ctx.fillStyle = "#27272a"; ctx.fillRect(kx + 1, H - KB_H + 12, b.w - 2, 15);
-            ctx.fillStyle = "#fafafa"; ctx.fillText(hint, kx + b.w / 2, H - KB_H + 24);
+          if (hint && c.measureText(hint).width + 4 <= b.w) {
+            c.fillStyle = "#27272a"; c.fillRect(kx + 1, H - KB_H + 12, b.w - 2, 15);
+            c.fillStyle = "#fafafa"; c.fillText(hint, kx + b.w / 2, H - KB_H + 24);
           }
         }
+      };
+      const background = dark ? "#15181e" : "#fafafa";
+      const stripTop = Math.max(0, Math.floor((H - KB_H - 2) * dpr));
+      const layerSig = [W, H, dpr, LEFT_MARGIN, KEYBOARD_W, KB_H, low, high, dark, s.keyboardLabels, s.showKeyBindings, inputOctaveRef.current].join("|");
+      if (keyLayer && keyLayerSig === layerSig && keyLayerLabels === keyLabelsRef.current) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(keyLayer, 0, stripTop);
+        ctx.restore();
+      } else {
+        keyLayer?.close();
+        keyLayer = null;
+        // Draw the idle keyboard on the canvas itself, then snapshot that strip.
+        // The pixels come from this canvas's own rasterizer, so later blits are
+        // identical to a full redraw. Until the snapshot resolves, frames repeat this.
+        for (const w of kb.whites) drawWhiteKey(ctx, w, IDLE_KEY);
+        for (const b of kb.blacks) drawBlackKey(ctx, b, IDLE_KEY);
+        const labels = keyLabelsRef.current;
+        if (!keyLayerDisabled && typeof createImageBitmap === "function" && (!keyLayerPending || keyLayerPending.sig !== layerSig || keyLayerPending.labels !== labels)) {
+          const token = { sig: layerSig, labels };
+          keyLayerPending = token;
+          createImageBitmap(canvas, 0, stripTop, canvas.width, Math.max(1, canvas.height - stripTop)).then(
+            (bitmap) => {
+              if (disposed || keyLayerPending !== token) { bitmap.close(); return; }
+              keyLayer = bitmap;
+              keyLayerSig = token.sig;
+              keyLayerLabels = token.labels;
+              keyLayerPending = null;
+            },
+            () => { keyLayerDisabled = true; keyLayerPending = null; },
+          );
+        }
+      }
+      // Repaint the pixels around each non-idle key from scratch (background,
+      // then every key touching the region, whites before blacks), clipped to
+      // whole device pixels so the result matches a full redraw.
+      const spans: [number, number][] = [];
+      const addSpan = (key: KeyRect) => {
+        const st = stateOf(key.midi);
+        if (!(st.pressed || st.wait || st.chord)) return;
+        spans.push([Math.max(0, Math.floor((key.x + LEFT_MARGIN - 1) * dpr)), Math.min(canvas.width, Math.ceil((key.x + LEFT_MARGIN + key.w + 1) * dpr))]);
+      };
+      kb.whites.forEach(addSpan);
+      kb.blacks.forEach(addSpan);
+      // Merge overlapping spans so each key is replayed once; a crowd of
+      // active keys repaints the whole strip instead of many slivers.
+      spans.sort((p, q) => p[0] - q[0]);
+      const merged: [number, number][] = [];
+      for (const span of spans) {
+        const last = merged[merged.length - 1];
+        if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1]);
+        else merged.push([span[0], span[1]]);
+      }
+      if (merged.length > 6) { merged.length = 0; merged.push([0, canvas.width]); }
+      for (const [dx0, dx1] of merged) {
+        // Any key whose antialiased edge or stroke (up to 2 px out) reaches the clip is replayed.
+        const x0 = dx0 / dpr;
+        const x1 = dx1 / dpr;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.beginPath();
+        ctx.rect(dx0, stripTop, dx1 - dx0, canvas.height - stripTop);
+        ctx.clip();
+        ctx.fillStyle = background;
+        ctx.fillRect(dx0, stripTop, dx1 - dx0, canvas.height - stripTop);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        for (const w of kb.whites) {
+          const kx = w.x + LEFT_MARGIN;
+          if (kx + w.w + 2 <= x0) continue;
+          if (kx - 2 >= x1) break;
+          drawWhiteKey(ctx, w, stateOf(w.midi));
+        }
+        for (const b of kb.blacks) {
+          const kx = b.x + LEFT_MARGIN;
+          if (kx + b.w + 2 <= x0) continue;
+          if (kx - 2 >= x1) break;
+          drawBlackKey(ctx, b, stateOf(b.midi));
+        }
+        ctx.restore();
       }
 
       // Upcoming-note strips
@@ -489,6 +581,9 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
         if (n.midi < low) below++;
         else if (n.midi > high) above++;
       }
+      // The key code no longer runs on idle frames, so set the text state it used to leave behind.
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
       ctx.font = "700 12px system-ui, sans-serif";
       ctx.fillStyle = dark ? "#d4d4d8" : "#71717a";
       if (below > 0) {
@@ -556,6 +651,9 @@ export function FallingCanvas({ readingWindow = 3.2, showLyrics = true, measures
     window.addEventListener("resize", resize);
     return () => {
       observer.disconnect();
+      disposed = true;
+      keyLayer?.close();
+      keyLayer = null;
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
