@@ -15,6 +15,7 @@ import { checkMutationAuth } from "../../../lib/mutation-auth";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_METADATA_CHARS = 200;
 
 class UploadTooLargeError extends Error {}
 
@@ -64,6 +65,9 @@ export async function POST(req: NextRequest) {
   }
   const title = req.nextUrl.searchParams.get("title") ?? "Untitled Upload";
   const artist = req.nextUrl.searchParams.get("artist") ?? "Unknown";
+  if (title.length > MAX_METADATA_CHARS || artist.length > MAX_METADATA_CHARS) {
+    return NextResponse.json({ error: `title and artist must be at most ${MAX_METADATA_CHARS} characters` }, { status: 400 });
+  }
   const sourceHash = createHash("sha256").update(buf).digest("hex");
   const baseId = `upload-${sourceHash}`;
   const handoffId = req.nextUrl.searchParams.get("handoffId");
