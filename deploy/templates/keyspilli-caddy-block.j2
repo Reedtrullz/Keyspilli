@@ -1,4 +1,5 @@
 {{ app_domain }} {
+{% if keyspilli_edge_basic_auth | bool %}
   # Caddy 2.6.2 on the production host uses the basicauth directive. The
   # password value is a bcrypt hash generated at deploy time from stdin.
   basicauth {
@@ -6,6 +7,7 @@
     # Optional host-managed test logins survive application deployments.
     import /etc/caddy/keyspilli-users/*.conf
   }
+{% endif %}
   # HSTS belongs at the TLS edge. The application sets CSP (frame-ancestors),
   # X-Frame-Options, nosniff and Referrer-Policy itself (apps/web/next.config.ts)
   # so they also hold in local and CI runs. No includeSubDomains: other
@@ -60,7 +62,9 @@
     # maintainer may provide the full "Bearer <token>" value in
     # X-Keyspilli-Api-Token alongside Basic Auth. The app accepts that header
     # only as a transport alias for its existing bearer check.
+{% if keyspilli_edge_basic_auth | bool %}
     header_up -Authorization
+{% endif %}
     header_up X-Real-IP {remote_host}
     header_up X-Forwarded-For {remote_host}
   }

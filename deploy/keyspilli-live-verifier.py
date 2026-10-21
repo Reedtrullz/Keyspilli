@@ -23,18 +23,26 @@ def _auth_header(username: str, password: str) -> str:
     return f"Basic {token}"
 
 
+def _request_headers(auth: str) -> dict[str, str]:
+    """Edge Basic Auth (only while enabled) plus the app login gate's maintainer bearer.
+
+    The app reads Authorization before X-Keyspilli-Api-Token, so Basic must be
+    omitted (empty auth) once edge Basic Auth is removed.
+    """
+    headers = {"Accept": "application/json", "User-Agent": "Keyspilli-LiveVerifier/1"}
+    if auth:
+        headers["Authorization"] = auth
+    token = os.environ.get("KEYSPILLI_API_TOKEN")
+    if token:
+        headers["X-Keyspilli-Api-Token"] = f"Bearer {token}"
+    return headers
+
+
 def _fetch_json(url: str, auth: str, retries: int = 3, timeout: int = 15) -> Any:
     last_error: Exception | None = None
     for attempt in range(retries):
         try:
-            request = urllib.request.Request(
-                url,
-                headers={
-                    "Accept": "application/json",
-                    "Authorization": auth,
-                    "User-Agent": "Keyspilli-LiveVerifier/1",
-                },
-            )
+            request = urllib.request.Request(url, headers=_request_headers(auth))
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 if response.status != 200:
                     raise RuntimeError(f"unexpected HTTP status {response.status}")
@@ -154,12 +162,15 @@ def main() -> int:
     if args.fixture:
         fixture = json.loads(open(args.fixture, encoding="utf-8").read())
         base_url = fixture["base_url"]
-        auth = _auth_header(fixture["username"], fixture["password"])
+        if fixture.get("api_token"):
+            os.environ["KEYSPILLI_API_TOKEN"] = fixture["api_token"]
+        auth = _auth_header(fixture["username"], fixture["password"]) if "username" in fixture else ""
         expected_sha = fixture["expected_sha"]
         verify_base_id = fixture.get("verify_base_id")
     else:
         base_url = os.environ["KEYSPILLI_DEPLOY_URL"]
-        auth = _auth_header(os.environ["KEYSPILLI_ACCESS_USERNAME"], os.environ["KEYSPILLI_ACCESS_PASSWORD"])
+        user, password = os.environ.get("KEYSPILLI_ACCESS_USERNAME"), os.environ.get("KEYSPILLI_ACCESS_PASSWORD")
+        auth = _auth_header(user, password) if user and password else ""
         expected_sha = os.environ["KEYSPILLI_EXPECTED_SHA"]
         verify_base_id = os.environ.get("KEYSPILLI_VERIFY_BASE_ID") or None
 

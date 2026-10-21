@@ -53,7 +53,14 @@ const fixture = async (url) => {
   else if (searchParams.get("type") === "pdf") body = pdf;
   return new Response(body);
 };
-assert.equal((await verifyRestoredApp(revision, "restored-easy", 1, fixture)).pdf, "passed");
+process.env.KEYSPILLI_API_TOKEN = "restore-test-token";
+const sentHeaders = [];
+assert.equal((await verifyRestoredApp(revision, "restored-easy", 1, async (url, init) => {
+  sentHeaders.push(init?.headers?.["x-keyspilli-api-token"]);
+  return fixture(url);
+})).pdf, "passed");
+assert.equal(sentHeaders.length, 7);
+assert(sentHeaders.every((value) => value === "Bearer restore-test-token"));
 assert(calls.every((url) => url.startsWith("http://127.0.0.1:3000/")));
 assert.equal(calls.length, 7);
 await assert.rejects(verifyRestoredApp("b".repeat(40), "restored-easy", 1, fixture), /identity/);

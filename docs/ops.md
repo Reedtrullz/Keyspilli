@@ -168,8 +168,25 @@ entire `app_domain`. The bcrypt hash is generated in memory from
 `KEYSPILLI_ACCESS_PASSWORD`; no plaintext password is rendered or logged. The
 local root `docker-compose.yml`/`deploy/Caddyfile` remain developer-only and
 are intentionally not the production perimeter. This is a single-user edge
-boundary, not an application account system: there is no signup, OAuth, or
-multi-user authorization.
+boundary and is transitional (`KEYSPILLI_EDGE_BASIC_AUTH=false` removes it).
+The application itself is gated by GitHub login (`apps/web/src/proxy.ts`,
+Auth.js): only the numeric GitHub ids in `KEYSPILLI_OWNER_GITHUB_ID` and
+`KEYSPILLI_TESTER_GITHUB_IDS` get in, re-checked on every request, so removing
+an id revokes it at once. The maintainer bearer (`Authorization` or
+`X-Keyspilli-Api-Token`) also passes the gate for scripts and deploy probes.
+Register a GitHub OAuth app with callback
+`https://<app_domain>/api/auth/callback/github`. There is no signup.
+
+A deploy dispatch on `main` needs exactly one release gate: the reviewed music
+manifest (`promote_reviewed`), the UI-only allowlist (`ui_only_release`), or the
+non-music gate (`non_music_release`). The non-music gate runs the full automatic
+checks, then `scripts/check-non-music-release.py` compares the revision production
+reports with the target and accepts the release only if every changed path is on its
+allowlist. Music, catalog, player and ingestion code, unknown paths and any change
+not listed fail closed; the few non-code exceptions (dependency and header changes)
+are pinned to the exact changed lines. Release machinery (`ci.yml`, `scripts/`,
+`deploy/`) is accepted on `main`, and on a `release/*` branch only when it equals
+`origin/main`. It never replaces the music manifest for music releases.
 
 The deploy verifier requires anonymous public health to return HTTP 401, then
 checks authenticated health/version and both authenticated PDF signatures.

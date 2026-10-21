@@ -18,12 +18,26 @@ class LiveRevisionTests(unittest.TestCase):
   seen=[]
   def fake(request,timeout):
    seen.append(request);return io.BytesIO(json.dumps({'status':'healthy','version':'a'*40}).encode())
-  with mock.patch.dict(os.environ,{'KEYSPILLI_ACCESS_USERNAME':'u','KEYSPILLI_ACCESS_PASSWORD':'p'}),mock.patch.object(ui.urllib.request,'urlopen',fake):
+  with mock.patch.dict(os.environ,{'KEYSPILLI_ACCESS_USERNAME':'u','KEYSPILLI_ACCESS_PASSWORD':'p','KEYSPILLI_API_TOKEN':'t'}),mock.patch.object(ui.urllib.request,'urlopen',fake):
    self.assertEqual(ui.live_revision(),'a'*40)
   headers={k.lower():v for k,v in seen[0].header_items()}
   self.assertEqual(headers['user-agent'],ui.USER_AGENT)
   self.assertNotIn('python',headers['user-agent'].lower())
   self.assertTrue(headers['authorization'].startswith('Basic '))
+  self.assertEqual(headers['x-keyspilli-api-token'],'Bearer t')
+
+ def test_bearer_alone_sends_no_basic_header(self):
+  import io,json
+  from unittest import mock
+  seen=[]
+  def fake(request,timeout):
+   seen.append(request);return io.BytesIO(json.dumps({'status':'healthy','version':'b'*40}).encode())
+  env={k:v for k,v in os.environ.items() if not k.startswith('KEYSPILLI_')};env['KEYSPILLI_API_TOKEN']='t'
+  with mock.patch.dict(os.environ,env,clear=True),mock.patch.object(ui.urllib.request,'urlopen',fake):
+   self.assertEqual(ui.live_revision(),'b'*40)
+  headers={k.lower():v for k,v in seen[0].header_items()}
+  self.assertNotIn('authorization',headers)
+  self.assertEqual(headers['x-keyspilli-api-token'],'Bearer t')
 
 class GitTests(unittest.TestCase):
  def setUp(self):

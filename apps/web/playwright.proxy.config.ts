@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { E2E_AUTH_ENV, E2E_AUTH_HEADERS } from "./playwright.auth";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -25,6 +26,7 @@ export default defineConfig({
             KEYSPILLI_DATA_DIR: scratchDataDir,
             KEYSPILLI_E2E_SCRATCH_DIR: scratchDataDir,
             KEYSPILLI_API_TOKEN: "test-token-for-e2e",
+            ...E2E_AUTH_ENV,
             KEYSPILLI_ORIGIN: "http://127.0.0.1:3201",
             NEXT_TELEMETRY_DISABLED: "1",
           },
@@ -42,6 +44,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: "http://127.0.0.1:3200",
+    extraHTTPHeaders: E2E_AUTH_HEADERS,
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],

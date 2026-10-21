@@ -132,7 +132,7 @@ grep -Fq 'import /etc/caddy/keyspilli-users/*.conf' "$template"
 grep -q 'status_code: \[401\]' "$playbook"
 grep -q 'url_username:' "$playbook"
 grep -q 'url_password:' "$playbook"
-grep -q 'force_basic_auth: true' "$playbook"
+grep -q 'force_basic_auth:' "$playbook"
 grep -q 'header_up -Authorization' "$template"
 
 printf '%s\n' 'access-boundary local Caddy canary: PASS'

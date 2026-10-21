@@ -16,7 +16,10 @@ export async function waitForRestoredApp(request = fetch) {
 export async function verifyRestoredApp(revision, songId, epoch, request = fetch) {
   const origin = "http://127.0.0.1:3000";
   async function get(path, maxBytes = 16 * 1024 * 1024, timeoutMs = 20_000) {
-    const response = await request(origin + path, { signal: AbortSignal.timeout(timeoutMs) });
+    // The app's login gate admits the container's maintainer bearer (offline test value set at docker create).
+    const token = process.env.KEYSPILLI_API_TOKEN;
+    const headers = token ? { "x-keyspilli-api-token": `Bearer ${token}` } : {};
+    const response = await request(origin + path, { headers, signal: AbortSignal.timeout(timeoutMs) });
     if (!response.ok) throw new Error("restored endpoint unavailable");
     const chunks = [];
     let size = 0;

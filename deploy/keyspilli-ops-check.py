@@ -96,8 +96,10 @@ def latest_coherent_pair(root: str = "/backups") -> dict[str, Path] | None:
     return None
 
 
-def http_json(url: str) -> dict[str, Any]:
-    with urllib.request.urlopen(url, timeout=10) as response:
+def http_json(url: str, api_token: str | None = None) -> dict[str, Any]:
+    # The app login gate admits the maintainer bearer; the web container already holds it.
+    headers = {"X-Keyspilli-Api-Token": f"Bearer {api_token}"} if api_token else {}
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=10) as response:
         return json.load(response)
 
 
@@ -197,7 +199,7 @@ def collect(mode: str) -> dict[str, Any]:
     data_mount = next((item.get("Source") for item in web.get("Mounts", []) if item.get("Destination") == "/data"), None)
     db_path = Path(data_mount) / "db.sqlite" if data_mount else None
     web_env = env_map(web)
-    health = http_json("http://127.0.0.1:3008/api/health")
+    health = http_json("http://127.0.0.1:3008/api/health", web_env.get("KEYSPILLI_API_TOKEN"))
     disk_free = os.statvfs("/").f_bavail * os.statvfs("/").f_frsize
     backup_pair = latest_coherent_pair()
     latest_db = backup_pair["db"] if backup_pair else None

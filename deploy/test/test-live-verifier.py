@@ -32,7 +32,9 @@ def run_verifier(fixture: dict, port: int) -> tuple[int, str]:
 
         def do_GET(self) -> None:
             path = urlsplit(self.path).path
-            authenticated = self.headers.get("Authorization", "").startswith("Basic ")
+            bearer = self.headers.get("X-Keyspilli-Api-Token") == "Bearer fixture-token"
+            basic = self.headers.get("Authorization", "").startswith("Basic ")
+            authenticated = bearer if fixture.get("bearer_only") else (basic or bearer)
             if path == "/api/health":
                 if not authenticated:
                     self.send_response(401)
@@ -68,11 +70,12 @@ def run_verifier(fixture: dict, port: int) -> tuple[int, str]:
     thread.start()
     fixture_file = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
     try:
+        credentials = {} if fixture.get("bearer_only") else {"username": "test-user", "password": "test-pass"}
         json.dump({
             **fixture,
             "base_url": f"http://127.0.0.1:{port}",
-            "username": "test-user",
-            "password": "test-pass",
+            "api_token": "fixture-token",
+            **credentials,
         }, fixture_file)
         fixture_file.close()
         result = subprocess.run(
@@ -112,6 +115,12 @@ def test_valid_flat_api_and_pagination() -> None:
     assert result["checks"]["catalog"]["totalSongs"] == 250
     assert result["checks"]["base"]["tempos"] == [75]
     print("  PASS: authenticated flat API pagination and target tempo")
+
+
+def test_bearer_only_after_basic_auth_removal() -> None:
+    code, result = result_for(make_fixture(bearer_only=True), 18910)
+    assert code == 0 and result["status"] == "passed", result
+    print("  PASS: maintainer bearer alone authenticates health and catalog")
 
 
 def test_version_mismatch() -> None:
@@ -160,6 +169,7 @@ def test_empty_catalog_fails() -> None:
 if __name__ == "__main__":
     print("Running F07 live-verifier tests...")
     test_valid_flat_api_and_pagination()
+    test_bearer_only_after_basic_auth_removal()
     test_version_mismatch()
     test_base_and_tempo_failures()
     test_malformed_pages_fail_closed()

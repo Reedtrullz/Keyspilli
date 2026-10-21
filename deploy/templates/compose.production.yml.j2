@@ -16,6 +16,12 @@ services:
       VERSION: "{{ compose_app_version | default(app_version) }}"
       IMAGE_REF: "{{ compose_image | default(docker_image) }}"
       KEYSPILLI_API_TOKEN: "{{ keyspilli_api_token | default('') }}"
+      AUTH_SECRET: "{{ keyspilli_auth_secret | default('') }}"
+      AUTH_URL: "https://{{ app_domain }}"
+      AUTH_GITHUB_ID: "{{ keyspilli_github_client_id | default('') }}"
+      AUTH_GITHUB_SECRET: "{{ keyspilli_github_client_secret | default('') }}"
+      OWNER_GITHUB_ID: "{{ keyspilli_owner_github_id | default('') }}"
+      TESTER_GITHUB_IDS: "{{ keyspilli_tester_github_ids | default('') }}"
       KEYSPILLI_DATA_DIR: /data
       KEYSPILLI_TUTORIAL_BETA: "{{ '1' if (compose_tutorial_beta | default(keyspilli_tutorial_beta)) | bool else '0' }}"
       # PDF rendering runs Chromium inside this container. The host-mapped
@@ -26,7 +32,7 @@ services:
       test:
         - CMD-SHELL
         - >-
-          node -e "require('http').get('http://127.0.0.1:3000/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+          node -e "require('http').get('http://127.0.0.1:3000/api/health', { headers: { 'x-keyspilli-api-token': 'Bearer ' + process.env.KEYSPILLI_API_TOKEN } }, r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
       interval: 30s
       timeout: 10s
       start_period: 40s

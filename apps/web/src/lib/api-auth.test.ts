@@ -193,6 +193,7 @@ describe("API route auth coverage", () => {
   // needs a reason; a new mutating handler must not be added here casually.
   const EDGE_ONLY: Record<string, string> = {
     "songs/route.ts POST": "read-only song selection query (same contract as GET); no catalog mutation",
+    "auth/[...nextauth]/route.ts POST": "Auth.js sign-in/sign-out endpoint: anonymous by design, protected by Auth.js CSRF tokens",
   };
 
   const routeFiles = (dir: string): string[] => readdirSync(dir).flatMap((name) => {

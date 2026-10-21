@@ -60,7 +60,7 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     const id = receipt.songIds.find((value: unknown): value is string => value === baseId + "-a");
     if (!id) throw new Error("Advanced control was not prepared");
     browser = await chromium.launch({ headless: true });
-    context = await browser.newContext({ baseURL: origin });
+    context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
     await context.route("https://smpldsnds.github.io/**", async route => {
       const body = bank.assets.get(route.request().url());
       if (!body) return route.abort();
