@@ -42,11 +42,26 @@ export function isAllowedUser(user: AuthzUser | null | undefined, env: AuthzEnv 
   return hasAccess(accessRole(user, env, lookup));
 }
 
-export type GateDecision = "allow" | "signin" | "profile" | "forbidden";
+export type GateDecision = "allow" | "signin" | "profile" | "home" | "forbidden";
 
-/** Signed-in accounts without access may only see their profile, where they can apply. */
-export function gateDecision(role: AccessRole, pathname: string): GateDecision {
-  if (hasAccess(role)) return "allow";
+// Adding or changing the library stays with the owner: uploads, imports, catalog tools and the admin page.
+const OWNER_ONLY = /^\/(uploads|youtube|maintenance|admin)(\/|$)|^\/api\/(uploads|youtube|source-handoffs|source-candidates|catalog)(\/|$)/;
+// POSTs a tester's browser still makes: id lookups, play counts, offline packs and exports. None change the library.
+const TESTER_API_POSTS = [/^\/api\/songs$/, /^\/api\/songs\/[^/]+\/play$/, /^\/api\/song\/[^/]+\/(offline-pack|active-export)$/];
+
+/**
+ * Owners may do everything. Testers may read and play but not add or change songs.
+ * Accounts without access may only see their profile, where they can apply.
+ */
+export function gateDecision(role: AccessRole, pathname: string, method = "GET"): GateDecision {
+  if (role === "owner") return "allow";
+  if (role === "tester") {
+    const api = pathname.startsWith("/api/");
+    if (OWNER_ONLY.test(pathname)) return api ? "forbidden" : "home";
+    const verb = method.toUpperCase();
+    if (api && verb !== "GET" && verb !== "HEAD" && !TESTER_API_POSTS.some((pattern) => verb === "POST" && pattern.test(pathname))) return "forbidden";
+    return "allow";
+  }
   if (role === "anonymous") return "signin";
   if (pathname === "/profile") return "allow";
   return pathname.startsWith("/api/") ? "forbidden" : "profile";

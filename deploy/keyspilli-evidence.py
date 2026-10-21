@@ -771,7 +771,7 @@ def committed_restore(manifest_path):
 
 def safe_member(member):
     path = Path(member.name)
-    allowed = {"artifacts", "seed-midi", "transcribed", "uploads", "manifest.json", "learner-review.json", "review-receipts", "harmony-candidates"}
+    allowed = {"artifacts", "seed-midi", "transcribed", "uploads", "manifest.json", "learner-review.json", "review-receipts", "harmony-candidates", "access"}
     if path.is_absolute() or ".." in path.parts or not path.parts or path.parts[0].removeprefix("._") not in allowed or not (member.isfile() or member.isdir()):
         raise ValueError("unsafe archive member")
 

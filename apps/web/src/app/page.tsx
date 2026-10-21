@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { auth } from "@/auth";
+import { accessRole } from "@/lib/authz";
 import { listSongsGrouped, publicCatalogSummary, type GroupedSong } from "@keyspilli/catalog/runtime";
 import { LEVEL_LABEL } from "../components/level-labels";
 import { displaySong } from "../components/song-display";
@@ -8,14 +10,15 @@ import { PracticeSets } from "../components/PracticeSets";
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const canAddSongs = accessRole((await auth())?.user) !== "tester";
   const popular = listSongsGrouped({ publicOnly: true, sort: "popular", limit: 12 });
   const recent = listSongsGrouped({ publicOnly: true, sort: "newest", limit: 12 });
   const { plays, arrangements: total } = publicCatalogSummary();
 
   return (
     <div className="page-shell max-w-6xl mx-auto px-4 py-8">
-      <HomePractice publicTotal={total} />
+      <HomePractice publicTotal={total} canAddSongs={canAddSongs} />
       <PracticeSets />
       <section className="home-hero mb-8 text-center py-5 sm:py-6 motion-rise-in">
         <h2 className="page-title text-xl font-semibold tracking-tight mb-2">Explore your library</h2>
@@ -26,9 +29,11 @@ export default function HomePage() {
           <Link href="/songs" className="pressable px-5 py-2.5 rounded-full bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700">
             Browse songs
           </Link>
-          <Link href="/uploads" className="pressable px-5 py-2.5 rounded-full border border-zinc-300 text-sm font-medium hover:bg-zinc-100">
-            Add a song
-          </Link>
+          {canAddSongs ? (
+            <Link href="/uploads" className="pressable px-5 py-2.5 rounded-full border border-zinc-300 text-sm font-medium hover:bg-zinc-100">
+              Add a song
+            </Link>
+          ) : null}
         </div>
         <p className="mt-6 text-sm text-zinc-500">
           {total} arrangements · {plays.toLocaleString()} plays

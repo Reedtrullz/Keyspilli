@@ -463,6 +463,13 @@ preservation of incomplete/corrupt/recent members, orphans and live sources.
 The policy and current-cost requirement can be assessed without forcing expiry
 of a live backup. Re-measure after any material increase in retained media.
 
+The archive also carries `access/requests.json` when it exists: tester
+applications and approvals, with GitHub ids, logins and the notes people wrote.
+It is not source material, so it never satisfies the source check. A restore
+returns the approved list to the backup's state; the manual restore below does
+not clear `/data/access`, so restoring a backup that predates the file keeps
+the current list.
+
 Restore:
 
 ```bash

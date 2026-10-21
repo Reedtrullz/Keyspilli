@@ -52,6 +52,35 @@ describe("gateDecision", () => {
   });
 });
 
+describe("gateDecision for testers", () => {
+  it("lets testers read and play", () => {
+    for (const path of ["/", "/songs", "/artists", "/player/abc/free", "/export/abc", "/profile"]) expect(gateDecision("tester", path)).toBe("allow");
+    for (const path of ["/api/songs", "/api/songs/abc", "/api/songs/abc/learning", "/api/song/abc/export", "/api/v1/sheet/abc"]) expect(gateDecision("tester", path, "GET")).toBe("allow");
+    expect(gateDecision("tester", "/api/songs/abc", "HEAD")).toBe("allow");
+  });
+
+  it("allows only the POSTs the player and library use", () => {
+    for (const path of ["/api/songs", "/api/songs/abc/play", "/api/song/abc/offline-pack", "/api/song/abc/active-export"]) expect(gateDecision("tester", path, "POST")).toBe("allow");
+    // Server actions (sign out) post to ordinary page paths.
+    expect(gateDecision("tester", "/songs", "POST")).toBe("allow");
+  });
+
+  it("keeps adding and changing songs with the owner", () => {
+    for (const path of ["/uploads", "/uploads/new", "/youtube", "/maintenance", "/maintenance/harmony", "/admin"]) expect(gateDecision("tester", path)).toBe("home");
+    for (const path of ["/api/uploads", "/api/uploads/preflight", "/api/youtube/jobs", "/api/youtube/status/x", "/api/source-handoffs", "/api/source-candidates", "/api/catalog/review", "/api/catalog/tombstones"]) {
+      for (const method of ["GET", "POST", "PATCH", "DELETE"]) expect(gateDecision("tester", path, method)).toBe("forbidden");
+    }
+    expect(gateDecision("tester", "/api/songs/abc", "PATCH")).toBe("forbidden");
+    expect(gateDecision("tester", "/api/songs/abc", "DELETE")).toBe("forbidden");
+    expect(gateDecision("tester", "/api/songs/abc/play", "DELETE")).toBe("forbidden");
+    expect(gateDecision("tester", "/api/song/abc/offline-pack", "PUT")).toBe("forbidden");
+  });
+
+  it("leaves the owner unrestricted", () => {
+    for (const [path, method] of [["/uploads", "GET"], ["/api/uploads", "POST"], ["/api/songs/abc", "DELETE"], ["/admin", "GET"]] as const) expect(gateDecision("owner", path, method)).toBe("allow");
+  });
+});
+
 describe("safeCallbackPath", () => {
   it("keeps same-site paths and rejects everything else", () => {
     expect(safeCallbackPath("/songs?x=1")).toBe("/songs?x=1");

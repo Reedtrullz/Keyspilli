@@ -12,7 +12,7 @@ function navFor(user: Parameters<typeof accessRole>[0]) {
   const role = accessRole(user);
   if (role === "anonymous") return DEFAULT_NAV;
   if (!hasAccess(role)) return [["/profile", "Profile"]] as const;
-  if (role !== "owner") return [...DEFAULT_NAV, ["/profile", "Profile"]] as const;
+  if (role !== "owner") return [...DEFAULT_NAV.filter(([href]) => href !== "/uploads"), ["/profile", "Profile"]] as const;
   let waiting = 0;
   try {
     waiting = listAccessRecords().filter((record) => record.status === "pending").length;
