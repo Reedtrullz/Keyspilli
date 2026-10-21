@@ -36,9 +36,10 @@ class WorkerResourceBoundary(unittest.TestCase):
                 self.assertEqual(result.returncode==0,success,result.stdout+result.stderr)
         env=Environment(undefined=StrictUndefined);env.filters['bool']=bool
         template=env.from_string((directory/'templates/compose.production.yml.j2').read_text())
-        context=dict(docker_image='ghcr.io/example/keyspilli:abcdef012345',worker_image=image,container_name='web-fixture',worker_container_name='worker-fixture',source_search_env_file='/fixture/empty.env',app_bind_address='127.0.0.1',app_host_port=3333,app_version='a'*40,keyspilli_tutorial_beta=False)
+        context=dict(app_domain='keys.example.test',docker_image='ghcr.io/example/keyspilli:abcdef012345',worker_image=image,container_name='web-fixture',worker_container_name='worker-fixture',source_search_env_file='/fixture/empty.env',app_bind_address='127.0.0.1',app_host_port=3333,app_version='a'*40,keyspilli_tutorial_beta=False)
         for configured in [{},budget]:
             parsed=yaml.safe_load(template.render(**context,keyspilli_worker_budget=configured))
+            web_env=parsed["services"]["web"]["environment"];self.assertEqual(web_env["AUTH_URL"],"https://keys.example.test");self.assertTrue(all(key in web_env for key in ["AUTH_SECRET","AUTH_GITHUB_ID","AUTH_GITHUB_SECRET","OWNER_GITHUB_ID","TESTER_GITHUB_IDS"]))
             worker=parsed['services']['worker'];self.assertEqual(worker['network_mode'],'host');self.assertEqual(worker['user'],'1000:1000')
             if configured:self.assertEqual([worker['cpus'],worker['mem_limit'],worker['memswap_limit'],worker['pids_limit']],[1.0,'384m','384m',64])
             else:self.assertTrue(all(key not in worker for key in ['cpus','mem_limit','memswap_limit','pids_limit']))
