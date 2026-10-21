@@ -45,6 +45,9 @@ for candidate in seed-midi transcribed uploads manifest.json learner-review.json
 done
 (( source_dir_count > 0 )) || { echo "backup failed: no source material found under $DATA_DIR" >&2; exit 1; }
 
+# Tester access list (who the owner approved). It is not source material, so it must not satisfy the check above.
+[[ ! -e "$DATA_DIR/access" ]] || archive_paths+=(access)
+
 # The ordinary artifacts/ tree includes hidden reconciliation journals and .old
 # trees without a second, easy-to-forget glob.
 COPYFILE_DISABLE=1 tar -czf "$archive_tmp" -C "$DATA_DIR" "${archive_paths[@]}"

@@ -11,7 +11,7 @@ import { accessRole, gateDecision } from "@/lib/authz";
 export const proxy = auth((req) => {
   if (verifyBearer(req)) return NextResponse.next();
   const { pathname, search } = req.nextUrl;
-  const decision = gateDecision(accessRole(req.auth?.user), pathname);
+  const decision = gateDecision(accessRole(req.auth?.user), pathname, req.method);
   if (decision === "allow") return NextResponse.next();
   if (decision === "forbidden") return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (pathname.startsWith("/api/")) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -19,7 +19,7 @@ export const proxy = auth((req) => {
   const proto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const host = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
   const origin = proto === "https" || proto === "http" ? (host ? `${proto}://${host}` : req.nextUrl.origin) : req.nextUrl.origin;
-  const target = decision === "profile" ? "/profile" : `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
+  const target = decision === "profile" ? "/profile" : decision === "home" ? "/" : `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
   return NextResponse.redirect(new URL(target, origin));
 });
 

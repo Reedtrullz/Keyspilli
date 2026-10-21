@@ -34,6 +34,8 @@ def make_data(root: Path) -> Path:
     (data / "review-receipts" / "test-song" / "preserved.json").write_text('{"fixture":"review history"}')
     (data / "harmony-candidates" / "test-song").mkdir(parents=True)
     (data / "harmony-candidates" / "test-song" / "preserved.json").write_text('{"fixture":"unreviewed candidate"}')
+    (data / "access").mkdir()
+    (data / "access" / "requests.json").write_text('[{"id":"1","fixture":"tester access list"}]')
     with sqlite3.connect(data / "db.sqlite") as db:
         db.execute("CREATE TABLE songs (id TEXT PRIMARY KEY, base_id TEXT, tempo INTEGER)")
         db.execute("INSERT INTO songs VALUES ('s1', 'test-song', 120)")
@@ -184,6 +186,7 @@ def test_runner_pauses_pair_and_restores_only_its_pauses() -> None:
         assert "artifacts/.test.old/kept" in names
         assert "review-receipts/test-song/preserved.json" in names
         assert "harmony-candidates/test-song/preserved.json" in names
+        assert "access/requests.json" in names
         print("  PASS: host runner pauses pair, runs socket-free backup, and commits checksummed pair")
 
 
@@ -198,6 +201,18 @@ def test_runner_unpauses_only_containers_paused_by_this_run() -> None:
         assert "unpause keyspilli" not in lines
         assert any(line.startswith("unpause keyspilli-worker") for line in lines)
         print("  PASS: prior paused state is preserved")
+
+
+def test_access_list_is_not_source_material() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        data = make_data(root)
+        shutil.rmtree(data / "seed-midi")
+        result, backups, _log = run_runner(root)
+        assert result.returncode != 0
+        assert "source material" in result.stdout + result.stderr
+        assert not manifests(backups)
+        print("  PASS: the access list alone does not satisfy the source material check")
 
 
 def test_runner_failure_has_no_manifest_and_unpauses() -> None:
@@ -313,6 +328,7 @@ def test_restore_drill_is_non_destructive() -> None:
         assert (destination / "runtime" / "artifacts" / ".test.reconciliation.json").exists()
         assert (destination / "runtime" / "review-receipts" / "test-song" / "preserved.json").read_text() == '{"fixture":"review history"}'
         assert (destination / "runtime" / "harmony-candidates" / "test-song" / "preserved.json").read_text() == '{"fixture":"unreviewed candidate"}'
+        assert (destination / "runtime" / "access" / "requests.json").read_text() == '[{"id":"1","fixture":"tester access list"}]'
         report = json.loads((destination / "restore-report.json").read_text())
         assert report["archiveValidation"] == "passed" and report["applicationVerification"] == "not_run"
         assert report["catalogSchemaEpoch"] == 0
@@ -376,6 +392,7 @@ if __name__ == "__main__":
     print("Running F08 backup tests...")
     test_runner_pauses_pair_and_restores_only_its_pauses()
     test_runner_unpauses_only_containers_paused_by_this_run()
+    test_access_list_is_not_source_material()
     test_runner_failure_has_no_manifest_and_unpauses()
     test_runner_timeout_cleans_named_container_and_unpauses()
     test_unrestorable_source_links_fail_before_publication()
