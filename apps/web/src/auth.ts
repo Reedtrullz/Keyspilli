@@ -2,7 +2,6 @@ import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import type { Provider } from "next-auth/providers";
-import { isAllowedUser } from "@/lib/authz";
 
 function isLoopbackAuthUrl(value: string | undefined): boolean {
   try {
@@ -37,17 +36,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: getProviders(),
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 14 },
   callbacks: {
-    // Reject non-allowlisted accounts before a session exists.
-    signIn({ user, profile }) {
-      return isAllowedUser({ id: profile?.id ?? user.id });
-    },
+    // Any GitHub account may sign in so it can apply; the proxy keeps it out of the app until approved.
     jwt({ token, profile }) {
       if (profile?.id !== undefined) token.githubId = String(profile.id);
+      if (typeof profile?.login === "string") token.githubLogin = profile.login;
       return token;
     },
     session({ session, token }) {
       const id = typeof token.githubId === "string" ? token.githubId : token.sub;
       if (session.user && id) session.user.id = id;
+      if (session.user && typeof token.githubLogin === "string") session.user.login = token.githubLogin;
       return session;
     },
   },
