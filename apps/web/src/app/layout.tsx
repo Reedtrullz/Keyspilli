@@ -3,6 +3,24 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { auth } from "@/auth";
 import { signOutAction } from "@/app/actions/auth";
+import { listAccessRecords } from "@/lib/access-store";
+import { accessRole, hasAccess } from "@/lib/authz";
+
+const DEFAULT_NAV = [["/", "Home"], ["/songs", "Songs"], ["/artists", "Artists"], ["/uploads", "Add a song"]] as const;
+
+function navFor(user: Parameters<typeof accessRole>[0]) {
+  const role = accessRole(user);
+  if (role === "anonymous") return DEFAULT_NAV;
+  if (!hasAccess(role)) return [["/profile", "Profile"]] as const;
+  if (role !== "owner") return [...DEFAULT_NAV, ["/profile", "Profile"]] as const;
+  let waiting = 0;
+  try {
+    waiting = listAccessRecords().filter((record) => record.status === "pending").length;
+  } catch {
+    // An unreadable store only hides the badge; /admin reports the error.
+  }
+  return [...DEFAULT_NAV, ["/profile", "Profile"], ["/admin", waiting ? `Admin (${waiting})` : "Admin"]] as const;
+}
 
 export const metadata: Metadata = {
   title: { default: "Keyspilli — Play the songs you love", template: "%s · Keyspilli" },
@@ -22,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("keyspilli.prefs.v1")||"{}").stageTheme==="charcoal"?"charcoal":"light"}catch{document.documentElement.dataset.theme="light"}` }} /></head>
       <body className="min-h-screen flex flex-col">
-        <SiteHeader />
+        <SiteHeader items={navFor(session?.user)} />
         <main className="flex-1">{children}</main>
         <footer className="site-footer border-t border-zinc-200 py-6 text-xs text-zinc-500">
           <div className="max-w-6xl mx-auto px-4 flex items-center justify-between gap-4">

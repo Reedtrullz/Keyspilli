@@ -24,7 +24,7 @@ ALLOWED=[re.compile(p) for p in (
  r'apps/web/src/app/(?!api/).+',
  r'apps/web/src/app/api/auth/.+',
  r'apps/web/src/(auth\.ts|auth-types\.d\.ts|proxy\.ts)',
- r'apps/web/src/lib/(authz|api-auth|mutation-auth)(\.test)?\.ts',
+ r'apps/web/src/lib/(authz|access-store|api-auth|mutation-auth)(\.test)?\.ts',
  r'apps/web/playwright[^/]*\.ts',
  r'apps/web/e2e/.+',
  r'docs/.+',
