@@ -33,8 +33,13 @@ def violations(paths,live=None,target=None,tooling_ref=None):
  return [p for p in paths if BLOCKED.search(p) or (not any(r.fullmatch(p) for r in ALLOWED) and not pinned_ok(p,live,target) and not tooling_ok(p,target,tooling_ref))]
 
 def live_revision():
- credentials=f"{os.environ['KEYSPILLI_ACCESS_USERNAME']}:{os.environ['KEYSPILLI_ACCESS_PASSWORD']}".encode()
- request=urllib.request.Request(HEALTH_URL,headers={'Accept':'application/json','User-Agent':USER_AGENT,'Authorization':'Basic '+base64.b64encode(credentials).decode()})
+ headers={'Accept':'application/json','User-Agent':USER_AGENT}
+ # Edge Basic Auth only while enabled (the app reads Authorization before the token header).
+ if os.environ.get('KEYSPILLI_ACCESS_USERNAME') and os.environ.get('KEYSPILLI_ACCESS_PASSWORD'):
+  credentials=f"{os.environ['KEYSPILLI_ACCESS_USERNAME']}:{os.environ['KEYSPILLI_ACCESS_PASSWORD']}".encode()
+  headers['Authorization']='Basic '+base64.b64encode(credentials).decode()
+ if os.environ.get('KEYSPILLI_API_TOKEN'):headers['X-Keyspilli-Api-Token']='Bearer '+os.environ['KEYSPILLI_API_TOKEN']
+ request=urllib.request.Request(HEALTH_URL,headers=headers)
  with urllib.request.urlopen(request,timeout=15) as response:payload=json.loads(response.read().decode())
  if payload.get('status')!='healthy':sys.exit('production is not healthy; refusing to promote')
  return payload.get('version','')
