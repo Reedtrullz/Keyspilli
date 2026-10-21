@@ -564,6 +564,14 @@ jobs:
           APP_VERSION: ${{ github.sha }}
           ANSIBLE_CONFIG: deploy/ansible.cfg
           KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
+          # GitHub login (apps/web/src/auth.ts). Edge Basic Auth stays on until
+          # KEYSPILLI_EDGE_BASIC_AUTH is set to false after login is verified live.
+          KEYSPILLI_AUTH_SECRET: ${{ secrets.KEYSPILLI_AUTH_SECRET }}
+          KEYSPILLI_GITHUB_CLIENT_ID: ${{ secrets.KEYSPILLI_GITHUB_CLIENT_ID }}
+          KEYSPILLI_GITHUB_CLIENT_SECRET: ${{ secrets.KEYSPILLI_GITHUB_CLIENT_SECRET }}
+          KEYSPILLI_OWNER_GITHUB_ID: ${{ vars.KEYSPILLI_OWNER_GITHUB_ID }}
+          KEYSPILLI_TESTER_GITHUB_IDS: ${{ vars.KEYSPILLI_TESTER_GITHUB_IDS }}
+          KEYSPILLI_EDGE_BASIC_AUTH: ${{ vars.KEYSPILLI_EDGE_BASIC_AUTH || 'true' }}
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
           KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
           # Optional: a trusted non-credential proxy endpoint and an absolute
