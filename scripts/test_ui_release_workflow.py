@@ -27,7 +27,7 @@ class UiReleaseWorkflowTests(unittest.TestCase):
         self.assertIs(value['default'], False)
 
     def test_no_input_can_name_the_live_revision(self):
-        self.assertEqual(sorted(self.dispatch['inputs']), sorted(['operation', 'promote_reviewed', 'ui_only_release', 'rebuild_confirmation', 'rebuild_base_id', 'rebuild_transcription_mode']))
+        self.assertEqual(sorted(self.dispatch['inputs']), sorted(['operation', 'promote_reviewed', 'ui_only_release', 'non_music_release', 'rebuild_confirmation', 'rebuild_base_id', 'rebuild_transcription_mode']))
 
     def test_readiness_runs_only_after_full_checks_on_main_dispatch(self):
         condition = self.jobs['ui-release-readiness']['if']
@@ -67,10 +67,93 @@ class UiReleaseWorkflowTests(unittest.TestCase):
             with self.subTest(job=name):
                 self.assertIn(clause, ' '.join(self.jobs[name]['if'].split()))
         for name, job in self.jobs.items():
-            if name not in ('ui-release-readiness', 'build-and-push', 'deploy'):
+            if name not in ('ui-release-readiness', 'non-music-release-readiness', 'build-and-push', 'deploy'):
                 with self.subTest(job=name):
                     self.assertNotIn('release/', str(job.get('if', '')))
         self.assertIn("github.ref == 'refs/heads/main'", self.jobs['release-readiness']['if'])
+
+    NON_MUSIC_RELEASE_REF = "startsWith(github.ref, 'refs/heads/release/') && inputs.non_music_release == true && inputs.promote_reviewed == false && inputs.ui_only_release == false"
+    NON_MUSIC_GATE = "(inputs.non_music_release == true && inputs.promote_reviewed == false && inputs.ui_only_release == false && needs.checks.result == 'success' && needs.non-music-release-readiness.result == 'success')"
+
+    def test_non_music_deploy_truth_table(self):
+        base = {'event': 'workflow_dispatch', 'ref': 'refs/heads/main', 'operation': 'deploy_only', 'promote': False, 'ui': False,
+                'non_music': True, 'checks': 'success', 'nm': 'success', 'ui_ready': 'skipped', 'music_ready': 'skipped', 'build': 'success'}
+        cases = [({}, True), ({'ref': 'refs/heads/release/login'}, True)]
+        for key, value in {
+            'nm': ('failure', 'skipped', 'cancelled'), 'checks': ('failure', 'skipped', 'cancelled'),
+            'event': ('push', 'pull_request'), 'ref': ('refs/heads/feature/x', 'refs/tags/x'),
+            'operation': ('rebuild_all', 'rebuild_target'),
+            'ui': (True,), 'promote': (True,), 'non_music': (False,),
+        }.items():
+            for item in value:
+                cases.append(({key: item}, False))
+        # A failed or skipped build only stops the deploy job; it is not an input of the build job itself.
+        cases += [({'build': 'failure', 'deploy_only': True}, False), ({'build': 'skipped', 'deploy_only': True}, False)]
+        # The reviewed-music and UI-only gates keep working, and the new flag adds nothing to them.
+        cases += [({'non_music': False, 'promote': True, 'checks': 'skipped', 'music_ready': 'success', 'nm': 'skipped'}, True),
+                  ({'non_music': True, 'promote': True, 'checks': 'skipped', 'music_ready': 'success', 'nm': 'skipped'}, True),
+                  ({'non_music': False, 'promote': True, 'checks': 'skipped', 'music_ready': 'failure', 'nm': 'skipped'}, False),
+                  ({'non_music': False, 'ui': True, 'ui_ready': 'success', 'nm': 'skipped'}, True),
+                  ({'non_music': False, 'ref': 'refs/heads/release/ui', 'ui': True, 'ui_ready': 'success', 'nm': 'skipped'}, True),
+                  ({'non_music': False, 'ref': 'refs/heads/release/x', 'nm': 'skipped'}, False)]
+        program = r'''
+const assert = require('node:assert/strict'), vm = require('node:vm');
+const {conditions, cases} = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
+for (const [name, source] of Object.entries(conditions)) {
+  const expression = source.replace(/needs\.([a-z-]+)\.result/g, "needs['$1'].result");
+  for (const item of cases) {
+    if (name === 'build-and-push' && item.deploy_only) continue;
+    const needs = {checks: {result: item.checks}, 'non-music-release-readiness': {result: item.nm},
+      'ui-release-readiness': {result: item.ui_ready}, 'release-readiness': {result: item.music_ready},
+      'build-and-push': {result: item.build}};
+    const context = {github: {event_name: item.event, ref: item.ref}, needs,
+      inputs: {operation: item.operation, promote_reviewed: item.promote, ui_only_release: item.ui, non_music_release: item.non_music},
+      always: () => true, startsWith: (value, prefix) => value.startsWith(prefix)};
+    assert.equal(vm.runInNewContext('Boolean(' + expression + ')', context, {timeout: 100}), item.expected, name + ' ' + JSON.stringify(item));
+  }
+}
+'''
+        payload = {'conditions': {name: self.jobs[name]['if'] for name in ('build-and-push', 'deploy')},
+                   'cases': [{**base, **change, 'expected': expected} for change, expected in cases]}
+        result = subprocess.run(['node', '-e', program], input=json.dumps(payload), capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_non_music_flag_is_boolean_default_false(self):
+        value = self.dispatch['inputs']['non_music_release']
+        self.assertEqual(value['type'], 'boolean')
+        self.assertIs(value['default'], False)
+
+    def test_non_music_readiness_runs_only_after_full_checks_on_dispatch(self):
+        job = self.jobs['non-music-release-readiness']
+        condition = ' '.join(job['if'].split())
+        for part in ("github.event_name == 'workflow_dispatch'", 'inputs.non_music_release == true', 'inputs.promote_reviewed == false',
+                     'inputs.ui_only_release == false', "inputs.operation == 'deploy_only'", "needs.checks.result == 'success'",
+                     "github.ref == 'refs/heads/main'", self.NON_MUSIC_RELEASE_REF):
+            with self.subTest(part=part):
+                self.assertIn(part, condition)
+        self.assertEqual(job['needs'], 'checks')
+        self.assertEqual(job['steps'][0]['with']['fetch-depth'], 0)
+
+    def test_non_music_readiness_derives_live_revision_from_production_and_ships_main_tooling(self):
+        command = chr(10).join(step.get('run', '') for step in self.jobs['non-music-release-readiness']['steps'])
+        self.assertIn('scripts/check-non-music-release.py', command)
+        self.assertNotIn('--live', command)
+        self.assertNotIn('inputs.', command)
+        self.assertIn('--tooling-ref origin/main', command)
+        main_line = [line for line in command.split(chr(10)) if '--target' in line and '--tooling-ref' not in line]
+        self.assertEqual(len(main_line), 1)
+
+    def test_publication_accepts_the_non_music_gate_only_with_its_own_readiness(self):
+        for name in ('build-and-push', 'deploy'):
+            with self.subTest(job=name):
+                condition = ' '.join(self.jobs[name]['if'].split())
+                self.assertIn(self.NON_MUSIC_GATE, condition)
+                self.assertIn(self.NON_MUSIC_RELEASE_REF, condition)
+                self.assertIn('non-music-release-readiness', self.jobs[name]['needs'])
+        # The reviewed-music and UI-only gates must not be opened by the new flag.
+        for name in ('release-readiness', 'ui-release-readiness'):
+            with self.subTest(job=name):
+                self.assertNotIn('non_music', self.jobs[name]['if'])
 
     def test_release_refs_must_ship_main_tooling(self):
         command = chr(10).join(step.get('run', '') for step in self.jobs['ui-release-readiness']['steps'])

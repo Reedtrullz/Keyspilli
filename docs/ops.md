@@ -177,6 +177,17 @@ an id revokes it at once. The maintainer bearer (`Authorization` or
 Register a GitHub OAuth app with callback
 `https://<app_domain>/api/auth/callback/github`. There is no signup.
 
+A deploy dispatch on `main` needs exactly one release gate: the reviewed music
+manifest (`promote_reviewed`), the UI-only allowlist (`ui_only_release`), or the
+non-music gate (`non_music_release`). The non-music gate runs the full automatic
+checks, then `scripts/check-non-music-release.py` compares the revision production
+reports with the target and accepts the release only if every changed path is on its
+allowlist. Music, catalog, player and ingestion code, unknown paths and any change
+not listed fail closed; the few non-code exceptions (dependency and header changes)
+are pinned to the exact changed lines. Release machinery (`ci.yml`, `scripts/`,
+`deploy/`) is accepted on `main`, and on a `release/*` branch only when it equals
+`origin/main`. It never replaces the music manifest for music releases.
+
 The deploy verifier requires anonymous public health to return HTTP 401, then
 checks authenticated health/version and both authenticated PDF signatures.
 The local `deploy/test/access-boundary.sh` canary also proves that Basic Auth
