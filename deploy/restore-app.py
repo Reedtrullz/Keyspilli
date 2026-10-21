@@ -92,7 +92,10 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
                "-v", f"{runtime}:/data", "-v", f"{verifier}:/restore-app-verifier.mjs:ro",
                "-e", "HOSTNAME=127.0.0.1", "-e", "PORT=3000", "-e", "HOME=/tmp",
                "-e", "KEYSPILLI_DATA_DIR=/data", "-e", "KEYSPILLI_ORIGIN=http://127.0.0.1:3000",
-               "-e", "KEYSPILLI_TUTORIAL_BETA=0", *mounts, image_id)
+               "-e", "KEYSPILLI_TUTORIAL_BETA=0",
+               # Offline container (--network none): fixed values let the verifier pass the app's login gate.
+               "-e", "KEYSPILLI_API_TOKEN=test-token-for-e2e", "-e", "AUTH_SECRET=restore-verification-only-secret",
+               *mounts, image_id)
         created = True
         limits = json.loads(docker("inspect", "--format", "{{json .HostConfig}}", name))
         if limits.get("NanoCpus") != 1_500_000_000:
