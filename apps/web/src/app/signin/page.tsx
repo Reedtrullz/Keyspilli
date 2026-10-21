@@ -13,14 +13,15 @@ export default async function SignInPage({
   const [session, params] = await Promise.all([auth(), searchParams]);
   const callbackUrl = safeCallbackPath(params.callbackUrl);
   if (isAllowedUser(session?.user)) redirect(callbackUrl);
+  if (session?.user) redirect("/profile");
 
   return (
     <div className="max-w-md mx-auto px-4 py-16">
       <h1 className="text-2xl font-semibold">Sign in to Keyspilli</h1>
-      <p className="mt-3 text-sm text-zinc-600">Keyspilli is private. Sign in with the GitHub account that has been invited.</p>
+      <p className="mt-3 text-sm text-zinc-600">Keyspilli is private. Sign in with GitHub; if your account is not a tester yet you can apply for access.</p>
       {params.error ? (
         <p role="alert" className="mt-5 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
-          That GitHub account does not have access, or sign-in was cancelled.
+          GitHub sign-in did not complete. Try again.
         </p>
       ) : null}
       <form action={signInWithGitHub} className="mt-6">

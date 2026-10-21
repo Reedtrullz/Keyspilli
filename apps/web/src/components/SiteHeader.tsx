@@ -15,7 +15,9 @@ const NAV = [
   ["/uploads", "Add a song"],
 ] as const;
 
-export function SiteHeader() {
+type NavItem = readonly [string, string];
+
+export function SiteHeader({ items = NAV }: { items?: readonly NavItem[] }) {
   const pathname = usePathname() ?? "/";
   const [theme, setTheme] = useState<AppTheme>("light");
   useEffect(() => {
@@ -33,7 +35,7 @@ export function SiteHeader() {
   const morePresence = usePresence(moreOpen);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const moreActive = NAV.slice(2).some(([href]) => pathname === href || pathname.startsWith(`${href}/`));
+  const moreActive = items.slice(2).some(([href]) => pathname === href || pathname.startsWith(`${href}/`));
 
   useEffect(() => {
     setMoreOpen(false);
@@ -76,7 +78,7 @@ export function SiteHeader() {
           <NavigationFeedback destination="Home" />
         </Link>
         <nav className="site-nav flex shrink-0 gap-1 text-sm" aria-label="Main">
-          {NAV.map(([href, label], index) => {
+          {items.map(([href, label], index) => {
             const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
@@ -91,18 +93,20 @@ export function SiteHeader() {
               </Link>
             );
           })}
-          <button
-            ref={moreButtonRef}
-            type="button"
-            className={`site-nav-more site-nav-link pressable px-3 py-1.5 rounded-full ${moreActive ? "font-semibold" : ""}`}
-            aria-haspopup="menu"
-            aria-expanded={moreOpen}
-            aria-controls="site-more-menu"
-            data-active={moreActive ? "true" : undefined}
-            onClick={() => setMoreOpen((open) => !open)}
-          >
-            More
-          </button>
+          {items.length > 2 ? (
+            <button
+              ref={moreButtonRef}
+              type="button"
+              className={`site-nav-more site-nav-link pressable px-3 py-1.5 rounded-full ${moreActive ? "font-semibold" : ""}`}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              aria-controls="site-more-menu"
+              data-active={moreActive ? "true" : undefined}
+              onClick={() => setMoreOpen((open) => !open)}
+            >
+              More
+            </button>
+          ) : null}
         </nav>
         <button type="button" className="site-theme-toggle" aria-label="Charcoal mode" aria-pressed={theme === "charcoal"}
           title={theme === "charcoal" ? "Switch to Light" : "Switch to Charcoal"}
@@ -120,7 +124,7 @@ export function SiteHeader() {
           role="menu"
           aria-label="More navigation"
         >
-          {NAV.slice(2).map(([href, label]) => {
+          {items.slice(2).map(([href, label]) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
