@@ -90,7 +90,8 @@ test("same-song republication updates the pinned detail request", async ({page, 
         if (url.pathname === "/fixture.js") {
           outgoing.writeHead(200, {"Content-Type": "text/javascript"}); outgoing.end(javascript.contents);
         } else if (url.pathname === path) {
-          const result = await fetch(new URL(url.pathname + url.search, baseURL));
+          // The app now requires login; this fixture proxy is a trusted caller.
+          const result = await fetch(new URL(url.pathname + url.search, baseURL), {headers: {"x-keyspilli-api-token": headers.Authorization}});
           outgoing.writeHead(result.status, {"Content-Type": "application/json"}); outgoing.end(await result.text());
         } else if (url.pathname === "/") {
           outgoing.writeHead(200, {"Content-Type": "text/html"});
