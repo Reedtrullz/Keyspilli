@@ -38,6 +38,11 @@ on:
         required: false
         default: false
         type: boolean
+      live_revision:
+        description: "Only for non_music_release: full commit SHA that production reports, read by the operator (for example over SSH). Use when the edge cannot answer the health check; blank asks production itself"
+        required: false
+        default: ""
+        type: string
       rebuild_base_id:
         description: "Optional single base id to rebuild (leave blank for the full catalog)"
         required: false
@@ -377,11 +382,14 @@ jobs:
           KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
           KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
+          LIVE_REVISION: ${{ inputs.live_revision }}
         run: |
+          live=()
+          if [ -n "$LIVE_REVISION" ]; then live=(--live "$LIVE_REVISION"); fi
           if [ "$GITHUB_REF" = refs/heads/main ]; then
-            python3 scripts/check-non-music-release.py --target "$GITHUB_SHA"
+            python3 scripts/check-non-music-release.py --target "$GITHUB_SHA" "${live[@]}"
           else
-            python3 scripts/check-non-music-release.py --target "$GITHUB_SHA" --tooling-ref origin/main
+            python3 scripts/check-non-music-release.py --target "$GITHUB_SHA" --tooling-ref origin/main "${live[@]}"
           fi
 
   build-and-push:

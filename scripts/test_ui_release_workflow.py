@@ -26,8 +26,11 @@ class UiReleaseWorkflowTests(unittest.TestCase):
         self.assertEqual(value['type'], 'boolean')
         self.assertIs(value['default'], False)
 
-    def test_no_input_can_name_the_live_revision(self):
-        self.assertEqual(sorted(self.dispatch['inputs']), sorted(['operation', 'promote_reviewed', 'ui_only_release', 'non_music_release', 'rebuild_confirmation', 'rebuild_base_id', 'rebuild_transcription_mode']))
+    def test_only_the_non_music_gate_can_take_a_live_revision_input(self):
+        self.assertEqual(sorted(self.dispatch["inputs"]), sorted(['operation', 'promote_reviewed', 'ui_only_release', 'non_music_release', 'rebuild_confirmation', 'rebuild_base_id', 'rebuild_transcription_mode', "live_revision"]))
+        for name, job in self.jobs.items():
+            used = "live_revision" in str(job.get("steps", []))
+            self.assertEqual(used, name == "non-music-release-readiness", name)
 
     def test_readiness_runs_only_after_full_checks_on_main_dispatch(self):
         condition = self.jobs['ui-release-readiness']['if']
@@ -137,9 +140,9 @@ for (const [name, source] of Object.entries(conditions)) {
     def test_non_music_readiness_derives_live_revision_from_production_and_ships_main_tooling(self):
         command = chr(10).join(step.get('run', '') for step in self.jobs['non-music-release-readiness']['steps'])
         self.assertIn('scripts/check-non-music-release.py', command)
-        self.assertNotIn('--live', command)
-        self.assertNotIn('inputs.', command)
-        self.assertIn('--tooling-ref origin/main', command)
+        self.assertIn("--live", command)
+        self.assertNotIn("inputs.", command)
+        self.assertIn("--tooling-ref origin/main", command)
         main_line = [line for line in command.split(chr(10)) if '--target' in line and '--tooling-ref' not in line]
         self.assertEqual(len(main_line), 1)
 
