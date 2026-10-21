@@ -33,6 +33,11 @@ on:
         required: false
         default: ""
         type: string
+      non_music_release:
+        description: "Deploy a change that touches no music, catalog, player or ingestion code: full automatic checks run, and every changed path since the live revision must be on the non-music allowlist"
+        required: false
+        default: false
+        type: boolean
       rebuild_base_id:
         description: "Optional single base id to rebuild (leave blank for the full catalog)"
         required: false
@@ -181,6 +186,7 @@ jobs:
           python3 deploy/test/test-render-inventory.py
           python3 scripts/test_check_music_release.py
           python3 scripts/test_check_ui_release.py
+          python3 scripts/test_check_non_music_release.py
           python3 scripts/test_ui_release_workflow.py
           python3 deploy/test/test-worker-queue.py
           python3 deploy/test/test-ops-check-tls.py
@@ -341,13 +347,50 @@ jobs:
             python3 scripts/check-ui-release.py --target "$GITHUB_SHA" --tooling-ref origin/main
           fi
 
+  non-music-release-readiness:
+    name: Non-music release readiness
+    runs-on: ubuntu-24.04
+    needs: checks
+    timeout-minutes: 5
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.non_music_release == true &&
+        inputs.promote_reviewed == false &&
+        inputs.ui_only_release == false)) &&
+      inputs.non_music_release == true &&
+      inputs.promote_reviewed == false &&
+      inputs.ui_only_release == false &&
+      inputs.operation == 'deploy_only' &&
+      needs.checks.result == 'success'
+    permissions:
+      contents: read
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Require that no music or catalog code changed since the revision production reports
+        env:
+          KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
+          KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
+          KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            python3 scripts/check-non-music-release.py --target "$GITHUB_SHA"
+          else
+            python3 scripts/check-non-music-release.py --target "$GITHUB_SHA" --tooling-ref origin/main
+          fi
+
   build-and-push:
     name: Build and push images to GHCR
     permissions:
       contents: read
       packages: write
     runs-on: ubuntu-24.04
-    needs: [checks, release-readiness, ui-release-readiness]
+    needs: [checks, release-readiness, ui-release-readiness, non-music-release-readiness]
     timeout-minutes: 30
     if: >-
       always() &&
@@ -355,9 +398,18 @@ jobs:
       (github.ref == 'refs/heads/main' ||
        (startsWith(github.ref, 'refs/heads/release/') &&
         inputs.ui_only_release == true &&
-        inputs.promote_reviewed == false)) &&
+        inputs.promote_reviewed == false) ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.non_music_release == true &&
+        inputs.promote_reviewed == false &&
+        inputs.ui_only_release == false)) &&
       inputs.operation == 'deploy_only' &&
-      ((inputs.promote_reviewed == true &&
+      ((inputs.non_music_release == true &&
+        inputs.promote_reviewed == false &&
+        inputs.ui_only_release == false &&
+        needs.checks.result == 'success' &&
+        needs.non-music-release-readiness.result == 'success') ||
+       (inputs.promote_reviewed == true &&
         inputs.ui_only_release == false &&
         needs.checks.result == 'skipped' &&
         needs.release-readiness.result == 'success') ||
@@ -476,6 +528,7 @@ jobs:
       - build-and-push
       - release-readiness
       - ui-release-readiness
+      - non-music-release-readiness
     timeout-minutes: 20
     if: >-
       always() &&
@@ -483,10 +536,19 @@ jobs:
       (github.ref == 'refs/heads/main' ||
        (startsWith(github.ref, 'refs/heads/release/') &&
         inputs.ui_only_release == true &&
-        inputs.promote_reviewed == false)) &&
+        inputs.promote_reviewed == false) ||
+       (startsWith(github.ref, 'refs/heads/release/') &&
+        inputs.non_music_release == true &&
+        inputs.promote_reviewed == false &&
+        inputs.ui_only_release == false)) &&
       inputs.operation == 'deploy_only' &&
       needs.build-and-push.result == 'success' &&
-      ((inputs.promote_reviewed == true &&
+      ((inputs.non_music_release == true &&
+        inputs.promote_reviewed == false &&
+        inputs.ui_only_release == false &&
+        needs.checks.result == 'success' &&
+        needs.non-music-release-readiness.result == 'success') ||
+       (inputs.promote_reviewed == true &&
         inputs.ui_only_release == false &&
         needs.checks.result == 'skipped' &&
         needs.release-readiness.result == 'success') ||
