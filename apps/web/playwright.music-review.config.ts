@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { E2E_API_TOKEN, E2E_AUTH_ENV, E2E_AUTH_HEADERS } from "./playwright.auth";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getDb } from "../../packages/catalog/src/db";
@@ -67,8 +68,8 @@ export default defineConfig({
     command: "npm run dev -- --port " + port,
     url: "http://127.0.0.1:" + port,
     reuseExistingServer: false,
-    env: { KEYSPILLI_DATA_DIR: scratch, NEXT_TELEMETRY_DISABLED: "1" },
+    env: { KEYSPILLI_DATA_DIR: scratch, KEYSPILLI_API_TOKEN: E2E_API_TOKEN, ...E2E_AUTH_ENV, NEXT_TELEMETRY_DISABLED: "1" },
   },
-  use: { baseURL: "http://127.0.0.1:" + port, trace: "retain-on-failure" },
+  use: { baseURL: "http://127.0.0.1:" + port, extraHTTPHeaders: E2E_AUTH_HEADERS, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
 });

@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { E2E_AUTH_ENV, E2E_AUTH_HEADERS } from "./playwright.auth";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -17,6 +18,7 @@ export default defineConfig({
   },
   use: {
     baseURL: "http://127.0.0.1:3200",
+    extraHTTPHeaders: E2E_AUTH_HEADERS,
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],

@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { E2E_AUTH_ENV, E2E_AUTH_HEADERS } from "./playwright.auth";
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -223,12 +224,14 @@ export default defineConfig({
       KEYSPILLI_DATA_DIR: scratchDataDir,
       KEYSPILLI_E2E_SCRATCH_DIR: scratchDataDir,
       KEYSPILLI_API_TOKEN: "test-token-for-e2e",
+      ...E2E_AUTH_ENV,
       KEYSPILLI_ORIGIN: "http://127.0.0.1:3101",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   },
   use: {
     baseURL: "http://127.0.0.1:3101",
+    extraHTTPHeaders: E2E_AUTH_HEADERS,
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],

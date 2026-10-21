@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { E2E_API_TOKEN, E2E_AUTH_ENV, E2E_AUTH_HEADERS } from "./playwright.auth";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,7 +30,7 @@ export default defineConfig({
   globalTeardown: "./e2e/scratch-global-teardown.ts",
   webServer: {
     command: "npm run start -- --hostname 127.0.0.1 --port 3128", url: "http://127.0.0.1:3128", reuseExistingServer: false,
-    env: { KEYSPILLI_DATA_DIR: directory, KEYSPILLI_API_TOKEN: "test-token-for-e2e", KEYSPILLI_ORIGIN: "http://127.0.0.1:3128", KEYSPILLI_TUTORIAL_BETA: "1", NEXT_TELEMETRY_DISABLED: "1" },
+    env: { KEYSPILLI_DATA_DIR: directory, KEYSPILLI_API_TOKEN: "test-token-for-e2e", KEYSPILLI_ORIGIN: "http://127.0.0.1:3128", KEYSPILLI_TUTORIAL_BETA: "1", ...E2E_AUTH_ENV, NEXT_TELEMETRY_DISABLED: "1" },
   },
-  use: { baseURL: "http://127.0.0.1:3128", browserName: "chromium", trace: "retain-on-failure" },
+  use: { baseURL: "http://127.0.0.1:3128", extraHTTPHeaders: E2E_AUTH_HEADERS, browserName: "chromium", trace: "retain-on-failure" },
 });

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
+import { auth } from "@/auth";
+import { signOutAction } from "@/app/actions/auth";
 
 export const metadata: Metadata = {
   title: { default: "Keyspilli — Play the songs you love", template: "%s · Keyspilli" },
@@ -14,7 +16,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
   return (
     <html lang="en" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("keyspilli.prefs.v1")||"{}").stageTheme==="charcoal"?"charcoal":"light"}catch{document.documentElement.dataset.theme="light"}` }} /></head>
@@ -22,7 +25,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <footer className="site-footer border-t border-zinc-200 py-6 text-xs text-zinc-500">
-          <div className="max-w-6xl mx-auto px-4">Keyspilli — private piano practice. Made for one pianist.</div>
+          <div className="max-w-6xl mx-auto px-4 flex items-center justify-between gap-4">
+            <span>Keyspilli — private piano practice. Made for one pianist.</span>
+            {session?.user ? (
+              <form action={signOutAction}>
+                <button type="submit" className="underline hover:text-zinc-800">
+                  Sign out{session.user.name ? ` (${session.user.name})` : ""}
+                </button>
+              </form>
+            ) : null}
+          </div>
         </footer>
       </body>
     </html>

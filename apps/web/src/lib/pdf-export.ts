@@ -127,7 +127,12 @@ export async function renderPdfResponse(req:NextRequest,id:string,layout:"classi
         checkCancelled();
         browser = await getBrowser();
         checkCancelled();
-        const created = await browser.newPage({ viewport: { width: 1240, height: 1754 } });
+        const apiToken = process.env.KEYSPILLI_API_TOKEN;
+        // The renderer loads this app's own pages, which the login gate would turn away.
+        const created = await browser.newPage({
+          viewport: { width: 1240, height: 1754 },
+          ...(apiToken ? { extraHTTPHeaders: { "x-keyspilli-api-token": `Bearer ${apiToken}` } } : {}),
+        });
         if (cancelled) { void created.close().catch(() => undefined); checkCancelled(); }
         page = created;
         if(active) await page.route(`**/api/v1/sheet/${encodeURIComponent(id)}*`,route=>route.fulfill({status:200,contentType:"application/vnd.recordare.musicxml+xml",headers:{"X-Publication-Revision":shell.publicationRevision??"unpinned"},body:active.xml}));

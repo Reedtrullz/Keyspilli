@@ -58,9 +58,22 @@
     rollback_image: "{{ app_name }}:rollback"
     rollback_worker_image: "{{ app_name }}-worker:rollback"
     keyspilli_api_token: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_API_TOKEN') | default('', true) }}"
+    # GitHub OAuth app login (apps/web/src/auth.ts). Owner and testers are
+    # numeric GitHub account ids; testers are comma-separated and optional.
+    keyspilli_auth_secret: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_AUTH_SECRET') | default('', true) }}"
+    keyspilli_github_client_id: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_GITHUB_CLIENT_ID') | default('', true) }}"
+    keyspilli_github_client_secret: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_GITHUB_CLIENT_SECRET') | default('', true) }}"
+    keyspilli_owner_github_id: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_OWNER_GITHUB_ID') | default('', true) }}"
+    keyspilli_tester_github_ids: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_TESTER_GITHUB_IDS') | default('', true) }}"
     # Production access is supplied by the operator/CI secret store. The
     # plaintext password is used only as stdin to caddy hash-password and is
     # never rendered into the Caddyfile.
+    # Edge Basic Auth stays on until GitHub login (apps/web/src/proxy.ts) is verified
+    # on the live host; then deploy with KEYSPILLI_EDGE_BASIC_AUTH=false.
+    keyspilli_edge_basic_auth: "{{ (lookup('ansible.builtin.env', 'KEYSPILLI_EDGE_BASIC_AUTH') | default('true', true)) | bool }}"
+    # The app login gate admits the maintainer bearer; deploy probes send it.
+    keyspilli_gate_headers:
+      X-Keyspilli-Api-Token: "Bearer {{ keyspilli_api_token }}"
     keyspilli_access_username: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_ACCESS_USERNAME') | default('', true) }}"
     keyspilli_access_password: "{{ lookup('ansible.builtin.env', 'KEYSPILLI_ACCESS_PASSWORD') | default('', true) }}"
     # Optional YouTube acquisition escapes. The proxy value is deliberately
@@ -124,6 +137,22 @@
           keyspilli_api_token must be set in Ansible Vault with at least 32 characters.
           The application rejects all mutation requests without it (fail-closed auth).
 
+    - name: Assert GitHub login is configured for production
+      ansible.builtin.assert:
+        that:
+          - keyspilli_auth_secret | length >= 32
+          - keyspilli_github_client_id | length > 0
+          - keyspilli_github_client_secret | length > 0
+          - keyspilli_owner_github_id is match('^[0-9]+$')
+          - keyspilli_tester_github_ids is match('^([0-9]+(,[0-9]+)*)?$')
+        fail_msg: >-
+          Set KEYSPILLI_AUTH_SECRET (32+ characters), KEYSPILLI_GITHUB_CLIENT_ID,
+          KEYSPILLI_GITHUB_CLIENT_SECRET, a numeric KEYSPILLI_OWNER_GITHUB_ID and
+          optional comma-separated numeric KEYSPILLI_TESTER_GITHUB_IDS. Without
+          them the app login gate would lock everyone out.
+      no_log: true
+      tags: [always]
+
     - name: Assert private access credentials are configured for production
       ansible.builtin.assert:
         that:
@@ -136,6 +165,7 @@
           KEYSPILLI_ACCESS_PASSWORD must contain at least 20 characters without
           newline characters. Production deployment refuses to render a public
           Caddy block when these secrets are absent.
+      when: keyspilli_edge_basic_auth | bool
       no_log: true
 
     - name: Validate optional YouTube acquisition settings
@@ -217,6 +247,7 @@
         stdin: "{{ keyspilli_access_password }}"
         stdin_add_newline: true
       register: keyspilli_access_password_hash_result
+      when: keyspilli_edge_basic_auth | bool
       changed_when: false
       check_mode: false
       no_log: true
@@ -225,6 +256,7 @@
     - name: Keep generated Basic Auth hash in memory only
       ansible.builtin.set_fact:
         keyspilli_access_password_hash: "{{ keyspilli_access_password_hash_result.stdout | trim }}"
+      when: keyspilli_edge_basic_auth | bool
       no_log: true
       tags: [always]
 
@@ -554,10 +586,12 @@
         - name: Wait for local Keyspilli health endpoint
           ansible.builtin.uri:
             url: "{{ health_url }}"
+            headers: "{{ keyspilli_gate_headers }}"
             return_content: true
             status_code: 200
             timeout: 5
           register: local_health
+          no_log: true
           until: >-
             local_health.status == 200
             and (local_health.json.status | default('')) == 'healthy'
@@ -628,9 +662,10 @@
             return_content: true
             status_code: 200
             timeout: 10
-            url_username: "{{ keyspilli_access_username }}"
-            url_password: "{{ keyspilli_access_password }}"
-            force_basic_auth: true
+            headers: "{{ keyspilli_gate_headers }}"
+            url_username: "{{ keyspilli_access_username if keyspilli_edge_basic_auth | bool else omit }}"
+            url_password: "{{ keyspilli_access_password if keyspilli_edge_basic_auth | bool else omit }}"
+            force_basic_auth: "{{ keyspilli_edge_basic_auth | bool }}"
           register: public_health
           until: >-
             public_health.status == 200
@@ -661,15 +696,17 @@
           # as UTF-8. Stream only its ASCII signature instead.
           ansible.builtin.shell: >-
             curl --fail --silent --show-error --location
-            --user "$KEYSPILLI_CURL_USER:$KEYSPILLI_CURL_PASSWORD"
+            ${KEYSPILLI_CURL_USER:+--user "$KEYSPILLI_CURL_USER:$KEYSPILLI_CURL_PASSWORD"}
+            --header "X-Keyspilli-Api-Token: Bearer $KEYSPILLI_CURL_TOKEN"
             --output -
             "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=simplify"
             | head -c 5
           args:
             executable: /bin/sh
           environment:
-            KEYSPILLI_CURL_USER: "{{ keyspilli_access_username }}"
-            KEYSPILLI_CURL_PASSWORD: "{{ keyspilli_access_password }}"
+            KEYSPILLI_CURL_USER: "{{ keyspilli_access_username if keyspilli_edge_basic_auth | bool else '' }}"
+            KEYSPILLI_CURL_PASSWORD: "{{ keyspilli_access_password if keyspilli_edge_basic_auth | bool else '' }}"
+            KEYSPILLI_CURL_TOKEN: "{{ keyspilli_api_token }}"
           register: public_simplify_pdf
           changed_when: false
           failed_when: (public_simplify_pdf.stdout | default('')) != '%PDF-'
@@ -682,15 +719,17 @@
           # Keep this binary-safe for the same reason as the simplify check.
           ansible.builtin.shell: >-
             curl --fail --silent --show-error --location
-            --user "$KEYSPILLI_CURL_USER:$KEYSPILLI_CURL_PASSWORD"
+            ${KEYSPILLI_CURL_USER:+--user "$KEYSPILLI_CURL_USER:$KEYSPILLI_CURL_PASSWORD"}
+            --header "X-Keyspilli-Api-Token: Bearer $KEYSPILLI_CURL_TOKEN"
             --output -
             "https://{{ app_domain }}/api/song/{{ pdf_smoke_song_id }}/export?type=pdf&layout=classic"
             | head -c 5
           args:
             executable: /bin/sh
           environment:
-            KEYSPILLI_CURL_USER: "{{ keyspilli_access_username }}"
-            KEYSPILLI_CURL_PASSWORD: "{{ keyspilli_access_password }}"
+            KEYSPILLI_CURL_USER: "{{ keyspilli_access_username if keyspilli_edge_basic_auth | bool else '' }}"
+            KEYSPILLI_CURL_PASSWORD: "{{ keyspilli_access_password if keyspilli_edge_basic_auth | bool else '' }}"
+            KEYSPILLI_CURL_TOKEN: "{{ keyspilli_api_token }}"
           register: public_classic_pdf
           changed_when: false
           failed_when: (public_classic_pdf.stdout | default('')) != '%PDF-'
@@ -763,10 +802,12 @@
         - name: Wait for local rollback health endpoint
           ansible.builtin.uri:
             url: "{{ health_url }}"
+            headers: "{{ keyspilli_gate_headers }}"
             return_content: true
             status_code: 200
             timeout: 5
           register: rollback_local_health
+          no_log: true
           until: >-
             rollback_local_health.status == 200
             and (rollback_local_health.json.status | default('')) == 'healthy'
