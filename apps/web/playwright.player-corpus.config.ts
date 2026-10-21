@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { E2E_API_TOKEN, E2E_AUTH_ENV, E2E_AUTH_HEADERS } from "./playwright.auth";
 import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -39,7 +40,7 @@ export default defineConfig({
   testDir: "./e2e", testMatch: "player-audio-corpus.spec.ts", workers: 1, timeout: 90_000,
   globalTeardown: "./e2e/scratch-global-teardown.ts",
   webServer: { command: "npm run dev -- --port 3211", url: "http://127.0.0.1:3211", reuseExistingServer: false,
-    env: { KEYSPILLI_DATA_DIR: scratch, KEYSPILLI_E2E_SCRATCH_DIR: scratch, NEXT_TELEMETRY_DISABLED: "1" } },
-  use: { baseURL: "http://127.0.0.1:3211", trace: "retain-on-failure" },
+    env: { KEYSPILLI_DATA_DIR: scratch, KEYSPILLI_E2E_SCRATCH_DIR: scratch, KEYSPILLI_API_TOKEN: E2E_API_TOKEN, ...E2E_AUTH_ENV, NEXT_TELEMETRY_DISABLED: "1" } },
+  use: { baseURL: "http://127.0.0.1:3211", extraHTTPHeaders: E2E_AUTH_HEADERS, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
 });

@@ -331,6 +331,7 @@ jobs:
           fetch-depth: 0
       - name: Require a UI-only change since the revision production reports
         env:
+          KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
           KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
         run: |
@@ -584,6 +585,7 @@ jobs:
       - name: Verify public deployment version
         shell: bash
         env:
+          KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
           KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
         run: |
@@ -623,8 +625,13 @@ jobs:
               print('Anonymous public health check did not return HTTP 401.', file=sys.stderr)
               sys.exit(1)
 
-          credentials = f"{os.environ['KEYSPILLI_ACCESS_USERNAME']}:{os.environ['KEYSPILLI_ACCESS_PASSWORD']}".encode()
-          auth = base64.b64encode(credentials).decode()
+          # Edge Basic Auth only while enabled; the app reads Authorization before the token header.
+          auth_headers = {}
+          if os.environ.get('KEYSPILLI_ACCESS_USERNAME') and os.environ.get('KEYSPILLI_ACCESS_PASSWORD'):
+              credentials = f"{os.environ['KEYSPILLI_ACCESS_USERNAME']}:{os.environ['KEYSPILLI_ACCESS_PASSWORD']}".encode()
+              auth_headers['Authorization'] = 'Basic ' + base64.b64encode(credentials).decode()
+          if os.environ.get('KEYSPILLI_API_TOKEN'):
+              auth_headers['X-Keyspilli-Api-Token'] = 'Bearer ' + os.environ['KEYSPILLI_API_TOKEN']
           last_error = None
           for _ in range(12):
               try:
@@ -633,7 +640,7 @@ jobs:
                       headers={
                           'Accept': 'application/json',
                           'User-Agent': 'Keyspilli CI deploy verifier',
-                          'Authorization': f'Basic {auth}',
+                          **auth_headers,
                       },
                   )
                   with urllib.request.urlopen(request, timeout=10) as response:
@@ -717,6 +724,7 @@ jobs:
       - name: Verify installed revision before rebuilding
         shell: bash
         env:
+          KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
           KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
           KEYSPILLI_DEPLOY_URL: https://keys.reidar.tech
@@ -818,6 +826,7 @@ jobs:
       - name: Verify authenticated live catalog and rebuild target
         shell: bash
         env:
+          KEYSPILLI_API_TOKEN: ${{ secrets.KEYSPILLI_API_TOKEN }}
           KEYSPILLI_ACCESS_USERNAME: ${{ secrets.KEYSPILLI_ACCESS_USERNAME }}
           KEYSPILLI_ACCESS_PASSWORD: ${{ secrets.KEYSPILLI_ACCESS_PASSWORD }}
           KEYSPILLI_DEPLOY_URL: https://keys.reidar.tech

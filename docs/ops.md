@@ -168,8 +168,14 @@ entire `app_domain`. The bcrypt hash is generated in memory from
 `KEYSPILLI_ACCESS_PASSWORD`; no plaintext password is rendered or logged. The
 local root `docker-compose.yml`/`deploy/Caddyfile` remain developer-only and
 are intentionally not the production perimeter. This is a single-user edge
-boundary, not an application account system: there is no signup, OAuth, or
-multi-user authorization.
+boundary and is transitional (`KEYSPILLI_EDGE_BASIC_AUTH=false` removes it).
+The application itself is gated by GitHub login (`apps/web/src/proxy.ts`,
+Auth.js): only the numeric GitHub ids in `KEYSPILLI_OWNER_GITHUB_ID` and
+`KEYSPILLI_TESTER_GITHUB_IDS` get in, re-checked on every request, so removing
+an id revokes it at once. The maintainer bearer (`Authorization` or
+`X-Keyspilli-Api-Token`) also passes the gate for scripts and deploy probes.
+Register a GitHub OAuth app with callback
+`https://<app_domain>/api/auth/callback/github`. There is no signup.
 
 The deploy verifier requires anonymous public health to return HTTP 401, then
 checks authenticated health/version and both authenticated PDF signatures.
