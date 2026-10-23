@@ -11,8 +11,8 @@ Run the loaded skill's `python3 scripts/check_checkout.py CHECKOUT --node /absol
 From the repository root, inspect each script before executing. Use the installed runtime/tsx; do not install a parallel toolchain by default.
 
 ```sh
-npm run research:song -- --artist 'ARTIST' --title 'TITLE' --out '/absolute/run/research.json'
-npm run research:song -- --url 'YOUTUBE_URL' --artist 'ARTIST' --title 'TITLE' --out '/absolute/run/research.json'
+pnpm run research:song --artist 'ARTIST' --title 'TITLE' --out '/absolute/run/research.json'
+pnpm run research:song --url 'YOUTUBE_URL' --artist 'ARTIST' --title 'TITLE' --out '/absolute/run/research.json'
 ```
 
 `packages/catalog/scripts/research-song.ts` supports repeatable `--candidate FILE`, `--reference FILE`, and `--no-network`. A URL without artist/title may produce a metadata-limited report. Its human-verdict options are for real prior human decisions; never use them to turn an agent assessment into acceptance. Protected evaluation/reference bytes must stay out of generation candidates.
@@ -83,7 +83,7 @@ Available focused tools, when present:
 
 ```sh
 "$KEYSPILLI_NODE" --import tsx apps/web/scripts/evaluate-upload-chords.mts '/absolute/run/original.mid'
-npm run render:midi -- --input '/absolute/run/original.mid' --output '/absolute/run/original.wav'
+pnpm run render:midi --input '/absolute/run/original.mid' --output '/absolute/run/original.wav'
 ```
 
 The evaluator uses its own isolated catalog; inspect its row-level errors and metrics. Its `--reference-track` option strips a designated benchmark chord track and is not for ordinary song imports. It does not validate your packaged chart attachment. The renderer requires a usable installed backend/SoundFont; discover it without reading credentials. Limit additional verification to relevant paths and meaningful failures.

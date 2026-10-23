@@ -44,7 +44,7 @@ implicit fallback: reference/conversion parity is required. No weights ship here
 
 ```sh
 node --import tsx apps/web/scripts/build-music-review-corpus.mts --output NEW_CORPUS --seed 67
-KEYSPILLI_MUSIC_REVIEW_RUN=/absolute/NEW_CORPUS npm exec -w @keyspilli/web -- playwright test --config=playwright.music-review.config.ts
+KEYSPILLI_MUSIC_REVIEW_RUN=/absolute/NEW_CORPUS pnpm --filter @keyspilli/web exec playwright test --config=playwright.music-review.config.ts
 node --import tsx apps/web/scripts/benchmark-music-review.mts --manifest NEW_CORPUS/manifest.json --candidate basic-pitch --split development --identity PINNED_ANALYZER.json --python /absolute/.venv-audio/bin/python --execute --output NEW_DEVELOPMENT
 ```
 

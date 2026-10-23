@@ -49,7 +49,7 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
         if not bank_path or not bank.is_absolute() or bank.is_symlink() or not bank.is_dir() or bank.resolve() != bank or ":" in bank_path:
             raise ValueError("canonical read-only native piano input is required")
         mounts.extend(("-v", f"{bank}:/piano-input:ro"))
-        for relative in ("node_modules", "packages", "package.json", "tsconfig.base.json", "apps/web/e2e",
+        for relative in ("node_modules", "apps/web/node_modules", "packages", "package.json", "tsconfig.base.json", "apps/web/e2e",
                          "apps/web/scripts/verify-native-player.mts", "apps/web/src/lib/native-player-assets.ts",
                          "apps/web/src/lib/player-reference-bank.ts", "apps/web/scripts/fixtures/native-piano-assets.json"):
             source = checkout / relative

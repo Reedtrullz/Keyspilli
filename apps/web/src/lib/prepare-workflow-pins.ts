@@ -24,7 +24,7 @@ export const CONFIG = Object.freeze({
 // inventory and compact [[path, sha256], ...] JSON recipe. Output is out of scope.
 export const WORKFLOW_SCOPES = [
   "packages/midi/src", "packages/catalog/src", "packages/catalog/scripts", "packages/player-core/src",
-  "apps/web/scripts", "apps/web/src/lib", "apps/web/src/components/player", "package-lock.json",
+  "apps/web/scripts", "apps/web/src/lib", "apps/web/src/components/player", "pnpm-lock.yaml",
   "catalog", "package.json", "tsconfig.base.json", "apps/web/package.json", "apps/web/tsconfig.json",
   "apps/web/tsconfig.song-tools.json", "packages/midi/package.json", "packages/midi/tsconfig.json",
   "packages/catalog/package.json", "packages/catalog/tsconfig.json", "packages/player-core/package.json",
@@ -33,7 +33,7 @@ export const WORKFLOW_SCOPES = [
 export const REQUIRED_IMPLEMENTATION_FILES = [
   "apps/web/scripts/prepare-workflow.mts", "apps/web/scripts/prepare-song.mts", "apps/web/scripts/prepare-catalog-chords.mts", "apps/web/scripts/song-bundle.mts",
   "apps/web/src/lib/prepare-workflow.ts", "apps/web/src/lib/prepare-workflow-pins.ts", "apps/web/src/lib/prepare-workflow-process.ts", "apps/web/src/lib/prepare-workflow-group.ts",
-  "package.json", "package-lock.json", "catalog/chord-sources.json",
+  "package.json", "pnpm-lock.yaml", "catalog/chord-sources.json",
 ] as const;
 
 export class IntegrityError extends Error { override name = "IntegrityError"; }
@@ -264,5 +264,5 @@ export function captureRuntime(root: string): RuntimePin {
   const nodePath = realpathSync(process.execPath), tsxPath = createRequire(join(root, "package.json")).resolve("tsx"), tsxRealPath = realpathSync(tsxPath);
   return { nodePath, nodeSha256: digestFile(nodePath, 256 * 1024 * 1024).sha256, version: process.version, abi: process.versions.modules,
     platform: process.platform, arch: process.arch, tsxPath, tsxRealPath, tsxSha256: digestFile(tsxRealPath, CONFIG.implementationFileBytes).sha256,
-    lockfileSha256: digestFile(join(root, "package-lock.json"), CONFIG.implementationFileBytes).sha256 };
+    lockfileSha256: digestFile(join(root, "pnpm-lock.yaml"), CONFIG.implementationFileBytes).sha256 };
 }

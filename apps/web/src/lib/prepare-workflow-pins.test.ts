@@ -21,7 +21,7 @@ let sequence = 0;
 function checkout() {
   const root = join(scratch, `checkout-${++sequence}`); mkdirSync(root);
   const result = spawnSync("git", ["init", "--quiet", root]); expect(result.status).toBe(0);
-  for (const [path, bytes] of [["package.json", '{"name":"keyspilli"}'], ["package-lock.json", "{}"], ["catalog/chord-sources.json", '{"schemaVersion":1,"entries":[]}'],
+  for (const [path, bytes] of [["package.json", '{"name":"keyspilli"}'], ["pnpm-lock.yaml", "{}"], ["catalog/chord-sources.json", '{"schemaVersion":1,"entries":[]}'],
     ["apps/web/scripts/prepare-song.mts", "// fixture"], ["apps/web/scripts/prepare-workflow.mts", "// fixture"], ["apps/web/scripts/song-bundle.mts", "// fixture"]]) {
     mkdirSync(dirname(join(root, path!)), { recursive: true }); writeFileSync(join(root, path!), bytes!);
   }

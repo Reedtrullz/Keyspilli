@@ -48,14 +48,14 @@ These are evidence-backed design constraints from the [owner-reviewed corpus](..
 
 Run everything from the repository root on Node 22.
 
-**Listen:** run the app (`npm run dev`), open a song, choose Chords. Harmony labels are computed on the server and strikes in the browser, so a reload picks up the change.
+**Listen:** run the app (`pnpm run dev`), open a song, choose Chords. Harmony labels are computed on the server and strikes in the browser, so a reload picks up the change.
 
 **Against expert chords.** POP909-CL (MIT licence) has 909 pop songs as piano MIDI with expert-reviewed chords. The benchmark runs each song through the catalogue's own import (`buildVariants`) and scores the labels. Every fifth song is held out; tune on `dev` and read `holdout` last.
 
 ```bash
 git clone --depth 1 https://github.com/AndyWeasley2004/POP909-CL-Dataset output/pop909-cl
-npx tsx packages/midi/scripts/chord-benchmark.ts output/pop909-cl/POP909_processed --split dev
-npx tsx packages/midi/scripts/chord-benchmark.ts output/pop909-cl/POP909_processed --gate
+pnpm exec tsx packages/midi/scripts/chord-benchmark.ts output/pop909-cl/POP909_processed --split dev
+pnpm exec tsx packages/midi/scripts/chord-benchmark.ts output/pop909-cl/POP909_processed --gate
 ```
 
 `--tuning file.json` tries harmony settings without editing the file, for example `{"changePenalty": 0.4}`. Scores are shares of time: `root`, `majMin` (right major/minor triad), `sevenths` and `segmentation` (how well chord changes line up).
@@ -63,7 +63,7 @@ npx tsx packages/midi/scripts/chord-benchmark.ts output/pop909-cl/POP909_process
 **On the catalogue.** The evaluator replays the Player's own Chords path for every visible song and applies the gate:
 
 ```bash
-KEYSPILLI_DATA_DIR=/path/to/data npx tsx apps/web/scripts/evaluate-all-song-chords.mts --gate
+KEYSPILLI_DATA_DIR=/path/to/data pnpm exec tsx apps/web/scripts/evaluate-all-song-chords.mts --gate
 ```
 
 It lists each failing song with its reasons. Each check stands in for something a listener hears:
@@ -80,7 +80,7 @@ The report counts source onsets inside explicit N.C. spans separately as `intent
 For the current owner-accepted reference set (12 entries, including Fix You's bounded opening), the local replay audit checks pinned Advanced notes, authored timeline, selected source, and realized backing digest:
 
 ```bash
-KEYSPILLI_DATA_DIR=/path/to/data npx tsx apps/web/scripts/audit-golden-chords.mts --require-match
+KEYSPILLI_DATA_DIR=/path/to/data pnpm exec tsx apps/web/scripts/audit-golden-chords.mts --require-match
 ```
 
 An unaccepted phrasing candidate reports `DRIFT` for each changed song until the owner has listened and accepted its new backing. Do not replace accepted digests solely to make this audit pass.

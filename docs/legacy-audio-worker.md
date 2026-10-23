@@ -8,7 +8,7 @@ fallback.
 
 ```bash
 KEYSPILLI_IMPORT_MODE=auto KEYSPILLI_BP_SERIALIZATION=coreml \
-  npm run worker -w @keyspilli/transcribe
+  pnpm --filter @keyspilli/transcribe run worker
 ```
 
 The legacy worker defaults to the metal-friendly `auto` route. It separates a full

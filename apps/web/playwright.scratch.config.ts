@@ -14,7 +14,7 @@ export default defineConfig({
   timeout: 120_000,
   globalTeardown: "./e2e/scratch-global-teardown.ts",
   webServer: {
-    command: "npm run start -- --port 3100",
+    command: "pnpm run start --port 3100",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: false,
     timeout: 120_000,

@@ -46,18 +46,18 @@ independently by the chart's C-C7-F-Fm-A7-D harmony.
 
 ## Auditing coverage
 
-`npm run audit:sections -w @keyspilli/catalog` prints a per-base ledger: bases
+`pnpm --filter @keyspilli/catalog run audit:sections` prints a per-base ledger: bases
 already covered by a source or chart map, bases whose retained seed MIDI still
 holds unmapped timed form markers, Ultimate Guitar candidates, and bases that
 have nothing but estimates. It also fails when a map could never resolve or is
-structurally invalid, and CI runs it immediately after `npm ci`, before
+structurally invalid, and CI runs it immediately after `pnpm install --frozen-lockfile`, before
 `fetch-seed` and the catalog pipeline regenerate the manifest. Pass
 `--seed-dir <path>` to scan seed MIDI that lives outside this checkout, since
 that directory is gitignored runtime state.
 
 ## Offline chart alignment
 
-`npm run align:chart-sections -w @keyspilli/catalog -- <chart.json> <seed.mid>
+`pnpm --filter @keyspilli/catalog run align:chart-sections <chart.json> <seed.mid>
 <notes.json> <baseId> <chart-url> <identity.json> [landmarks.json] [transpose] [phraseBars]`
 prints an alignment report and candidate map; it never writes the catalog or
 fetches a chart. Obtain `chart.json` with the saved-page extractor. Work from

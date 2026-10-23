@@ -27,7 +27,7 @@ ARTIFACTS = ('manifest.json', *[f'{level}/{name}' for level in LEVELS for name i
 BUNDLE_FILES = (*['artifacts/' + name for name in ARTIFACTS], 'rows.json', 'timeline.json', 'playback.json', 'chords.mid', 'chords.musicxml')
 HOST_SCOPES = ('packages/midi/src', 'packages/catalog/src', 'packages/catalog/scripts',
                'packages/player-core/src', 'apps/web/scripts', 'apps/web/src/lib',
-               'apps/web/src/components/player', 'package-lock.json')
+               'apps/web/src/components/player', 'pnpm-lock.yaml')
 MAX_ARCHIVE_BYTES = 16 * 1024 * 1024
 MAX_OUTPUT_BYTES = 65536
 

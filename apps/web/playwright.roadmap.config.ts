@@ -35,7 +35,7 @@ export default defineConfig({
   globalSetup: "./e2e/login-global-setup.ts",
   globalTeardown: "./e2e/scratch-global-teardown.ts",
   webServer: {
-    command: "npm run start -- --hostname 127.0.0.1 --port 3128", url: "http://127.0.0.1:3128", reuseExistingServer: false,
+    command: "pnpm run start --hostname 127.0.0.1 --port 3128", url: "http://127.0.0.1:3128", reuseExistingServer: false,
     env: { KEYSPILLI_DATA_DIR: directory, KEYSPILLI_API_TOKEN: "test-token-for-e2e", KEYSPILLI_ORIGIN: "http://127.0.0.1:3128", KEYSPILLI_TUTORIAL_BETA: "1", ...E2E_AUTH_ENV, AUTH_URL: "http://127.0.0.1:3128", KEYSPILLI_E2E_LOGIN: "1", KEYSPILLI_E2E_LOGIN_TOKEN: "e2e-login-token", NEXT_TELEMETRY_DISABLED: "1" },
   },
   use: { baseURL: "http://127.0.0.1:3128", storageState: authState, browserName: "chromium", trace: "retain-on-failure" },
