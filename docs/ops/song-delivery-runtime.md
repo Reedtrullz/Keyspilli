@@ -54,7 +54,7 @@ not a claim that a default-concurrency timeout was repaired.
 ## Local macOS qualification
 
 Select the absolute compatible Node returned by the packaged checkout preflight
-and put its directory first on PATH before `npm ci` or Python helper tests.
+and put its directory first on PATH before `pnpm install --frozen-lockfile` or Python helper tests.
 The shell can select a different Node after entering another worktree; a
 successful install with an engine warning does not qualify the native SQLite
 runtime.

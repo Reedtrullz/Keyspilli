@@ -13,7 +13,7 @@ KEYSPILLI_NODE=/absolute/path/to/node
 "$KEYSPILLI_NODE" --import tsx packages/catalog/scripts/exact-input-evidence.ts --help
 ```
 
-The workspace script is `npm run audit:exact-inputs -w @keyspilli/catalog -- ...`.
+The workspace script is `pnpm --filter @keyspilli/catalog run audit:exact-inputs ...`.
 Its `node --import tsx` invocation avoids the TSX executable's IPC-server startup.
 
 ## Resolve an exact local registry

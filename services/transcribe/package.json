@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@keyspilli/catalog": "*",
-    "@keyspilli/midi": "*"
+    "@keyspilli/catalog": "workspace:*",
+    "@keyspilli/midi": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

@@ -13,7 +13,7 @@ export function noteHash(bytes: Uint8Array) {
 const repoRoot=fileURLToPath(new URL('../../../',import.meta.url));
 const candidatePaths=['services/transcribe/src','packages/midi/src','packages/catalog/src','apps/web/src/app/api','apps/web/src/lib',
  'services/transcribe/requirements-tutorial.txt','services/transcribe/Dockerfile.tutorial',
- 'services/transcribe/scripts/evaluate-tutorial-pipeline.ts','package.json','package-lock.json','services/transcribe/package.json'];
+ 'services/transcribe/scripts/evaluate-tutorial-pipeline.ts','package.json','pnpm-lock.yaml','services/transcribe/package.json'];
 export async function candidateHashes() {
  const files:string[]=[];
  const walk=async(path:string)=>{

@@ -50,7 +50,7 @@ if (process.argv.includes("--verify")) {
 const sourceMap: ChordSourceMap = JSON.parse(readFileSync("catalog/chord-sources.json", "utf8"));
 const preserved = new Set(sourceMap.entries.filter(e => e.sources.some(s => s.artifactPath)).map(e => e.baseId));
 const sourceFiles = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--",
-  "packages/midi/src", "packages/player-core/src", "packages/catalog/src", "apps/web/src/lib", "apps/web/src/components/player", "package-lock.json"], { encoding: "utf8" });
+  "packages/midi/src", "packages/player-core/src", "packages/catalog/src", "apps/web/src/lib", "apps/web/src/components/player", "pnpm-lock.yaml"], { encoding: "utf8" });
 const sourceBacked = process.argv.includes("--source-backed");
 assert(!sourceBacked || !process.argv.includes("--repair"), "source-backed selection cannot use generated repair");
 const generator = hash(String(process.argv.includes("--repair")) + String(sourceBacked) + [...new Set(sourceFiles.split("\0").filter(Boolean))].sort()

@@ -84,15 +84,16 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+      - name: Enable pnpm via Corepack (version pinned by packageManager)
+        run: corepack enable
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
 
       # Existing violations are baselined as warnings in eslint.config.mjs;
       # errors (including react-hooks/rules-of-hooks) fail the job.
       - name: ESLint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Ruff
         run: |
@@ -127,43 +128,44 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+      - name: Enable pnpm via Corepack (version pinned by packageManager)
+        run: corepack enable
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
 
       # Runs before fetch-seed/pipeline: the pipeline regenerates
       # catalog/manifest.json, and the map integrity check must see the
       # committed manifest rather than the regenerated subset.
       - name: Audit song section maps
-        run: npm run audit:sections -w @keyspilli/catalog
+        run: pnpm --filter @keyspilli/catalog run audit:sections
 
       - name: Fetch seed catalog (public-domain MIDI)
-        run: npx tsx packages/catalog/scripts/fetch-seed.ts
+        run: pnpm exec tsx packages/catalog/scripts/fetch-seed.ts
 
       - name: Build catalog pipeline (db + artifacts)
-        run: npm run pipeline
+        run: pnpm run pipeline
 
       - name: Verify catalog playability
-        run: npm run verify-catalog
+        run: pnpm run verify-catalog
 
       - name: Verify chord sources
-        run: npm run verify-chord-sources -- --require-catalog
+        run: pnpm run verify-chord-sources --require-catalog
 
       - name: Calibration drift check
-        run: npm run calibrate
+        run: pnpm run calibrate
 
       - name: TypeScript
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       - name: Vitest
-        run: npm test
+        run: pnpm test
 
       - name: Production build
-        run: npm run build
+        run: pnpm run build
 
       - name: Install Playwright browsers
-        run: npx --no-install playwright install --with-deps chromium webkit
+        run: pnpm exec playwright install --with-deps chromium webkit
         working-directory: apps/web
 
       - name: Verify Playwright Chromium launch
@@ -213,10 +215,10 @@ jobs:
           export PLAYWRIGHT_HTML_OUTPUT_DIR="$KEYSPILLI_EVIDENCE/playwright-report"
           export PLAYWRIGHT_BLOB_OUTPUT_DIR="$KEYSPILLI_EVIDENCE/playwright-blob"
           node scripts/verify-e2e-routing.mjs
-          npx playwright test --output "$KEYSPILLI_EVIDENCE/playwright/seeded"
-          npx playwright test --config=playwright.scratch.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/scratch"
-          npx playwright test --config=playwright.player-ui.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/player-ui"
-          npx playwright test --config=playwright.roadmap.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/roadmap"
+          pnpm exec playwright test --output "$KEYSPILLI_EVIDENCE/playwright/seeded"
+          pnpm exec playwright test --config=playwright.scratch.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/scratch"
+          pnpm exec playwright test --config=playwright.player-ui.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/player-ui"
+          pnpm exec playwright test --config=playwright.roadmap.config.ts --output "$KEYSPILLI_EVIDENCE/playwright/roadmap"
         working-directory: apps/web
 
       - name: Verify public seed backup in the current isolated web image

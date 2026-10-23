@@ -35,7 +35,7 @@ db.close();
 export default defineConfig({
   testDir: "./e2e", testMatch: ["player-ui-improvements.spec.ts", "home-navigation.spec.ts"], workers: 1, timeout: 60_000,
   globalTeardown: "./e2e/scratch-global-teardown.ts",
-  webServer: { command: "npm run start -- --port 3110", url: "http://127.0.0.1:3110", reuseExistingServer: false,
+  webServer: { command: "pnpm run start --port 3110", url: "http://127.0.0.1:3110", reuseExistingServer: false,
     env: { KEYSPILLI_DATA_DIR: scratch, KEYSPILLI_E2E_SCRATCH_DIR: scratch, KEYSPILLI_API_TOKEN: E2E_API_TOKEN, ...E2E_AUTH_ENV, NEXT_TELEMETRY_DISABLED: "1" } },
   use: { baseURL: "http://127.0.0.1:3110", extraHTTPHeaders: E2E_AUTH_HEADERS, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],

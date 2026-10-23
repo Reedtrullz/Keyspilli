@@ -22,10 +22,10 @@ test("capture fresh phrases through visible sampled Player and return", async ({
     expect(capture.sampleAssets.length).toBeGreaterThan(0);
     expect(capture.wav.length).toBeLessThan(2 * 1024 * 1024);
     const pairedManifest = process.env.KEYSPILLI_MUSIC_REVIEW_PAIRED_MANIFEST === "1" && !!capture.beforeCompressor;
-    const rendererModule = resolve("../../node_modules/smplr/dist/index.mjs");
+    const rendererModule = resolve("node_modules/smplr/dist/index.mjs");
     savePlayerCapture(join(root, "media", id + ".wav"), capture, pairedManifest ? {
       id, manifestPath: join(root, "capture-receipts", id + "-paired.json"),
-      renderer: { moduleVersion: JSON.parse(readFileSync(resolve("../../node_modules/smplr/package.json"), "utf8")).version,
+      renderer: { moduleVersion: JSON.parse(readFileSync(resolve("node_modules/smplr/package.json"), "utf8")).version,
         moduleSha256: createHash("sha256").update(readFileSync(rendererModule)).digest("hex"),
         browserVersion: page.context().browser()!.version() },
     } : undefined);
