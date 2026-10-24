@@ -37,6 +37,7 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
     actual = docker("image", "inspect", "--format", "{{.Id}}", image_id).strip()
     if actual != image_id:
         raise ValueError("local immutable image is unavailable")
+    uses_node = docker("image", "inspect", "--format", "{{.Config.User}}", image_id).strip() == "node"
     name = f"keyspilli-restore-{uuid.uuid4().hex[:12]}"
     mounts = []
     native_output = report_path.parent / "native-player"
@@ -60,6 +61,7 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
         mounts.extend(("-v", f"{native_output}:/browser-results",
                        "-e", "KEYSPILLI_NATIVE_PROBE_SCOPE=owned-restore",
                        "-e", "KEYSPILLI_API_TOKEN=test-token-for-e2e"))
+
     created = False
     started = time.monotonic()
     report["applicationVerification"] = "failed"
@@ -103,13 +105,28 @@ def verify(manifest_path, destination, image_id, revision, song_id, sampled=Fals
         if limits.get("Memory") != 1_073_741_824 or limits.get("PidsLimit") != 128:
             raise ValueError("restored application memory/PID limits do not match the contract")
         report["runtimeLimits"] = {key: limits[key] for key in ("NanoCpus", "Memory", "PidsLimit")}
+        if uses_node:
+            if runtime.is_symlink() or not runtime.is_dir() or runtime.resolve() != runtime:
+                raise ValueError("restore ownership requires a canonical runtime directory")
+            # Only the extracted copy changes; backup sources stay untouched.
+            helper = f"{name}-ownership"
+            docker("create", "--pull=never", "--name", helper, "--network", "none",
+                   "--read-only", "--user", "0:0", "--cpus", "1", "--memory", "128m", "--pids-limit", "32",
+                   "-v", f"{runtime}:/data", "--entrypoint", "chown", image_id, "-R", "1000:1000", "/data")
+            try:
+                docker("start", "-a", helper, timeout=120)
+                if docker("inspect", "--format", "{{.State.ExitCode}}", helper).strip() != "0":
+                    raise RuntimeError("restore ownership preparation failed")
+            finally:
+                docker("rm", "-f", helper)
         docker("start", name)
         if sampled:
             ready = json.loads(docker("exec", name, "node", "/restore-app-verifier.mjs",
                                       revision, song_id, str(report["catalogSchemaEpoch"]), "--ready-only", timeout=240))
             if ready != {"startupReadiness": "passed"}:
                 raise ValueError("restored application startup readiness is incomplete")
-            native = json.loads(docker("exec", "-e", "DEBUG=pw:browser", name, "node", "--import",
+            # The probe writes caller-owned evidence; the server keeps the image's node user.
+            native = json.loads(docker("exec", "--user", f"{os.getuid()}:{os.getgid()}", "-e", "DEBUG=pw:browser", name, "node", "--import",
                                        "/qualification-source/node_modules/tsx/dist/loader.mjs",
                                        "/qualification-source/apps/web/scripts/verify-native-player.mts",
                                        revision, timeout=240))
