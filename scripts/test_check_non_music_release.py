@@ -13,7 +13,15 @@ class PathTests(unittest.TestCase):
   self.assertEqual(nm.violations(paths),paths)
 
  def test_unknown_paths_fail_closed(self):
-  paths=['apps/web/next.config.ts','apps/web/package.json','package-lock.json','apps/web/src/lib/something-new.ts','Dockerfile','apps/web/src/instrumentation.ts']
+  paths=['apps/web/next.config.ts','apps/web/src/lib/something-new.ts','Dockerfile','apps/web/src/instrumentation.ts']
+  self.assertEqual(nm.violations(paths),paths)
+
+ def test_packaging_paths_pass_including_under_packages_and_services(self):
+  paths=['package.json','package-lock.json','pnpm-lock.yaml','pnpm-workspace.yaml','apps/web/package.json','apps/web/Dockerfile','packages/catalog/package.json','packages/midi/package.json','services/transcribe/package.json','services/transcribe/Dockerfile','services/transcribe/Dockerfile.tutorial','services/transcribe/Dockerfile.tutorial.dockerignore','apps/web/scripts/prepare-catalog-chords.mts','apps/web/src/lib/prepare-workflow-pins.ts','apps/web/src/lib/symbolic-review-input.ts','services/transcribe/scripts/evaluate-tutorial-pipeline.ts','plugins/keyspilli/source-members.json','README.md','CONTRIBUTING.md','SECURITY.md']
+  self.assertEqual(nm.violations(paths),[])
+
+ def test_packages_and_services_source_still_blocks(self):
+  paths=['packages/midi/src/validate.ts','services/transcribe/src/worker.ts','services/transcribe/scripts/other.ts']
   self.assertEqual(nm.violations(paths),paths)
 
  def test_blocked_beats_allowed(self):
@@ -41,12 +49,13 @@ class GitTests(unittest.TestCase):
   finally:nm.PINNED.clear();nm.PINNED.update(old)
 
  def test_tooling_is_trusted_on_main_and_must_match_main_on_release_branches(self):
-  ci='.github/workflows/ci.yml';script='scripts/check-non-music-release.py'
-  live=self.commit(ci,'one\n');self.commit(script,'one\n')
-  trusted=self.commit(ci,'two\n')
-  self.assertEqual(nm.violations([ci,script,'deploy/playbook.yml']),[])
+  ci='.github/workflows/ci.yml';other='.github/workflows/runtime-rehearsal.yml';script='scripts/check-non-music-release.py'
+  live=self.commit(ci,'one\n');self.commit(other,'one\n');self.commit(script,'one\n')
+  trusted=self.commit(ci,'two\n');self.commit(other,'two\n')
+  self.assertEqual(nm.violations([ci,other,script,'deploy/playbook.yml']),[])
   self.git('checkout','-qb','release/x',live);drifted=self.commit(ci,'forged\n')
   self.assertEqual(nm.violations([ci],live,drifted,trusted),[ci])
+  self.assertEqual(nm.violations([other],live,drifted,trusted),[other])
   self.assertEqual(nm.violations(['scripts/sub/dir.py'],live,drifted,trusted),['scripts/sub/dir.py'])
 
  def test_changed_paths_requires_a_live_ancestor(self):

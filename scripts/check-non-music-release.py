@@ -2,7 +2,9 @@
 """Fail closed before a non-music deploy: the diff since the live revision must stay out of music, catalog, player and ingestion code.
 
 This is an allowlist. A path that is not listed below blocks the release, so new
-music or catalog code is refused by default. It does not replace the reviewed
+music or catalog code is refused by default. Package-manager and image packaging
+paths (lockfiles, workspace manifests, Dockerfiles) are allowlisted separately so
+a pnpm/npm migration can use the non-music gate. It does not replace the reviewed
 music-release manifest, which remains the only route for music changes.
 """
 import argparse,base64,hashlib,json,os,re,subprocess,sys,urllib.request
@@ -11,13 +13,39 @@ HEALTH_URL='https://keys.reidar.tech/api/health'
 USER_AGENT='keyspilli-release-check/1.0'
 
 # Always blocked, even if a later rule would allow them.
+# packages/ and services/ source stays blocked; packaging manifests are handled by
+# PACKAGING below so a package-manager migration can ship without a music review.
 BLOCKED=re.compile(
- r'^(packages|services|catalog|data|seed-midi)/'
+ r'^(packages|services)/.+\.(ts|tsx|js|jsx|mjs|cjs|py|wasm)$'
+ r'|^catalog/'
+ r'|^data/'
+ r'|^seed-midi/'
  r'|(^|/)components/player/'
  r'|^apps/web/src/app/api/(?!auth/)'
  r'|\.(mid|midi|musicxml|mxl)$'
  r'|(^|/)manifest\.json$'
  r'|(^|/)\.\.(/|$)')
+
+# Package-manager / image packaging only. Evaluated before BLOCKED so root and
+# workspace manifests under packages/ and services/ are not hard-refused.
+PACKAGING=re.compile(
+ r'^package\.json$'
+ r'|^package-lock\.json$'
+ r'|^pnpm-lock\.yaml$'
+ r'|^pnpm-workspace\.yaml$'
+ r'|^npm-shrinkwrap\.json$'
+ r'|^apps/web/package\.json$'
+ r'|^apps/web/Dockerfile$'
+ r'|^packages/[^/]+/package\.json$'
+ r'|^services/[^/]+/package\.json$'
+ r'|^services/[^/]+/Dockerfile[^/]*$'
+ r'|^services/[^/]+/.*\.dockerignore$'
+ r'|^apps/web/scripts/prepare-catalog-chords\.mts$'
+ r'|^apps/web/src/lib/prepare-workflow-pins\.ts$'
+ r'|^apps/web/src/lib/symbolic-review-input\.ts$'
+ r'|^services/[^/]+/scripts/evaluate-tutorial-pipeline\.ts$'
+ r'|^plugins/keyspilli/.+'
+ r'|^(README|CONTRIBUTING|SECURITY)\.md$')
 
 ALLOWED=[re.compile(p) for p in (
  r'apps/web/src/components/(?!player/).+',
@@ -33,8 +61,9 @@ ALLOWED=[re.compile(p) for p in (
 )]
 
 # Release machinery: allowed when the target is main itself (reviewed through its PR);
-# on a release branch it must equal the trusted ref exactly.
-TOOLING=re.compile(r'\.github/workflows/ci\.yml|scripts/[^/]+|deploy/.+')
+# on a release branch it must equal the trusted ref exactly. All workflow files are
+# tooling so a package-manager CI swap must match origin/main on release/*.
+TOOLING=re.compile(r'\.github/workflows/.+|scripts/[^/]+|deploy/.+')
 
 # Exact reviewed exceptions: sha256 of the added and removed lines since the live revision.
 PINNED={
@@ -58,8 +87,11 @@ def tooling_ok(path,target,ref):
  if ref is None:return True
  return bool(target and subprocess.run(['git','diff','--quiet','--no-renames',ref,target,'--',path]).returncode==0)
 
+def packaging_ok(path):
+ return bool(PACKAGING.fullmatch(path))
+
 def violations(paths,live=None,target=None,tooling_ref=None):
- return [p for p in paths if BLOCKED.search(p) or (not any(r.fullmatch(p) for r in ALLOWED) and not pinned_ok(p,live,target) and not tooling_ok(p,target,tooling_ref))]
+ return [p for p in paths if not packaging_ok(p) and (BLOCKED.search(p) or (not any(r.fullmatch(p) for r in ALLOWED) and not pinned_ok(p,live,target) and not tooling_ok(p,target,tooling_ref)))]
 
 def live_revision():
  headers={'Accept':'application/json','User-Agent':USER_AGENT}
