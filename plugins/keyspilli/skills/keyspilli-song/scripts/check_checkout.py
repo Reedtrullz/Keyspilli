@@ -31,10 +31,10 @@ OPTIONAL = {
 
 # Must match the finite driver's source scopes; schema checks alone do not pin the implementation.
 WORKFLOW_SCOPES = ('packages/midi/src', 'packages/catalog/src', 'packages/catalog/scripts', 'packages/player-core/src',
-                   'apps/web/scripts', 'apps/web/src/lib', 'apps/web/src/components/player', 'package-lock.json')
+                   'apps/web/scripts', 'apps/web/src/lib', 'apps/web/src/components/player', 'pnpm-lock.yaml')
 # Actual generator fingerprint inputs in prepare-catalog-chords.mts.
 PREPARATION_SCOPES = ('packages/midi/src', 'packages/player-core/src', 'packages/catalog/src',
-                      'apps/web/src/lib', 'apps/web/src/components/player', 'package-lock.json')
+                      'apps/web/src/lib', 'apps/web/src/components/player', 'pnpm-lock.yaml')
 
 # Independently match the deterministic wrapper's working-byte fingerprint, including
 # catalog maps and module-resolution configuration omitted by the experimental protocol.
@@ -50,7 +50,7 @@ DETERMINISTIC_REQUIRED = (
     'apps/web/scripts/prepare-catalog-chords.mts', 'apps/web/scripts/song-bundle.mts',
     'apps/web/src/lib/prepare-workflow.ts', 'apps/web/src/lib/prepare-workflow-pins.ts',
     'apps/web/src/lib/prepare-workflow-process.ts', 'apps/web/src/lib/prepare-workflow-group.ts',
-    'package.json', 'package-lock.json',
+    'package.json', 'pnpm-lock.yaml',
     'catalog/chord-sources.json',
 )
 
@@ -181,8 +181,10 @@ def choose_checkout(requested, candidates):
 
 def check_sqlite(root, node_executable):
     try:
+        # better-sqlite3 is declared by the catalog package; pnpm links it there, not at the root.
+        catalog = root / 'packages/catalog'
         subprocess.run([node_executable, '-e', "new (require('better-sqlite3'))(':memory:').close()"],
-                       cwd=root, capture_output=True, text=True, timeout=10, check=True)
+                       cwd=catalog if catalog.is_dir() else root, capture_output=True, text=True, timeout=10, check=True)
         return None
     except (OSError, subprocess.SubprocessError):
         return 'Selected Node cannot load/open better-sqlite3. Check its native ABI; retry --node /absolute/path/to/compatible/node, or follow the checkout lockfile/runtime instructions. Do not reinstall blindly.'

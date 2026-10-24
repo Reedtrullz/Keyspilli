@@ -1,0 +1,16 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "services/*"
+
+# pnpm 10 runs no dependency install scripts unless they are listed here.
+# esbuild: postinstall verifies and links the platform binary (same as Handli).
+# better-sqlite3: ships prebuilt N-API binaries ("gypfile": false), so the
+# implicit node-gyp rebuild pnpm would infer from binding.gyp stays off.
+allowBuilds:
+  esbuild: true
+  better-sqlite3: false
+
+overrides:
+  postcss: "^8.5.26"
+  vite: "^7.3.6"

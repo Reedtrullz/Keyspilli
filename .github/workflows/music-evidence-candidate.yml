@@ -20,11 +20,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.22.3'
-          cache: npm
+      - name: Enable pnpm via Corepack (version pinned by packageManager)
+        run: corepack enable
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: '3.11'
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
       - run: python -m pip install -r services/transcribe/requirements-player-evidence.txt
       - name: Pure analyzer and fail-closed release tests
         env:
@@ -35,8 +36,8 @@ jobs:
           python scripts/test_check_music_release.py
       - name: Report, comparison, preview and packet contracts
         run: |
-          npm exec -w @keyspilli/web -- vitest run src/lib/player-music-review.test.ts src/lib/player-preparation-boundary.test.ts src/lib/player-input-qualification.test.ts src/lib/music-qualification-score.test.ts src/lib/player-history-comparison.test.ts src/lib/player-repair-boundary.test.ts src/lib/player-reference-bank.test.ts src/lib/music-review-jobs.test.ts src/lib/music-review.test.ts src/lib/music-review-cli.test.ts src/lib/music-correspondence.test.ts src/lib/music-event-comparison.test.ts src/lib/music-repair-preview.test.ts src/lib/anti-music-evidence.test.ts
-          npm run typecheck
+          pnpm --filter @keyspilli/web exec vitest run src/lib/player-music-review.test.ts src/lib/player-preparation-boundary.test.ts src/lib/player-input-qualification.test.ts src/lib/music-qualification-score.test.ts src/lib/player-history-comparison.test.ts src/lib/player-repair-boundary.test.ts src/lib/player-reference-bank.test.ts src/lib/music-review-jobs.test.ts src/lib/music-review.test.ts src/lib/music-review-cli.test.ts src/lib/music-correspondence.test.ts src/lib/music-event-comparison.test.ts src/lib/music-repair-preview.test.ts src/lib/anti-music-evidence.test.ts
+          pnpm run typecheck
       - name: Reproducible plugin package
         run: |
           python scripts/test_package_keyspilli_plugin.py

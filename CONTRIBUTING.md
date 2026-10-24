@@ -4,7 +4,7 @@ Keyspilli is a personal piano practice app. Useful contributions include player 
 
 ## Start here
 
-1. Follow the [developer guide](docs/development.md) with Node.js 22.22.3 and `npm ci`.
+1. Follow the [developer guide](docs/development.md) with Node.js 22.22.3 and `pnpm install --frozen-lockfile`.
 2. Work on a focused branch with an isolated local catalog.
 3. For code changes, run the relevant tests and typechecks. For docs, verify commands and links against the source.
 4. Open a pull request describing the problem, resulting behavior, verification, and any remaining limitations. Add a playable preview for musical changes.

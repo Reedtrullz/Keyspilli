@@ -241,7 +241,7 @@ class CheckerTests(unittest.TestCase):
     def test_ci_uses_pinned_runtime_and_offline_checker_without_release_actions(self):
         text = (ROOT / '.github/workflows/keyspilli-plugin-compatibility.yml').read_text()
         self.assertIn("node-version: '22.22.3'", text)
-        self.assertIn('npm ci --no-audit --no-fund', text)
+        self.assertIn('pnpm install --frozen-lockfile', text)
         self.assertIn('python -B scripts/check-keyspilli-plugin.py', text)
         self.assertIn('persist-credentials: false', text)
         self.assertNotIn('contents: write', text)

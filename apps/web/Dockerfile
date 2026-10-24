@@ -1,6 +1,8 @@
 FROM docker.io/library/node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+# pnpm comes from Corepack at the exact version pinned by package.json "packageManager".
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/catalog/package.json packages/catalog/package.json
@@ -12,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 ENV npm_config_python=/usr/bin/python3
-RUN npm ci --no-audit --no-fund
+RUN pnpm install --frozen-lockfile
 COPY packages packages
 COPY services services
 COPY catalog/manifest.json catalog/manifest.json
@@ -24,18 +26,20 @@ COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG VERSION=dev
 ENV VERSION=$VERSION
-RUN npm run build -w @keyspilli/web
+RUN pnpm --filter @keyspilli/web run build
 
 # Browser dependencies do not inherit changing application files or VERSION.
 FROM docker.io/library/node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS browser-assets
 WORKDIR /app
+# pnpm links Playwright into apps/web/node_modules (symlinks into node_modules/.pnpm).
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/web/node_modules ./apps/web/node_modules
 COPY apps/web/scripts/verify-playwright-runtime.mjs apps/web/scripts/verify-playwright-runtime.mjs
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-# Install the browser from the exact Playwright package resolved by package-lock.json.
-RUN npx --no-install playwright install chromium
+# Install the browser from the exact Playwright package resolved by pnpm-lock.yaml.
+RUN node apps/web/node_modules/playwright/cli.js install chromium
 # Launch it in an environment matching the final runtime image. This catches missing
 # browser libraries during image construction instead of on the first PDF request.
 RUN apt-get update && apt-get install -y --no-install-recommends \

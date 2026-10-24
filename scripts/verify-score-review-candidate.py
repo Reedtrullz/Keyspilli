@@ -19,9 +19,9 @@ def main():
     args.output.mkdir(mode=0o700)
     env = {**os.environ, "PATH": str(args.node.parent) + os.pathsep + os.environ["PATH"]}
     commands = [
-        ("keyspilli-tests", args.keyspilli, ["npm", "test"]),
-        ("keyspilli-types", args.keyspilli, ["npm", "run", "typecheck"]),
-        ("keyspilli-build", args.keyspilli, ["npm", "run", "build"]),
+        ("keyspilli-tests", args.keyspilli, ["pnpm", "test"]),
+        ("keyspilli-types", args.keyspilli, ["pnpm", "run", "typecheck"]),
+        ("keyspilli-build", args.keyspilli, ["pnpm", "run", "build"]),
         ("anti-tests", args.anti, [str(args.anti / ".venv/bin/python"), "-m", "pytest"]),
     ]
     results = []

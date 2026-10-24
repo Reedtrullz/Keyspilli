@@ -28,18 +28,18 @@ Generated arrangements can still need musical correction. Automated checks estab
 
 ## Run locally
 
-Use **Node.js 22.22.3**, matching CI, and npm. Native SQLite dependencies may need Python and C/C++ build tools if a prebuilt binary is unavailable.
+Use **Node.js 22.22.3**, matching CI, and pnpm (run `corepack enable` once; `package.json` pins the version). Native SQLite dependencies may need Python and C/C++ build tools if a prebuilt binary is unavailable.
 
 ```bash
 git clone https://github.com/Reedtrullz/Keyspilli.git
 cd Keyspilli
-npm ci
-npm run dev -w @keyspilli/web -- --hostname 127.0.0.1
+pnpm install --frozen-lockfile
+pnpm --filter @keyspilli/web run dev --hostname 127.0.0.1
 ```
 
 Open [localhost:3000](http://localhost:3000), then upload a file through **Add a song**. An empty local catalog initializes automatically; no Python worker is needed for symbolic uploads. Keep this development server local. Public hosting requires the private access boundary described in [operations](docs/ops.md).
 
-The full hosted catalog is **not bundled with a clone**. `npm run pipeline` needs the source files named in `catalog/manifest.json` and writes artifacts and SQLite state. See [development setup](docs/development.md) for isolated data, seed downloads, and tests.
+The full hosted catalog is **not bundled with a clone**. `pnpm run pipeline` needs the source files named in `catalog/manifest.json` and writes artifacts and SQLite state. See [development setup](docs/development.md) for isolated data, seed downloads, and tests.
 
 ## Project layout
 
