@@ -306,7 +306,7 @@ The path-free audit record is
 Ultimate-Guitar.Com"). `packages/catalog/scripts/fetch-ug-midis.ts` downloads
 verified MIDI files from BitMidi (personal use; the MIDI files themselves stay
 out of git) and appends them to `catalog/manifest.json`. Then run
-`npm run pipeline` and transfer `data/` to the VPS volume (see below).
+`pnpm run pipeline` and transfer `data/` to the VPS volume (see below).
 
 ## Syncing catalog data to the VPS
 
@@ -316,8 +316,8 @@ The deploy pipeline does not rebuild the catalog on the VPS — the
 Run the playability gate first; it exits non-zero if any song fails:
 
 ```bash
-npm run verify-catalog
-npm run calibrate   # fails if catalog P99 drifts past configured limits
+pnpm run verify-catalog
+pnpm run calibrate   # fails if catalog P99 drifts past configured limits
 ```
 
 ```bash
@@ -485,7 +485,7 @@ docker compose start worker
 
 1. Put MIDI/XML in `data/seed-midi/`.
 2. Add an entry to `catalog/manifest.json` (id, title, artist, sourceFile…).
-3. Run `npm run pipeline`.
+3. Run `pnpm run pipeline`.
 4. Commit `catalog/manifest.json`.
 
 ## Ultimate Guitar chord mode
@@ -496,7 +496,7 @@ and normalized, payload-free timelines live under `catalog/chord-timelines/`.
 Validate them before a build:
 
 ```bash
-npm run verify-chord-sources
+pnpm run verify-chord-sources
 ```
 
 CI runs the same verifier with `--require-catalog`; after the pipeline it
@@ -652,7 +652,7 @@ and median onset error vs a seed reference MIDI when one exists for the same
 piece (else `n/a`):
 
 ```bash
-npx tsx packages/catalog/scripts/audit-transcriptions.ts
+pnpm exec tsx packages/catalog/scripts/audit-transcriptions.ts
 ```
 
 For the controlled piano fixture comparison, use the explicit read-only
@@ -660,7 +660,7 @@ mapping (it reports candidate/audio hashes, embedded tempo evidence, and
 artifact provenance):
 
 ```bash
-npx tsx packages/catalog/scripts/compare-piano-fixtures.ts
+pnpm exec tsx packages/catalog/scripts/compare-piano-fixtures.ts
 ```
 
 Its onset metrics are timing diagnostics only; they are not pitch accuracy or
@@ -671,8 +671,8 @@ source. Discovery is read-only against YouTube and the catalog DB, does not
 download media, and merges ranked review candidates into an untracked local
 manifest:
 
-- All YouTube imports: `npx tsx packages/catalog/scripts/discover-youtube-sources.ts`
-- Selected songs: `npx tsx packages/catalog/scripts/discover-youtube-sources.ts <baseId...>`
+- All YouTube imports: `pnpm exec tsx packages/catalog/scripts/discover-youtube-sources.ts`
+- Selected songs: `pnpm exec tsx packages/catalog/scripts/discover-youtube-sources.ts <baseId...>`
 - Candidates per song: add `--limit 8` before base IDs.
 
 Ranking favors piano/performance signals and song-title coverage, penalizes
@@ -689,8 +689,8 @@ MIDI's tempo meta, which is then onset-filtered and re-ingested with stable
 base ids. Dry-run first, then the real pass:
 
 ```bash
-npx tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root --dry-run
-npx tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root
+pnpm exec tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root --dry-run
+pnpm exec tsx packages/catalog/scripts/reingest-all-youtube.ts --source=root
 ```
 
 - Source selection is explicit: `--source=root` (the production rebuild
@@ -732,13 +732,13 @@ docker compose run --rm web node --import tsx packages/catalog/scripts/pipeline.
 - `--keep-existing-tempo` preserves non-120 DB tempos (manual corrections such
   as Dear God's 75 BPM) and only detects for rows still at the old 120 default.
 - For a targeted run, keep the source choice explicit as well:
-  `npx tsx .../reingest-all-youtube.ts --source=root <baseId> ...`.
+  `pnpm exec tsx .../reingest-all-youtube.ts --source=root <baseId> ...`.
 - The helper scripts have read-only preflight modes:
-  `npx tsx .../reingest-youtube.ts --dry-run --source=root` and
-  `npx tsx .../restore-youtube.ts --dry-run --source=root <baseId> ...`.
+  `pnpm exec tsx .../reingest-youtube.ts --dry-run --source=root` and
+  `pnpm exec tsx .../restore-youtube.ts --dry-run --source=root <baseId> ...`.
   `reingest-catalog.ts --dry-run` also leaves disabled rows untouched and only
   reports the removal it would perform.
-- Positional base ids restrict the run: `npx tsx ... reingest-all-youtube.ts <baseId>...`
+- Positional base ids restrict the run: `pnpm exec tsx ... reingest-all-youtube.ts <baseId>...`
 - VPS: trigger the "Rebuild YouTube catalog on VPS" job via GitHub Actions
   workflow dispatch with `rebuild_target` and an explicit base ID, or `rebuild_all`
   with `REBUILD_ALL_CATALOG` (runs inside the worker container with
@@ -1006,7 +1006,7 @@ If a post-swap error leaves a `.BASE.reconciliation.json` marker in
 `data/artifacts/`, mutations for that base remain blocked until the journal
 is replayed:
 
-    KEYSPILLI_DATA_DIR=/data npm run reconcile-artifacts -w @keyspilli/catalog -- BASE_ID
+    KEYSPILLI_DATA_DIR=/data pnpm --filter @keyspilli/catalog run reconcile-artifacts BASE_ID
 
 The CLI validates the published tree, replays the idempotent source/DB commit,
 or restores the prior tree from `.BASE.old` when the swap never committed.
@@ -1036,7 +1036,7 @@ This file lives inside the existing artifacts backup/restore boundary and surviv
 
 ## Runtime preflight and worker health
 
-`npm run preflight` validates redacted startup configuration, opens an existing
+`pnpm run preflight` validates redacted startup configuration, opens an existing
 catalog read-only with a 250 ms SQLite lock timeout, checks owned write paths,
 and reports binary presence. It never creates a missing catalog or starts
 imports. Optional provider/model/browser-library usability stays `unknown`

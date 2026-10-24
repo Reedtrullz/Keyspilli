@@ -78,7 +78,7 @@
     "align:chart-sections": "tsx scripts/align-chart-sections.ts"
   },
   "dependencies": {
-    "@keyspilli/midi": "*",
+    "@keyspilli/midi": "workspace:*",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.4",
     "fflate": "^0.8.2"

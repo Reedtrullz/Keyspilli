@@ -1,6 +1,8 @@
 FROM node:22-slim AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+# pnpm comes from Corepack at the exact version pinned by package.json "packageManager".
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/catalog/package.json packages/catalog/package.json
@@ -12,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 ENV npm_config_python=/usr/bin/python3
-RUN npm ci --no-audit --no-fund
+RUN pnpm install --frozen-lockfile
 COPY packages packages
 COPY services services
 COPY catalog/manifest.json catalog/manifest.json
@@ -20,10 +22,10 @@ COPY catalog/learner-review.json catalog/learner-review.json
 COPY catalog/transcription-overrides.json catalog/transcription-overrides.json
 COPY catalog/chord-sources.json catalog/chord-sources.json
 COPY catalog/chord-timelines catalog/chord-timelines
-# better-sqlite3 13 ships its prebuilt N-API binaries inside the npm package,
+# better-sqlite3 13 ships its prebuilt N-API binaries inside its package,
 # so nothing is downloaded at install time. The node-gyp toolchain stays in the
 # build stage as a fallback for native packages without a matching prebuild.
-RUN npm run typecheck -w @keyspilli/transcribe
+RUN pnpm --filter @keyspilli/transcribe run typecheck
 
 FROM node:22-slim
 WORKDIR /app
@@ -50,7 +52,7 @@ COPY --from=build /app/catalog/chord-timelines ./catalog/chord-timelines
 # Use explicit CPU PyTorch wheels; the default Linux index can pull unusable
 # CUDA runtimes. Bake the model into the image so jobs do not depend on a
 # first-run model download.
-COPY package.json tsconfig.base.json ./
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 # yt-dlp's default extra includes the matching EJS challenge solver. The bare
 # package leaves JS runtimes configured but no solver scripts, which makes
 # otherwise valid YouTube clients fail signature challenges.

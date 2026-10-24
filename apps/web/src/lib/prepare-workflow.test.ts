@@ -40,7 +40,7 @@ function fixtureCheckout() {
   const fixture = join(scratch, `checkout-${++count}`); mkdirSync(fixture);
   for (const path of REQUIRED_IMPLEMENTATION_FILES) {
     mkdirSync(dirname(join(fixture, path)), { recursive: true });
-    writeFileSync(join(fixture, path), path === "package.json" ? '{"name":"keyspilli"}' : path === "package-lock.json" ? "{}"
+    writeFileSync(join(fixture, path), path === "package.json" ? '{"name":"keyspilli"}' : path === "pnpm-lock.yaml" ? "{}"
       : path === "catalog/chord-sources.json" ? '{"schemaVersion":1,"entries":[]}' : "// controlled runner fixture\n");
   }
   for (const args of [["init", "--quiet"], ["add", "."], ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "-c", "core.hooksPath=/dev/null", "commit", "--quiet", "-m", "fixture"]]) {

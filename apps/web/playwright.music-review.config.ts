@@ -65,7 +65,7 @@ export default defineConfig({
   timeout: 30 * 60 * 1000,
   outputDir: join(root, "browser-traces"),
   webServer: {
-    command: "npm run dev -- --port " + port,
+    command: "pnpm run dev --port " + port,
     url: "http://127.0.0.1:" + port,
     reuseExistingServer: false,
     env: { KEYSPILLI_DATA_DIR: scratch, KEYSPILLI_API_TOKEN: E2E_API_TOKEN, ...E2E_AUTH_ENV, NEXT_TELEMETRY_DISABLED: "1" },

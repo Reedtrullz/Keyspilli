@@ -2,13 +2,13 @@
 
 ## Runtime and local data
 
-Run commands from the repository root with Node.js 22.22.3 (the CI pin) and npm. Install the lockfile with `npm ci`; the root package's broader engine range is not the tested runtime pin. If `better-sqlite3` must compile, install Python and a C/C++ toolchain first. Changing Node versions may require a fresh `npm ci`.
+Run commands from the repository root with Node.js 22.22.3 (the CI pin) and pnpm, which Corepack provides at the version pinned in `package.json` (`corepack enable` once). Install the lockfile with `pnpm install --frozen-lockfile`; the root package's broader engine range is not the tested runtime pin. If `better-sqlite3` must compile, install Python and a C/C++ toolchain first. Changing Node versions may require a fresh `pnpm install --frozen-lockfile`.
 
 For a separate local catalog, use a directory under ignored `output/`:
 
 ```bash
 export KEYSPILLI_DATA_DIR="$PWD/output/dev-data"
-npm run dev -w @keyspilli/web -- --hostname 127.0.0.1
+pnpm --filter @keyspilli/web run dev --hostname 127.0.0.1
 ```
 
 Without the override, runtime state lives in `data/`: `db.sqlite`, `artifacts/`, and `uploads/`. Uploading from the browser bootstraps an empty catalog. Source files are retained, so use material you are authorized to process. Do not point experiments, tests, or bundle installs at a running service's data directory.
@@ -18,9 +18,9 @@ Without the override, runtime state lives in `data/`: `db.sqlite`, `artifacts/`,
 A clone contains metadata and a small number of source files, not the hosted library. The optional seed fetch downloads from Mutopia **and rewrites `catalog/manifest.json`**, merging available local sources. Run it in a disposable checkout, inspect the manifest diff, and retain each source's attribution/license.
 
 ```bash
-npm run fetch-seed -w @keyspilli/catalog
-npm run pipeline
-npm run verify-catalog
+pnpm --filter @keyspilli/catalog run fetch-seed
+pnpm run pipeline
+pnpm run verify-catalog
 ```
 
 Use the default data directory for this sequence: the fetch script writes `data/seed-midi` under the checkout, while the pipeline honors `KEYSPILLI_DATA_DIR`. Unset an earlier override first, or deliberately copy the needed seeds into the chosen isolated data directory. The pipeline creates six stored variants per base and updates SQLite; missing sources cause failure. Disabled manifest entries can remove stale rows. It is not a read-only check or a production sync command.
@@ -43,25 +43,25 @@ Server-side secrets belong in the process/deployment secret store, never in brow
 ## Checks
 
 ```bash
-npm run typecheck
-npm test
+pnpm run typecheck
+pnpm test
 ```
 
 Catalog-dependent checks require a populated local catalog:
 
 ```bash
-npm run verify-catalog
-npm run verify-chord-sources -- --require-catalog
-npm run calibrate
-npm run build
+pnpm run verify-catalog
+pnpm run verify-chord-sources --require-catalog
+pnpm run calibrate
+pnpm run build
 ```
 
 The browser suite starts its own production server. With local ports 3000 and 3100 free, after building:
 
 ```bash
-npm exec -w @keyspilli/web -- playwright install --with-deps chromium webkit
-npm run e2e -w @keyspilli/web
-npm run e2e:scratch -w @keyspilli/web
+pnpm --filter @keyspilli/web exec playwright install --with-deps chromium webkit
+pnpm --filter @keyspilli/web run e2e
+pnpm --filter @keyspilli/web run e2e:scratch
 ```
 
 The regular suite uses the selected catalog; the scratch suite uses a temporary isolated catalog and teardown. Additional melody/Chords evaluations need their documented private fixtures. The full CI sequence, including Python and access-boundary checks, is in [CI / Deploy](../.github/workflows/ci.yml).

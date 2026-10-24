@@ -15,10 +15,10 @@
     "predev": "node scripts/build-offline.mjs"
   },
   "dependencies": {
-    "@keyspilli/catalog": "*",
-    "@keyspilli/engrave": "*",
-    "@keyspilli/midi": "*",
-    "@keyspilli/player-core": "*",
+    "@keyspilli/catalog": "workspace:*",
+    "@keyspilli/engrave": "workspace:*",
+    "@keyspilli/midi": "workspace:*",
+    "@keyspilli/player-core": "workspace:*",
     "next": "^16.4.2",
     "next-auth": "5.0.0-beta.32",
     "playwright": "1.64.1",
@@ -29,9 +29,13 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.20.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.3.0",
+    "better-sqlite3": "^13.0.3",
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.2",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.0",
     "vitest": "^5.0.5"

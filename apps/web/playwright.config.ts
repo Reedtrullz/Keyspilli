@@ -9,7 +9,7 @@ export default defineConfig({
   // cases run through their own configurations and must not mutate this catalog.
   testMatch: ["app.spec.ts", "mobile.spec.ts", "mobile-canvas.spec.ts", "player-instrument.spec.ts", "player-mobile.spec.ts", "player-ui.spec.ts", "private-alpha-usage.spec.ts", "login.spec.ts"],
   webServer: {
-    command: "npm run start",
+    command: "pnpm run start",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: false,
     timeout: 120_000,
