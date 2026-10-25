@@ -5,6 +5,7 @@ export * from "./paths.js";
 export * from "./ingest.js";
 export * from "./symbolic-upload.js";
 export * from "./group.js";
+export * from "./song-versions.js";
 export * from "./public-difficulty.js";
 export * from "./transcribe.js";
 export * from "./learner-review.js";

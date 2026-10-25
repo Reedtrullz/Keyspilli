@@ -47,3 +47,21 @@ it('ignores corrupt and unsafe review metadata while keeping normal playback ava
  expect(detail?.data?.notes).toHaveLength(1);
  expect(detail?.playerVersions??[]).toEqual([]);
 });
+
+it('links explicitly related performances at the selected difficulty without changing their source URLs',async()=>{
+ const family={schemaVersion:1,groups:[{primaryBaseId:original,versions:[{baseId:original,label:'Studio recording'},{baseId:b,label:'Audiotree instrumental'}]}]};
+ await writeFile(join(root,'artifacts','.song-versions.json'),JSON.stringify(family));
+ for(const baseId of [original,b]){
+  const source=row(baseId);source.sourceYoutubeUrl='https://youtube.com/watch?v='+baseId;
+  replaceSongsByBase(baseId,[source,{...source,id:baseId+'-e',level:'e',difficulty:'easy'}]);
+  await mkdir(join(root,'artifacts',baseId,'e'),{recursive:true});
+  await writeFile(join(root,'artifacts',baseId,'e/notes.json'),JSON.stringify({notes:[{midi:60,start:0,dur:1,vel:80,hand:'R'}],chords:[],measures:[{index:0,startBeat:0,endBeat:16}],tempoBpm:120,timeSig:[4,4],key:'C'}));
+ }
+ for(const level of ['e','a'])for(const baseId of [original,b]){
+  const detail=await getSongDetail(baseId+'-'+level);
+  expect(detail?.playerVersions).toEqual([{id:original+'-'+level,label:'Studio recording',resetPosition:true},{id:b+'-'+level,label:'Audiotree instrumental',resetPosition:true}]);
+  expect(detail?.song.sourceYoutubeUrl).toBe('https://youtube.com/watch?v='+baseId);
+ }
+ await writeFile(join(root,'manifest.json'),JSON.stringify({songs:[{id:b,disabled:true}]}));
+ expect((await getSongDetail(original+'-a'))?.playerVersions??[]).toEqual([]);
+});

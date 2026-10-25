@@ -31,15 +31,23 @@ export function selectPublicRepresentative(rows: readonly SongRow[]): SongRow | 
 
 /** Hide deprecated levels from a grouped read model and select the Easy cover row. */
 export function projectPublicGroupedSong(group: GroupedSong): GroupedSong | undefined {
+  const { alternativeVersions: storedVersions, ...ordinary } = group;
   const levels = projectPublicSongRows(group.levels);
   const representative = selectPublicRepresentative(levels);
   if (!representative) return undefined;
+  const alternativeVersions = storedVersions?.flatMap(version => {
+    const levels = projectPublicSongRows(version.levels);
+    const representative = selectPublicRepresentative(levels);
+    return representative ? [{ ...version, representative, levels }] : [];
+  });
+  const allLevels = [...levels, ...(alternativeVersions ?? []).flatMap(version => version.levels)];
   return {
-    ...group,
+    ...ordinary,
     representative,
     levels,
-    totalPlays: levels.reduce((total, row) => total + row.plays, 0),
-    lastCreatedAt: levels.reduce((latest, row) => (row.createdAt > latest ? row.createdAt : latest), ""),
+    ...(alternativeVersions?.length ? { alternativeVersions } : {}),
+    totalPlays: allLevels.reduce((total, row) => total + row.plays, 0),
+    lastCreatedAt: allLevels.reduce((latest, row) => (row.createdAt > latest ? row.createdAt : latest), ""),
   };
 }
 
