@@ -1,7 +1,7 @@
 import {join} from 'node:path';
-import {dataDir,getDb,getSong,readRecoveryDocument,type SongRow} from '@keyspilli/catalog';
+import {dataDir,getDb,getSong,readRecoveryDocument,readSongVersionGroups,type SongRow} from '@keyspilli/catalog';
 
-export interface PlayerVersion { id: string; label: string }
+export interface PlayerVersion { id: string; label: string; resetPosition?: boolean }
 
 async function reviewLink(baseId:string):Promise<{sourceBaseId:string;version:string}|null>{
   try {
@@ -15,6 +15,16 @@ async function reviewLink(baseId:string):Promise<{sourceBaseId:string;version:st
 }
 
 export async function getPlayerVersions(song:SongRow):Promise<PlayerVersion[]>{
+  const family=readSongVersionGroups().find(group=>group.versions.some(version=>version.baseId===song.baseId));
+  if(family){
+    const primary=getSong(family.primaryBaseId+'-'+song.level);
+    if(!primary||primary.artist!==song.artist)return [];
+    const versions=family.versions.flatMap(version=>{
+      const member=getSong(version.baseId+'-'+song.level);
+      return member&&member.artist===primary.artist?[{id:member.id,label:version.label,resetPosition:true}]:[];
+    });
+    return versions.length>=2&&versions.some(version=>version.id===song.id)?versions:[];
+  }
   if(song.level!=='a'||!song.sourceYoutubeUrl)return [];
   const own=await reviewLink(song.baseId),sourceBaseId=own?.sourceBaseId??song.baseId;
   const original=getSong(sourceBaseId+'-a');

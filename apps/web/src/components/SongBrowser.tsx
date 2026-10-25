@@ -10,6 +10,7 @@ import { BASS_PATTERNS as BASS, DEFAULT_QUERY, KEY_ROOTS, readLibraryQuery, writ
 export { readLibraryQuery, writeLibraryQuery } from "../lib/library-navigation";
 
 interface GroupedSong {
+  alternativeVersions?: Array<{ label: string; representative: GroupedSong["representative"]; levels: GroupedSong["levels"] }>;
   representative: { id: string; baseId: string; title: string; artist: string; key: string; tempo: number };
   levels: { id: string; difficulty: string }[];
   totalPlays: number;
@@ -222,8 +223,9 @@ export function SongBrowser() {
       </div>}
       <ul className="library-results motion-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-loading={loading}>
         {visible.map((s) => {
-          const fav = favoritesOnly || s.levels.some((l) => favorites.includes(l.id));
-          const done = s.levels.some((l) => learned.includes(l.id));
+          const familyLevels = [...s.levels, ...(s.alternativeVersions ?? []).flatMap(version => version.levels)];
+          const fav = favoritesOnly || familyLevels.some((l) => favorites.includes(l.id));
+          const done = familyLevels.some((l) => learned.includes(l.id));
           const publicLevels = publicLevelRows(s.levels);
           const experimentLabel = experimentLabels.get(s.representative.id);
           const shown = displaySong(s.representative.title, s.representative.artist);
@@ -243,6 +245,16 @@ export function SongBrowser() {
                   {fav && <span className="text-rose-500">♥</span>}
                   {done && <span className="text-green-600">✓ learned</span>}
                 </div>
+                {s.alternativeVersions?.length ? <details className="mt-2 text-sm">
+                  <summary className="cursor-pointer min-h-11 py-3 underline">Alternative versions ({s.alternativeVersions.length})</summary>
+                  <ul aria-label={`Alternative versions of ${shown.title}`}>
+                    {s.alternativeVersions.map(version => <li key={version.representative.baseId}>
+                      <Link className="flex min-h-11 items-center gap-2 underline" href={`/player/${version.representative.id}`} prefetch={false} onClick={event => rememberLibrary(version.representative.id, event)}>
+                        <span>{version.label}</span><span className="text-xs text-zinc-500">{version.representative.tempo} BPM</span>
+                      </Link>
+                    </li>)}
+                  </ul>
+                </details> : null}
                 {experimentLabel && (
                   <div className="mt-1 text-xs font-mono text-zinc-500" title={`Full run ID: ${s.representative.baseId}`}>
                     {experimentLabel}

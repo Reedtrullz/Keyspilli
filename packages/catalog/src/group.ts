@@ -1,6 +1,7 @@
 import type { SongRow } from "./db-types.js";
 
 export interface GroupedSong {
+  alternativeVersions?: Array<{ label: string; representative: SongRow; levels: SongRow[] }>;
   representative: SongRow;
   levels: SongRow[];
   totalPlays: number;

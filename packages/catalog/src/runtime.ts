@@ -4,6 +4,7 @@ export * from "./readiness.js";
 export * from "./db.js";
 export * from "./paths.js";
 export * from "./group.js";
+export * from "./song-versions.js";
 export * from "./public-difficulty.js";
 export * from "./learner-review.js";
 export * from "./manifest.js";

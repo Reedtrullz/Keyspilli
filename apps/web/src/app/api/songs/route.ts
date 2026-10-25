@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listSongs, listSongsGroupedWithTotal, countSongs, projectPublicGroupedSongs, type SongFilters } from "@keyspilli/catalog/runtime";
+import { listSongs, listSongsGroupedWithTotal, countSongs, projectPublicGroupedSongs, type SongFilters, type GroupedSong } from "@keyspilli/catalog/runtime";
 import { readJsonObject } from "../../../lib/bounded-body";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +41,14 @@ export async function POST(req: NextRequest) {
   return songResponse(req.nextUrl.searchParams, [...new Set(selected)]);
 }
 
+function compactVersion({ representative, levels }: Pick<GroupedSong, "representative" | "levels">) {
+  const { id, baseId, title, artist, key, tempo } = representative;
+  return {
+    representative: { id, baseId, title, artist, key, tempo },
+    levels: levels.map(({ id, difficulty }) => ({ id, difficulty })),
+  };
+}
+
 function songResponse(sp: URLSearchParams, ids: string[] | undefined) {
   const { limit, offset } = safePage(sp);
   const f: SongFilters = {
@@ -63,18 +71,11 @@ function songResponse(sp: URLSearchParams, ids: string[] | undefined) {
     const { songs, total } = listSongsGroupedWithTotal(f);
     const groups = includesLegacyVeryEasy(sp) ? songs : projectPublicGroupedSongs(songs);
     return NextResponse.json({
-      songs: groups.map(({ representative, levels, totalPlays, lastCreatedAt }) => ({
-        representative: {
-          id: representative.id,
-          baseId: representative.baseId,
-          title: representative.title,
-          artist: representative.artist,
-          key: representative.key,
-          tempo: representative.tempo,
-        },
-        levels: levels.map(({ id, difficulty }) => ({ id, difficulty })),
+      songs: groups.map(({ representative, levels, totalPlays, lastCreatedAt, alternativeVersions }) => ({
+        ...compactVersion({ representative, levels }),
         totalPlays,
         lastCreatedAt,
+        ...(alternativeVersions?.length ? { alternativeVersions: alternativeVersions.map(version => ({ ...compactVersion(version), label: version.label })) } : {}),
       })),
       total,
     });

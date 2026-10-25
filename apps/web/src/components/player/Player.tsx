@@ -3197,7 +3197,8 @@ export function Player({ initial, mode }: { initial: PlayerInitial; mode: ViewMo
       if (controller.signal.aborted || requestRef.current !== controller) return;
       if (!response.ok || value?.song?.id !== id || !value.data || !Number.isFinite(value.data.tempoBpm) || value.data.tempoBpm <= 0 || validatePlaybackData(value.data).length || !Array.isArray(value.data.chords) || !Array.isArray(value.data.timeSig) || !Array.isArray(value.variants) || !value.playerVersions?.some(version => version.id === active.song.id)) throw new Error("This version could not be loaded.");
       transferLibraryReturn(active.song.id, id);
-      setResume(position); setActive(value);
+      const selected = active.playerVersions?.find(version => version.id === id);
+      setResume(selected?.resetPosition ? { ...position, beat: 0 } : position); setActive(value);
       window.history.replaceState(null, "", `/player/${encodeURIComponent(id)}/${position.settings.mode}`);
     } catch {
       if (!controller.signal.aborted) setError("Could not load this version. Your current version is still available; try again.");

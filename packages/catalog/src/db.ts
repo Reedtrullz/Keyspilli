@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { ROOT, dataDir, dbPath } from "./paths.js";
 import type { JobRow, SongFilters, SongRow } from "./db-types.js";
 import { groupSongs, type GroupedSong } from "./group.js";
+import { groupSongVersions, readSongVersionGroups } from "./song-versions.js";
 import { disabledManifestBases } from "./manifest.js";
 import { blockedLearnerBases } from "./learner-review.js";
 import { isPublicDifficultyLevel, projectPublicGroupedSongs, PUBLIC_DIFFICULTY_ORDER } from "./public-difficulty.js";
@@ -388,7 +389,10 @@ function groupedSongsForFilters(f: SongFilters): GroupedSong[] {
     const q = f.q.toLowerCase();
     grouped = grouped.filter((g) => g.representative.title.toLowerCase().includes(q) || g.representative.artist.toLowerCase().includes(q));
   }
-  return grouped;
+  const versions = readSongVersionGroups();
+  if (!versions.length) return grouped;
+  const available = groupSongs(visibleSongRowsSnapshot().map(row => ({ ...row })));
+  return groupSongVersions(grouped, f.publicOnly ? projectPublicGroupedSongs(available) : available, versions);
 }
 
 function matchesSongFilters(row: SongRow, f: SongFilters): boolean {

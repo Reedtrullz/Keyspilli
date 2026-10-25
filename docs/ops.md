@@ -481,6 +481,31 @@ docker compose run --rm -v keyspilli_data:/data -v /backups:/backups web \
 docker compose start worker
 ```
 
+## Alternative versions of one song
+
+Optional `/data/artifacts/.song-versions.json` groups explicitly related performances without
+changing their base IDs, source URLs, notes, clocks, difficulty levels or existing
+player links. The grouped library, home and artist pages use the chosen primary;
+the library offers an Alternative versions disclosure. Each member's player has
+a Version selector at the current difficulty. Switching between performances
+starts at beat zero. Existing same-video review-version selectors still work for
+bases outside an explicit group.
+
+The document has `schemaVersion: 1` and a `groups` array. Each group contains
+`primaryBaseId` and `versions: [{baseId, label}, ...]`, with the primary first.
+Use 2–16 versions per group, distinct labels and globally unique membership.
+Only visible bases by the same artist are linked; a hidden primary is never
+made public through another member. Searching or favoriting an alternative
+finds the primary card before pagination. Raw per-level catalog reads retain
+the individual arrangements.
+
+Validate with `parseSongVersionGroups` before an atomic file replacement and
+preserve any unrelated groups. Keep the previous document for rollback. The
+metadata is read on each request. Existing artifact backup and restore archives
+include it, including when rolling the application back to an older image.
+Changing this file never grants musical approval or changes protected music
+files. Application releases retain the existing release gates.
+
 ## Adding songs to the catalog
 
 1. Put MIDI/XML in `data/seed-midi/`.

@@ -44,6 +44,21 @@ describe("grouped songs route", () => {
     projectPublicGroupedSongs.mockReset();
   });
 
+  it("includes alternative version links and public levels in the compact grouped payload", async () => {
+    const primary = groupedRow("studio-e", "easy", "e", 2);
+    const alternative = { ...groupedRow("live-e", "easy", "e", 2), baseId: "live", title: "Skeleton Audiotree" };
+    const groups = [{ representative: primary, levels: [primary], totalPlays: 4, lastCreatedAt: primary.createdAt,
+      alternativeVersions: [{ label: "Audiotree", representative: alternative, levels: [alternative] }] }];
+    listSongsGroupedWithTotal.mockReturnValueOnce({ songs: groups, total: 1 });
+    projectPublicGroupedSongs.mockReturnValueOnce(groups);
+    const body = await (await GET(requestFor("group=1"))).json();
+    expect(body.total).toBe(1);
+    expect(body.songs[0].alternativeVersions).toEqual([{ label: "Audiotree", representative: {
+      id: "live-e", baseId: "live", title: "Skeleton Audiotree", artist: alternative.artist, key: "C", tempo: 120,
+    }, levels: [{ id: "live-e", difficulty: "easy" }] }]);
+    expect(body.songs[0].alternativeVersions[0].representative.sections).toBeUndefined();
+  });
+
   it("passes import method to grouped filtering and preserves its total", async () => {
     listSongsGroupedWithTotal.mockReturnValueOnce({ songs: [], total: 0 });
     projectPublicGroupedSongs.mockReturnValueOnce([]);
