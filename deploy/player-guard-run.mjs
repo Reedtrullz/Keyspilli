@@ -23,7 +23,17 @@ export function resolveEsbuild(root) {
   const esbuildRequire = createRequire(fs.realpathSync(require.resolve('esbuild/package.json')));
   return fs.realpathSync(esbuildRequire.resolve('@esbuild/linux-x64/bin/esbuild'));
 }
-const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy'];
+export const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy/player-guard-run.mjs', 'deploy/player-node-guard.cjs', 'deploy/player-guard.c'];
+
+// Installed dependencies are the only exempt ignored files; excluding them in Git keeps their names out of the 1MiB buffer.
+const INSTALLED = [':(exclude)node_modules', ':(exclude)apps/web/node_modules', ':(exclude,glob)**/node_modules/**'];
+export function checkSource(root) {
+  const git = (...args) => execFileSync('git', args, { encoding: 'utf8', timeout: 15000, maxBuffer: 1048576, cwd: root }).trim();
+  assert.equal(git('diff', '--name-only', 'HEAD', '--', 'apps/web/src', '.github/workflows/runtime-rehearsal.yml', ...MOUNTS), '');
+  // untracked and non-installed ignored files would be mounted unreviewed
+  assert.equal(git('ls-files', '--others', '--exclude-standard', '--', ...MOUNTS), '');
+  assert.equal(git('ls-files', '--others', '--ignored', '--exclude-standard', '--', ...MOUNTS, ...INSTALLED), '');
+}
 
 async function inside(revision) {
   assert.match(revision, /^[a-f0-9]{40}$/); assert.equal(process.getuid(), 1000);
@@ -141,10 +151,7 @@ async function host(image, revision) {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const command = (exe, args, options = {}) => execFileSync(exe, args, { encoding: 'utf8', timeout: 15000, maxBuffer: 1048576, ...options });
   assert.equal(command('git', ['rev-parse', 'HEAD']).trim(), revision);
-  assert.equal(command('git', ['diff', '--name-only', 'HEAD', '--', 'apps/web/src', '.github/workflows/runtime-rehearsal.yml', ...MOUNTS]).trim(), '');
-  // untracked and non-installed ignored files would be mounted unreviewed; ignored node_modules are the installed dependencies
-  assert.equal(command('git', ['ls-files', '--others', '--exclude-standard', '--', ...MOUNTS]).trim(), '');
-  assert.equal(command('git', ['ls-files', '--others', '--ignored', '--exclude-standard', '--', ...MOUNTS]).split('\n').filter(f => f && !/(^|\/)node_modules\//.test(f)).join('\n'), '');
+  checkSource(root);
   const metadata = JSON.parse(command('docker', ['image', 'inspect', image]))[0];
   assert.equal(metadata.Id, image); assert.equal(metadata.Architecture, 'amd64'); assert.equal(metadata.Os, 'linux');
   assert(metadata.Config.Env.includes('VERSION=' + revision)); assert.deepEqual(metadata.Config.Cmd, ['node', 'apps/web/server.js']);
