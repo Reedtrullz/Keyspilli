@@ -17,8 +17,13 @@ on:
       - 'apps/web/src/lib/native-player-assets*'
       - 'apps/web/src/lib/player-reference-bank*'
       - 'apps/web/e2e/player-audio-capture.ts'
+      - 'apps/web/e2e/perf-viewport.ts'
+      - 'apps/web/e2e/performance-baseline.spec.ts'
       - 'packages/player-core/**'
       - 'deploy/restore-app*'
+      - 'deploy/player-guard*'
+      - 'deploy/player-node-guard.cjs'
+      - 'deploy/test/player-guard.test.mjs'
       - 'deploy/evidence-docker.py'
       - 'deploy/evidence_resources.py'
       - 'deploy/test/test-evidence.py'
@@ -49,7 +54,7 @@ jobs:
     name: Native amd64 restore and canary on the public seed catalog (no production access)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/perf-keyspilli-player-on377-20261030') }}
     env:
       EXPECTED_COMMIT: ${{ inputs.expected_commit || github.sha }}
     steps:
@@ -91,6 +96,13 @@ jobs:
           python3 -c 'from pathlib import Path; assert Path("apps/web/Dockerfile.dockerignore").read_bytes().startswith(Path(".dockerignore").read_bytes()), "Web Docker ignore must preserve the shared root exclusions"'
           docker build --platform linux/amd64 -f apps/web/Dockerfile --build-arg VERSION="$EXPECTED_COMMIT" -t keyspilli-rehearsal-web:candidate .
           docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-rehearsal-worker:candidate .
+
+      - name: Qualify the player guard (owned qualification ref only)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/perf-keyspilli-player-on377-20261030' }}
+        timeout-minutes: 5
+        run: |
+          node --experimental-strip-types --test deploy/test/player-guard.test.mjs
+          node deploy/player-guard-run.mjs --image "$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')" --revision "$EXPECTED_COMMIT"
 
       - name: Worker startup and clean SIGTERM shutdown
         timeout-minutes: 3
@@ -207,6 +219,7 @@ jobs:
           path: |
             rehearsal-out/runtime-rehearsal-receipt.json
             rehearsal-out/runtime-rehearsal-receipt.sha256
+            ${{ env.KEYSPILLI_EVIDENCE }}/player-guard-admission.json
           if-no-files-found: error
 
       - name: Release owned test resources

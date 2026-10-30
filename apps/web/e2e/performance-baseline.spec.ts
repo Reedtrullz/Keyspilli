@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { perfViewport } from "./perf-viewport";
+
+const viewport = perfViewport(process.env.KEYSPILLI_PERF_VIEWPORT);
 
 // ponytail: three local Chromium samples; establish device budgets only after owner-device baselines.
 const span = process.env.KEYSPILLI_PERF_STRESS === "span";
@@ -23,8 +26,9 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
   const receipt = await created.json(), id = receipt.songIds.find((value: string) => value.endsWith("-a"));
   try {
     for (const renderer of stress ? ["worker", "main"] : ["worker"]) for (let sample = 0; sample < 3; sample++) {
-      const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const context = await browser.newContext({ viewport });
       const page = await context.newPage();
+      expect(page.viewportSize()).toEqual(viewport);
       await page.addInitScript(renderer => {
         if(renderer === "main") Object.defineProperty(window,"Worker",{configurable:true,value:class {constructor(){throw new Error("Controlled worker unavailability");}}});
         localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth", hand: "both" }));
@@ -78,7 +82,7 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
       console.log(JSON.stringify({renderer,sample,sheetMs:sheet,pdfMs,retainedPages:Math.max(...retention.map(row=>Number(row.pages)))}));
       await context.close();
     }
-    const receiptData = { schemaVersion: 1, engravingVersion: "6.3.0", runtime: process.version, browser: browser.version(), viewport: { width: 1280, height: 800 }, fixture: { sha256: createHash("sha256").update(xml).digest("hex"), notes: measures * notesPerMeasure, measures, beats: measures * beatsPerMeasure, gridNotePairs: measures * beatsPerMeasure * 4 * measures * notesPerMeasure }, sampleCount: samples.length, samples, limitations: ["Local Chromium; audio scheduled, not speaker latency", "String bytes and Chromium heap estimate exclude WASM/native memory", "No device or production budget adopted", stress ? span ? "Joint maximum beat/measure source; note/grid-pair ceiling measured separately" : "Joint maximum note/grid-pair source; beat/measure ceiling measured separately" : "Bounded 640-note fixture; maximum-source stress run remains separate"] };
+    const receiptData = { schemaVersion: 1, engravingVersion: "6.3.0", runtime: process.version, browser: browser.version(), viewport, fixture: { sha256: createHash("sha256").update(xml).digest("hex"), notes: measures * notesPerMeasure, measures, beats: measures * beatsPerMeasure, gridNotePairs: measures * beatsPerMeasure * 4 * measures * notesPerMeasure }, sampleCount: samples.length, samples, limitations: ["Local Chromium; audio scheduled, not speaker latency", "String bytes and Chromium heap estimate exclude WASM/native memory", "No device or production budget adopted", stress ? span ? "Joint maximum beat/measure source; note/grid-pair ceiling measured separately" : "Joint maximum note/grid-pair source; beat/measure ceiling measured separately" : "Bounded 640-note fixture; maximum-source stress run remains separate"] };
     const output = info.outputPath(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json");
     await writeFile(output, JSON.stringify(receiptData, null, 2));
     await info.attach(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json", { path: output, contentType: "application/json" });
