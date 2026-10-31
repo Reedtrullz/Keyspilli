@@ -71,6 +71,46 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  worker-smoke:
+    name: Worker non-root smoke
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build worker image
+        run: docker build -f services/transcribe/Dockerfile -t keyspilli-worker:smoke .
+
+      - name: Verify worker startup and model access as node
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker logs keyspilli-worker-smoke; docker rm -fv keyspilli-worker-smoke' EXIT
+          test "$(docker image inspect keyspilli-worker:smoke --format '{{.Config.User}}')" = node
+          docker run -d --name keyspilli-worker-smoke --network none -e KEYSPILLI_POLL_MS=500 keyspilli-worker:smoke
+          ready=false
+          for attempt in $(seq 1 30); do
+            if docker logs keyspilli-worker-smoke 2>&1 | grep -q 'polling every'; then ready=true; break; fi
+            sleep 1
+          done
+          test "$ready" = true
+          docker exec keyspilli-worker-smoke node -e '
+            const assert = require("node:assert/strict"), fs = require("node:fs");
+            assert.equal(process.getuid(), 1000);
+            assert.equal(process.getgid(), 1000);
+            assert.match(fs.readFileSync("/proc/1/status", "utf8"), /Uid:\s+1000\s+1000\s+1000\s+1000/);
+            fs.writeFileSync("/data/nonroot-smoke", "ok");
+            assert.equal(fs.readFileSync("/data/nonroot-smoke", "utf8"), "ok");
+            const db = new (require("better-sqlite3"))("/data/db.sqlite");
+            assert.equal(db.pragma("integrity_check", {simple:true}), "ok");
+            db.prepare("SELECT count(*) FROM conversion_jobs").get();
+            db.close();'
+          docker exec keyspilli-worker-smoke /app/.venv/bin/python -c 'import os; from demucs.pretrained import get_model; assert os.getuid() == 1000; assert "piano" in get_model("htdemucs_6s").sources'
+          test "$(docker inspect keyspilli-worker-smoke --format '{{.State.Running}}')" = true
+          if docker logs keyspilli-worker-smoke 2>&1 | grep -q 'poll error'; then exit 1; fi
+
   lint:
     name: Lint (ESLint + ruff)
     if: ${{ github.event_name != 'workflow_dispatch' }}
@@ -584,7 +624,6 @@ jobs:
         run: |
           python3 -m venv .ansible-venv
           . .ansible-venv/bin/activate
-          python -m pip install --upgrade pip
           python -m pip install ansible==12.3.0
           python deploy/test_worker_resources.py
           ansible-galaxy collection install -r deploy/requirements.yml
@@ -594,6 +633,7 @@ jobs:
         shell: bash
         env:
           VPS_SSH_HOST_KEY: ${{ vars.VPS_SSH_HOST_KEY || secrets.VPS_SSH_HOST_KEY }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
         run: |
           if [[ -z "${VPS_HOST:-}" ]]; then
             echo "KEYSPILLI_VPS_HOST secret must be set before production SSH." >&2
@@ -603,7 +643,7 @@ jobs:
             KEYSPILLI_VPS_SSH_KEY="$HOME/.ssh/keyspilli_deploy" python3 deploy/render-inventory.py
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/keyspilli_deploy
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/keyspilli_deploy
           chmod 600 ~/.ssh/keyspilli_deploy
 
           normalize_host_keys() {
@@ -764,7 +804,6 @@ jobs:
         run: |
           python3 -m venv .ansible-venv
           . .ansible-venv/bin/activate
-          python -m pip install --upgrade pip
           python -m pip install ansible==12.3.0
           python deploy/test_worker_resources.py
           ansible-galaxy collection install -r deploy/requirements.yml
@@ -774,6 +813,7 @@ jobs:
         shell: bash
         env:
           VPS_SSH_HOST_KEY: ${{ vars.VPS_SSH_HOST_KEY || secrets.VPS_SSH_HOST_KEY }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
         run: |
           if [[ -z "${VPS_HOST:-}" ]]; then
             echo "KEYSPILLI_VPS_HOST secret must be set before production SSH." >&2
@@ -783,7 +823,7 @@ jobs:
             KEYSPILLI_VPS_SSH_KEY="$HOME/.ssh/keyspilli_deploy" python3 deploy/render-inventory.py
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/keyspilli_deploy
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/keyspilli_deploy
           chmod 600 ~/.ssh/keyspilli_deploy
 
           expected_host_key="$(printf '%s\n' "${VPS_SSH_HOST_KEY:-}" | sed -e 's/\r$//' -e '/^[[:space:]]*$/d' -e '/^[[:space:]]*#/d' | sort -u)"
