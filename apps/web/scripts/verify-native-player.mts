@@ -164,7 +164,15 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
         }
         results.push({ kind: "active-ui-export", mode, format, bytes: bytes.length, sha256: sha(bytes) });
       }
-      await page.screenshot({ path: join(output, mode + ".png") }); await page.close();
+      await page.screenshot({ path: join(output, mode + ".png") });
+      if (mode === "original") {
+        await page.goto("/player/" + id + "/sheet");
+        await expect.poll(() => page.evaluate(() => { const s = window as unknown as { __sheetReady?: boolean; __sheetError?: string }; if (s.__sheetError) throw new Error(s.__sheetError); return s.__sheetReady; }), { timeout: 5_000 }).toBe(true);
+        const sheet = await page.evaluate(() => { const s = window as unknown as { __sheetRenderer?: string; __sheetRenderedPages?: number }; return { renderer: s.__sheetRenderer, pages: s.__sheetRenderedPages ?? 0 }; });
+        expect(sheet.renderer).toBe("worker"); expect(sheet.pages).toBeGreaterThan(0);
+        results.push({ kind: "sheet-worker-render", renderer: sheet.renderer, pages: sheet.pages });
+      }
+      await page.close();
     }
     const silentPage = await context.newPage();
     unwatch.push(watchPage(silentPage, "silence", note));
