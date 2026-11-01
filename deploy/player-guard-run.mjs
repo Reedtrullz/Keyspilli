@@ -14,6 +14,14 @@ export function validate(image, revision) {
   assert(Object.values(WRITABLE).reduce((a, b) => a + b, 0) + 16 <= 64);
 }
 const hash = p => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+// Bounded health diagnostic: only clipped scalars, no raw body or message; attempts and last state are the whole footprint.
+const clip = v => v === undefined ? v : typeof v === 'string' ? v.slice(0, 64).replace(/[^\w.:-]/g, '?') : typeof v;
+export function observeHealth(health, http, body, error) {
+  health.attempts = Math.min(health.attempts + 1, 1e6);
+  const b = body && typeof body === 'object' ? body : {};
+  const last = error ? { http: Number.isInteger(http) ? http : undefined, error: clip(error?.name), code: clip(error?.code) } : { http: Number.isInteger(http) ? http : undefined, status: clip(b.status), version: clip(b.version), catalog: clip(b.readiness?.catalog?.code) };
+  health.last = Object.fromEntries(Object.entries(last).filter(([, v]) => v !== undefined));
+}
 const node = '/usr/local/bin/node';
 const readRoot = '/qualification-source';
 
@@ -120,9 +128,10 @@ async function inside(revision) {
       const server = spawn('/player-guard', [String(port), ...new Set(executables), '--', node, '/app/apps/web/server.js'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] }); live.add(server);
       for (const stream of [server.stdout, server.stderr]) stream.on('data', data => { logBytes += data.length; if (logBytes > 65536) kill(server); else logs.push({ app: data.toString() }); });
       server.on('close', () => live.delete(server));
-      const readyUntil = Date.now() + 20000; let ready = false;
+      const readyUntil = Date.now() + 20000; let ready = false; const health = report.health = { attempts: 0 };
       while (Date.now() < readyUntil && server.exitCode === null) {
-        try { const h = await fetch('http://127.0.0.1:3000/api/health'); const body = await h.json(); if (h.ok && body.version === revision && body.status === 'healthy') { ready = true; break; } } catch {}
+        let h;
+        try { h = await fetch('http://127.0.0.1:3000/api/health'); const body = await h.json(); observeHealth(health, h.status, body); if (h.ok && body.version === revision && body.status === 'healthy') { ready = true; break; } } catch (e) { observeHealth(health, h?.status, undefined, e); }
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       assert(ready, 'guarded app did not become healthy');

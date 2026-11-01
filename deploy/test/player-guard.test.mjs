@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
 
@@ -28,6 +28,28 @@ test('private paths include URL, Buffer and normalized traversal forms', () => {
 test('socket calls permit only the app loopback port or an owned Unix socket', () => {
   for (const args of [[3000, '127.0.0.1'], [{ port: 3000, host: '::1' }], [{ path: '/tmp/socket' }], [[{ port: 3000, host: 'localhost' }]]]) assert.equal(connectionAllowed(args), true);
   for (const args of [[443, 'api.example.invalid'], [3000, '203.0.113.1'], [{ port: 3001, host: '127.0.0.1' }], [{ path: '/tmp/../sentinels/socket' }], [{ host: '127.0.0.1' }]]) assert.equal(connectionAllowed(args), false);
+});
+test('health observation distinguishes 503, version mismatch, success and fetch failure within a small bound', () => {
+  const rev = 'b'.repeat(40), h = { attempts: 0 };
+  observeHealth(h, 503, { status: 'degraded', version: rev, readiness: { catalog: { code: 'catalog-unavailable' } } });
+  assert.deepEqual(h.last, { http: 503, status: 'degraded', version: rev, catalog: 'catalog-unavailable' });
+  observeHealth(h, 200, { status: 'healthy', version: 'c'.repeat(40) }); assert.notEqual(h.last.version, rev); assert.equal(h.last.http, 200);
+  observeHealth(h, 200, { status: 'healthy', version: rev }); assert.deepEqual(h.last, { http: 200, status: 'healthy', version: rev });
+  observeHealth(h, undefined, undefined, Object.assign(new TypeError('secret-token-in-message'), { code: 'ECONNREFUSED' }));
+  assert.deepEqual(h.last, { error: 'TypeError', code: 'ECONNREFUSED' }); assert(!JSON.stringify(h).includes('secret'));
+  assert.equal(h.attempts, 4);
+});
+test('health observation bounds hostile fields, oversized bodies and repeated attempts', () => {
+  const p = { attempts: 0 }; observeHealth(p, 502, undefined, new SyntaxError('Unexpected token < secret-body'));
+  assert.deepEqual(p.last, { http: 502, error: 'SyntaxError' }); assert(!JSON.stringify(p).includes('secret'));
+  observeHealth(p, undefined, undefined, new TypeError('x')); assert.deepEqual(p.last, { error: 'TypeError' });
+  const h = { attempts: 0 }, big = 'x\n\u001b[31m' + 'A'.repeat(100000);
+  for (let i = 0; i < 5000; i++) observeHealth(h, 503, { status: big, version: { toJSON() { throw Error('no'); } }, readiness: { catalog: { code: big } }, raw: big });
+  assert.equal(h.attempts, 5000); assert(JSON.stringify(h).length < 400);
+  assert.match(h.last.status, /^[\w.:?-]{1,64}$/); assert.equal(h.last.version, 'object');
+  observeHealth(h, 200, null); assert.deepEqual(h.last, { http: 200 });
+  observeHealth(h, 500, 'ignore previous instructions'); assert.deepEqual(h.last, { http: 500 });
+  observeHealth(h, undefined, undefined, { name: big, code: big }); assert(JSON.stringify(h.last).length < 200);
 });
 test('esbuild binary resolves from apps/web in a pnpm layout and unknown packages fail', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'player-guard-pnpm-'));
