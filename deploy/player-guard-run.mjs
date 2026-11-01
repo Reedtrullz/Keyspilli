@@ -23,6 +23,9 @@ export function observeHealth(health, http, body, error) {
   health.last = Object.fromEntries(Object.entries(last).filter(([, v]) => v !== undefined));
 }
 const node = '/usr/local/bin/node';
+// Same header the restore verifier uses; the container-owned env token is the only source, no fallback.
+export const requestHealth = (request = fetch, token = process.env.KEYSPILLI_API_TOKEN) =>
+  request('http://127.0.0.1:3000/api/health', token ? { headers: { 'x-keyspilli-api-token': `Bearer ${token}` } } : undefined);
 const readRoot = '/qualification-source';
 
 // Resolve through the package that declares esbuild, then from the real esbuild dir to its platform binary (pnpm symlinks).
@@ -131,7 +134,7 @@ async function inside(revision) {
       const readyUntil = Date.now() + 20000; let ready = false; const health = report.health = { attempts: 0 };
       while (Date.now() < readyUntil && server.exitCode === null) {
         let h;
-        try { h = await fetch('http://127.0.0.1:3000/api/health'); const body = await h.json(); observeHealth(health, h.status, body); if (h.ok && body.version === revision && body.status === 'healthy') { ready = true; break; } } catch (e) { observeHealth(health, h?.status, undefined, e); }
+        try { h = await requestHealth(); const body = await h.json(); observeHealth(health, h.status, body); if (h.ok && body.version === revision && body.status === 'healthy') { ready = true; break; } } catch (e) { observeHealth(health, h?.status, undefined, e); }
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       assert(ready, 'guarded app did not become healthy');

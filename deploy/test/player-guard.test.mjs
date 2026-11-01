@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
 
@@ -50,6 +50,18 @@ test('health observation bounds hostile fields, oversized bodies and repeated at
   observeHealth(h, 200, null); assert.deepEqual(h.last, { http: 200 });
   observeHealth(h, 500, 'ignore previous instructions'); assert.deepEqual(h.last, { http: 500 });
   observeHealth(h, undefined, undefined, { name: big, code: big }); assert(JSON.stringify(h.last).length < 200);
+});
+test('health request sends the configured bearer and fails closed without a token', async () => {
+  const calls = [], request = async (url, options) => { calls.push([url, options]); return {}; };
+  const prior = process.env.KEYSPILLI_API_TOKEN;
+  try {
+    process.env.KEYSPILLI_API_TOKEN = 'synthetic-local-token';
+    await requestHealth(request);
+    assert.deepEqual(calls[0], ['http://127.0.0.1:3000/api/health', { headers: { 'x-keyspilli-api-token': 'Bearer synthetic-local-token' } }]);
+    delete process.env.KEYSPILLI_API_TOKEN;
+    await requestHealth(request);
+    assert.deepEqual(calls[1], ['http://127.0.0.1:3000/api/health', undefined]);
+  } finally { if (prior === undefined) delete process.env.KEYSPILLI_API_TOKEN; else process.env.KEYSPILLI_API_TOKEN = prior; }
 });
 test('esbuild binary resolves from apps/web in a pnpm layout and unknown packages fail', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'player-guard-pnpm-'));
