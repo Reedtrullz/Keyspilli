@@ -3,11 +3,13 @@ name: Runtime rehearsal (native amd64, isolated-candidate-rehearsal)
 on:
   pull_request:
     paths:
+      - '.dockerignore'
       - '.github/workflows/runtime-rehearsal.yml'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'apps/web/package.json'
       - 'apps/web/Dockerfile'
+      - 'apps/web/Dockerfile.dockerignore'
       - 'apps/web/src/components/player/**'
       - 'apps/web/scripts/verify-native-player.mts'
       - 'apps/web/scripts/prepare-native-piano.mts'
@@ -86,6 +88,7 @@ jobs:
 
       - name: Build web and worker candidates on native amd64
         run: |
+          python3 -c 'from pathlib import Path; assert Path("apps/web/Dockerfile.dockerignore").read_bytes().startswith(Path(".dockerignore").read_bytes()), "Web Docker ignore must preserve the shared root exclusions"'
           docker build --platform linux/amd64 -f apps/web/Dockerfile --build-arg VERSION="$EXPECTED_COMMIT" -t keyspilli-rehearsal-web:candidate .
           docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-rehearsal-worker:candidate .
 

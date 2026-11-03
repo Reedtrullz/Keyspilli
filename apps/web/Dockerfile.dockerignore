@@ -1,0 +1,32 @@
+.git
+**/.git
+node_modules
+**/node_modules
+.next
+**/.next
+.venv
+**/.venv
+outputs
+**/outputs
+data
+**/data
+artifacts
+**/artifacts
+backups
+**/backups
+*.log
+**/*.log
+coverage
+**/coverage
+
+output
+**/__pycache__
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Preserve shared exclusions above; the native rehearsal checks this prefix.
+# Web builds need runtime Python and TypeScript helpers, not Python unit tests.
+/services/transcribe/test/*.py
+
