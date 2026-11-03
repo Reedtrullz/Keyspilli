@@ -12,7 +12,7 @@ function phase(name: string, state: "entry" | "exit" | "failure"): void {
   const line = JSON.stringify({ kind: "keyspilli-native-phase", phase: name, state }) + "\n";
   const bytes = Buffer.byteLength(line);
   if (phaseBytes + bytes > 8192) throw new Error("Native phase trace exceeds8KiB");
-  writeSync(1, line);
+  writeSync(2, line);
   phaseBytes += bytes;
   activePhase = state === "entry" ? name : "between-phases";
 }
