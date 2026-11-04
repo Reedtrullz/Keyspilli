@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
 
@@ -33,10 +33,40 @@ test('failed cell output retains the failed inner packet and rejects misleading,
 
 test('diagnostic collection fails closed on absent crash, resource, launch or cleanup evidence', () => {
   const mounts = Object.fromEntries(Object.keys(WRITABLE).map(mount => [mount, { blocks: 15, free: 1, blockSize: 4096, files: 4, freeFiles: 1 }]));
-  const packet = { functional: { browserObservation: { armed: true, commandLine: ['chromium', '--headless'], events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 44, code: 1, signal: null }], resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned', beforeTeardown: true, memory: { 'memory.events': 'oom 0', 'memory.peak': '12', 'memory.max': '1073741824' }, mounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
+  const revision = 'b'.repeat(40), stderr = '2026-11-04T00:00:00Z pw:browser <launching> /owned/chromium --headless\n2026-11-04T00:00:00Z pw:browser <launched> pid=44\n2026-11-04T00:00:01Z pw:browser [pid=44] <process did exit: exitCode=1, signal=null>\n';
+  const packet = { revision, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr }], functional: { browserObservation: { armed: true, commandLineSource: 'playwright-launcher-stderr', events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: browserProcessEvidence(stderr), resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned', beforeTeardown: true, memory: { 'memory.events': 'oom 0', 'memory.peak': '12', 'memory.max': '1073741824' }, mounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
+  packet.logBytes = Buffer.byteLength(stderr);
+  packet.mountUsage = accumulateMountUsage(undefined, packet.resources);
   assert.doesNotThrow(() => requireDiagnosticEvidence(packet));
+  const guardNegative = { command: '/player-guard', args: ['/usr/local/bin/node','-e','process.stdout.write("x".repeat(4096));setInterval(()=>{},1000)'], code: null, signal: 'SIGKILL', stdout: 'x'.repeat(1024), stderr: '', clipped: true };
+  const withExpectedNegative = {...packet,logBytes:4096+packet.logBytes,logs:[guardNegative,packet.logs[0]]};
+  assert.doesNotThrow(() => requireDiagnosticEvidence(withExpectedNegative), 'intentional output-limit guard negative is retained separately from valid smoke');
+  assert.throws(() => requireDiagnosticEvidence({...withExpectedNegative,logs:[guardNegative,{...packet.logs[0],clipped:true}]}), /clipped inner launcher stream/);
+  assert.throws(() => requireDiagnosticEvidence({...packet,mountUsage:undefined}));
+  assert.throws(() => requireDiagnosticEvidence({...packet,mountUsage:{...packet.mountUsage,sampleCount:0}}));
   for (const key of ['memory.peak', 'memory.max', 'memory.events']) assert.throws(() => requireDiagnosticEvidence({ ...packet, resources: { ...packet.resources, memory: { ...packet.resources.memory, [key]: 'passed' } } }));
   for (const change of [{ functional: undefined }, { resources: undefined }, { resourceBarrierAcknowledged: false }, { cancelled: true }, { deadlineExceeded: true }, { resources: { ...packet.resources, memory: {} } }, { resources: { ...packet.resources, mounts: { '/tmp': mounts['/tmp'] } } }, { browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 45 }] }, { functional: { browserObservation: { armed: true, commandLine: [], events: [] } } }, { containerRemoved: false }, { stdoutClipped: true }, { stderrClipped: true }]) assert.throws(() => requireDiagnosticEvidence({ ...packet, ...change }));
+  for (const text of ['', stderr.replace(/^.*<launching>.*\n/m, ''), stderr.replace(/^.*<launched>.*\n/m, ''), stderr.replace(/^.*<process did exit:.*\n/m, ''), stderr.replace('[pid=44]', '[pid=45]'), stderr.replace('pid=44', 'pid=0')]) {
+    assert.throws(() => requireDiagnosticEvidence({ ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: text }], browserProcesses: browserProcessEvidence(text) }));
+  }
+  assert.throws(() => requireDiagnosticEvidence({ ...packet, logs: [] }));
+  assert.throws(() => requireDiagnosticEvidence({ ...packet, revision: 'c'.repeat(40) }));
+  assert.throws(() => requireDiagnosticEvidence({ ...packet, logBytes: 65537 }));
+  assert.throws(() => requireDiagnosticEvidence({ ...packet, logs: [{ ...packet.logs[0], clipped: true }] }));
+  const unknownExit = stderr.replace('exitCode=1', 'exitCode=null');
+  assert.throws(() => requireDiagnosticEvidence({ ...packet, logs: [{ ...packet.logs[0], stderr: unknownExit }], browserProcesses: browserProcessEvidence(unknownExit) }));
+});
+
+test('sampled mount usage retains the accumulated high usage when final resources are released', () => {
+  const sample = (free, freeFiles) => ({pid:42,cgroup:'/owned',mounts:Object.fromEntries(Object.keys(WRITABLE).map(mount=>[mount,{blocks:100,free,blockSize:4096,files:1000,freeFiles}]))});
+  let usage;
+  for(const observation of [sample(80,950),sample(20,700),sample(95,980)])usage=accumulateMountUsage(usage,observation);
+  assert.equal(usage.sampleCount,3);assert.equal(usage.pid,42);assert.equal(usage.cgroup,'/owned');
+  assert.match(usage.interpretation,/lower bound.*not a true kernel peak/);
+  for(const mount of Object.keys(WRITABLE))assert.deepEqual(usage.mounts[mount],{minFreeBytes:20*4096,maxUsedBytes:80*4096,minFreeInodes:700,maxUsedInodes:300});
+  assert.throws(()=>accumulateMountUsage(usage,{...sample(95,980),pid:43}));
+  assert.throws(()=>accumulateMountUsage(usage,{...sample(95,980),mounts:{}}));
+  assert.throws(()=>accumulateMountUsage(usage,sample(101,980)));
 });
 
 test('browser process observations preserve exit signals without treating application text as process proof', () => {
@@ -44,6 +74,96 @@ test('browser process observations preserve exit signals without treating applic
   assert.deepEqual(browserProcessEvidence(stderr), [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 44, code: null, signal: 'SIGBUS' }]);
   assert.deepEqual(browserProcessEvidence('passed\n{"pw:browser":"<launched> pid=99"}'), []);
   assert.throws(() => browserProcessEvidence('pw:browser <launched> pid=44\n'.repeat(17)));
+  const commandLineText = '/owned/path with spaces/chromium --flag=value with spaces';
+  assert.deepEqual(browserProcessEvidence('pw:browser <launching> ' + commandLineText), [{ kind: 'argv', commandLineText }]);
+  for (const line of ['<launching>', '<launched> pid=no', '<launched> pid=0', '<launched> pid=9999999999999999999999', '[pid=44] <process did exit: exitCode=wat, signal=null>', '[pid=0] <process did exit: exitCode=0, signal=null>']) assert.throws(() => browserProcessEvidence('pw:browser ' + line));
+  assert.throws(() => browserProcessEvidence('pw:browser <launching> ' + 'x'.repeat(8193)));
+  assert.throws(() => browserProcessEvidence('x'.repeat(65537)));
+});
+
+function runModuleScenario(scenario, source) {
+  return execFileSync(process.execPath, ['--experimental-vm-modules', '--input-type=module', '-e', `(${scenario.toString()})(${JSON.stringify(source)}).catch(error=>{console.error(error);process.exitCode=1;});`], { encoding: 'utf8', timeout: 15000, maxBuffer: 65536 });
+}
+
+test('generated diagnostic smoke restores launcher logging after sanitization before first Playwright import', () => {
+  const scenario = async ({source, diagnostic}) => {
+    const assert = (await import('node:assert/strict')).default, vm = await import('node:vm');
+    const environment = {}, context = vm.createContext({ process: { env: environment } });
+    let firstLoad = false;
+    const chromium = { async launch() { return { async newContext() { return { on(name, callback) { callback({ waitForFunction: async () => {} }); } }; } }; } };
+    const module = new vm.SourceTextModule(source, { context, importModuleDynamically: async () => {
+      const verifier = new vm.SyntheticModule(['verifyNativePlayer'], function() { this.setExport('verifyNativePlayer', async () => { await (await chromium.launch()).newContext(); await Promise.resolve(); }); }, { context });
+      await verifier.link(() => {}); await verifier.evaluate(); return verifier;
+    } });
+    await module.link(() => new vm.SyntheticModule(['createRequire'], function() { this.setExport('createRequire', () => () => { firstLoad = true; assert.equal(environment.DEBUG, diagnostic ? 'pw:browser' : undefined); return { chromium }; }); }, { context }));
+    await module.evaluate(); assert.equal(firstLoad, true);
+    console.log(JSON.stringify({ firstLoad, debug: environment.DEBUG ?? null }));
+  };
+  assert.equal(JSON.parse(runModuleScenario(scenario, {source:nativeSmoke('b'.repeat(40), true),diagnostic:true})).debug, 'pw:browser');
+  assert.equal(JSON.parse(runModuleScenario(scenario, {source:nativeSmoke('b'.repeat(40)),diagnostic:false})).debug, null);
+});
+
+test('unsupported optional browser CDP does not block capture and early terminal observers are armed', () => {
+  const source = fs.readFileSync(new URL('../../apps/web/scripts/verify-native-player.mts', import.meta.url), 'utf8');
+  const scenario = async source => {
+    const assert = (await import('node:assert/strict')).default, vm = await import('node:vm'), crypto = await import('node:crypto');
+    const {stripTypeScriptTypes} = await import('node:module'), {EventEmitter} = await import('node:events');
+    const files = new Map(), revision = 'b'.repeat(40), processState = { platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [] };
+    const context = vm.createContext({ process: processState, Buffer, URL, console: {log(){} } });
+    let captured = false, cdpCalls = 0, missingSamples = false;
+    const page = new EventEmitter(), browser = new EventEmitter(), browserContext = new EventEmitter();
+    browser.newBrowserCDPSession = async () => { cdpCalls++; throw Error('Browser.getBrowserCommandLine unsupported without --enable-automation'); };
+    browser.close = async () => browser.emit('disconnected');
+    browser.newContext = async () => browserContext;
+    browserContext.route = async () => {};
+    browserContext.newPage = async () => { browserContext.emit('page', page); return page; };
+    browserContext.close = async () => {};
+    const api = { get: async () => ({json:async()=>({version:revision,status:'healthy'})}), post: async (_url, options) => ({ok:()=>true,json:async()=>{const baseId='upload-'+crypto.createHash('sha256').update(options.data).digest('hex');return {baseId,songIds:[baseId+'-a']};}}), delete:async()=>({ok:()=>true}),dispose:async()=>{} };
+    const modules = {
+      'node:crypto': crypto,
+      'node:fs': {readFileSync(){},statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(){}},
+      'node:path': await import('node:path'), 'node:url': await import('node:url'),
+      '@playwright/test': {chromium:{launch:async()=>browser},expect:value=>({toBe:expected=>assert.equal(value,expected),toEqual:expected=>assert.deepEqual(value,expected)}),request:{newContext:async()=>api}},
+      '@keyspilli/midi': {parseMidi(){},parseMusicXmlNotes(){}},
+      '../e2e/player-audio-capture': {capturePlayerClip:async()=>{captured=true;assert(browser.listenerCount('disconnected')>0);assert(page.listenerCount('crash')>0);assert(page.listenerCount('close')>0);if(missingSamples)return {sampleAssets:[]};page.emit('crash');throw Error('capture-boundary-sentinel');},savePlayerCapture(){}},
+      '../src/lib/native-player-assets': {readNativePianoBank:()=>({assets:new Map(),sampleAssetPins:[{url:'https://pinned.invalid/piano.ogg',sha256:'a'.repeat(64)}]})},
+    };
+    const load = async name => {const values=modules[name];assert(values, name);const m=new vm.SyntheticModule(Object.keys(values),function(){for(const [key,value] of Object.entries(values))this.setExport(key,value);},{context});await m.link(()=>{});await m.evaluate();return m;};
+    const module = new vm.SourceTextModule(stripTypeScriptTypes(source), { context, importModuleDynamically: load });
+    await module.link(load); await module.evaluate(); await module.namespace.verifyNativePlayer(revision);
+    assert.equal(cdpCalls,0,'optional CDP must not become a startup precondition');
+    assert.equal(captured,true,'capture boundary reached');
+    const packet=JSON.parse(files.get('/browser-results/result.json'));
+    assert.match(packet.error,/Native browser terminal event: page-crash at original-capture/);assert.equal(packet.browserObservation.armed,true);
+    assert(packet.browserObservation.events.some(e=>e.kind==='page-crash'&&e.phase==='original-capture'));
+    const xml=files.get('/browser-results/control.musicxml');missingSamples=true;await module.namespace.verifyNativePlayer(revision);assert.equal(files.get('/browser-results/control.musicxml'),xml);
+    const missing=JSON.parse(files.get('/browser-results/result.json'));assert.equal(missing.status,'failed');assert.match(missing.error,/piano\.ogg/);
+    console.log(JSON.stringify({captured,cdpCalls,missingSamplesRejected:missing.status==='failed',sourceControlSha256:packet.sourceControlSha256,events:packet.browserObservation.events}));
+  };
+  const result=JSON.parse(runModuleScenario(scenario, source));
+  assert.equal(result.captured,true);assert.equal(result.cdpCalls,0);
+});
+
+test('diagnostic CLI rejects every other branch before any native command', () => {
+  for (const branch of ['refs/heads/main', 'refs/heads/codex/keyspilli-recovery-native-20261104', 'refs/heads/codex/keyspilli-observer-corrective-20261104-other']) {
+    assert.throws(() => execFileSync(process.execPath, ['deploy/player-guard-run.mjs','--image','sha256:'+'a'.repeat(64),'--revision','b'.repeat(40),'--diagnostic','native-crash-v1'], {env:{...process.env,GITHUB_REF:branch},encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:5000}), error => error.status===1 && error.stderr.includes(branch) && error.stderr.includes('refs/heads/codex/keyspilli-observer-corrective-20261104'));
+  }
+});
+
+test('workflow admits the corrective branch only for its exact diagnostic dispatch', () => {
+  const workflow=fs.readFileSync(new URL('../../.github/workflows/runtime-rehearsal.yml',import.meta.url),'utf8');
+  const expression=workflow.match(/^    if: \$\{\{ (.+) \}\}$/m)?.[1];assert(expression);
+  const admitted=new Function('github','inputs','return ('+expression+');');
+  const branch='refs/heads/codex/keyspilli-observer-corrective-20261104';
+  const gate=workflow.slice(workflow.indexOf('          case "$REHEARSAL_MODE" in'),workflow.indexOf('          esac')+'          esac'.length);
+  assert(gate.length>0);
+  for(const [event,ref,mode,expected] of [['workflow_dispatch',branch,'native-crash-v1',true],['workflow_dispatch',branch,'rehearsal',false],['workflow_dispatch',branch+'-other','native-crash-v1',false],['workflow_dispatch','refs/heads/codex/keyspilli-recovery-native-20261104','native-crash-v1',false],['push',branch,'native-crash-v1',false],['pull_request','refs/pull/1/merge','rehearsal',true],['push','refs/heads/main','rehearsal',true]]) {
+    assert.equal(admitted({event_name:event,ref},{mode}),expected);
+    if(mode==='native-crash-v1') {
+      const run=()=>execFileSync('/bin/bash',['-e','-c',gate],{env:{...process.env,REHEARSAL_MODE:mode,GITHUB_EVENT_NAME:event,GITHUB_REF:ref},stdio:['ignore','pipe','pipe'],timeout:5000});
+      if(expected)assert.doesNotThrow(run);else assert.throws(run);
+    }
+  }
 });
 
 test('only the two declared viewports are accepted and copies cannot mutate defaults', () => {

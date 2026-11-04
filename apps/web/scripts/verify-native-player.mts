@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -101,8 +101,8 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     diag.samples.push(clip(key + ": " + clip(detail)));
   };
   const results: object[] = [];
-  const browserObservation: { armed: boolean; commandLine: string[]; events: Array<{ phase: string; kind: string }>; stderrSource: string } = {
-    armed: false, commandLine: [], events: [], stderrSource: "guarded-child-stderr",
+  const browserObservation: { armed: boolean; commandLineSource: string; events: Array<{ phase: string; kind: string }>; stderrSource: string } = {
+    armed: false, commandLineSource: "playwright-launcher-stderr", events: [], stderrSource: "guarded-child-stderr",
   };
   let rejectBrowserFailure: (error: Error) => void = () => { throw new Error("Browser observer is not armed"); };
   const browserFailure = new Promise<never>((_resolve, reject) => { rejectBrowserFailure = reject; });
@@ -114,7 +114,7 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     if ((kind === "page-crash" || kind === "browser-disconnected") && !closingBrowser) rejectBrowserFailure(new Error("Native browser terminal event: " + kind + " at " + activePhase));
   };
   const pdfPackets: Array<{ mode: Mode; packet: Record<string, unknown> }> = [];
-  const xml = controlXml(randomUUID());
+  const xml = controlXml("00000000-0000-4000-8000-000000000001");
   writeFileSync(join(output, "control.musicxml"), xml, { flag: "wx" });
   phase("startup", "exit");
   try {
@@ -144,12 +144,6 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     browser = await chromium.launch({ headless: true });
     browser.on("disconnected", () => observeBrowser("browser-disconnected"));
     browserObservation.armed = true;
-    const browserSession = await browser.newBrowserCDPSession();
-    const commandLine: unknown = await browserSession.send("Browser.getBrowserCommandLine");
-    if (!object(commandLine) || !Array.isArray(commandLine.arguments) || !commandLine.arguments.every((value: unknown) => typeof value === "string")
-        || Buffer.byteLength(JSON.stringify(commandLine)) > 8192) throw new Error("Missing or oversized actual Chromium command line");
-    browserObservation.commandLine = commandLine.arguments;
-    await browserSession.detach();
     observeBrowser("browser-launched");
     context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
     context.on("page", (page: Page) => {

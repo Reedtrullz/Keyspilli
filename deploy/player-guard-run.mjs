@@ -27,14 +27,18 @@ export function guardLaunchArgs(name, profile = PROFILES.control) {
   return args;
 }
 export function browserProcessEvidence(stderr) {
+  assert(Buffer.byteLength(stderr) <= 65536, 'browser stderr observation cap');
   const events = [];
   for (const line of stderr.replace(/\u001b\[[0-9;]*m/g, '').split('\n')) {
     const body = line.match(/^(?:\d{4}-\d\d-\d\dT\S+\s+)?\s*pw:browser\s+(.+)$/)?.[1];
     if (!body) continue;
+    const argv = body.match(/^<launching> (.+)$/);
     const launch = body.match(/^<launched> pid=(\d+)$/);
-    const exit = body.match(/^\[pid=(\d+)\] <process did exit: exitCode=(null|\d+), signal=(null|SIG[A-Z0-9]+)>$/);
-    if (launch) events.push({ kind: 'launch', pid: Number(launch[1]) });
-    if (exit) events.push({ kind: 'exit', pid: Number(exit[1]), code: exit[2] === 'null' ? null : Number(exit[2]), signal: exit[3] === 'null' ? null : exit[3] });
+    const exit = body.match(/^\[pid=(\d+)\] <process did exit: exitCode=(null|-?\d+), signal=(null|SIG[A-Z0-9]+)>$/);
+    if (argv) { assert(Buffer.byteLength(argv[1]) <= 8192, 'browser command line cap'); events.push({ kind: 'argv', commandLineText: argv[1] }); }
+    assert(!/^<launching>|^<launched>|^\[pid=[^\]]*\] <process did exit/.test(body) || argv || launch || exit, 'malformed browser process observation');
+    if (launch) { assert(Number.isSafeInteger(Number(launch[1])) && Number(launch[1]) > 1, 'malformed launch PID'); events.push({ kind: 'launch', pid: Number(launch[1]) }); }
+    if (exit) { assert(Number.isSafeInteger(Number(exit[1])) && Number(exit[1]) > 1 && (exit[2] === 'null' || Number.isSafeInteger(Number(exit[2]))), 'malformed exit identity'); events.push({ kind: 'exit', pid: Number(exit[1]), code: exit[2] === 'null' ? null : Number(exit[2]), signal: exit[3] === 'null' ? null : exit[3] }); }
     assert(events.length <= 16, 'browser process observation cap');
   }
   return events;
@@ -49,12 +53,22 @@ export function parseGuardOutput(output, revision) {
 }
 export function requireDiagnosticEvidence(packet) {
   const observation = packet.functional?.browserObservation;
-  assert(observation?.armed === true && observation.commandLine?.length > 0 && Array.isArray(observation.events), 'missing early browser/launch evidence');
+  assert(observation?.armed === true && Array.isArray(observation.events), 'missing early browser/launch evidence');
+  assert.equal(observation.commandLineSource, 'playwright-launcher-stderr');
   assert.equal(observation.stderrSource, 'guarded-child-stderr');
   assert(observation.events.some(event => event.kind === 'browser-launched'), 'missing actual launch observation');
   const processes = packet.browserProcesses;
-  assert(Array.isArray(processes) && processes.some(event => event.kind === 'launch'), 'missing browser process launch');
-  for (const event of processes.filter(event => event.kind === 'launch')) assert(processes.some(exit => exit.kind === 'exit' && exit.pid === event.pid), 'missing browser process exit');
+  const smoke = packet.logs?.find(log => log.args?.at(-1) === nativeSmoke(packet.revision, true));
+  const stream = smoke?.stderr;
+  assert(typeof stream === 'string' && stream.length > 0, 'missing raw smoke launcher stderr');
+  assert.deepEqual(processes, browserProcessEvidence(stream), 'browser process evidence provenance mismatch');
+  assert.equal(processes.length, 3, 'one actual browser argv, launch and exit required');
+  const [argv, launch, exit] = processes;
+  assert(argv.kind === 'argv' && argv.commandLineText.length > 0, 'missing actual browser command line');
+  assert(launch.kind === 'launch' && Number.isSafeInteger(launch.pid) && launch.pid > 1, 'missing browser process launch');
+  assert(exit.kind === 'exit' && exit.pid === launch.pid, 'missing matching browser process exit');
+  assert((exit.code === null) !== (exit.signal === null), 'missing unambiguous process exit status');
+  assert(Number.isInteger(packet.logBytes) && packet.logBytes <= 65536 && !smoke.clipped, 'clipped inner launcher stream');
   const r = packet.resources;
   assert(Number.isInteger(r?.pid) && r.pid > 1 && r.cgroup?.startsWith('/'), 'missing owned resource identity');
   assert(r.beforeTeardown && packet.resourceBarrierAcknowledged, 'missing acknowledged pre-teardown resource snapshot');
@@ -63,10 +77,37 @@ export function requireDiagnosticEvidence(packet) {
   assert.match(r.memory['memory.events'], /(?:^|\n)oom [0-9]+(?:\n|$)/, 'missing OOM counter');
   assert.deepEqual(Object.keys(r.mounts ?? {}).sort(), Object.keys(WRITABLE).sort(), 'missing owned mounts');
   for (const mount of Object.values(r.mounts)) for (const key of ['blocks', 'free', 'blockSize', 'files', 'freeFiles']) assert(Number.isFinite(mount[key]) && mount[key] >= 0, 'missing mount/inode usage');
+  const usage = packet.mountUsage;
+  assert(usage?.pid === r.pid && usage.cgroup === r.cgroup && Number.isSafeInteger(usage.sampleCount) && usage.sampleCount > 0, 'missing accumulated owned mount samples');
+  assert.equal(usage.provenance, 'owned /proc/PID/root statfs samples; existing 1000ms observer and pre-teardown barrier');
+  assert.deepEqual(Object.keys(usage.mounts ?? {}).sort(), Object.keys(WRITABLE).sort());
+  for (const [mount, value] of Object.entries(r.mounts)) {
+    const aggregate = usage.mounts[mount];
+    for (const key of ['minFreeBytes', 'maxUsedBytes', 'minFreeInodes', 'maxUsedInodes']) assert(Number.isSafeInteger(aggregate[key]) && aggregate[key] >= 0, 'invalid sampled mount aggregate');
+    assert(aggregate.minFreeBytes <= value.free * value.blockSize && aggregate.maxUsedBytes >= (value.blocks - value.free) * value.blockSize && aggregate.minFreeInodes <= value.freeFiles && aggregate.maxUsedInodes >= value.files - value.freeFiles, 'aggregate lost sampled usage');
+  }
   assert(r.limits?.includes('Max processes'), 'missing launch limits');
   assert(packet.containerRemoved && packet.scratchRemoved, 'incomplete cleanup');
   assert(!packet.cancelled && !packet.deadlineExceeded, 'cancelled or expired cell');
   assert(!packet.stdoutClipped && !packet.stderrClipped, 'clipped diagnostic packet');
+}
+export function nativeSmoke(revision, diagnostic = false) {
+  assert.match(revision, /^[a-f0-9]{40}$/);
+  // The guard deliberately strips DEBUG; configure the owned Node smoke before Playwright's first load.
+  const debug = diagnostic ? "process.env.DEBUG='pw:browser';process.env.DEBUG_COLORS='0';process.env.DEBUG_HIDE_DATE='0';" : '';
+  return `import {createRequire} from 'node:module';${debug}const r=createRequire('${readRoot}/apps/web/package.json');const {chromium}=r('@playwright/test');let worker=false;const launch=chromium.launch.bind(chromium);chromium.launch=async(...args)=>{const b=await launch(...args);const nc=b.newContext.bind(b);b.newContext=async(...args)=>{const c=await nc(...args);c.on('page',p=>{void p.waitForFunction(()=>window.__sheetReady===true&&window.__sheetRenderer==='worker'&&window.__sheetRenderedPages>0,{},{timeout:80000}).then(()=>{worker=true}).catch(()=>{});});return c;};return b;};const {verifyNativePlayer}=await import('${readRoot}/apps/web/scripts/verify-native-player.mts');await verifyNativePlayer('${revision}');if(process.exitCode||!worker)throw Error('functional worker/WASM proof missing');`;
+}
+export function accumulateMountUsage(previous, sample) {
+  assert(Number.isInteger(sample?.pid) && sample.pid > 1 && sample.cgroup?.startsWith('/'), 'owned sample identity required');
+  assert.deepEqual(Object.keys(sample.mounts ?? {}).sort(), Object.keys(WRITABLE).sort(), 'owned sample mounts required');
+  if (previous) { assert.equal(previous.pid, sample.pid); assert.equal(previous.cgroup, sample.cgroup); }
+  const mounts = Object.fromEntries(Object.entries(sample.mounts).map(([mount, value]) => {
+    for (const key of ['blocks', 'free', 'blockSize', 'files', 'freeFiles']) assert(Number.isSafeInteger(value[key]) && value[key] >= 0, 'invalid mount sample');
+    assert(value.free <= value.blocks && value.freeFiles <= value.files && value.blockSize > 0, 'invalid mount capacity');
+    const old = previous?.mounts[mount];
+    return [mount, { minFreeBytes: Math.min(old?.minFreeBytes ?? Infinity, value.free * value.blockSize), maxUsedBytes: Math.max(old?.maxUsedBytes ?? 0, (value.blocks - value.free) * value.blockSize), minFreeInodes: Math.min(old?.minFreeInodes ?? Infinity, value.freeFiles), maxUsedInodes: Math.max(old?.maxUsedInodes ?? 0, value.files - value.freeFiles) }];
+  }));
+  return { pid: sample.pid, cgroup: sample.cgroup, sampleCount: (previous?.sampleCount ?? 0) + 1, provenance: 'owned /proc/PID/root statfs samples; existing 1000ms observer and pre-teardown barrier', interpretation: 'Sampled usage lower bound, not a true kernel peak; final resources retain the barrier snapshot.', mounts };
 }
 // Trusted outer observer: only the inspected container's PID/cgroup and fixed owned mount paths.
 function ownedResources(pidText, identity, release = false) {
@@ -143,7 +184,7 @@ async function inside(revision) {
       };
       child.stdout.on('data', capture('stdout')); child.stderr.on('data', capture('stderr'));
       child.on('error', error => { failure = error; });
-      child.on('close', (code, signal) => { clearTimeout(timer); live.delete(child); logs.push({ command, args, code, signal, stdout, stderr });
+      child.on('close', (code, signal) => { clearTimeout(timer); live.delete(child); logs.push({ command, args, code, signal, stdout, stderr, clipped: bytes > limit || logBytes > 65536 });
         if (failure || code !== 0) reject(failure ?? new Error(`child failed code=${code} signal=${signal}: ${stderr}`)); else resolve(stdout);
       });
     });
@@ -214,9 +255,9 @@ async function inside(revision) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       assert(ready, 'guarded app did not become healthy');
-      const smoke = `import {createRequire} from 'node:module';const r=createRequire('${readRoot}/apps/web/package.json');const {chromium}=r('@playwright/test');let worker=false;const launch=chromium.launch.bind(chromium);chromium.launch=async(...args)=>{const b=await launch(...args);const nc=b.newContext.bind(b);b.newContext=async(...args)=>{const c=await nc(...args);c.on('page',p=>{void p.waitForFunction(()=>window.__sheetReady===true&&window.__sheetRenderer==='worker'&&window.__sheetRenderedPages>0,{},{timeout:80000}).then(()=>{worker=true}).catch(()=>{});});return c;};return b;};const {verifyNativePlayer}=await import('${readRoot}/apps/web/scripts/verify-native-player.mts');await verifyNativePlayer('${revision}');if(process.exitCode||!worker)throw Error('functional worker/WASM proof missing');`;
+      const smoke = nativeSmoke(revision, process.env.KEYSPILLI_CRASH_DIAGNOSTIC === 'native-crash-v1');
       try { await guard([node, '--import', loader, '--input-type=module', '-e', smoke]); }
-      finally { report.browserProcesses = browserProcessEvidence(logs.at(-1)?.stderr ?? ''); }
+      finally { report.browserProcesses = browserProcessEvidence(logs.find(log => log.args?.at(-1) === smoke)?.stderr ?? ''); }
       report.functional = JSON.parse(fs.readFileSync('/browser-results/result.json', 'utf8')); assert.equal(report.functional.status, 'passed');
       report.kernel = kernel; report.node = nodeProof; report.counters = counts; report.workerWasm = 'worker produced ready SVG'; report.addon = 'guarded SELECT1'; report.status = 'passed';
     };
@@ -281,7 +322,10 @@ async function host(image, revision, profileName) {
         let stdout = '', stderr = ''; const resourceErrors = [];
         const observe = (release = false) => { try {
           const state = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', name], { timeout: 2000 }));
-          if (state.Running && state.Pid > 1 && !receipt.resources?.beforeTeardown) receipt.resources = JSON.parse(command('sudo', ['-n', process.execPath, fileURLToPath(import.meta.url), '--observe-owned', String(state.Pid), identity, ...(release ? ['--release'] : [])], { timeout: 2000 }));
+          if (state.Running && state.Pid > 1 && !receipt.resources?.beforeTeardown) {
+            receipt.resources = JSON.parse(command('sudo', ['-n', process.execPath, fileURLToPath(import.meta.url), '--observe-owned', String(state.Pid), identity, ...(release ? ['--release'] : [])], { timeout: 2000 }));
+            receipt.mountUsage = accumulateMountUsage(receipt.mountUsage, receipt.resources);
+          }
         } catch (error) { if (resourceErrors.length < 4) resourceErrors.push(String(error.message).slice(0, 512)); } };
         const timer = setInterval(observe, 1000);
         const stop = () => { try { command('docker', ['stop', '--time', '0', name], { timeout: 2000 }); } catch (error) { receipt.killError = String(error.message).slice(0, 512); } finally { child.kill('SIGKILL'); } };
@@ -338,7 +382,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   else if (process.argv[6] === '--diagnostic') {
     assert.equal(process.argv.length, 8); assert.equal(process.argv[7], 'native-crash-v1');
     assert.deepEqual([process.argv[2], process.argv[4]], ['--image', '--revision']);
-    assert.equal(process.env.GITHUB_REF, 'refs/heads/codex/keyspilli-recovery-native-20261104');
+    assert.equal(process.env.GITHUB_REF, 'refs/heads/codex/keyspilli-observer-corrective-20261104');
     const cells = [];
     for (const profile of ['control', 'writable', 'ram']) { const cell = await host(process.argv[3], process.argv[5], profile); cells.push(cell); if (cell.cancelled || !cell.containerRemoved || !cell.scratchRemoved) break; }
     const result = { kind: 'keyspilli-native-crash-diagnostic', scope: 'diagnostic-only', image: process.argv[3], revision: process.argv[5], status: cells.length === 3 && cells.every(cell => cell.evidenceComplete && cell.status === 'passed') ? 'passed' : 'failed', cells };
