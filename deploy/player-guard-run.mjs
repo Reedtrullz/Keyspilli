@@ -9,6 +9,78 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync, spawn } from 'node:child_process';
 
 export const WRITABLE = Object.freeze({ '/tmp': 15, '/dev/shm': 4, '/data': 16, '/browser-results': 4, '/sentinels': 1 });
+const PROFILES = Object.freeze({
+  control: Object.freeze({ memoryMiB: 1024, writable: WRITABLE }),
+  writable: Object.freeze({ memoryMiB: 1024, writable: Object.freeze({ '/tmp': 256, '/dev/shm': 128, '/data': 32, '/browser-results': 16, '/sentinels': 1 }) }),
+  ram: Object.freeze({ memoryMiB: 4096, writable: WRITABLE }),
+});
+export function diagnosticProfile(name) {
+  assert(typeof name === 'string' && Object.hasOwn(PROFILES, name), 'unknown finite diagnostic profile');
+  const profile = PROFILES[name];
+  assert(profile.memoryMiB <= 4096 && Object.values(profile.writable).reduce((a, b) => a + b, 16) <= 512, 'owner resource ceiling');
+  return profile;
+}
+export function guardLaunchArgs(name, profile = PROFILES.control) {
+  assert(Object.values(PROFILES).includes(profile), 'profile must be a declared immutable profile');
+  const args = ['create', '--name', name, '--pull=never', '--network', 'none', '--read-only', '--user', '1000:1000', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--cpus', '1.5', '--memory', profile.memoryMiB + 'm', '--pids-limit', '128', '--workdir', readRoot, '--entrypoint', '/player-guard'];
+  for (const [mount, size] of Object.entries(profile.writable)) args.push('--tmpfs', mount + ':rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700');
+  return args;
+}
+export function browserProcessEvidence(stderr) {
+  const events = [];
+  for (const line of stderr.replace(/\u001b\[[0-9;]*m/g, '').split('\n')) {
+    const body = line.match(/^(?:\d{4}-\d\d-\d\dT\S+\s+)?\s*pw:browser\s+(.+)$/)?.[1];
+    if (!body) continue;
+    const launch = body.match(/^<launched> pid=(\d+)$/);
+    const exit = body.match(/^\[pid=(\d+)\] <process did exit: exitCode=(null|\d+), signal=(null|SIG[A-Z0-9]+)>$/);
+    if (launch) events.push({ kind: 'launch', pid: Number(launch[1]) });
+    if (exit) events.push({ kind: 'exit', pid: Number(exit[1]), code: exit[2] === 'null' ? null : Number(exit[2]), signal: exit[3] === 'null' ? null : exit[3] });
+    assert(events.length <= 16, 'browser process observation cap');
+  }
+  return events;
+}
+export function parseGuardOutput(output, revision) {
+  const rows = output.trim().split('\n').map(line => JSON.parse(line));
+  const results = rows.filter(r => r.kind === 'keyspilli-guard-admission');
+  assert.equal(results.length, 1, 'one complete guard packet required');
+  const result = results[0]; assert.equal(result.revision, revision);
+  assert(['passed', 'failed'].includes(result.status));
+  return { result, reaper: rows.find(r => r.phase === 'reaper') };
+}
+export function requireDiagnosticEvidence(packet) {
+  const observation = packet.functional?.browserObservation;
+  assert(observation?.armed === true && observation.commandLine?.length > 0 && Array.isArray(observation.events), 'missing early browser/launch evidence');
+  assert.equal(observation.stderrSource, 'guarded-child-stderr');
+  assert(observation.events.some(event => event.kind === 'browser-launched'), 'missing actual launch observation');
+  const processes = packet.browserProcesses;
+  assert(Array.isArray(processes) && processes.some(event => event.kind === 'launch'), 'missing browser process launch');
+  for (const event of processes.filter(event => event.kind === 'launch')) assert(processes.some(exit => exit.kind === 'exit' && exit.pid === event.pid), 'missing browser process exit');
+  const r = packet.resources;
+  assert(Number.isInteger(r?.pid) && r.pid > 1 && r.cgroup?.startsWith('/'), 'missing owned resource identity');
+  assert(r.beforeTeardown && packet.resourceBarrierAcknowledged, 'missing acknowledged pre-teardown resource snapshot');
+  for (const key of ['memory.events', 'memory.peak', 'memory.max']) assert(typeof r.memory?.[key] === 'string' && r.memory[key].length > 0, 'missing ' + key);
+  for (const key of ['memory.peak', 'memory.max']) assert.match(r.memory[key], /^[0-9]+\n?$/, 'malformed ' + key);
+  assert.match(r.memory['memory.events'], /(?:^|\n)oom [0-9]+(?:\n|$)/, 'missing OOM counter');
+  assert.deepEqual(Object.keys(r.mounts ?? {}).sort(), Object.keys(WRITABLE).sort(), 'missing owned mounts');
+  for (const mount of Object.values(r.mounts)) for (const key of ['blocks', 'free', 'blockSize', 'files', 'freeFiles']) assert(Number.isFinite(mount[key]) && mount[key] >= 0, 'missing mount/inode usage');
+  assert(r.limits?.includes('Max processes'), 'missing launch limits');
+  assert(packet.containerRemoved && packet.scratchRemoved, 'incomplete cleanup');
+  assert(!packet.cancelled && !packet.deadlineExceeded, 'cancelled or expired cell');
+  assert(!packet.stdoutClipped && !packet.stderrClipped, 'clipped diagnostic packet');
+}
+// Trusted outer observer: only the inspected container's PID/cgroup and fixed owned mount paths.
+function ownedResources(pidText, identity, release = false) {
+  assert.match(pidText, /^[1-9][0-9]*$/); assert(Number(pidText) > 1); assert.match(identity, /^[a-f0-9]{64}$/);
+  const proc = '/proc/' + pidText;
+  const cgroup = fs.readFileSync(proc + '/cgroup', 'utf8').trim().split('\n').find(line => line.startsWith('0::'))?.slice(3);
+  assert(cgroup?.startsWith('/') && !cgroup.includes('..') && cgroup.includes(identity), 'owned cgroup v2 identity required');
+  const root = '/sys/fs/cgroup' + cgroup;
+  const memory = Object.fromEntries(['memory.events', 'memory.peak', 'memory.max', 'memory.current', 'pids.events', 'cpu.stat'].map(key => [key, fs.readFileSync(root + '/' + key, 'utf8').slice(0, 2048)]));
+  const mounts = Object.fromEntries(Object.keys(WRITABLE).map(mount => { const s = fs.statfsSync(proc + '/root' + mount); return [mount, { blocks: s.blocks, free: s.bfree, blockSize: s.bsize, files: s.files, freeFiles: s.ffree }]; }));
+  const result = { pid: Number(pidText), cgroup, memory, mounts, limits: fs.readFileSync(proc + '/limits', 'utf8').slice(0, 8192), beforeTeardown: release };
+  if (release) fs.writeFileSync(proc + '/root/tmp/owned-observer-release', 'observed', { flag: 'wx' });
+  return result;
+}
 export function validate(image, revision) {
   assert.match(image, /^sha256:[a-f0-9]{64}$/); assert.match(revision, /^[a-f0-9]{40}$/);
   assert(Object.values(WRITABLE).reduce((a, b) => a + b, 0) + 16 <= 64);
@@ -47,9 +119,11 @@ export function checkSource(root) {
 }
 
 async function inside(revision) {
+  const started = Date.now();
+  const profile = diagnosticProfile(process.env.KEYSPILLI_GUARD_PROFILE ?? 'control');
   assert.match(revision, /^[a-f0-9]{40}$/); assert.equal(process.getuid(), 1000);
   assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64'); assert.equal(process.version, 'v22.22.3');
-  const capacities = Object.fromEntries(Object.entries(WRITABLE).map(([p, mib]) => {
+  const capacities = Object.fromEntries(Object.entries(profile.writable).map(([p, mib]) => {
     const stat = fs.statfsSync(p, { bigint: true }), bytes = stat.blocks * stat.bsize;
     assert(bytes > 0n && bytes <= BigInt(mib) * 1048576n, 'actual tmpfs capacity exceeds declaration'); return [p, Number(bytes)];
   }));
@@ -63,8 +137,9 @@ async function inside(revision) {
       const timer = setTimeout(() => { failure = Object.assign(new Error('command deadline'), { code: 'PLAYER_TIMEOUT' }); kill(child); }, timeout);
       const capture = name => data => {
         bytes += data.length; logBytes += data.length;
-        if (bytes > limit || logBytes > 65536) { failure = Object.assign(new Error('output limit'), { code: 'PLAYER_OUTPUT_LIMIT' }); kill(child); return; }
-        if (name === 'stdout') stdout += data; else stderr += data;
+        const remaining = Math.max(0, Math.min(limit - (bytes - data.length), 65536 - (logBytes - data.length)));
+        if (name === 'stdout') stdout += data.subarray(0, remaining); else stderr += data.subarray(0, remaining);
+        if (bytes > limit || logBytes > 65536) { failure = Object.assign(new Error('output limit'), { code: 'PLAYER_OUTPUT_LIMIT' }); kill(child); }
       };
       child.stdout.on('data', capture('stdout')); child.stderr.on('data', capture('stderr'));
       child.on('error', error => { failure = error; });
@@ -108,16 +183,17 @@ async function inside(revision) {
       walk('/ms-playwright', 3); assert(executables.length > 1 && executables.length < 12);
       executables.push(resolveEsbuild(readRoot));
       const guard = (args, options) => run('/player-guard', [String(port), ...new Set(executables), '--', ...args], options);
-      const kernel = (await guard(['--probe'])).trim().split('\n').map(line => JSON.parse(line));
+      const kernel = report.kernel = (await guard(['--probe'])).trim().split('\n').map(line => JSON.parse(line));
       assert.deepEqual(kernel.map(p => p.phase), ['kernel-main', 'kernel-child']);
       const checks = `const a=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process');for(const p of ['catalog','media','home','credential'])a.throws(()=>fs.readFileSync('/sentinels/'+p),{code:'EPERM'});a.throws(()=>fs.writeFileSync('/sentinels/protected','changed'),{code:'EPERM'});a.throws(()=>cp.spawnSync('/usr/bin/id'),{code:'EPERM'});a.throws(()=>require('node:net').connect({host:'127.0.0.1',port:${port}}),{code:'EPERM'});a.throws(()=>require('node:dgram').createSocket('udp4'),{code:'EPERM'});a.throws(()=>require('node:dns').resolve4('fixture.invalid'),{code:'EPERM'});`;
       const childProgram = checks + `console.log(JSON.stringify({phase:'node-child',denied:true}));`;
       const program = checks + `const c=cp.spawnSync(process.execPath,['-e',${JSON.stringify(childProgram)}]);a.equal(c.status,0);process.stdout.write(c.stdout);console.log(JSON.stringify({phase:'node-main',denied:true}));`;
-      const nodeProof = (await guard([node, '-e', program])).trim().split('\n').map(line => JSON.parse(line));
+      const nodeProof = report.node = (await guard([node, '-e', program])).trim().split('\n').map(line => JSON.parse(line));
       assert.deepEqual(nodeProof.map(p => p.phase).sort(), ['node-child', 'node-main']);
       assert.deepEqual({ forbidden: counts.forbidden, udp: counts.udp, dns: counts.dns }, { forbidden: pre.forbidden, udp: pre.udp, dns: pre.dns });
       await positive(); assert.equal(counts.forbidden, pre.forbidden + 1); assert.equal(counts.udp, pre.udp + 1); assert.equal(counts.dns, pre.dns + 1);
       report.wireLiveness = { pre, post: { ...counts } }; // real UDP/DNS wire positives, separate from the guard's socket denials
+      report.counters = counts;
       assert.deepEqual(Object.fromEntries(fs.readdirSync('/sentinels').map(name => [name, hash('/sentinels/' + name)])), before);
       for (const [code, args, options] of [
         ['PLAYER_TIMEOUT', [node, '-e', 'setInterval(()=>{},1000)'], { timeout: 750 }],
@@ -139,7 +215,8 @@ async function inside(revision) {
       }
       assert(ready, 'guarded app did not become healthy');
       const smoke = `import {createRequire} from 'node:module';const r=createRequire('${readRoot}/apps/web/package.json');const {chromium}=r('@playwright/test');let worker=false;const launch=chromium.launch.bind(chromium);chromium.launch=async(...args)=>{const b=await launch(...args);const nc=b.newContext.bind(b);b.newContext=async(...args)=>{const c=await nc(...args);c.on('page',p=>{void p.waitForFunction(()=>window.__sheetReady===true&&window.__sheetRenderer==='worker'&&window.__sheetRenderedPages>0,{},{timeout:80000}).then(()=>{worker=true}).catch(()=>{});});return c;};return b;};const {verifyNativePlayer}=await import('${readRoot}/apps/web/scripts/verify-native-player.mts');await verifyNativePlayer('${revision}');if(process.exitCode||!worker)throw Error('functional worker/WASM proof missing');`;
-      await guard([node, '--import', loader, '--input-type=module', '-e', smoke]);
+      try { await guard([node, '--import', loader, '--input-type=module', '-e', smoke]); }
+      finally { report.browserProcesses = browserProcessEvidence(logs.at(-1)?.stderr ?? ''); }
       report.functional = JSON.parse(fs.readFileSync('/browser-results/result.json', 'utf8')); assert.equal(report.functional.status, 'passed');
       report.kernel = kernel; report.node = nodeProof; report.counters = counts; report.workerWasm = 'worker produced ready SVG'; report.addon = 'guarded SELECT1'; report.status = 'passed';
     };
@@ -147,6 +224,16 @@ async function inside(revision) {
   } catch (error) { report.error = String(error); }
   finally {
     clearTimeout(report.timer); delete report.timer;
+    if (process.env.KEYSPILLI_CRASH_DIAGNOSTIC === 'native-crash-v1') {
+      console.log(JSON.stringify({ kind: 'keyspilli-resource-barrier', revision }));
+      const until = Math.min(started + 105000, Date.now() + 1500);
+      while (!fs.existsSync('/tmp/owned-observer-release') && Date.now() < until) await new Promise(resolve => setTimeout(resolve, 25));
+      report.resourceBarrierAcknowledged = fs.existsSync('/tmp/owned-observer-release');
+    }
+    if (!report.functional && fs.existsSync('/browser-results/result.json')) {
+      try { report.functional = JSON.parse(fs.readFileSync('/browser-results/result.json', 'utf8')); }
+      catch (error) { report.functionalReadError = String(error); }
+    }
     for (const child of live) { try { kill(child); } catch (e) { cleanupErrors.push(String(e)); } }
     await Promise.all([...live].map(child => new Promise(resolve => child.once('close', resolve))));
     for (const socket of sockets) socket.destroy();
@@ -157,7 +244,8 @@ async function inside(revision) {
   }
 }
 
-async function host(image, revision) {
+async function host(image, revision, profileName) {
+  const diagnostic = profileName !== undefined, profile = diagnosticProfile(profileName ?? 'control');
   validate(image, revision); assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
   assert.equal(process.env.GITHUB_ACTIONS, 'true'); assert(process.env.KEYSPILLI_EVIDENCE && process.env.KEYSPILLI_SCRATCH);
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -173,37 +261,89 @@ async function host(image, revision) {
   const piano = process.env.KEYSPILLI_NATIVE_PIANO_DIR; assert(piano && path.isAbsolute(piano) && fs.realpathSync(piano) === piano);
   try {
     command('gcc', ['-static', '-O2', '-std=c11', '-Wall', '-Wextra', '-Werror', path.join(root, 'deploy/player-guard.c'), '-o', binary], { env: { ...process.env, TMPDIR: scratch } });
-    const args = ['create', '--name', name, '--pull=never', '--network', 'none', '--read-only', '--user', '1000:1000', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--cpus', '1.5', '--memory', '1g', '--pids-limit', '128', '--workdir', readRoot, '--entrypoint', '/player-guard'];
-    for (const [mount, size] of Object.entries(WRITABLE)) args.push('--tmpfs', mount + ':rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700');
+    const args = guardLaunchArgs(name, profile);
     for (const relative of MOUNTS) {
       const p = path.join(root, relative); assert(fs.realpathSync(p) === p && !p.includes(':')); args.push('-v', p + ':' + readRoot + '/' + relative + ':ro');
     }
     args.push('-v', binary + ':/player-guard:ro', '-v', piano + ':/piano-input:ro');
     for (const pair of ['HOME=/tmp', 'TMPDIR=/tmp', 'PORT=3000', 'HOSTNAME=127.0.0.1', 'PLAYWRIGHT_BROWSERS_PATH=/ms-playwright', 'KEYSPILLI_DATA_DIR=/data', 'KEYSPILLI_ORIGIN=http://127.0.0.1:3000', 'KEYSPILLI_API_TOKEN=test-token-for-e2e', 'AUTH_SECRET=owned-player-guard-only', 'KEYSPILLI_TUTORIAL_BETA=0', 'KEYSPILLI_NATIVE_PROBE_SCOPE=owned-restore']) args.push('-e', pair);
+    if (diagnostic) args.push('-e', 'KEYSPILLI_GUARD_PROFILE=' + profileName, '-e', 'KEYSPILLI_CRASH_DIAGNOSTIC=native-crash-v1', '-e', 'DEBUG=pw:browser');
     args.push(image, '--init', node, readRoot + '/deploy/player-guard-run.mjs', '--inside', revision);
-    assert.match(command('docker', args).trim(), /^[a-f0-9]{64}$/);
+    const identity = command('docker', args).trim(); assert.match(identity, /^[a-f0-9]{64}$/);
     const inspected = JSON.parse(command('docker', ['inspect', name]))[0]; assert.equal(inspected.HostConfig.NetworkMode, 'none'); assert.equal(inspected.HostConfig.ReadonlyRootfs, true);
-    assert.equal(inspected.HostConfig.Memory, 1073741824); assert.equal(inspected.HostConfig.PidsLimit, 128); assert.equal(inspected.HostConfig.PidMode, ''); assert.equal(inspected.Config.User, '1000:1000');
+    assert.equal(inspected.HostConfig.Memory, profile.memoryMiB * 1048576); assert.equal(inspected.HostConfig.PidsLimit, 128); assert.equal(inspected.HostConfig.PidMode, ''); assert.equal(inspected.Config.User, '1000:1000');
+    assert.equal(inspected.HostConfig.NanoCpus, 1500000000); assert.deepEqual(inspected.HostConfig.CapDrop, ['ALL']); assert(inspected.HostConfig.SecurityOpt.includes('no-new-privileges'));
     assert.deepEqual(Object.keys(inspected.HostConfig.Tmpfs).sort(), Object.keys(WRITABLE).sort());
-    const output = command('docker', ['start', '-a', name], { timeout: 120000 });
-    const rows = output.trim().split('\n').map(line => JSON.parse(line)); const result = rows.find(r => r.kind === 'keyspilli-guard-admission'), reaper = rows.find(r => r.phase === 'reaper');
+    let output;
+    if (diagnostic) {
+      const terminal = await new Promise(resolve => {
+        const child = spawn('docker', ['start', '-a', name], { stdio: ['ignore', 'pipe', 'pipe'] });
+        let stdout = '', stderr = ''; const resourceErrors = [];
+        const observe = (release = false) => { try {
+          const state = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', name], { timeout: 2000 }));
+          if (state.Running && state.Pid > 1 && !receipt.resources?.beforeTeardown) receipt.resources = JSON.parse(command('sudo', ['-n', process.execPath, fileURLToPath(import.meta.url), '--observe-owned', String(state.Pid), identity, ...(release ? ['--release'] : [])], { timeout: 2000 }));
+        } catch (error) { if (resourceErrors.length < 4) resourceErrors.push(String(error.message).slice(0, 512)); } };
+        const timer = setInterval(observe, 1000);
+        const stop = () => { try { command('docker', ['stop', '--time', '0', name], { timeout: 2000 }); } catch (error) { receipt.killError = String(error.message).slice(0, 512); } finally { child.kill('SIGKILL'); } };
+        const cancel = () => { receipt.cancelled = true; observe(); stop(); };
+        process.once('SIGINT', cancel); process.once('SIGTERM', cancel);
+        const deadline = setTimeout(() => { observe(); receipt.deadlineExceeded = true; stop(); }, 120000);
+        for (const [key, stream, cap] of [['stdout', child.stdout, 1048576], ['stderr', child.stderr, 65536]]) stream.on('data', data => {
+          const previous = key === 'stdout' ? stdout : stderr;
+          const remaining = Math.max(0, cap - Buffer.byteLength(previous)); const next = previous + data.subarray(0, remaining).toString();
+          if (key === 'stdout') stdout = next; else stderr = next;
+          if (key === 'stdout' && stdout.includes(JSON.stringify({ kind: 'keyspilli-resource-barrier', revision }) + '\n')) observe(true);
+          if (data.length > remaining) receipt[key + 'Clipped'] = true;
+        });
+        child.on('error', error => { receipt.launchError = String(error); });
+        child.on('close', (code, signal) => { clearInterval(timer); clearTimeout(deadline); process.off('SIGINT', cancel); process.off('SIGTERM', cancel); resolve({ stdout, stderr, code, signal, resourceErrors }); });
+      });
+      const { stdout, stderr, ...state } = terminal;
+      Object.assign(receipt, state); output = stdout;
+      for (const [stream, body] of Object.entries({ stdout, stderr })) {
+        const filename = 'player-guard-' + profileName + '.' + stream;
+        fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, filename), body, { flag: 'wx' });
+        receipt[stream + 'Artifact'] = filename; receipt[stream + 'Sha256'] = createHash('sha256').update(body).digest('hex');
+      }
+    } else output = command('docker', ['start', '-a', name], { timeout: 120000 });
+    const state = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', name])); receipt.state = state;
+    const { result, reaper } = parseGuardOutput(output, revision);
+    delete receipt.stdout; receipt.stdoutSha256 = createHash('sha256').update(output).digest('hex');
+    Object.assign(receipt, result, { reaper });
     assert.equal(result?.status, 'passed'); assert.equal(reaper?.remainingChildren, 0); assert(reaper.reaped.some(p => p.pid === result.survivorPid && p.signal === 9));
-    const state = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', name])); assert.equal(state.Pid, 0); assert.equal(state.ExitCode, 0); assert.equal(state.OOMKilled, false);
-    receipt = { ...result, reaper, state, image, writableMiB: Object.values(WRITABLE).reduce((a, b) => a + b, 0), helperSha256: hash(binary), sourceSha256: hash(path.join(root, 'deploy/player-guard.c')) };
+    assert.equal(state.Pid, 0); assert.equal(state.ExitCode, 0); assert.equal(state.OOMKilled, false);
+    Object.assign(receipt, { state, image, writableMiB: Object.values(profile.writable).reduce((a, b) => a + b, 0), helperSha256: hash(binary), sourceSha256: hash(path.join(root, 'deploy/player-guard.c')) });
   } catch (error) {
-    failure = error; receipt.error = String(error.message).slice(0, 4096); receipt.stdout = String(error.stdout ?? '').slice(0, 524288); receipt.stderr = String(error.stderr ?? '').slice(0, 65536);
+    failure = error; receipt.status = 'failed'; receipt.hostError = String(error.message).slice(0, 4096); receipt.error ??= receipt.hostError;
+    if (!diagnostic) { receipt.stdout ??= String(error.stdout ?? '').slice(0, 524288); receipt.stderr ??= String(error.stderr ?? '').slice(0, 65536); }
   } finally {
+    if (diagnostic) { receipt.scope = 'diagnostic-only'; receipt.profile = profileName; receipt.profileLimits = profile; }
     try {
       if (command('docker', ['ps', '-aq', '--filter', 'name=^/' + name + '$']).trim()) command('docker', ['rm', '-f', name]);
       assert.equal(command('docker', ['ps', '-aq', '--filter', 'name=^/' + name + '$']).trim(), ''); receipt.containerRemoved = true;
+      receipt.parentBytes = fs.readdirSync(scratch).reduce((sum, entry) => sum + fs.statSync(path.join(scratch, entry)).size, 0);
+      assert(receipt.parentBytes <= 16 * 1048576, 'parent16MiB reservation exceeded');
       fs.rmSync(scratch, { recursive: true }); receipt.scratchRemoved = true;
     } catch (error) { receipt.status = 'failed'; receipt.cleanupError = String(error); failure ??= error; }
+    if (diagnostic) { try { requireDiagnosticEvidence(receipt); receipt.evidenceComplete = true; } catch (error) { receipt.evidenceComplete = false; receipt.evidenceError = String(error); receipt.status = 'failed'; failure ??= error; } }
     const body = JSON.stringify(receipt, null, 2) + '\n'; assert(Buffer.byteLength(body) <= 1048576, 'receipt output cap');
-    fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, 'player-guard-admission.json'), body, { flag: 'wx' });
+    fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, diagnostic ? 'player-guard-' + profileName + '.json' : 'player-guard-admission.json'), body, { flag: 'wx' });
   }
-  if (failure) throw new Error('Player guard qualification failed; see player-guard-admission.json');
+  if (failure && !diagnostic) throw new Error('Player guard qualification failed; see player-guard-admission.json');
+  return receipt;
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv[2] === '--inside') await inside(process.argv[3]);
+  if (process.argv[2] === '--observe-owned') { assert([5, 6].includes(process.argv.length)); if (process.argv.length === 6) assert.equal(process.argv[5], '--release'); console.log(JSON.stringify(ownedResources(process.argv[3], process.argv[4], process.argv.length === 6))); }
+  else if (process.argv[2] === '--inside') await inside(process.argv[3]);
+  else if (process.argv[6] === '--diagnostic') {
+    assert.equal(process.argv.length, 8); assert.equal(process.argv[7], 'native-crash-v1');
+    assert.deepEqual([process.argv[2], process.argv[4]], ['--image', '--revision']);
+    assert.equal(process.env.GITHUB_REF, 'refs/heads/codex/keyspilli-recovery-native-20261104');
+    const cells = [];
+    for (const profile of ['control', 'writable', 'ram']) { const cell = await host(process.argv[3], process.argv[5], profile); cells.push(cell); if (cell.cancelled || !cell.containerRemoved || !cell.scratchRemoved) break; }
+    const result = { kind: 'keyspilli-native-crash-diagnostic', scope: 'diagnostic-only', image: process.argv[3], revision: process.argv[5], status: cells.length === 3 && cells.every(cell => cell.evidenceComplete && cell.status === 'passed') ? 'passed' : 'failed', cells };
+    fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, 'native-crash-diagnostic.json'), JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
+    if (result.status !== 'passed') process.exitCode = 1;
+  }
   else { assert.deepEqual(process.argv.slice(2).filter((_, i) => i % 2 === 0), ['--image', '--revision']); assert.equal(process.argv.length, 6); await host(process.argv[3], process.argv[5]); }
 }

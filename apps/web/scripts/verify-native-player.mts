@@ -101,6 +101,18 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     diag.samples.push(clip(key + ": " + clip(detail)));
   };
   const results: object[] = [];
+  const browserObservation: { armed: boolean; commandLine: string[]; events: Array<{ phase: string; kind: string }>; stderrSource: string } = {
+    armed: false, commandLine: [], events: [], stderrSource: "guarded-child-stderr",
+  };
+  let rejectBrowserFailure: (error: Error) => void = () => { throw new Error("Browser observer is not armed"); };
+  const browserFailure = new Promise<never>((_resolve, reject) => { rejectBrowserFailure = reject; });
+  void browserFailure.catch(() => {});
+  let closingBrowser = false;
+  const observeBrowser = (kind: string) => {
+    if (browserObservation.events.length < 16) browserObservation.events.push({ phase: activePhase, kind });
+    writeFileSync(join(output, "browser-observation.json"), JSON.stringify(browserObservation));
+    if ((kind === "page-crash" || kind === "browser-disconnected") && !closingBrowser) rejectBrowserFailure(new Error("Native browser terminal event: " + kind + " at " + activePhase));
+  };
   const pdfPackets: Array<{ mode: Mode; packet: Record<string, unknown> }> = [];
   const xml = controlXml(randomUUID());
   writeFileSync(join(output, "control.musicxml"), xml, { flag: "wx" });
@@ -130,7 +142,22 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     phase("health-upload-chords", "exit");
     phase("browser-startup", "entry");
     browser = await chromium.launch({ headless: true });
+    browser.on("disconnected", () => observeBrowser("browser-disconnected"));
+    browserObservation.armed = true;
+    const browserSession = await browser.newBrowserCDPSession();
+    const commandLine: unknown = await browserSession.send("Browser.getBrowserCommandLine");
+    if (!object(commandLine) || !Array.isArray(commandLine.arguments) || !commandLine.arguments.every((value: unknown) => typeof value === "string")
+        || Buffer.byteLength(JSON.stringify(commandLine)) > 8192) throw new Error("Missing or oversized actual Chromium command line");
+    browserObservation.commandLine = commandLine.arguments;
+    await browserSession.detach();
+    observeBrowser("browser-launched");
     context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
+    context.on("page", (page: Page) => {
+      const label = activePhase.startsWith("chords") ? "chords" : activePhase.startsWith("silence") ? "silence" : "original";
+      unwatch.push(watchPage(page, label, note));
+      page.on("crash", () => observeBrowser("page-crash"));
+      page.on("close", () => observeBrowser("page-close"));
+    });
     await context.route("https://smpldsnds.github.io/**", async route => {
       const body = bank.assets.get(route.request().url());
       if (!body) { note("route", "miss", cleanUrl(route.request().url())); return route.abort(); }
@@ -141,8 +168,7 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     for (const mode of ["original", "chords"] as const) {
       phase(mode + "-capture", "entry");
       const page = await context.newPage();
-      unwatch.push(watchPage(page, mode, note));
-      const capture = await capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [],
+      const capture = await Promise.race([browserFailure, capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [],
         retainRawCapture: async ({ wav, ...metadata }) => {
           if (wav.length > 2 * 1024 * 1024) throw new Error("Raw native capture exceeds2MiB");
           writeFileSync(join(output, mode + ".wav"), wav, { flag: "wx" });
@@ -155,7 +181,7 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
               writeFileSync(join(output, mode + "-diagnostic-error.txt"), String(error), { flag: "wx" });
             }
           }
-        } });
+        } })]);
       expect([...capture.sampleAssets].sort((a, b) => a.url.localeCompare(b.url)))
         .toEqual([...bank.sampleAssetPins].sort((a, b) => a.url.localeCompare(b.url)));
       const { wav: _wav, beforeCompressor: _before, ...metadata } = capture;
@@ -221,13 +247,13 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     }
     phase("silence", "entry");
     const silentPage = await context.newPage();
-    unwatch.push(watchPage(silentPage, "silence", note));
-    const silent = await capturePlayerClip(silentPage, { songId: id, mode: "original", durationMs: 4000,
-      expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: true });
+    const silent = await Promise.race([browserFailure, capturePlayerClip(silentPage, { songId: id, mode: "original", durationMs: 4000,
+      expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: true })]);
     savePlayerCapture(join(output, "silence-control.wav"), silent);
     results.push({ kind: "silence-recorder-control", rms: silent.rms, peak: silent.peak, samplerStarts: silent.samplerStarts.length });
     phase("silence", "exit");
     phase("capture-browser-teardown", "entry");
+    closingBrowser = true;
     await silentPage.close(); await context.close(); context = undefined; await browser.close(); browser = undefined;
     phase("capture-browser-teardown", "exit");
     // Render PDFs after the capture browser exits; both browsers share the same bounded container.
@@ -248,6 +274,7 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     if (failure) results.push({ kind: "failure-diagnostics", ...boundedDiag(diag) });
     phase("diagnostics", "exit");
     phase("teardown", "entry");
+    closingBrowser = true;
     await context?.close().catch(error => cleanupErrors.push(String(error)));
     await browser?.close().catch(error => cleanupErrors.push(String(error)));
     if (baseId && api) {
@@ -258,7 +285,7 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     phase("teardown", cleanupErrors.length ? "failure" : "exit");
     phase("result", "entry");
     const proof = { kind: "keyspilli-native-sampled", revision, status: failure || cleanupErrors.length ? "failed" : "passed",
-      platform: process.platform, architecture: process.arch, sourceControlSha256: sha(xml), results,
+      platform: process.platform, architecture: process.arch, sourceControlSha256: sha(xml), results, browserObservation,
       error: failure instanceof Error ? failure.message : failure ? String(failure) : null, cleanupErrors,
       scope: "Generated software control in an owned writable restore copy; actual sampled UI, MIDI/XML UI parity and PDF API transport; no musical, physical or production acceptance" };
     writeFileSync(join(output, "result.json"), JSON.stringify(proof, null, 2), { flag: "wx" });

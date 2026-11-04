@@ -31,6 +31,14 @@ on:
         description: "Full 40-hex SHA this rehearsal must run at (must equal the dispatched ref)"
         required: true
         type: string
+      mode:
+        description: "Full rehearsal by default; bounded native crash cells only on the owned diagnostic branch"
+        required: true
+        default: rehearsal
+        type: choice
+        options:
+          - rehearsal
+          - native-crash-v1
 
 permissions:
   contents: read
@@ -52,9 +60,10 @@ jobs:
     name: Native amd64 restore and canary on the public seed catalog (no production access)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103') }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-recovery-native-20261104' && inputs.mode == 'native-crash-v1'))) }}
     env:
       EXPECTED_COMMIT: ${{ inputs.expected_commit || github.sha }}
+      REHEARSAL_MODE: ${{ inputs.mode || 'rehearsal' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -64,6 +73,13 @@ jobs:
           test "$(uname -m)" = x86_64
           [[ "$EXPECTED_COMMIT" =~ ^[a-f0-9]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          case "$REHEARSAL_MODE" in
+            rehearsal) ;;
+            native-crash-v1)
+              test "$GITHUB_EVENT_NAME" = workflow_dispatch
+              test "$GITHUB_REF" = refs/heads/codex/keyspilli-recovery-native-20261104 ;;
+            *) exit 1 ;;
+          esac
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -92,7 +108,16 @@ jobs:
       - name: Build web and worker candidates on native amd64
         run: |
           docker build --platform linux/amd64 -f apps/web/Dockerfile --build-arg VERSION="$EXPECTED_COMMIT" -t keyspilli-rehearsal-web:candidate .
-          docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-rehearsal-worker:candidate .
+          if test "$REHEARSAL_MODE" = rehearsal; then
+            docker build --platform linux/amd64 -f services/transcribe/Dockerfile.tutorial --target worker -t keyspilli-rehearsal-worker:candidate .
+          fi
+
+      - name: Collect bounded native crash diagnostic cells (not restore qualification)
+        if: ${{ env.REHEARSAL_MODE == 'native-crash-v1' }}
+        timeout-minutes: 8
+        run: |
+          node --experimental-strip-types --test deploy/test/player-guard.test.mjs
+          node deploy/player-guard-run.mjs --image "$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')" --revision "$EXPECTED_COMMIT" --diagnostic native-crash-v1
 
       - name: Qualify the player guard (owned qualification ref only)
         if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' }}
@@ -102,6 +127,7 @@ jobs:
           node deploy/player-guard-run.mjs --image "$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')" --revision "$EXPECTED_COMMIT"
 
       - name: Worker startup and clean SIGTERM shutdown
+        if: ${{ env.REHEARSAL_MODE == 'rehearsal' }}
         timeout-minutes: 3
         run: |
           name=keyspilli-rehearsal-worker
@@ -130,6 +156,7 @@ jobs:
           exit 1
 
       - name: Backup, isolated restore and restored-app canary
+        if: ${{ env.REHEARSAL_MODE == 'rehearsal' }}
         timeout-minutes: 12
         run: |
           mkdir -p rehearsal-out
@@ -175,6 +202,7 @@ jobs:
           PY
 
       - name: Write rehearsal receipt
+        if: ${{ env.REHEARSAL_MODE == 'rehearsal' }}
         run: |
           python3 - <<'PY'
           import hashlib, json, os, platform
@@ -217,6 +245,10 @@ jobs:
             rehearsal-out/runtime-rehearsal-receipt.json
             rehearsal-out/runtime-rehearsal-receipt.sha256
             ${{ env.KEYSPILLI_EVIDENCE }}/player-guard-admission.json
+            ${{ env.KEYSPILLI_EVIDENCE }}/player-guard-control.json
+            ${{ env.KEYSPILLI_EVIDENCE }}/player-guard-writable.json
+            ${{ env.KEYSPILLI_EVIDENCE }}/player-guard-ram.json
+            ${{ env.KEYSPILLI_EVIDENCE }}/native-crash-diagnostic.json
           if-no-files-found: error
 
       - name: Release owned test resources

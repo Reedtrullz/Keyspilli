@@ -5,9 +5,46 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
+
+test('diagnostic profiles reject arbitrary settings and preserve control isolation in both contrasts', () => {
+  for (const value of ['', '4g', 'control\n', '__proto__', null, { memoryMiB: 8192 }, { writable: { '/tmp': 512 } }]) assert.throws(() => diagnosticProfile(value));
+  const control = diagnosticProfile('control'), writable = diagnosticProfile('writable'), ram = diagnosticProfile('ram');
+  for (const profile of [{ memoryMiB: 8192, writable: control.writable }, { memoryMiB: 1024, writable: { '/tmp': 512 } }]) assert.throws(() => guardLaunchArgs('owned', profile));
+  assert.deepEqual(ram.writable, control.writable); assert.equal(writable.memoryMiB, control.memoryMiB);
+  assert.equal(ram.memoryMiB, 4096); assert.equal(control.memoryMiB, 1024);
+  for (const p of [control, writable, ram]) {
+    assert(Object.values(p.writable).reduce((a, b) => a + b, 16) <= 512);
+    const args = guardLaunchArgs('owned', p);
+    for (const pair of [['--network', 'none'], ['--user', '1000:1000'], ['--cap-drop', 'ALL'], ['--security-opt', 'no-new-privileges'], ['--cpus', '1.5'], ['--pids-limit', '128']]) assert.equal(args[args.indexOf(pair[0]) + 1], pair[1]);
+    assert(args.includes('--read-only')); assert.equal(args[args.indexOf('--memory') + 1], p.memoryMiB + 'm');
+  }
+});
+
+test('failed cell output retains the failed inner packet and rejects misleading, stale or clipped success', () => {
+  const revision = 'b'.repeat(40), result = { kind: 'keyspilli-guard-admission', revision, status: 'failed', functional: { error: 'page crashed', results: [{ kind: 'sampled-playback', mode: 'original' }] } };
+  const output = JSON.stringify(result) + '\n' + JSON.stringify({ phase: 'reaper', remainingChildren: 0 });
+  assert.deepEqual(parseGuardOutput(output, revision).result, result);
+  for (const text of ['passed', '{"status":"passed"}', output.slice(0, -2), output + '\n' + JSON.stringify(result)]) assert.throws(() => parseGuardOutput(text, revision));
+  assert.throws(() => parseGuardOutput(output, 'c'.repeat(40)));
+});
+
+test('diagnostic collection fails closed on absent crash, resource, launch or cleanup evidence', () => {
+  const mounts = Object.fromEntries(Object.keys(WRITABLE).map(mount => [mount, { blocks: 15, free: 1, blockSize: 4096, files: 4, freeFiles: 1 }]));
+  const packet = { functional: { browserObservation: { armed: true, commandLine: ['chromium', '--headless'], events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 44, code: 1, signal: null }], resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned', beforeTeardown: true, memory: { 'memory.events': 'oom 0', 'memory.peak': '12', 'memory.max': '1073741824' }, mounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
+  assert.doesNotThrow(() => requireDiagnosticEvidence(packet));
+  for (const key of ['memory.peak', 'memory.max', 'memory.events']) assert.throws(() => requireDiagnosticEvidence({ ...packet, resources: { ...packet.resources, memory: { ...packet.resources.memory, [key]: 'passed' } } }));
+  for (const change of [{ functional: undefined }, { resources: undefined }, { resourceBarrierAcknowledged: false }, { cancelled: true }, { deadlineExceeded: true }, { resources: { ...packet.resources, memory: {} } }, { resources: { ...packet.resources, mounts: { '/tmp': mounts['/tmp'] } } }, { browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 45 }] }, { functional: { browserObservation: { armed: true, commandLine: [], events: [] } } }, { containerRemoved: false }, { stdoutClipped: true }, { stderrClipped: true }]) assert.throws(() => requireDiagnosticEvidence({ ...packet, ...change }));
+});
+
+test('browser process observations preserve exit signals without treating application text as process proof', () => {
+  const stderr = '2026-11-04T00:00:00Z pw:browser <launched> pid=44\n2026-11-04T00:00:01Z pw:browser [pid=44] <process did exit: exitCode=null, signal=SIGBUS>\napp says pw:browser <launched> pid=99\n';
+  assert.deepEqual(browserProcessEvidence(stderr), [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 44, code: null, signal: 'SIGBUS' }]);
+  assert.deepEqual(browserProcessEvidence('passed\n{"pw:browser":"<launched> pid=99"}'), []);
+  assert.throws(() => browserProcessEvidence('pw:browser <launched> pid=44\n'.repeat(17)));
+});
 
 test('only the two declared viewports are accepted and copies cannot mutate defaults', () => {
   assert.deepEqual(perfViewport(), { width: 1280, height: 800 }); assert.deepEqual(perfViewport('390x844'), { width: 390, height: 844 });
