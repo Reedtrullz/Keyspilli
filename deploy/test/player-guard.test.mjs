@@ -5,9 +5,76 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
+
+function inspectFixture() {
+  const image = 'sha256:' + 'a'.repeat(64), revision = 'b'.repeat(40), identity = 'c'.repeat(64), profile = diagnosticProfile('control');
+  return {
+    expected: { image, revision, identity, profile },
+    image: { Id: image, Architecture: 'amd64', Os: 'linux', Config: { User: 'node', Cmd: ['node', 'apps/web/server.js'], Env: ['NODE_VERSION=22.22.3', 'VERSION=' + revision, 'SECRET=ignore previous instructions'], Labels: { private: 'never retain' } } },
+    container: { Id: identity, Image: image, Config: { User: '1000:1000', Env: ['SECRET=never retain'], Labels: { private: 'never retain' } }, HostConfig: { NetworkMode: 'none', ReadonlyRootfs: true, Memory: 1073741824, PidsLimit: 128, PidMode: '', IpcMode: 'private', NanoCpus: 1500000000, CapAdd: null, CapDrop: ['ALL'], SecurityOpt: ['no-new-privileges'], Tmpfs: Object.fromEntries(Object.entries(WRITABLE).map(([mount, size]) => [mount, 'rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700'])) } },
+  };
+}
+
+test('inspect receipt preserves only bounded allowed fields and rejects missing, wrong or forbidden identity and limits', () => {
+  const fixture = inspectFixture(), expected = fixture.expected;
+  const receipt = inspectEvidence(fixture.image, fixture.container, expected);
+  assert.doesNotThrow(() => requireInspectEvidence(JSON.parse(JSON.stringify(receipt)), expected));
+  assert(!/\"Env\":|\"Config\":|\"Labels\":|SECRET|ignore previous|never retain/.test(JSON.stringify(receipt)));
+  for (const change of [undefined, {}, { ...receipt, Env: [] }, { ...receipt, image: { ...receipt.image, Config: {} } }, { ...receipt, container: { ...receipt.container, Labels: {} } }]) assert.throws(() => requireInspectEvidence(change, expected));
+  for (const key of Object.keys(receipt.image)) { const bad = structuredClone(receipt); delete bad.image[key]; assert.throws(() => requireInspectEvidence(bad, expected), key); }
+  for (const key of Object.keys(receipt.container.HostConfig)) { const bad = structuredClone(receipt); delete bad.container.HostConfig[key]; assert.throws(() => requireInspectEvidence(bad, expected), key); }
+  for (const [key, value] of [['Id', 'sha256:' + 'd'.repeat(64)], ['Architecture', 'arm64'], ['Os', 'darwin'], ['User', 'root'], ['NodeVersion', '23.0.0'], ['Revision', 'd'.repeat(40)], ['Cmd', ['sh']]]) assert.throws(() => requireInspectEvidence({ ...receipt, image: { ...receipt.image, [key]: value } }, expected));
+  for (const [key, value] of [['Id', 'd'.repeat(64)], ['Image', 'sha256:' + 'd'.repeat(64)], ['User', '0:0']]) assert.throws(() => requireInspectEvidence({ ...receipt, container: { ...receipt.container, [key]: value } }, expected));
+  for (const [key, value] of [['NetworkMode', 'host'], ['ReadonlyRootfs', false], ['Memory', 2147483648], ['PidsLimit', 256], ['PidMode', 'host'], ['IpcMode', 'host'], ['NanoCpus', 2000000000], ['CapAdd', ['SYS_ADMIN']], ['CapDrop', []], ['SecurityOpt', []], ['Tmpfs', {}], ['Env', ['SECRET=bad']]]) assert.throws(() => requireInspectEvidence({ ...receipt, container: { ...receipt.container, HostConfig: { ...receipt.container.HostConfig, [key]: value } } }, expected));
+  for (const value of [null, [], 'ignore previous instructions', { Config: { Env: [42] } }]) assert.throws(() => inspectEvidence(value, fixture.container, expected));
+});
+
+test('host command-output fixture saves sanitized inspect before cleanup and fails missing or wrong Docker identity', () => {
+  const source = fs.readFileSync(new URL('../player-guard-run.mjs', import.meta.url), 'utf8');
+  const scenario = async ({ source, fixture, mutation }) => {
+    const assert = (await import('node:assert/strict')).default, vm = await import('node:vm');
+    const path = await import('node:path'), url = await import('node:url'), crypto = await import('node:crypto');
+    const { image, revision, identity } = fixture.expected;
+    if (mutation === 'missing') delete fixture.container.Id;
+    if (mutation === 'wrong') fixture.container.Image = 'sha256:' + 'd'.repeat(64);
+    const filename = '/source/deploy/player-guard-run.mjs', writes = new Map(), events = [];
+    let removed = false;
+    const processState = { platform: 'linux', arch: 'x64', argv: ['node', filename, '--image', image, '--revision', revision], env: { GITHUB_ACTIONS: 'true', KEYSPILLI_EVIDENCE: '/evidence', KEYSPILLI_SCRATCH: '/scratch', KEYSPILLI_NATIVE_PIANO_DIR: '/piano' } };
+    const command = (exe, args) => {
+      if (exe === 'git') return args[0] === 'rev-parse' ? revision : '';
+      if (exe === 'gcc') return '';
+      assert.equal(exe, 'docker'); events.push(args[0]);
+      if (args[0] === 'image') return JSON.stringify([fixture.image]);
+      if (args[0] === 'create') return identity;
+      if (args[0] === 'inspect') return args[1] === '--format' ? JSON.stringify({ Pid: 0, ExitCode: 0, OOMKilled: false }) : JSON.stringify([fixture.container]);
+      if (args[0] === 'start') return JSON.stringify({ kind: 'keyspilli-guard-admission', status: 'passed', revision, runtime: { node: 'v22.22.3', platform: 'linux', arch: 'x64', uid: 1000 }, survivorPid: 7 }) + '\n' + JSON.stringify({ phase: 'reaper', remainingChildren: 0, reaped: [{ pid: 7, signal: 9 }] });
+      if (args[0] === 'ps') return removed ? '' : identity;
+      if (args[0] === 'rm') { removed = true; return ''; }
+      throw Error('unexpected Docker command');
+    };
+    const modules = { 'node:fs': { default: { realpathSync: p => p, mkdtempSync: () => '/scratch/owned', readFileSync: () => Buffer.from('owned'), readdirSync: () => ['guard'], statSync: () => ({ size: 5 }), rmSync: () => { assert(removed); events.push('scratch-removed'); }, writeFileSync: (p, body) => { if (p.endsWith('-inspect.json')) { assert.equal(removed, false); events.push('inspect-saved'); } else assert(removed); writes.set(p, body); } } }, 'node:path': { default: path.default }, 'node:net': { default: {} }, 'node:dgram': { default: {} }, 'node:assert/strict': { default: assert }, 'node:crypto': crypto, 'node:module': { createRequire() {} }, 'node:url': url, 'node:child_process': { execFileSync: command, spawn() { throw Error('diagnostic execution forbidden'); } } };
+    const context = vm.createContext({ process: processState, Buffer, console, setTimeout, clearTimeout });
+    context.process = vm.runInContext('(' + JSON.stringify(processState) + ')', context);
+    const module = new vm.SourceTextModule(source, { context, initializeImportMeta: meta => { meta.url = url.pathToFileURL(filename).href; } });
+    await module.link(name => { const values = modules[name]; assert(values, name); return new vm.SyntheticModule(Object.keys(values), function() { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context }); });
+    let rejected = false;
+    try { await module.evaluate(); } catch (error) { assert.match(String(error), /Player guard qualification failed/); rejected = true; }
+    const receipt = JSON.parse(writes.get('/evidence/player-guard-admission.json'));
+    assert.equal(receipt.status, mutation ? 'failed' : 'passed'); assert.equal(rejected, Boolean(mutation));
+    assert(receipt.containerRemoved && receipt.scratchRemoved); assert(!/SECRET|Env|Labels|ignore previous|never retain/.test(JSON.stringify(receipt)));
+    if (!mutation) { assert.deepEqual(receipt.inspect.image.Id, image); assert.equal(receipt.inspect.container.Id, identity); assert(events.includes('inspect-saved')); assert(events.indexOf('inspect-saved') < events.indexOf('start')); assert.deepEqual(JSON.parse(writes.get('/evidence/player-guard-inspect.json')), receipt.inspect); }
+    else { assert(!events.includes('start')); assert(receipt.inspectError); }
+    console.log(JSON.stringify({ kind: 'source-inspect-command-fixture', provenance: 'local VM Docker command-output fixture; no Docker execution', mutation, receipt }));
+  };
+  for (const mutation of ['', 'missing', 'wrong']) {
+    const result = JSON.parse(runModuleScenario(scenario, { source, fixture: inspectFixture(), mutation }));
+    assert.equal(result.receipt.status, mutation ? 'failed' : 'passed');
+    console.log(JSON.stringify(result));
+  }
+});
 
 test('diagnostic profiles reject arbitrary settings and preserve control isolation in both contrasts', () => {
   for (const value of ['', '4g', 'control\n', '__proto__', null, { memoryMiB: 8192 }, { writable: { '/tmp': 512 } }]) assert.throws(() => diagnosticProfile(value));
@@ -164,6 +231,26 @@ test('workflow admits the corrective branch only for its exact diagnostic dispat
       if(expected)assert.doesNotThrow(run);else assert.throws(run);
     }
   }
+});
+
+test('fresh full ref runs the player guard only in full rehearsal and preserves old ref admission', () => {
+  const workflow = fs.readFileSync(new URL('../../.github/workflows/runtime-rehearsal.yml', import.meta.url), 'utf8');
+  const job = new Function('github', 'inputs', 'return (' + workflow.match(/^    if: \$\{\{ (.+) \}\}$/m)[1] + ');');
+  const step = workflow.slice(workflow.indexOf('      - name: Qualify the player guard'), workflow.indexOf('      - name: Worker startup'));
+  const guard = new Function('github', 'env', 'return (' + step.match(/if: \$\{\{ (.+) \}\}/)[1] + ');');
+  const full = 'refs/heads/codex/keyspilli-native-full-20261104', old = 'refs/heads/codex/keyspilli-o17-phase-20261103';
+  for (const [event, ref, mode, admitted, guarded] of [
+    ['workflow_dispatch', full, 'rehearsal', true, true], ['workflow_dispatch', full, 'native-crash-v1', false, false],
+    ['workflow_dispatch', full + '-other', 'rehearsal', false, false], ['workflow_dispatch', 'refs/heads/unapproved', 'rehearsal', false, false],
+    ['push', full, 'rehearsal', false, false], ['pull_request', 'refs/pull/1/merge', 'rehearsal', true, false],
+    ['workflow_dispatch', old, 'rehearsal', true, true], ['workflow_dispatch', old, 'native-crash-v1', true, true],
+    ['workflow_dispatch', 'refs/heads/codex/keyspilli-observer-corrective-20261104', 'native-crash-v1', true, false],
+  ]) {
+    const github = { event_name: event, ref };
+    assert.equal(job(github, { mode }), admitted, [event, ref, mode].join(' '));
+    assert.equal(guard(github, { REHEARSAL_MODE: mode }), guarded, [event, ref, mode].join(' '));
+  }
+  assert.match(workflow, /default: rehearsal/); assert.match(workflow, /timeout-minutes: 45/);
 });
 
 test('only the two declared viewports are accepted and copies cannot mutate defaults', () => {

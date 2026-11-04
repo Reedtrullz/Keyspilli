@@ -126,6 +126,32 @@ export function validate(image, revision) {
   assert.match(image, /^sha256:[a-f0-9]{64}$/); assert.match(revision, /^[a-f0-9]{40}$/);
   assert(Object.values(WRITABLE).reduce((a, b) => a + b, 0) + 16 <= 64);
 }
+export function requireInspectEvidence(inspect, expected) {
+  const keys = (value, allowed) => assert.deepEqual(Object.keys(value ?? {}).sort(), allowed.sort(), 'missing or forbidden inspect fields');
+  keys(inspect, ['image', 'container']);
+  keys(inspect.image, ['Id', 'Architecture', 'Os', 'User', 'NodeVersion', 'Revision', 'Cmd']);
+  keys(inspect.container, ['Id', 'Image', 'User', 'HostConfig']);
+  const image = inspect.image, container = inspect.container, host = container.HostConfig;
+  keys(host, ['NetworkMode', 'ReadonlyRootfs', 'Memory', 'PidsLimit', 'PidMode', 'IpcMode', 'NanoCpus', 'CapAdd', 'CapDrop', 'SecurityOpt', 'Tmpfs']);
+  validate(expected.image, expected.revision); assert.match(expected.identity, /^[a-f0-9]{64}$/);
+  assert.equal(image.Id, expected.image); assert.equal(image.Architecture, 'amd64'); assert.equal(image.Os, 'linux');
+  assert.equal(image.User, 'node'); assert.equal(image.NodeVersion, '22.22.3'); assert.equal(image.Revision, expected.revision);
+  assert.deepEqual(image.Cmd, ['node', 'apps/web/server.js']);
+  assert.equal(container.Id, expected.identity); assert.equal(container.Image, expected.image); assert.equal(container.User, '1000:1000');
+  assert.equal(host.NetworkMode, 'none'); assert.equal(host.ReadonlyRootfs, true); assert.equal(host.PidMode, ''); assert.equal(host.IpcMode, 'private');
+  assert.equal(host.Memory, expected.profile.memoryMiB * 1048576); assert.equal(host.PidsLimit, 128); assert.equal(host.NanoCpus, 1500000000);
+  assert(host.CapAdd === null || Array.isArray(host.CapAdd) && host.CapAdd.length === 0); assert.deepEqual(host.CapDrop, ['ALL']);
+  assert.deepEqual(host.SecurityOpt, ['no-new-privileges']);
+  assert.deepEqual(host.Tmpfs, Object.fromEntries(Object.entries(expected.profile.writable).map(([mount, size]) => [mount, 'rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700'])));
+}
+export function inspectEvidence(image, container, expected) {
+  const evidence = {
+    image: { Id: image.Id, Architecture: image.Architecture, Os: image.Os, User: image.Config?.User, NodeVersion: image.Config?.Env?.find(value => value.startsWith('NODE_VERSION='))?.slice(13), Revision: image.Config?.Env?.find(value => value.startsWith('VERSION='))?.slice(8), Cmd: image.Config?.Cmd },
+    container: { Id: container.Id, Image: container.Image, User: container.Config?.User, HostConfig: Object.fromEntries(['NetworkMode', 'ReadonlyRootfs', 'Memory', 'PidsLimit', 'PidMode', 'IpcMode', 'NanoCpus', 'CapAdd', 'CapDrop', 'SecurityOpt', 'Tmpfs'].map(key => [key, container.HostConfig?.[key]])) },
+  };
+  requireInspectEvidence(evidence, expected);
+  return evidence;
+}
 const hash = p => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 // Bounded health diagnostic: only clipped scalars, no raw body or message; attempts and last state are the whole footprint.
 const clip = v => v === undefined ? v : typeof v === 'string' ? v.slice(0, 64).replace(/[^\w.:-]/g, '?') : typeof v;
@@ -197,7 +223,7 @@ async function inside(revision) {
   udp.on('message', (body, remote) => { const dns = body.length >= 12 && body.readUInt16BE(0) === 0x1234; counts[dns ? 'dns' : 'udp']++;
     const reply = Buffer.from(body); if (dns) reply.writeUInt16BE(0x8180, 2); udp.send(reply, remote.port, remote.address);
   });
-  const report = { kind: 'keyspilli-guard-admission', revision, status: 'failed', capacities, wasmMemory: 'unknown', performanceObservations: 0 };
+  const report = { kind: 'keyspilli-guard-admission', revision, status: 'failed', runtime: { node: process.version, platform: process.platform, arch: process.arch, uid: process.getuid() }, capacities, wasmMemory: 'unknown', performanceObservations: 0 };
   const deadline = new Promise((_, reject) => { const t = setTimeout(() => { for (const child of live) kill(child); reject(new Error('whole-case 105s deadline')); }, 105000); report.timer = t; });
   let allowed;
   try {
@@ -298,7 +324,7 @@ async function host(image, revision, profileName) {
   assert(metadata.Config.Env.includes('VERSION=' + revision)); assert.deepEqual(metadata.Config.Cmd, ['node', 'apps/web/server.js']);
   const scratch = fs.mkdtempSync(path.join(process.env.KEYSPILLI_SCRATCH, 'player-guard-'));
   const binary = path.join(scratch, 'guard'); const name = 'keyspilli-player-guard-' + randomUUID().slice(0, 12);
-  let receipt = { kind: 'keyspilli-guard-admission', status: 'failed', image, revision }, failure;
+  let receipt = { kind: 'keyspilli-guard-admission', status: 'failed', image, revision }, failure, expectedInspect;
   const piano = process.env.KEYSPILLI_NATIVE_PIANO_DIR; assert(piano && path.isAbsolute(piano) && fs.realpathSync(piano) === piano);
   try {
     command('gcc', ['-static', '-O2', '-std=c11', '-Wall', '-Wextra', '-Werror', path.join(root, 'deploy/player-guard.c'), '-o', binary], { env: { ...process.env, TMPDIR: scratch } });
@@ -312,6 +338,12 @@ async function host(image, revision, profileName) {
     args.push(image, '--init', node, readRoot + '/deploy/player-guard-run.mjs', '--inside', revision);
     const identity = command('docker', args).trim(); assert.match(identity, /^[a-f0-9]{64}$/);
     const inspected = JSON.parse(command('docker', ['inspect', name]))[0]; assert.equal(inspected.HostConfig.NetworkMode, 'none'); assert.equal(inspected.HostConfig.ReadonlyRootfs, true);
+    expectedInspect = { image, revision, identity, profile };
+    receipt.inspect = inspectEvidence(metadata, inspected, expectedInspect);
+    const inspectBody = JSON.stringify(receipt.inspect, null, 2) + '\n'; assert(Buffer.byteLength(inspectBody) <= 1048576, 'inspect output cap');
+    receipt.inspectArtifact = diagnostic ? 'player-guard-' + profileName + '-inspect.json' : 'player-guard-inspect.json';
+    receipt.inspectSha256 = createHash('sha256').update(inspectBody).digest('hex');
+    fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, receipt.inspectArtifact), inspectBody, { flag: 'wx' });
     assert.equal(inspected.HostConfig.Memory, profile.memoryMiB * 1048576); assert.equal(inspected.HostConfig.PidsLimit, 128); assert.equal(inspected.HostConfig.PidMode, ''); assert.equal(inspected.Config.User, '1000:1000');
     assert.equal(inspected.HostConfig.NanoCpus, 1500000000); assert.deepEqual(inspected.HostConfig.CapDrop, ['ALL']); assert(inspected.HostConfig.SecurityOpt.includes('no-new-privileges'));
     assert.deepEqual(Object.keys(inspected.HostConfig.Tmpfs).sort(), Object.keys(WRITABLE).sort());
@@ -354,6 +386,7 @@ async function host(image, revision, profileName) {
     const { result, reaper } = parseGuardOutput(output, revision);
     delete receipt.stdout; receipt.stdoutSha256 = createHash('sha256').update(output).digest('hex');
     Object.assign(receipt, result, { reaper });
+    assert.deepEqual(result.runtime, { node: 'v22.22.3', platform: 'linux', arch: 'x64', uid: 1000 });
     assert.equal(result?.status, 'passed'); assert.equal(reaper?.remainingChildren, 0); assert(reaper.reaped.some(p => p.pid === result.survivorPid && p.signal === 9));
     assert.equal(state.Pid, 0); assert.equal(state.ExitCode, 0); assert.equal(state.OOMKilled, false);
     Object.assign(receipt, { state, image, writableMiB: Object.values(profile.writable).reduce((a, b) => a + b, 0), helperSha256: hash(binary), sourceSha256: hash(path.join(root, 'deploy/player-guard.c')) });
@@ -361,6 +394,7 @@ async function host(image, revision, profileName) {
     failure = error; receipt.status = 'failed'; receipt.hostError = String(error.message).slice(0, 4096); receipt.error ??= receipt.hostError;
     if (!diagnostic) { receipt.stdout ??= String(error.stdout ?? '').slice(0, 524288); receipt.stderr ??= String(error.stderr ?? '').slice(0, 65536); }
   } finally {
+    try { requireInspectEvidence(receipt.inspect, expectedInspect); } catch (error) { receipt.status = 'failed'; receipt.inspectError = String(error.message).slice(0, 512); failure ??= error; }
     if (diagnostic) { receipt.scope = 'diagnostic-only'; receipt.profile = profileName; receipt.profileLimits = profile; }
     try {
       if (command('docker', ['ps', '-aq', '--filter', 'name=^/' + name + '$']).trim()) command('docker', ['rm', '-f', name]);
