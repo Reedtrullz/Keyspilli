@@ -94,6 +94,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck the exact candidate including native song-tool verifier
+        run: pnpm run typecheck
+
       - name: Prepare the hash-pinned piano input outside the isolated container
         timeout-minutes: 3
         run: |
