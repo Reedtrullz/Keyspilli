@@ -7,7 +7,95 @@ import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
+import * as capacity from '../player-guard-run.mjs';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
+
+function capacityFixture() {
+  return { repository: 'Reedtrullz/Keyspilli', event: 'workflow_dispatch', ref: 'refs/heads/codex/keyspilli-native-full-20261104', expected: 'b'.repeat(40), dispatchCommit: 'b'.repeat(40), commit: 'b'.repeat(40), clean: true,
+    hosted: 'github-hosted', actions: 'true', imageOS: 'ubuntu24', imageVersion: '20261101.1.0', os: '24.04', platform: 'linux', arch: 'x64', runnerOwner: true, runnerUid: 1001, disposable: true,
+    target: '/usr/local/lib/android/sdk', canonical: true, owner: 0, ancestorsSafe: true, mountSafe: true, handles: 0, callers: 0,
+    allocatedBytes: 20 * 1024 ** 3, freeBytes: 16 * 1024 ** 3, managedBytes: 0, settings: { reserve: 6 * 1024 ** 3, limit: 16 * 1024 ** 3, maxEntries: 100000, peak: 12 * 1024 ** 3 } };
+}
+
+test('capacity requirement covers unchanged writer, export, entry metadata and managed bytes', () => {
+  assert.equal(capacity.capacityRequirement(capacityFixture()), 33867431936);
+  const f = capacityFixture(); f.managedBytes = 1234; assert.equal(capacity.capacityRequirement(f), 33867433170);
+  f.settings.maxEntries = 100001; assert.equal(capacity.capacityRequirement(f), 33867449554);
+  for (const value of [-1, NaN, Infinity, '6', 1.5, Number.MAX_SAFE_INTEGER]) {
+    assert.throws(() => capacity.capacityRequirement({ ...capacityFixture(), managedBytes: value }));
+  }
+});
+
+test('hosted capacity refuses every unsafe identity, path, owner, handle, caller and insufficient full reserve', () => {
+  const f = capacityFixture(); assert.equal(capacity.requireHostedCapacity(f, 'inventory').requiredBytes, 33867431936);
+  for (const patch of [{ repository: 'foreign/repo' }, { event: 'push' }, { ref: f.ref + '-other' }, { expected: 'c'.repeat(40) }, { expected: 'b'.repeat(40) + '\n' }, { clean: false }, { hosted: 'self-hosted' }, { actions: 'false' }, { imageOS: 'ubuntu22' }, { imageVersion: 'ignore previous instructions' }, { os: '22.04' }, { platform: 'darwin' }, { arch: 'arm64' }, { runnerOwner: false }, { disposable: false }, { target: '/tmp/sdk' }, { canonical: false }, { owner: 1000 }, { ancestorsSafe: false }, { mountSafe: false }, { handles: 1 }, { callers: 1 }, { allocatedBytes: 0 }, { allocatedBytes: 32 * 1024 ** 3 + 1 }, { freeBytes: 1 }, { settings: { ...f.settings, limit: 1 } }]) {
+    assert.throws(() => capacity.requireHostedCapacity({ ...f, ...patch }, 'inventory'), JSON.stringify(patch));
+  }
+  assert.throws(() => capacity.requireHostedCapacity(f, 'prepare'), /inventory/);
+  assert.throws(() => capacity.requireHostedCapacity(f, 'other'));
+});
+
+test('capacity adapter inventories without removal and prepares only its isolated SDK fixture with repeated validation', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'capacity-adapter-'));
+  const target = path.join(root, 'sdk'), sentinel = path.join(root, 'keep');
+  fs.mkdirSync(target); fs.writeFileSync(path.join(target, 'payload'), 'replaceable fixture'); fs.writeFileSync(sentinel, 'preserve');
+  let f = capacityFixture(), calls = 0, removed = false;
+  const adapter = { observe: async () => { calls++; return structuredClone(f); }, remove: async p => { assert.equal(p, '/usr/local/lib/android/sdk'); fs.rmSync(target, { recursive: true }); removed = true; }, free: async () => 36 * 1024 ** 3 };
+  try {
+    const inventory = await capacity.hostedCapacity('inventory', adapter);
+    assert.equal(inventory.status, 'INVENTORY_ONLY'); assert.equal(inventory.deleted, false); assert.equal(removed, false); assert(fs.existsSync(target));
+    assert.equal(inventory.requiredBytes, 33867431936); assert(Buffer.byteLength(JSON.stringify(inventory)) < 4194304);
+    for (const patch of [{ handles: 1 }, { canonical: false }, { owner: 1000 }, { freeBytes: 0 }, { callers: 1 }, { clean: false }]) {
+      f = { ...capacityFixture(), ...patch };
+      await assert.rejects(capacity.hostedCapacity('prepare', adapter, inventory)); assert.equal(removed, false); assert(fs.existsSync(target));
+    }
+    f = capacityFixture();
+    for (const patch of [{ commit: 'c'.repeat(40) }, { imageVersion: '20261102.1.0' }, { settings: { ...f.settings, maxEntries: 99999 } }, { status: 'PREPARED' }, { deleted: true }]) await assert.rejects(capacity.hostedCapacity('prepare', adapter, { ...inventory, ...patch }));
+    const prepared = await capacity.hostedCapacity('prepare', adapter, inventory);
+    assert.equal(prepared.status, 'PREPARED'); assert.equal(prepared.deleted, true); assert.equal(prepared.freeAfterBytes, 36 * 1024 ** 3);
+    assert.equal(fs.existsSync(target), false); assert.equal(fs.readFileSync(sentinel, 'utf8'), 'preserve'); assert(calls > 1);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('capacity subprocess kills hung or cancelled groups and rejects excessive or failed output', async () => {
+  await assert.rejects(capacity.capacityCommand(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { timeout: 100 }), /deadline/);
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(capacity.capacityCommand(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { signal: controller.signal }), /cancel/);
+  await assert.rejects(capacity.capacityCommand(process.execPath, ['-e', 'process.stdout.write("x".repeat(65537))']), /output/);
+  await assert.rejects(capacity.capacityCommand(process.execPath, ['-e', 'process.exit(1)']), /command/);
+  assert.equal(await capacity.capacityCommand(process.execPath, ['-e', 'process.stdout.write("42")']), '42');
+});
+
+test('official SDK leaf mode 777 is accepted while actual writable parent mode is refused', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdk-mode-'));
+  const leaf = path.join(root, 'sdk'); fs.mkdirSync(leaf); fs.chmodSync(root, 0o755); fs.chmodSync(leaf, 0o777);
+  try {
+    assert.equal(capacity.capacityModes(fs.statSync(leaf).mode, [fs.statSync(root).mode]), true);
+    fs.chmodSync(root, 0o777); assert.equal(capacity.capacityModes(fs.statSync(leaf).mode, [fs.statSync(root).mode]), false);
+    fs.chmodSync(root, 0o755); fs.chmodSync(leaf, 0o755); assert.equal(capacity.capacityModes(fs.statSync(leaf).mode, [fs.statSync(root).mode]), false);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('capacity failures retain numeric cause and never retain hostile state fields or remove SDK', async () => {
+  const f = capacityFixture(); f.allocatedBytes = 1; f.private = 'SECRET'; let removed = false;
+  await assert.rejects(capacity.hostedCapacity('inventory', { observe: async () => f, remove: async () => { removed = true; } }), error => {
+    assert.equal(error.capacityEvidence.status, 'REFUSED'); assert.equal(error.capacityEvidence.phase, 'validate');
+    assert.equal(error.capacityEvidence.observed.requiredBytes, 33867431936); assert.equal(error.capacityEvidence.observed.freeBytes, 16 * 1024 ** 3);
+    assert.match(error.capacityEvidence.reason, /insufficient/); assert(!JSON.stringify(error.capacityEvidence).includes('SECRET')); return true;
+  });
+  assert.equal(removed, false);
+});
+
+test('capacity command intent and actual PID precede terminal records on timeout and cancellation', async () => {
+  for (const cancel of [false, true]) {
+    const records = [], controller = new AbortController();
+    const record = e => { records.push(e); if (cancel && e.status === 'running') controller.abort(); };
+    await assert.rejects(capacity.capacityCommand(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { timeout: 100, signal: controller.signal, record }), /deadline|cancel/);
+    assert.deepEqual(records.map(e => e.status), ['intent', 'running', 'terminal']); assert.equal(records[0].pid, null);
+    assert(Number.isSafeInteger(records[1].pid) && records[1].pid > 1); assert.equal(records[2].pid, records[1].pid);
+    assert.equal(records[2].signal, 'SIGKILL'); assert.throws(() => process.kill(records[1].pid, 0), { code: 'ESRCH' });
+  }
+});
 
 function inspectFixture() {
   const image = 'sha256:' + 'a'.repeat(64), revision = 'b'.repeat(40), identity = 'c'.repeat(64), profile = diagnosticProfile('control');
@@ -251,6 +339,15 @@ test('fresh full ref runs the player guard only in full rehearsal and preserves 
     assert.equal(guard(github, { REHEARSAL_MODE: mode }), guarded, [event, ref, mode].join(' '));
   }
   assert.match(workflow, /default: rehearsal/); assert.match(workflow, /timeout-minutes: 45/);
+  const capacityJob = workflow.slice(workflow.indexOf('\n  capacity:'));
+  const capacityGate = new Function('github', 'inputs', 'return (' + capacityJob.match(/^    if: \$\{\{ (.+) \}\}$/m)[1] + ');');
+  for (const [event, ref, mode, repository, expected] of [
+    ['workflow_dispatch', full, 'hosted-capacity-v1', 'Reedtrullz/Keyspilli', true],
+    ['workflow_dispatch', full, 'rehearsal', 'Reedtrullz/Keyspilli', false],
+    ['workflow_dispatch', full + '-other', 'hosted-capacity-v1', 'Reedtrullz/Keyspilli', false],
+    ['push', full, 'hosted-capacity-v1', 'Reedtrullz/Keyspilli', false],
+    ['workflow_dispatch', full, 'hosted-capacity-v1', 'foreign/repository', false],
+  ]) assert.equal(capacityGate({ event_name: event, ref, repository }, { mode }), expected);
 });
 
 test('only the two declared viewports are accepted and copies cannot mutate defaults', () => {

@@ -39,6 +39,12 @@ on:
         options:
           - rehearsal
           - native-crash-v1
+          - hosted-capacity-v1
+      capacity_inventory:
+        description: "Accepted capacity-only JSON receipt from this exact source and hosted image; required for owned full corrective"
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -87,6 +93,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Enable pnpm via Corepack (version pinned by packageManager)
         run: corepack enable
+
+      - name: Prepare bounded disposable hosted capacity before lease
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && env.REHEARSAL_MODE == 'rehearsal' }}
+        shell: bash
+        timeout-minutes: 10
+        env:
+          KEYSPILLI_CAPACITY_INVENTORY: ${{ inputs.capacity_inventory }}
+        run: node deploy/player-guard-run.mjs --hosted-capacity prepare > "$RUNNER_TEMP/keyspilli-hosted-capacity.json"
 
       - name: Reserve owned test resources
         run: python3 deploy/evidence-job.py begin
@@ -271,3 +285,40 @@ jobs:
             ${{ runner.temp }}/keyspilli-evidence.tar.gz
             rehearsal-out
           retention-days: 90
+
+      - name: Retain bounded pre-lease capacity receipt
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hosted-capacity-preparation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/keyspilli-hosted-capacity.json
+            ${{ runner.temp }}/keyspilli-hosted-capacity-commands.json
+          if-no-files-found: error
+
+  capacity:
+    name: Read-only disposable hosted capacity inventory
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'hosted-capacity-v1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+    steps:
+      - name: Check out exact inventory source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Inventory bounded hosted capacity without application or lease
+        timeout-minutes: 10
+        run: node deploy/player-guard-run.mjs --hosted-capacity inventory > "$RUNNER_TEMP/keyspilli-hosted-capacity.json"
+      - name: Retain bounded capacity inventory
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hosted-capacity-inventory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/keyspilli-hosted-capacity.json
+            ${{ runner.temp }}/keyspilli-hosted-capacity-commands.json
+          if-no-files-found: error

@@ -8,6 +8,172 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { execFileSync, spawn } from 'node:child_process';
 
+const SDK = '/usr/local/lib/android/sdk';
+const GIB = 1024 ** 3;
+export function capacityModes(leafMode, parentModes) {
+  return Number.isInteger(leafMode) && (leafMode & 0o7777) === 0o777 && parentModes.length > 0 && parentModes.every(mode => Number.isInteger(mode) && (mode & 0o022) === 0);
+}
+export function capacityRequirement(state) {
+  assert.deepEqual(Object.keys(state.settings).sort(), ['limit', 'maxEntries', 'peak', 'reserve']);
+  const { reserve, limit, maxEntries, peak } = state.settings;
+  for (const value of [reserve, limit, maxEntries, peak, state.managedBytes]) assert(Number.isSafeInteger(value) && value >= 0, 'invalid effective capacity setting');
+  assert(reserve >= 6 * GIB && limit >= 16 * GIB && maxEntries >= 100000 && peak === 12 * GIB, 'capacity guards cannot be reduced');
+  const required = reserve + 2 * peak + state.managedBytes + maxEntries * 16384 + 16 * 1048576;
+  assert(Number.isSafeInteger(required), 'capacity overflow');
+  assert(state.managedBytes + peak <= limit, 'managed allocator limit insufficient');
+  return required;
+}
+export function requireHostedCapacity(s, mode, prior) {
+  assert(['inventory', 'prepare'].includes(mode), 'unknown capacity mode');
+  assert.equal(s.repository, 'Reedtrullz/Keyspilli'); assert.equal(s.event, 'workflow_dispatch');
+  assert.equal(s.ref, 'refs/heads/codex/keyspilli-native-full-20261104');
+  assert(typeof s.expected === 'string' && /^[a-f0-9]{40}$/.test(s.expected) && s.expected.length === 40, 'exact expected commit required');
+  assert.equal(s.commit, s.expected, 'stale source commit'); assert.equal(s.dispatchCommit, s.expected, 'stale dispatched commit'); assert.equal(s.clean, true, 'dirty source');
+  assert.equal(s.hosted, 'github-hosted'); assert.equal(s.actions, 'true'); assert.equal(s.imageOS, 'ubuntu24');
+  assert(typeof s.imageVersion === 'string' && /^\d{8}\.\d+\.\d+$/.test(s.imageVersion), 'invalid hosted image identity');
+  assert.equal(s.os, '24.04'); assert.equal(s.platform, 'linux'); assert.equal(s.arch, 'x64');
+  assert.equal(s.runnerOwner, true); assert.equal(s.disposable, true);
+  assert(Number.isSafeInteger(s.runnerUid) && s.runnerUid > 0, 'trusted hosted runner UID required');
+  assert.equal(s.target, SDK, 'unapproved SDK target'); assert.equal(s.canonical, true, 'linked or noncanonical SDK'); assert(s.owner === 0 || s.owner === s.runnerUid, 'foreign SDK owner'); assert.equal(s.ancestorsSafe, true, 'unsafe SDK parent or leaf permissions'); assert.equal(s.mountSafe, true, 'foreign SDK mount');
+  assert.equal(s.handles, 0, 'SDK has open handles'); assert.equal(s.callers, 0, 'SDK has build or runtime callers');
+  for (const value of [s.allocatedBytes, s.freeBytes]) assert(Number.isSafeInteger(value) && value >= 0, 'invalid observed bytes');
+  assert(s.allocatedBytes > 0 && s.allocatedBytes <= 32 * GIB, 'SDK absent or allocated size exceeds 32GiB');
+  const requiredBytes = capacityRequirement(s);
+  // du is candidate capacity only; retain 1GiB headroom before risking removal.
+  assert(s.freeBytes + s.allocatedBytes >= requiredBytes + GIB, 'SDK insufficient for complete allocator and preparation headroom');
+  if (mode === 'prepare') {
+    assert(prior?.status === 'INVENTORY_ONLY' && prior.deleted === false, 'accepted inventory required');
+    assert.equal(prior.kind, 'keyspilli-hosted-capacity'); requireHostedCapacity(prior, 'inventory');
+    for (const key of ['repository', 'event', 'ref', 'commit', 'expected', 'imageOS', 'imageVersion', 'target', 'owner', 'sdkMode', 'runnerUid']) assert.equal(prior[key], s[key], 'stale inventory ' + key);
+    const permissions = value => value?.map(({ path, uid, gid, mode }) => ({ path, uid, gid, mode }));
+    assert.deepEqual(permissions(prior.ancestry), permissions(s.ancestry), 'stale inventory parent permissions');
+    assert.deepEqual(prior.settings, s.settings, 'stale effective settings'); assert.equal(prior.requiredBytes, capacityRequirement(prior), 'malformed inventory capacity');
+  }
+  return { requiredBytes };
+}
+export async function capacityCommand(command, args, { timeout = 60000, signal, codes = [0], record = () => {} } = {}) {
+  assert(Number.isInteger(timeout) && timeout > 0 && timeout <= 60000, 'bounded command deadline required');
+  const entry = { id: randomUUID(), executable: command, argumentCount: args.length, status: 'intent', pid: null, startedAt: new Date().toISOString() };
+  record({ ...entry });
+  if (signal?.aborted) { record({ ...entry, status: 'terminal', reason: 'cancelled-before-spawn', code: null, signal: null }); throw new Error('capacity cancel'); }
+  return await new Promise((resolve, reject) => {
+    const child = spawn(command, args, { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    entry.pid = child.pid ?? null; entry.status = 'running';
+    let output = '', bytes = 0, stderrBytes = 0, failure;
+    const stop = reason => { failure ??= new Error(reason); try { process.kill(-child.pid, 'SIGKILL'); } catch (e) { if (e.code !== 'ESRCH') failure = e; } };
+    const cancel = () => stop('capacity cancel');
+    signal?.addEventListener('abort', cancel, { once: true });
+    const timer = setTimeout(() => stop('capacity deadline'), timeout);
+    child.stdout.on('data', data => { bytes += data.length; if (bytes <= 65536) output += data; else stop('capacity output cap'); });
+    child.stderr.on('data', data => { bytes += data.length; stderrBytes += data.length; if (bytes > 65536) stop('capacity output cap'); });
+    child.on('error', error => { failure = error; });
+    child.on('close', (code, terminalSignal) => { clearTimeout(timer); signal?.removeEventListener('abort', cancel); record({ ...entry, status: 'terminal', code, signal: terminalSignal, bytes, reason: failure?.message ?? (!codes.includes(code) || stderrBytes ? 'command-failed' : 'complete') }); if (failure || !codes.includes(code) || stderrBytes) reject(failure ?? new Error('capacity command failed')); else resolve(output.trim()); });
+    try { record({ ...entry }); } catch (error) { assert(error instanceof Error); stop('capacity journal failed'); }
+    if (signal?.aborted) cancel();
+  });
+}
+function hostCapacityAdapter(signal, record) {
+  const command = (exe, args) => capacityCommand(exe, args, { signal, record });
+  const free = async () => {
+    const text = await command('/bin/df', ['-B1', '--output=avail', process.env.RUNNER_TEMP]);
+    assert(/^Avail\s+\d+$/.test(text), 'malformed numeric df'); return Number(text.split(/\s+/)[1]);
+  };
+  return { free, remove: async target => { assert.equal(target, SDK); await command('/usr/bin/sudo', ['-n', '/bin/rm', '-rf', '--', SDK]); }, observe: async () => {
+    const env = process.env;
+    assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
+    assert.equal(env.RUNNER_ENVIRONMENT, 'github-hosted'); assert.equal(env.GITHUB_ACTIONS, 'true');
+    assert.equal(env.GITHUB_REPOSITORY, 'Reedtrullz/Keyspilli'); assert.equal(env.GITHUB_EVENT_NAME, 'workflow_dispatch');
+    assert.equal(env.GITHUB_REF, 'refs/heads/codex/keyspilli-native-full-20261104'); assert.equal(env.ImageOS, 'ubuntu24');
+    let pid = process.ppid, runnerOwner = false, runnerUid;
+    for (let i = 0; i < 20 && pid > 1; i++) {
+      if (fs.readFileSync('/proc/' + pid + '/comm', 'utf8').trim() === 'Runner.Worker') { runnerOwner = fs.realpathSync('/proc/' + pid + '/exe').startsWith('/home/runner/'); runnerUid = Number(fs.readFileSync('/proc/' + pid + '/status', 'utf8').match(/^Uid:\s+(\d+)/m)?.[1]); assert.equal(runnerUid, process.getuid(), 'foreign runner process owner'); break; }
+      pid = Number(fs.readFileSync('/proc/' + pid + '/status', 'utf8').match(/^PPid:\s+(\d+)$/m)?.[1]);
+    }
+    const root = fs.realpathSync(env.GITHUB_WORKSPACE), temp = fs.realpathSync(env.RUNNER_TEMP);
+    assert(root.startsWith('/home/runner/work/') && temp.startsWith('/home/runner/work/'), 'non-disposable workspace');
+    const commit = await command('/usr/bin/git', ['-C', root, 'rev-parse', 'HEAD']);
+    const clean = (await command('/usr/bin/git', ['-C', root, 'status', '--porcelain', '--untracked-files=all'])) === '';
+    const target = fs.lstatSync(SDK), device = fs.statSync(temp).dev;
+    // Pinned runner-images install-android-sdk.sh deliberately chmods the SDK leaf a+rwx.
+    // Parents retain strict root ownership/non-writability; leaf ownership is observed, never presumed.
+    let ancestorsSafe = target.isDirectory() && !target.isSymbolicLink(); const ancestry = [];
+    for (let p = path.dirname(SDK); ; p = path.dirname(p)) { const s = fs.lstatSync(p); ancestry.push({ path: p, uid: s.uid, gid: s.gid, mode: s.mode, device: s.dev }); ancestorsSafe &&= s.isDirectory() && !s.isSymbolicLink() && s.uid === 0 && s.dev === device; if (p === '/') break; }
+    ancestorsSafe &&= capacityModes(target.mode, ancestry.map(entry => entry.mode));
+    const mounts = fs.readFileSync('/proc/self/mountinfo', 'utf8'); assert(Buffer.byteLength(mounts) <= 1048576, 'mount metadata cap');
+    const mountSafe = !mounts.split('\n').some(line => { const mount = line.split(' ')[4]; return mount === SDK || mount?.startsWith(SDK + '/'); });
+    const allocated = await command('/usr/bin/sudo', ['-n', '/usr/bin/du', '-s', '-B1', '--', SDK]);
+    assert(new RegExp('^[0-9]+\\s+' + SDK + '$').test(allocated), 'malformed allocated bytes');
+    const handleText = await capacityCommand('/usr/bin/sudo', ['-n', '/usr/bin/lsof', '-t', '+D', SDK], { signal, record, codes: [0, 1] });
+    assert(handleText === '' || /^\d+(\n\d+)*$/.test(handleText), 'malformed handle census');
+    const handles = handleText === '' ? 0 : new Set(handleText.split('\n')).size;
+    // Scan all tracked text inputs, including invoked scripts/lockfiles, except this policy and its direct tests.
+    const callerText = await capacityCommand('/usr/bin/git', ['-C', root, 'grep', '-I', '-i', '-l', '-E', 'android[_-]?(home|sdk)|/usr/local/lib/android|sdkmanager|gradlew|gradle', '--', '.', ':(exclude)deploy/player-guard-run.mjs', ':(exclude)deploy/test/player-guard.test.mjs'], { signal, record, codes: [0, 1] });
+    const processCallers = await command('/usr/bin/sudo', ['-n', '/usr/bin/python3', '-c', "import os,pathlib; target=b'/usr/local/lib/android/sdk'; count=0\nfor p in pathlib.Path('/proc').iterdir():\n if p.name.isdigit() and int(p.name) not in (os.getpid(),os.getppid()):\n  try: count+=int(target in (p/'cmdline').read_bytes())\n  except (FileNotFoundError,ProcessLookupError): pass\nprint(count)"]);
+    assert(/^\d+$/.test(processCallers), 'malformed runtime caller census');
+    const callers = (callerText === '' ? 0 : callerText.split('\n').length) + Number(processCallers);
+    const number = (key, fallback) => { const text = env[key] ?? String(fallback); assert(/^[0-9]+$/.test(text), 'invalid effective numeric setting'); return Number(text); };
+    const managed = path.join(temp, 'keyspilli-evidence'); const managedBytes = 0;
+    try { const stat = fs.lstatSync(managed); assert(stat.isDirectory() && !stat.isSymbolicLink(), 'foreign managed root'); assert.equal(fs.realpathSync(managed), managed); assert.equal(fs.readdirSync(managed).length, 0, 'fresh disposable managed root required'); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    return { repository: env.GITHUB_REPOSITORY, event: env.GITHUB_EVENT_NAME, ref: env.GITHUB_REF, expected: env.EXPECTED_COMMIT, dispatchCommit: env.GITHUB_SHA, commit, clean,
+      hosted: env.RUNNER_ENVIRONMENT, actions: env.GITHUB_ACTIONS, imageOS: env.ImageOS, imageVersion: env.ImageVersion,
+      os: fs.readFileSync('/etc/os-release', 'utf8').match(/^VERSION_ID="([^"]+)"$/m)?.[1], platform: process.platform, arch: process.arch, runnerOwner, runnerUid, ancestry, disposable: true,
+      target: SDK, canonical: fs.realpathSync(SDK) === SDK && target.isDirectory() && !target.isSymbolicLink(), owner: target.uid, sdkMode: target.mode & 0o7777, ancestorsSafe, mountSafe, handles, callers,
+      allocatedBytes: Number(allocated.split(/\s+/)[0]), freeBytes: await free(), managedBytes,
+      settings: { reserve: number('KEYSPILLI_EVIDENCE_RESERVE_BYTES', 6 * GIB), limit: number('KEYSPILLI_EVIDENCE_LIMIT_BYTES', 16 * GIB), maxEntries: number('KEYSPILLI_EVIDENCE_MAX_ENTRIES', 100000), peak: 12 * GIB } };
+  } };
+}
+export async function hostedCapacity(mode, adapter, prior) {
+  assert(['inventory', 'prepare'].includes(mode), 'unknown capacity mode');
+  const result = { kind: 'keyspilli-hosted-capacity', status: 'REFUSED', deleted: false, phase: 'observe' };
+  try {
+    const state = await adapter.observe();
+    result.phase = 'validate';
+    result.observed = Object.fromEntries(['freeBytes', 'allocatedBytes', 'managedBytes', 'owner', 'runnerUid', 'handles', 'callers'].map(key => [key, Number.isSafeInteger(state[key]) && state[key] >= 0 ? state[key] : 'invalid']));
+    result.observed.settings = Object.fromEntries(['reserve', 'limit', 'maxEntries', 'peak'].map(key => [key, Number.isSafeInteger(state.settings?.[key]) && state.settings[key] >= 0 ? state.settings[key] : 'invalid']));
+    for (const key of ['canonical', 'ancestorsSafe', 'mountSafe', 'runnerOwner', 'clean']) result.observed[key] = state[key] === true;
+    result.observed.requiredBytes = capacityRequirement(state);
+    result.observed.candidateBytes = Number.isSafeInteger(state.freeBytes + state.allocatedBytes) ? state.freeBytes + state.allocatedBytes : 'invalid';
+    const capacity = requireHostedCapacity(state, mode, prior);
+    const allowed = ['repository', 'event', 'ref', 'expected', 'dispatchCommit', 'commit', 'clean', 'hosted', 'actions', 'imageOS', 'imageVersion', 'os', 'platform', 'arch', 'runnerOwner', 'runnerUid', 'ancestry', 'disposable', 'target', 'canonical', 'owner', 'sdkMode', 'ancestorsSafe', 'mountSafe', 'handles', 'callers', 'allocatedBytes', 'freeBytes', 'managedBytes', 'settings'];
+    Object.assign(result, Object.fromEntries(allowed.filter(key => state[key] !== undefined).map(key => [key, state[key]])), capacity, { status: 'INVENTORY_ONLY', phase: 'inventory' });
+    if (mode === 'prepare') {
+      result.phase = 'repeat';
+      const repeated = await adapter.observe(); requireHostedCapacity(repeated, mode, prior);
+      assert.deepEqual(repeated.settings, state.settings, 'settings changed before removal');
+      result.freeBeforeBytes = repeated.freeBytes; result.requiredBytes = capacityRequirement(repeated);
+      result.phase = 'remove'; result.deletionAttempted = true; result.deleted = null; await adapter.remove(SDK); result.deleted = true;
+      result.phase = 'df-after'; result.freeAfterBytes = await adapter.free();
+      assert(Number.isSafeInteger(result.freeAfterBytes) && result.freeAfterBytes >= result.requiredBytes, 'measured df still insufficient after SDK removal');
+      result.status = 'PREPARED'; result.phase = 'complete';
+    }
+    assert(Buffer.byteLength(JSON.stringify(result)) <= 4194304, 'capacity evidence cap');
+    return result;
+  } catch (error) { assert(error instanceof Error); result.status = 'REFUSED'; result.reason = error.code === 'ERR_ASSERTION' && error.generatedMessage !== true ? error.message.slice(0, 160) : 'host identity or observation refused'; error.capacityEvidence = result; throw error; }
+}
+async function capacityCLI(mode) {
+  const controller = new AbortController(), cancel = () => controller.abort();
+  process.once('SIGTERM', cancel); process.once('SIGINT', cancel);
+  const timer = setTimeout(cancel, 540000);
+  let result, journalFd; const commands = [];
+  const record = entry => {
+    assert(commands.length < 256, 'capacity command journal cap'); commands.push(entry);
+    if (journalFd === undefined) {
+      const temp = fs.realpathSync(process.env.RUNNER_TEMP); assert(temp.startsWith('/home/runner/work/'), 'disposable journal path required');
+      journalFd = fs.openSync(path.join(temp, 'keyspilli-hosted-capacity-commands.json'), 'wx', 0o600);
+    }
+    const body = JSON.stringify({ kind: 'keyspilli-capacity-command-journal', commands }); assert(Buffer.byteLength(body) <= 1048576, 'capacity journal byte cap');
+    fs.ftruncateSync(journalFd, 0); fs.writeSync(journalFd, body, 0, 'utf8'); fs.fsyncSync(journalFd);
+  };
+  try {
+    const text = process.env.KEYSPILLI_CAPACITY_INVENTORY ?? ''; assert(Buffer.byteLength(text) <= 65536, 'inventory input cap');
+    result = await hostedCapacity(mode, hostCapacityAdapter(controller.signal, record), mode === 'prepare' ? JSON.parse(text) : undefined);
+  } catch (error) { assert(error instanceof Error); result = { ...error.capacityEvidence, kind: 'keyspilli-hosted-capacity', status: 'REFUSED', error: error.code ?? error.name, nativeQualified: false }; process.exitCode = 1; }
+  finally { clearTimeout(timer); process.removeListener('SIGTERM', cancel); process.removeListener('SIGINT', cancel); if (journalFd !== undefined) fs.closeSync(journalFd); }
+  result.commands = commands;
+  console.log(JSON.stringify(result));
+}
+
 export const WRITABLE = Object.freeze({ '/tmp': 15, '/dev/shm': 4, '/data': 16, '/browser-results': 4, '/sentinels': 1 });
 const PROFILES = Object.freeze({
   control: Object.freeze({ memoryMiB: 1024, writable: WRITABLE }),
@@ -411,6 +577,8 @@ async function host(image, revision, profileName) {
   return receipt;
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv[2] === '--hosted-capacity') { assert.equal(process.argv.length, 4); await capacityCLI(process.argv[3]); }
+  else
   if (process.argv[2] === '--observe-owned') { assert([5, 6].includes(process.argv.length)); if (process.argv.length === 6) assert.equal(process.argv[5], '--release'); console.log(JSON.stringify(ownedResources(process.argv[3], process.argv[4], process.argv.length === 6))); }
   else if (process.argv[2] === '--inside') await inside(process.argv[3]);
   else if (process.argv[6] === '--diagnostic') {
