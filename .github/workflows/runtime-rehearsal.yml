@@ -39,6 +39,7 @@ on:
         options:
           - rehearsal
           - native-crash-v1
+          - native-pid-census-v1
 
 permissions:
   contents: read
@@ -60,7 +61,7 @@ jobs:
     name: Native amd64 restore and canary on the public seed catalog (no production access)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-observer-corrective-20261104' && inputs.mode == 'native-crash-v1'))) }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-observer-corrective-20261104' && inputs.mode == 'native-crash-v1') || (github.ref == 'refs/heads/codex/keyspilli-pid-census-20261104' && inputs.mode == 'native-pid-census-v1'))) }}
     env:
       EXPECTED_COMMIT: ${{ inputs.expected_commit || github.sha }}
       REHEARSAL_MODE: ${{ inputs.mode || 'rehearsal' }}
@@ -78,6 +79,9 @@ jobs:
             native-crash-v1)
               test "$GITHUB_EVENT_NAME" = workflow_dispatch
               test "$GITHUB_REF" = refs/heads/codex/keyspilli-observer-corrective-20261104 ;;
+            native-pid-census-v1)
+              test "$GITHUB_EVENT_NAME" = workflow_dispatch
+              test "$GITHUB_REF" = refs/heads/codex/keyspilli-pid-census-20261104 ;;
             *) exit 1 ;;
           esac
 
@@ -116,11 +120,11 @@ jobs:
           fi
 
       - name: Collect bounded native crash diagnostic cells (not restore qualification)
-        if: ${{ env.REHEARSAL_MODE == 'native-crash-v1' }}
+        if: ${{ env.REHEARSAL_MODE == 'native-crash-v1' || env.REHEARSAL_MODE == 'native-pid-census-v1' }}
         timeout-minutes: 8
         run: |
           node --experimental-strip-types --test deploy/test/player-guard.test.mjs
-          node deploy/player-guard-run.mjs --image "$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')" --revision "$EXPECTED_COMMIT" --diagnostic native-crash-v1
+          node deploy/player-guard-run.mjs --image "$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')" --revision "$EXPECTED_COMMIT" --diagnostic "$REHEARSAL_MODE"
 
       - name: Qualify the player guard (owned qualification ref only)
         if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' }}
@@ -252,6 +256,7 @@ jobs:
             ${{ env.KEYSPILLI_EVIDENCE }}/player-guard-writable.json
             ${{ env.KEYSPILLI_EVIDENCE }}/player-guard-ram.json
             ${{ env.KEYSPILLI_EVIDENCE }}/native-crash-diagnostic.json
+            ${{ env.KEYSPILLI_EVIDENCE }}/native-pid-census.json
           if-no-files-found: error
 
       - name: Release owned test resources

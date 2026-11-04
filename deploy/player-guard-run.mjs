@@ -126,6 +126,117 @@ export function validate(image, revision) {
   assert.match(image, /^sha256:[a-f0-9]{64}$/); assert.match(revision, /^[a-f0-9]{40}$/);
   assert(Object.values(WRITABLE).reduce((a, b) => a + b, 0) + 16 <= 64);
 }
+// Linux directory descriptors pin proc identities across PID reuse; fixtures use checked directories on macOS.
+export function collectOwnedPidSnapshot({ pid, identity, procRoot = '/proc', cgroupRoot = '/sys/fs/cgroup', deadlineMs = Infinity }) {
+  const snapshot = { atMs: Date.now(), complete: false, tasks: [], gaps: [] }, handles = [];
+  const id = value => { assert.match(String(value), /^[1-9][0-9]{0,9}$/); const n = Number(value); assert(Number.isSafeInteger(n) && n <= 2147483647 && String(n) === String(value)); return n; };
+  const directory = file => {
+    const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW); handles.push(fd);
+    return process.platform === 'linux' ? '/proc/self/fd/' + fd : file;
+  };
+  const read = file => {
+    assert(Date.now() < deadlineMs, 'cell deadline');
+    const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
+    try { assert(fs.fstatSync(fd).isFile(), 'kernel file type'); const bytes = Buffer.alloc(8193), size = fs.readSync(fd, bytes, 0, bytes.length, 0); assert(size <= 8192, 'kernel file cap'); return bytes.subarray(0, size).toString('utf8'); }
+    finally { fs.closeSync(fd); }
+  };
+  const ids = text => { assert.match(text, /^(?:[1-9][0-9]*\n?)+$/); const result = text.trim().split('\n').map(id); assert.equal(new Set(result).size, result.length); assert(result.length <= 128, 'task cap'); return result; };
+  const group = dir => { const value = read(dir + '/cgroup'); assert.match(value, /^0::\/[a-zA-Z0-9_./-]+\n?$/); const result = value.trim().slice(3); assert(!result.includes('//') && result.split('/').slice(1).every(p => p && p !== '.' && p !== '..'), 'cgroup path'); return result; };
+  const stamp = (dir, expected) => { const text = read(dir + '/stat'), match = text.match(/^([1-9][0-9]*) \([\s\S]*\) [A-Za-z] (.*)\n?$/); assert(match && id(match[1]) === expected, 'stat identity'); const start = match[2].trim().split(/\s+/)[18]; assert.match(start ?? '', /^[0-9]+$/); return start; };
+  try {
+    id(pid); assert(pid > 1); assert.match(identity, /^[a-f0-9]{64}$/); assert.equal(identity.length, 64);
+    for (const root of [procRoot, cgroupRoot]) assert.equal(fs.realpathSync(root), root, 'root symlink');
+    const proc = directory(procRoot), owner = directory(proc + '/' + pid), cgroup = group(owner);
+    assert(['/docker/' + identity, '/system.slice/docker-' + identity + '.scope'].includes(cgroup), 'exact container cgroup');
+    snapshot.containerId = identity; snapshot.pid = pid; snapshot.cgroup = cgroup; snapshot.ownerStart = stamp(owner, pid);
+    let cg = directory(cgroupRoot); for (const segment of cgroup.slice(1).split('/')) cg = directory(cg + '/' + segment);
+    const membersText = read(cg + '/cgroup.procs'), tidsText = read(cg + '/cgroup.threads');
+    const members = ids(membersText), tids = ids(tidsText); assert(members.includes(pid), 'owner membership');
+    snapshot.members = members; snapshot.threadIds = [...tids];
+    for (const member of members) {
+      try {
+        const p = directory(proc + '/' + member); assert.equal(group(p), cgroup, 'foreign member'); const processStart = stamp(p, member);
+        const namespacePidText = read(p + '/status').match(/^NSpid:\s*([^\n]+)$/m)?.[1]; assert(namespacePidText, 'missing process namespace');
+        const namespacePids = namespacePidText.trim().split(/\s+/).map(id); assert.equal(namespacePids[0], member); assert(namespacePids.length <= 32);
+        const processComm = read(p + '/comm'); assert(Buffer.byteLength(processComm) <= 17, 'comm cap');
+        const taskDir = directory(p + '/task'), taskIds = fs.readdirSync(taskDir).map(id); assert(taskIds.length > 0 && taskIds.length <= 128, 'task cap');
+        for (const tid of taskIds) {
+          try {
+            assert(tids.includes(tid), 'thread membership'); assert(snapshot.tasks.length < 128, 'task cap');
+            const t = directory(taskDir + '/' + tid); assert.equal(group(t), cgroup, 'foreign thread'); const start = stamp(t, tid);
+            const status = read(t + '/status'), comm = read(t + '/comm'); assert(Buffer.byteLength(comm) <= 17, 'comm cap');
+            const field = name => { const matches = [...status.matchAll(new RegExp('^' + name + ':\\s*([^\\n]+)$', 'gm'))]; assert.equal(matches.length, 1, 'missing status field'); return matches[0][1].trim(); };
+            assert.equal(id(field('Tgid')), member); assert.equal(id(field('Pid')), tid);
+            const namespaceIds = field('NSpid').split(/\s+/).map(id); assert.equal(namespaceIds[0], tid); assert(namespaceIds.length <= 32);
+            const parentText = field('PPid'); assert.match(parentText, /^(0|[1-9][0-9]{0,9})$/); const parentPid = Number(parentText); assert(Number.isSafeInteger(parentPid) && parentPid <= 2147483647);
+            const threads = id(field('Threads')); assert.equal(threads, taskIds.length, 'thread count changed');
+            assert.equal(group(t), cgroup); assert.equal(stamp(t, tid), start, 'PID reuse'); assert.equal(group(p), cgroup); assert.equal(stamp(p, member), processStart, 'process reuse');
+            snapshot.tasks.push({ hostPid: member, hostTid: tid, namespacePids, namespaceIds, parentPid, processComm: processComm.replace(/\n$/, ''), comm: comm.replace(/\n$/, ''), threads, start });
+          } catch (error) { snapshot.gaps.push({ kind: 'task-raced-or-invalid', pid: member, tid, code: error instanceof Error && typeof error.code === 'string' ? error.code : 'INVALID' }); }
+        }
+      } catch (error) { snapshot.gaps.push({ kind: 'process-raced-or-invalid', pid: member, code: error instanceof Error && typeof error.code === 'string' ? error.code : 'INVALID' }); }
+    }
+    assert.equal(read(cg + '/cgroup.procs'), membersText, 'membership changed'); assert.equal(read(cg + '/cgroup.threads'), tidsText, 'thread membership changed');
+    assert.equal(group(owner), cgroup); assert.equal(stamp(owner, pid), snapshot.ownerStart, 'owner reuse');
+    assert.deepEqual(snapshot.tasks.map(t => t.hostTid).sort((a,b)=>a-b), tids.sort((a,b)=>a-b), 'incomplete task coverage');
+    snapshot.complete = snapshot.gaps.length === 0;
+  } catch (error) { snapshot.tasks = []; snapshot.gaps.push({kind:'ownership-or-membership-unavailable',code:error instanceof Error && typeof error.code === 'string' ? error.code : 'INVALID'}); }
+  finally { for (const fd of handles.reverse()) fs.closeSync(fd); }
+  return snapshot;
+}
+export function createPidCensus(owned, startedMs) {
+  const report = { version: 'native-pid-census-v1', containerId: owned.identity, pid: owned.pid, startedMs, stopped: false, snapshots: [], gaps: [] };
+  let last, binding;
+  return { report, sample(now = Date.now()) {
+    if (report.stopped) return;
+    if (!Number.isFinite(now) || !Number.isFinite(startedMs) || now < startedMs || (last !== undefined && now < last)) { report.gaps.push('invalid-clock'); return; }
+    if (now >= startedMs + 120000) { report.gaps.push('cell-deadline'); report.stopped = true; return; }
+    if (last !== undefined && now - last < 1000) return;
+    if (report.snapshots.length >= 120) { report.gaps.push('snapshot-cap'); report.stopped = true; return; }
+    const snapshot = collectOwnedPidSnapshot({...owned,deadlineMs:Date.now() + startedMs + 120000 - now}); snapshot.atMs = now; snapshot.intervalMs = last === undefined ? null : now - last;
+    if (snapshot.intervalMs > 1500) report.gaps.push('sampling-gap');
+    last = now;
+    const current = JSON.stringify([snapshot.containerId, snapshot.pid, snapshot.cgroup, snapshot.ownerStart]);
+    binding ??= current;
+    if (current !== binding) { snapshot.tasks = []; snapshot.complete = false; snapshot.gaps.push({kind:'stale-owner'}); }
+    if (Buffer.byteLength(JSON.stringify({...report,snapshots:[...report.snapshots,snapshot]})) > 1048576) { report.gaps.push('byte-cap'); report.stopped = true; return; }
+    report.snapshots.push(snapshot);
+  }, stop(reason) {
+    report.stopped = true; report.stopReason = reason;
+    if (reason !== 'terminal') report.gaps.push(reason);
+    while (Buffer.byteLength(JSON.stringify(report)) > 1048576 && report.snapshots.length) { report.snapshots.pop(); if (!report.gaps.includes('byte-cap')) report.gaps.push('byte-cap'); }
+  } };
+}
+export function pidCensusVerdicts(packet) {
+  const r = packet.pidCensus;
+  let complete = false;
+  try {
+    const numeric = n => Number.isSafeInteger(n) && n > 0 && n <= 2147483647;
+    assert.equal(r.version, 'native-pid-census-v1'); assert.match(r.containerId,/^[a-f0-9]{64}$/); assert.equal(r.containerId.length,64);
+    assert(numeric(r.pid) && r.pid>1 && Number.isFinite(r.startedMs)); assert.equal(r.stopped,true); assert.equal(r.stopReason,'terminal'); assert.deepEqual(r.gaps,[]);
+    assert(Array.isArray(r.snapshots) && r.snapshots.length>0 && r.snapshots.length<=120 && Buffer.byteLength(JSON.stringify(r))<=1048576);
+    for(const [i,s] of r.snapshots.entries()) {
+      assert.equal(s.complete,true); assert.deepEqual(s.gaps,[]); assert.equal(s.containerId,r.containerId); assert.equal(s.pid,r.pid);
+      assert(['/docker/'+r.containerId,'/system.slice/docker-'+r.containerId+'.scope'].includes(s.cgroup));
+      assert.equal(s.cgroup,r.snapshots[0].cgroup); assert.match(s.ownerStart,/^[0-9]+$/); assert.equal(s.ownerStart,r.snapshots[0].ownerStart);
+      assert(Number.isFinite(s.atMs) && s.atMs>=r.startedMs && s.atMs<r.startedMs+120000);
+      if(i===0) assert.equal(s.intervalMs,null); else assert(s.intervalMs===s.atMs-r.snapshots[i-1].atMs && s.intervalMs>=1000 && s.intervalMs<=1500);
+      assert(s.members.length>0 && s.members.length<=128 && s.members.every(numeric) && s.members.includes(r.pid) && new Set(s.members).size===s.members.length);
+      assert(s.threadIds.length>0 && s.threadIds.length<=128 && s.threadIds.every(numeric) && new Set(s.threadIds).size===s.threadIds.length);
+      assert(s.tasks.length>0 && s.tasks.length<=128);
+      assert.deepEqual(s.tasks.map(t=>t.hostTid).sort((a,b)=>a-b),[...s.threadIds].sort((a,b)=>a-b));
+      for(const t of s.tasks) {
+        assert(numeric(t.hostPid) && numeric(t.hostTid) && s.members.includes(t.hostPid));
+        for(const [values,host] of [[t.namespacePids,t.hostPid],[t.namespaceIds,t.hostTid]]) assert(values.length>0 && values.length<=32 && values.every(numeric) && values[0]===host);
+        assert(Number.isSafeInteger(t.parentPid) && t.parentPid>=0 && t.parentPid<=2147483647); assert.match(t.start,/^[0-9]+$/);
+        assert.equal(t.threads,s.tasks.filter(other=>other.hostPid===t.hostPid).length);
+        for(const name of [t.processComm,t.comm]) assert(typeof name==='string' && Buffer.byteLength(name)<=16);
+      }
+    }
+    complete = packet.containerRemoved===true && packet.scratchRemoved===true && !packet.cancelled && !packet.deadlineExceeded;
+  } catch (error) { if (!(error instanceof Error)) throw error; }
+  return { collection: complete ? 'COMPLETE' : 'INCOMPLETE', functional: (packet.functionalStatus ?? packet.status) === 'passed' && packet.code === 0 ? 'passed' : 'failed', attribution: 'UNRESOLVED' };
+}
 const hash = p => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 // Bounded health diagnostic: only clipped scalars, no raw body or message; attempts and last state are the whole footprint.
 const clip = v => v === undefined ? v : typeof v === 'string' ? v.slice(0, 64).replace(/[^\w.:-]/g, '?') : typeof v;
@@ -285,7 +396,7 @@ async function inside(revision) {
   }
 }
 
-async function host(image, revision, profileName) {
+async function host(image, revision, profileName, censusMode = false) {
   const diagnostic = profileName !== undefined, profile = diagnosticProfile(profileName ?? 'control');
   validate(image, revision); assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
   assert.equal(process.env.GITHUB_ACTIONS, 'true'); assert(process.env.KEYSPILLI_EVIDENCE && process.env.KEYSPILLI_SCRATCH);
@@ -299,6 +410,7 @@ async function host(image, revision, profileName) {
   const scratch = fs.mkdtempSync(path.join(process.env.KEYSPILLI_SCRATCH, 'player-guard-'));
   const binary = path.join(scratch, 'guard'); const name = 'keyspilli-player-guard-' + randomUUID().slice(0, 12);
   let receipt = { kind: 'keyspilli-guard-admission', status: 'failed', image, revision }, failure;
+  if (censusMode) receipt.functionalStatus = 'failed';
   const piano = process.env.KEYSPILLI_NATIVE_PIANO_DIR; assert(piano && path.isAbsolute(piano) && fs.realpathSync(piano) === piano);
   try {
     command('gcc', ['-static', '-O2', '-std=c11', '-Wall', '-Wextra', '-Werror', path.join(root, 'deploy/player-guard.c'), '-o', binary], { env: { ...process.env, TMPDIR: scratch } });
@@ -317,21 +429,27 @@ async function host(image, revision, profileName) {
     assert.deepEqual(Object.keys(inspected.HostConfig.Tmpfs).sort(), Object.keys(WRITABLE).sort());
     let output;
     if (diagnostic) {
+      const cellStarted = Date.now(); let census;
       const terminal = await new Promise(resolve => {
         const child = spawn('docker', ['start', '-a', name], { stdio: ['ignore', 'pipe', 'pipe'] });
         let stdout = '', stderr = ''; const resourceErrors = [];
         const observe = (release = false) => { try {
           const state = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', name], { timeout: 2000 }));
           if (state.Running && state.Pid > 1 && !receipt.resources?.beforeTeardown) {
+            if (censusMode) {
+              census ??= createPidCensus({pid:state.Pid,identity}, cellStarted); receipt.pidCensus = census.report;
+              if (state.Pid !== census.report.pid) census.report.gaps.push('inspected-owner-changed');
+              else census.sample();
+            }
             receipt.resources = JSON.parse(command('sudo', ['-n', process.execPath, fileURLToPath(import.meta.url), '--observe-owned', String(state.Pid), identity, ...(release ? ['--release'] : [])], { timeout: 2000 }));
             receipt.mountUsage = accumulateMountUsage(receipt.mountUsage, receipt.resources);
           }
         } catch (error) { if (resourceErrors.length < 4) resourceErrors.push(String(error.message).slice(0, 512)); } };
         const timer = setInterval(observe, 1000);
         const stop = () => { try { command('docker', ['stop', '--time', '0', name], { timeout: 2000 }); } catch (error) { receipt.killError = String(error.message).slice(0, 512); } finally { child.kill('SIGKILL'); } };
-        const cancel = () => { receipt.cancelled = true; observe(); stop(); };
+        const cancel = () => { receipt.cancelled = true; observe(); if (censusMode) census?.stop('cancelled'); stop(); };
         process.once('SIGINT', cancel); process.once('SIGTERM', cancel);
-        const deadline = setTimeout(() => { observe(); receipt.deadlineExceeded = true; stop(); }, 120000);
+        const deadline = setTimeout(() => { observe(); receipt.deadlineExceeded = true; if (censusMode) census?.stop('deadline'); stop(); }, 120000);
         for (const [key, stream, cap] of [['stdout', child.stdout, 1048576], ['stderr', child.stderr, 65536]]) stream.on('data', data => {
           const previous = key === 'stdout' ? stdout : stderr;
           const remaining = Math.max(0, cap - Buffer.byteLength(previous)); const next = previous + data.subarray(0, remaining).toString();
@@ -340,7 +458,7 @@ async function host(image, revision, profileName) {
           if (data.length > remaining) receipt[key + 'Clipped'] = true;
         });
         child.on('error', error => { receipt.launchError = String(error); });
-        child.on('close', (code, signal) => { clearInterval(timer); clearTimeout(deadline); process.off('SIGINT', cancel); process.off('SIGTERM', cancel); resolve({ stdout, stderr, code, signal, resourceErrors }); });
+        child.on('close', (code, signal) => { clearInterval(timer); clearTimeout(deadline); process.off('SIGINT', cancel); process.off('SIGTERM', cancel); if (censusMode) census?.stop('terminal'); resolve({ stdout, stderr, code, signal, resourceErrors }); });
       });
       const { stdout, stderr, ...state } = terminal;
       Object.assign(receipt, state); output = stdout;
@@ -357,6 +475,7 @@ async function host(image, revision, profileName) {
     assert.equal(result?.status, 'passed'); assert.equal(reaper?.remainingChildren, 0); assert(reaper.reaped.some(p => p.pid === result.survivorPid && p.signal === 9));
     assert.equal(state.Pid, 0); assert.equal(state.ExitCode, 0); assert.equal(state.OOMKilled, false);
     Object.assign(receipt, { state, image, writableMiB: Object.values(profile.writable).reduce((a, b) => a + b, 0), helperSha256: hash(binary), sourceSha256: hash(path.join(root, 'deploy/player-guard.c')) });
+    if (censusMode) receipt.functionalStatus = 'passed';
   } catch (error) {
     failure = error; receipt.status = 'failed'; receipt.hostError = String(error.message).slice(0, 4096); receipt.error ??= receipt.hostError;
     if (!diagnostic) { receipt.stdout ??= String(error.stdout ?? '').slice(0, 524288); receipt.stderr ??= String(error.stderr ?? '').slice(0, 65536); }
@@ -370,6 +489,12 @@ async function host(image, revision, profileName) {
       fs.rmSync(scratch, { recursive: true }); receipt.scratchRemoved = true;
     } catch (error) { receipt.status = 'failed'; receipt.cleanupError = String(error); failure ??= error; }
     if (diagnostic) { try { requireDiagnosticEvidence(receipt); receipt.evidenceComplete = true; } catch (error) { receipt.evidenceComplete = false; receipt.evidenceError = String(error); receipt.status = 'failed'; failure ??= error; } }
+    if (censusMode) {
+      while (Buffer.byteLength(JSON.stringify(receipt, null, 2)) > 1000000 && receipt.pidCensus?.snapshots.length) {
+        receipt.pidCensus.snapshots.pop(); if (!receipt.pidCensus.gaps.includes('receipt-cap')) receipt.pidCensus.gaps.push('receipt-cap');
+      }
+      receipt.censusVerdicts = pidCensusVerdicts(receipt);
+    }
     const body = JSON.stringify(receipt, null, 2) + '\n'; assert(Buffer.byteLength(body) <= 1048576, 'receipt output cap');
     fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, diagnostic ? 'player-guard-' + profileName + '.json' : 'player-guard-admission.json'), body, { flag: 'wx' });
   }
@@ -379,6 +504,15 @@ async function host(image, revision, profileName) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv[2] === '--observe-owned') { assert([5, 6].includes(process.argv.length)); if (process.argv.length === 6) assert.equal(process.argv[5], '--release'); console.log(JSON.stringify(ownedResources(process.argv[3], process.argv[4], process.argv.length === 6))); }
   else if (process.argv[2] === '--inside') await inside(process.argv[3]);
+  else if (process.argv[6] === '--diagnostic' && process.argv[7] === 'native-pid-census-v1') {
+    assert.equal(process.argv.length, 8); assert.deepEqual([process.argv[2], process.argv[4]], ['--image', '--revision']);
+    assert.equal(process.env.GITHUB_REF, 'refs/heads/codex/keyspilli-pid-census-20261104');
+    const cell = await host(process.argv[3], process.argv[5], 'control', true);
+    const verdicts = cell.censusVerdicts ?? pidCensusVerdicts(cell);
+    const result = {kind:'keyspilli-native-pid-census',scope:'diagnostic-only',image:process.argv[3],revision:process.argv[5],verdicts,cells:[{artifact:'player-guard-control.json',sha256:hash(path.join(process.env.KEYSPILLI_EVIDENCE,'player-guard-control.json'))}],status:verdicts.collection === 'COMPLETE' && verdicts.functional === 'passed' && cell.evidenceComplete ? 'passed' : 'failed'};
+    fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, 'native-pid-census.json'), JSON.stringify(result, null, 2)+'\n', {flag:'wx'});
+    if (result.status !== 'passed') process.exitCode = 1;
+  }
   else if (process.argv[6] === '--diagnostic') {
     assert.equal(process.argv.length, 8); assert.equal(process.argv[7], 'native-crash-v1');
     assert.deepEqual([process.argv[2], process.argv[4]], ['--image', '--revision']);

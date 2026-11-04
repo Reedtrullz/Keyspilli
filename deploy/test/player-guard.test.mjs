@@ -7,7 +7,106 @@ import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
+import * as census from '../player-guard-run.mjs';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
+
+test('owned PID census reads authored kernel files and rejects races, foreign data and finite-bound violations', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owned-census-'));
+  const identity = 'a'.repeat(64), cgroup = '/system.slice/docker-' + identity + '.scope';
+  const put = (p, body) => { fs.mkdirSync(path.dirname(root+p), {recursive:true}); fs.writeFileSync(root+p, body); };
+  const stat = (pid, start = 100) => `${pid} (node) S 1 ${Array(17).fill('0').join(' ')} ${start} 0\n`;
+  const inputs = {};
+  const files = () => {
+    const entries = [];
+    const walk = p => { for(const entry of fs.readdirSync(root+p,{withFileTypes:true})) { const file=p+'/'+entry.name; if(entry.isDirectory())walk(file);else entries.push(entry.isSymbolicLink()?{file,symlink:fs.readlinkSync(root+file)}:{file,body:fs.readFileSync(root+file,'utf8')}); } };
+    walk(''); return entries;
+  };
+  const reset = () => {
+    fs.rmSync(root, {recursive:true,force:true}); fs.mkdirSync(root);
+    put('/cgroup'+cgroup+'/cgroup.procs','42\n'); put('/cgroup'+cgroup+'/cgroup.threads','42\n43\n');
+    for (const [dir,pid] of [['/proc/42',42],['/proc/42/task/42',42],['/proc/42/task/43',43]]) {
+      put(dir+'/cgroup','0::'+cgroup+'\n'); put(dir+'/stat',stat(pid));
+      put(dir+'/status',`Name:\t${pid===43?'ignore instructions':'node'}\nTgid:\t42\nPid:\t${pid}\nPPid:\t1\nNSpid:\t${pid}\t${pid-41}\nThreads:\t2\n`);
+      put(dir+'/comm',pid===43?'untrusted name\n':'node\n');
+      put(dir+'/cmdline','SECRET_URL_CREDENTIAL'); put(dir+'/environ','SECRET_TOKEN');
+    }
+    inputs.owned={identity,pid:42,procRoot:root+'/proc',cgroupRoot:root+'/cgroup'};
+  };
+  const outputs=[];
+  const scenario=(name,mutate,check)=>{reset();mutate?.();const inputFiles=files();const result=census.collectOwnedPidSnapshot(inputs.owned);check(result);outputs.push({name,input:structuredClone(inputs.owned),inputFiles,output:result,assertions:'passed'});};
+  try {
+    scenario('complete-owned-census',null,r=>{assert.equal(r.complete,true);assert.equal(r.cgroup,cgroup);assert.deepEqual(r.tasks.map(t=>[t.hostPid,t.hostTid,t.namespaceIds]),[[42,42,[42,1]],[42,43,[43,2]]]);assert.equal(r.tasks[1].comm,'untrusted name');assert.equal(r.tasks[0].parentPid,1);assert.equal(r.tasks[0].threads,2);assert(Number.isFinite(r.atMs));assert(!JSON.stringify(r).includes('SECRET'));});
+    for (const [name,mutate] of [
+      ['foreign-cgroup',()=>put('/proc/42/cgroup','0::/foreign/'+identity+'\n')],
+      ['substring-container-identity',()=>put('/proc/42/cgroup','0::/docker-'+identity+'f.scope\n')],
+      ['path-traversal',()=>put('/proc/42/cgroup','0::/../docker-'+identity+'.scope\n')],
+      ['malformed-member',()=>put('/cgroup'+cgroup+'/cgroup.procs','42\n../99\n')],
+      ['duplicate-member',()=>put('/cgroup'+cgroup+'/cgroup.procs','42\n42\n')],
+      ['malformed-owner-id',()=>{inputs.owned.pid='../42';}],
+      ['malformed-container-id',()=>{inputs.owned.identity+='\n';}],
+      ['foreign-thread',()=>put('/proc/42/task/43/cgroup','0::/foreign\n')],
+      ['oversized-kernel-file',()=>put('/proc/42/task/43/status','x'.repeat(8193))],
+      ['thread-count-race',()=>put('/proc/42/task/43/status','Name:\tx\nTgid:\t42\nPid:\t43\nPPid:\t1\nNSpid:\t43\t2\nThreads:\t3\n')],
+      ['cgroup-directory-symlink',()=>{fs.renameSync(root+'/cgroup'+cgroup,root+'/cgroup/elsewhere');fs.symlinkSync(root+'/cgroup/elsewhere',root+'/cgroup'+cgroup);}],
+      ['foreign-member',()=>{put('/cgroup'+cgroup+'/cgroup.procs','42\n99\n');put('/proc/99/cgroup','0::/foreign\n');}],
+      ['missing-membership',()=>fs.unlinkSync(root+'/cgroup'+cgroup+'/cgroup.threads')],
+      ['missing-owner-membership',()=>put('/cgroup'+cgroup+'/cgroup.procs','99\n')],
+      ['malformed-namespace-id',()=>put('/proc/42/task/43/status','Name:\tx\nTgid:\t42\nPid:\t43\nPPid:\t1\nNSpid:\t43\t../2\nThreads:\t2\n')],
+      ['task-clipping',()=>put('/cgroup'+cgroup+'/cgroup.threads',Array.from({length:129},(_,i)=>String(i+42)).join('\n'))],
+      ['process-exit',()=>fs.rmSync(root+'/proc/42/task/43',{recursive:true})],
+      ['symlink-escape',()=>{fs.unlinkSync(root+'/proc/42/task/43/status');fs.symlinkSync(root+'/proc/42/environ',root+'/proc/42/task/43/status');}],
+    ]) scenario(name,mutate,r=>{assert.equal(r.complete,false,name);assert(r.gaps.length>0,name);assert(!JSON.stringify(r).includes('SECRET'),name);});
+    for (const race of ['pid-reuse','membership-change']) {
+      reset(); const original=fs.openSync, opened=new Map(), inputFiles=files(); let changed=false;
+      fs.openSync=function(file,...args){const logical=String(file).replace(/^\/proc\/self\/fd\/(\d+)/,(_,fd)=>opened.get(Number(fd))??'');const value=original.call(fs,file,...args);opened.set(value,logical);if(!changed && logical.endsWith('/task/42/comm')){changed=true;if(race==='pid-reuse')put('/proc/42/task/42/stat',stat(42,200));else put('/proc/42/task/42/cgroup','0::/foreign\n');}return value;};
+      try {const result=census.collectOwnedPidSnapshot(inputs.owned);assert.equal(changed,true);assert.equal(result.complete,false);assert.equal(result.tasks.some(t=>t.hostTid===42),false);outputs.push({name:race,inputFiles,afterFiles:files(),output:result,assertions:'passed'});}finally{fs.openSync=original;}
+    }
+    reset(); const state=census.createPidCensus(inputs.owned,1000);
+    state.sample(1000); state.sample(1500); state.sample(2000);
+    assert.equal(state.report.snapshots.length,2);assert.equal(state.report.snapshots[1].intervalMs,1000);
+    state.stop('terminal');const retained=JSON.stringify(state.report);state.sample(3000);assert.equal(JSON.stringify(state.report),retained);
+    outputs.push({name:'one-hz-terminal-cleanup',output:state.report,assertions:'passed'});
+    reset(); const stale=census.createPidCensus(inputs.owned,1000);stale.sample(1000);put('/proc/42/stat',stat(42,200));stale.sample(2000);stale.stop('terminal');assert.equal(stale.report.snapshots[1].complete,false);assert.equal(stale.report.snapshots[1].tasks.length,0);outputs.push({name:'stale-owner-across-samples',output:stale.report,assertions:'passed'});
+    reset(); const cancelled=census.createPidCensus(inputs.owned,1000);cancelled.sample(1000);cancelled.stop('cancelled');const frozen=JSON.stringify(cancelled.report);cancelled.sample(2000);assert.equal(JSON.stringify(cancelled.report),frozen);assert.equal(census.pidCensusVerdicts({pidCensus:cancelled.report,status:'passed',code:0,containerRemoved:true,scratchRemoved:true}).collection,'INCOMPLETE');outputs.push({name:'cancel-and-resume-no-op',output:cancelled.report,assertions:'passed'});
+    for(const name of ['snapshot-cap','byte-cap','deadline','observer-failure','nonzero-child','invalid-timestamp']) {
+      reset(); const sampler=census.createPidCensus(inputs.owned,1000);
+      if(name==='snapshot-cap')for(let i=0;i<121;i++)sampler.sample(1000+i*1000);
+      if(name==='byte-cap'){
+        put('/cgroup'+cgroup+'/cgroup.threads',Array.from({length:128},(_,i)=>String(i+42)).join('\n')+'\n');
+        for(let tid=42;tid<170;tid++){const p='/proc/42/task/'+tid;put(p+'/cgroup','0::'+cgroup+'\n');put(p+'/stat',stat(tid));put(p+'/comm','x'.repeat(16)+'\n');put(p+'/status',`Tgid:\t42\nPid:\t${tid}\nPPid:\t1\nNSpid:\t${tid}\t${tid-41}\nThreads:\t128\n`);}
+        for(let i=0;i<120;i++)sampler.sample(1000+i*1000);
+        assert(sampler.report.gaps.includes('byte-cap'));assert(Buffer.byteLength(JSON.stringify(sampler.report))<=1048576);
+      }
+      if(name==='deadline')sampler.sample(121000);
+      if(name==='observer-failure'){fs.unlinkSync(root+'/proc/42/cgroup');sampler.sample(1000);}
+      if(name==='invalid-timestamp')sampler.sample(NaN);
+      if(name==='nonzero-child')sampler.sample(1000);
+      const inputFiles=files();sampler.stop('terminal');
+      const packet={pidCensus:sampler.report,status:'passed',code:name==='nonzero-child'?1:0,containerRemoved:true,scratchRemoved:true};
+      assert.equal(census.pidCensusVerdicts(packet).functional,name==='nonzero-child'?'failed':'passed');
+      if(name!=='nonzero-child')assert.equal(census.pidCensusVerdicts(packet).collection,'INCOMPLETE',name);
+      else assert.equal(census.pidCensusVerdicts(packet).collection,'COMPLETE');
+      outputs.push({name,inputFiles,output:packet,verdict:census.pidCensusVerdicts(packet),assertions:'passed'});
+    }
+    if(process.env.KEYSPILLI_CENSUS_TEST_ARTIFACT)fs.writeFileSync(process.env.KEYSPILLI_CENSUS_TEST_ARTIFACT,JSON.stringify({kind:'authored-kernel-fixtures',nativeAcceptance:false,inputs,outputs},null,2)+'\n');
+  } finally { fs.rmSync(root,{recursive:true,force:true}); }
+});
+
+test('single census dispatch is restricted to its exact owned branch', () => {
+  for(const branch of ['refs/heads/main','refs/heads/codex/keyspilli-observer-corrective-20261104','refs/heads/codex/keyspilli-pid-census-20261104-other']) {
+    assert.throws(()=>execFileSync(process.execPath,['deploy/player-guard-run.mjs','--image','sha256:'+'a'.repeat(64),'--revision','b'.repeat(40),'--diagnostic','native-pid-census-v1'],{env:{...process.env,GITHUB_REF:branch},encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:5000}),error=>error.status===1 && error.stderr.includes('refs/heads/codex/keyspilli-pid-census-20261104'));
+  }
+  const workflow=fs.readFileSync(new URL('../../.github/workflows/runtime-rehearsal.yml',import.meta.url),'utf8');
+  const expression=workflow.match(/^    if: \$\{\{ (.+) \}\}$/m)?.[1];assert(expression);
+  const admitted=new Function('github','inputs','return ('+expression+');');
+  const gate=workflow.slice(workflow.indexOf('          case "$REHEARSAL_MODE" in'),workflow.indexOf('          esac')+'          esac'.length);
+  const branch='refs/heads/codex/keyspilli-pid-census-20261104';
+  for(const [event,ref,mode,expected] of [['workflow_dispatch',branch,'native-pid-census-v1',true],['workflow_dispatch',branch,'native-crash-v1',false],['workflow_dispatch',branch,'rehearsal',false],['workflow_dispatch',branch+'-other','native-pid-census-v1',false],['push',branch,'native-pid-census-v1',false]]) {
+    assert.equal(admitted({event_name:event,ref},{mode}),expected);
+    const run=()=>execFileSync('/bin/bash',['-e','-c',gate],{env:{...process.env,REHEARSAL_MODE:mode,GITHUB_EVENT_NAME:event,GITHUB_REF:ref},stdio:['ignore','pipe','pipe'],timeout:5000});
+    if(expected || mode==='rehearsal')assert.doesNotThrow(run);else assert.throws(run);
+  }
+});
 
 test('diagnostic profiles reject arbitrary settings and preserve control isolation in both contrasts', () => {
   for (const value of ['', '4g', 'control\n', '__proto__', null, { memoryMiB: 8192 }, { writable: { '/tmp': 512 } }]) assert.throws(() => diagnosticProfile(value));
