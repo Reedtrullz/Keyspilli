@@ -40,6 +40,7 @@ on:
           - rehearsal
           - native-crash-v1
           - hosted-capacity-v1
+          - rehearsal-no-cleanup-v1
       capacity_inventory:
         description: "Accepted capacity-only JSON receipt from this exact source and hosted image; required for owned full corrective"
         required: false
@@ -64,12 +65,12 @@ jobs:
         shell: >-
           python3 -c "import os,runpy;runpy.run_path(os.path.join(os.environ['GITHUB_WORKSPACE'],'deploy/evidence-step.py'),run_name='__main__')" {0}
     name: Native amd64 restore and canary on the public seed catalog (no production access)
-    runs-on: ubuntu-24.04
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') && 'ubuntu-26.04' || 'ubuntu-24.04' }}
     timeout-minutes: 45
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal') || (github.ref == 'refs/heads/codex/keyspilli-observer-corrective-20261104' && inputs.mode == 'native-crash-v1'))) }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal') || (github.ref == 'refs/heads/codex/keyspilli-observer-corrective-20261104' && inputs.mode == 'native-crash-v1'))) }}
     env:
       EXPECTED_COMMIT: ${{ inputs.expected_commit || github.sha }}
-      REHEARSAL_MODE: ${{ inputs.mode || 'rehearsal' }}
+      REHEARSAL_MODE: ${{ (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') && 'rehearsal' || inputs.mode || 'rehearsal' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -95,12 +96,25 @@ jobs:
         run: corepack enable
 
       - name: Prepare bounded disposable hosted capacity before lease
-        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && env.REHEARSAL_MODE == 'rehearsal' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal' }}
         shell: bash
         timeout-minutes: 10
         env:
           KEYSPILLI_CAPACITY_INVENTORY: ${{ inputs.capacity_inventory }}
         run: node deploy/player-guard-run.mjs --hosted-capacity prepare > "$RUNNER_TEMP/keyspilli-hosted-capacity.json"
+
+      - name: Read back hosted capacity without cleanup
+        if: ${{ (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') }}
+        shell: bash
+        timeout-minutes: 1
+        run: |
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = Reedtrullz/Keyspilli
+          test "$GITHUB_REF" = refs/heads/codex/keyspilli-native-full-20261104
+          test "$EXPECTED_COMMIT" = "$GITHUB_SHA"
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$ImageOS" = ubuntu26
+          df -B1 --output=avail,target -- "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
 
       - name: Reserve owned test resources
         run: python3 deploy/evidence-job.py begin
@@ -287,7 +301,7 @@ jobs:
           retention-days: 90
 
       - name: Retain bounded pre-lease capacity receipt
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' }}
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode != 'rehearsal-no-cleanup-v1' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hosted-capacity-preparation-${{ github.run_id }}-${{ github.run_attempt }}
