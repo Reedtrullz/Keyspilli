@@ -581,6 +581,18 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   else
   if (process.argv[2] === '--observe-owned') { assert([5, 6].includes(process.argv.length)); if (process.argv.length === 6) assert.equal(process.argv[5], '--release'); console.log(JSON.stringify(ownedResources(process.argv[3], process.argv[4], process.argv.length === 6))); }
   else if (process.argv[2] === '--inside') await inside(process.argv[3]);
+  else if (process.argv[6] === '--observe-control') {
+    assert.equal(process.argv.length, 7);
+    assert.deepEqual([process.argv[2], process.argv[4]], ['--image', '--revision']);
+    assert.equal(process.env.GITHUB_REPOSITORY, 'Reedtrullz/Keyspilli');
+    assert.equal(process.env.GITHUB_EVENT_NAME, 'workflow_dispatch');
+    assert.equal(process.env.GITHUB_REF, 'refs/heads/codex/keyspilli-native-full-20261104');
+    assert.equal(process.env.GITHUB_SHA, process.argv[5]);
+    assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
+    assert.equal(process.env.ImageOS, 'ubuntu26');
+    const cell = await host(process.argv[3], process.argv[5], 'control');
+    if (!cell.evidenceComplete || cell.status !== 'passed') process.exitCode = 1;
+  }
   else if (process.argv[6] === '--diagnostic') {
     assert.equal(process.argv.length, 8); assert.equal(process.argv[7], 'native-crash-v1');
     assert.deepEqual([process.argv[2], process.argv[4]], ['--image', '--revision']);

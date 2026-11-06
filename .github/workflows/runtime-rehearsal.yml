@@ -8,6 +8,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'apps/web/package.json'
       - 'apps/web/Dockerfile'
+      - 'apps/web/Dockerfile.dockerignore'
+      - '.dockerignore'
       - 'apps/web/src/components/player/**'
       - 'apps/web/scripts/verify-native-player.mts'
       - 'apps/web/scripts/prepare-native-piano.mts'
@@ -23,6 +25,7 @@ on:
       - 'deploy/player-node-guard.cjs'
       - 'deploy/test/player-guard.test.mjs'
       - 'deploy/evidence-docker.py'
+      - 'deploy/evidence_transport.py'
       - 'deploy/evidence_resources.py'
       - 'deploy/test/test-evidence.py'
   workflow_dispatch:
@@ -41,6 +44,7 @@ on:
           - native-crash-v1
           - hosted-capacity-v1
           - rehearsal-no-cleanup-v1
+          - observe-control-v1
       capacity_inventory:
         description: "Accepted capacity-only JSON receipt from this exact source and hosted image; required for owned full corrective"
         required: false
@@ -65,9 +69,16 @@ jobs:
         shell: >-
           python3 -c "import os,runpy;runpy.run_path(os.path.join(os.environ['GITHUB_WORKSPACE'],'deploy/evidence-step.py'),run_name='__main__')" {0}
     name: Native amd64 restore and canary on the public seed catalog (no production access)
-    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') && 'ubuntu-26.04' || 'ubuntu-24.04' }}
+    runs-on: >-
+      ${{ (github.repository == 'Reedtrullz/Keyspilli' &&
+        ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' &&
+          (inputs.mode == 'rehearsal-no-cleanup-v1' || inputs.mode == 'observe-control-v1')) ||
+         (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository &&
+          github.base_ref == 'main' && (github.head_ref == 'codex/perf-web-python-tests-context-20261028' ||
+          github.head_ref == 'codex/keyspilli-task17-player-performance-20261106'))))
+        && 'ubuntu-26.04' || 'ubuntu-24.04' }}
     timeout-minutes: 45
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal') || (github.ref == 'refs/heads/codex/keyspilli-observer-corrective-20261104' && inputs.mode == 'native-crash-v1'))) }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && (inputs.mode == 'rehearsal-no-cleanup-v1' || inputs.mode == 'observe-control-v1')) || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal') || (github.ref == 'refs/heads/codex/keyspilli-observer-corrective-20261104' && inputs.mode == 'native-crash-v1'))) }}
     env:
       EXPECTED_COMMIT: ${{ inputs.expected_commit || github.sha }}
       REHEARSAL_MODE: ${{ (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') && 'rehearsal' || inputs.mode || 'rehearsal' }}
@@ -82,6 +93,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
           case "$REHEARSAL_MODE" in
             rehearsal) ;;
+            observe-control-v1)
+              test "$GITHUB_EVENT_NAME" = workflow_dispatch
+              test "$GITHUB_REPOSITORY" = Reedtrullz/Keyspilli
+              test "$GITHUB_REF" = refs/heads/codex/keyspilli-native-full-20261104 ;;
             native-crash-v1)
               test "$GITHUB_EVENT_NAME" = workflow_dispatch
               test "$GITHUB_REF" = refs/heads/codex/keyspilli-observer-corrective-20261104 ;;
@@ -104,13 +119,22 @@ jobs:
         run: node deploy/player-guard-run.mjs --hosted-capacity prepare > "$RUNNER_TEMP/keyspilli-hosted-capacity.json"
 
       - name: Read back hosted capacity without cleanup
-        if: ${{ (github.event_name == 'workflow_dispatch' && github.repository == 'Reedtrullz/Keyspilli' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal-no-cleanup-v1') }}
+        if: >-
+          ${{ github.repository == 'Reedtrullz/Keyspilli' &&
+            ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' &&
+              (inputs.mode == 'rehearsal-no-cleanup-v1' || inputs.mode == 'observe-control-v1')) ||
+             (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository &&
+              github.base_ref == 'main' && (github.head_ref == 'codex/perf-web-python-tests-context-20261028' ||
+              github.head_ref == 'codex/keyspilli-task17-player-performance-20261106'))) }}
         shell: bash
         timeout-minutes: 1
         run: |
-          test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REPOSITORY" = Reedtrullz/Keyspilli
-          test "$GITHUB_REF" = refs/heads/codex/keyspilli-native-full-20261104
+          if test "$GITHUB_EVENT_NAME" = workflow_dispatch; then
+            test "$GITHUB_REF" = refs/heads/codex/keyspilli-native-full-20261104
+          else
+            test "$GITHUB_EVENT_NAME" = pull_request
+          fi
           test "$EXPECTED_COMMIT" = "$GITHUB_SHA"
           test "$RUNNER_ENVIRONMENT" = github-hosted
           test "$ImageOS" = ubuntu26
@@ -149,6 +173,13 @@ jobs:
         run: |
           node --experimental-strip-types --test deploy/test/player-guard.test.mjs
           node deploy/player-guard-run.mjs --image "$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')" --revision "$EXPECTED_COMMIT" --diagnostic native-crash-v1
+
+      - name: Observe unchanged player guard control (owned qualification ref only)
+        if: ${{ env.REHEARSAL_MODE == 'observe-control-v1' }}
+        timeout-minutes: 5
+        run: |
+          node --experimental-strip-types --test deploy/test/player-guard.test.mjs
+          node deploy/player-guard-run.mjs --image "$(docker image inspect keyspilli-rehearsal-web:candidate --format '{{.Id}}')" --revision "$EXPECTED_COMMIT" --observe-control
 
       - name: Qualify the player guard (owned qualification ref only)
         if: ${{ github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/codex/keyspilli-o17-phase-20261103' || (github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && env.REHEARSAL_MODE == 'rehearsal')) }}
@@ -291,6 +322,7 @@ jobs:
         run: sudo --preserve-env=RUNNER_TEMP,KEYSPILLI_EVIDENCE_ROOT,KEYSPILLI_EVIDENCE_RUN,KEYSPILLI_REAL_DOCKER,JOB_STATUS python3 deploy/evidence-job.py finish
 
       - name: Retain raw results and reconstruction maps
+        id: canonical
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -300,8 +332,120 @@ jobs:
             rehearsal-out
           retention-days: 90
 
+      - name: Package complete bounded evidence transport
+        id: transport
+        if: ${{ always() && github.repository == 'Reedtrullz/Keyspilli' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && (inputs.mode == 'rehearsal-no-cleanup-v1' || inputs.mode == 'observe-control-v1') && steps.canonical.outcome == 'success' }}
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          test -f "$RUNNER_TEMP/keyspilli-evidence.tar.gz"
+          available="$(df -B1 --output=avail "$RUNNER_TEMP" | tail -1)"
+          test "$available" -ge 6979321856
+          python3 -B deploy/evidence_transport.py pack "$RUNNER_TEMP/keyspilli-evidence.tar.gz" \
+            "$GITHUB_WORKSPACE/rehearsal-out" "$RUNNER_TEMP/keyspilli-transport" --transfer-reserve 17825792
+          parts=("$RUNNER_TEMP"/keyspilli-transport/part-*.bin)
+          echo "parts=${#parts[@]}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload bounded evidence manifest
+        if: ${{ always() && steps.transport.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-manifest
+          path: ${{ runner.temp }}/keyspilli-transport/manifest.json
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 00
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 0 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-00
+          path: ${{ runner.temp }}/keyspilli-transport/part-00.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 01
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 1 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-01
+          path: ${{ runner.temp }}/keyspilli-transport/part-01.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 02
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 2 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-02
+          path: ${{ runner.temp }}/keyspilli-transport/part-02.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 03
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 3 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-03
+          path: ${{ runner.temp }}/keyspilli-transport/part-03.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 04
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 4 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-04
+          path: ${{ runner.temp }}/keyspilli-transport/part-04.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 05
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 5 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-05
+          path: ${{ runner.temp }}/keyspilli-transport/part-05.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 06
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 6 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-06
+          path: ${{ runner.temp }}/keyspilli-transport/part-06.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 07
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 7 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-07
+          path: ${{ runner.temp }}/keyspilli-transport/part-07.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 08
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 8 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-08
+          path: ${{ runner.temp }}/keyspilli-transport/part-08.bin
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Upload bounded evidence part 09
+        if: ${{ always() && steps.transport.outcome == 'success' && fromJSON(steps.transport.outputs.parts || '0') > 9 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyspilli-transport-${{ github.run_id }}-${{ github.run_attempt }}-part-09
+          path: ${{ runner.temp }}/keyspilli-transport/part-09.bin
+          compression-level: 0
+          if-no-files-found: error
+
       - name: Retain bounded pre-lease capacity receipt
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode != 'rehearsal-no-cleanup-v1' }}
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/keyspilli-native-full-20261104' && inputs.mode == 'rehearsal' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hosted-capacity-preparation-${{ github.run_id }}-${{ github.run_attempt }}
