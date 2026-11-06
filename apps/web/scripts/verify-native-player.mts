@@ -141,27 +141,37 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     if (!id) throw new Error("Advanced control was not prepared");
     phase("health-upload-chords", "exit");
     phase("browser-startup", "entry");
-    browser = await chromium.launch({ headless: true });
-    browser.on("disconnected", () => observeBrowser("browser-disconnected"));
-    browserObservation.armed = true;
-    observeBrowser("browser-launched");
-    context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
-    context.on("page", (page: Page) => {
-      const label = activePhase.startsWith("chords") ? "chords" : activePhase.startsWith("silence") ? "silence" : "original";
-      unwatch.push(watchPage(page, label, note));
-      page.on("crash", () => observeBrowser("page-crash"));
-      page.on("close", () => observeBrowser("page-close"));
-    });
-    await context.route("https://smpldsnds.github.io/**", async route => {
-      const body = bank.assets.get(route.request().url());
-      if (!body) { note("route", "miss", cleanUrl(route.request().url())); return route.abort(); }
-      note("route", "hit");
-      await route.fulfill({ status: 200, contentType: "audio/ogg", body, headers: { "Access-Control-Allow-Origin": "*" } });
-    });
+    const openCaptureBrowser = async () => {
+      closingBrowser = false;
+      browser = await chromium.launch({ headless: true });
+      browser.on("disconnected", () => observeBrowser("browser-disconnected"));
+      browserObservation.armed = true;
+      observeBrowser("browser-launched");
+      context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
+      context.on("page", (page: Page) => {
+        const label = activePhase.startsWith("chords") ? "chords" : activePhase.startsWith("silence") ? "silence" : "original";
+        unwatch.push(watchPage(page, label, note));
+        page.on("crash", () => observeBrowser("page-crash"));
+        page.on("close", () => observeBrowser("page-close"));
+      });
+      await context.route("https://smpldsnds.github.io/**", async route => {
+        const body = bank.assets.get(route.request().url());
+        if (!body) { note("route", "miss", cleanUrl(route.request().url())); return route.abort(); }
+        note("route", "hit");
+        await route.fulfill({ status: 200, contentType: "audio/ogg", body, headers: { "Access-Control-Allow-Origin": "*" } });
+      });
+      return context;
+    };
+    const closeCaptureBrowser = async () => {
+      closingBrowser = true;
+      await context?.close(); context = undefined;
+      await browser?.close(); browser = undefined;
+    };
+    const playbackContext = await openCaptureBrowser();
     phase("browser-startup", "exit");
     for (const mode of ["original", "chords"] as const) {
       phase(mode + "-capture", "entry");
-      const page = await context.newPage();
+      const page = await playbackContext.newPage();
       const capture = await Promise.race([browserFailure, capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [],
         retainRawCapture: async ({ wav, ...metadata }) => {
           if (wav.length > 2 * 1024 * 1024) throw new Error("Raw native capture exceeds2MiB");
@@ -239,16 +249,19 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
       await page.close();
       phase(mode + "-page-teardown", "exit");
     }
+    phase("playback-browser-teardown", "entry");
+    await closeCaptureBrowser();
+    phase("playback-browser-teardown", "exit");
     phase("silence", "entry");
-    const silentPage = await context.newPage();
+    const silentPage = await (await openCaptureBrowser()).newPage();
     const silent = await Promise.race([browserFailure, capturePlayerClip(silentPage, { songId: id, mode: "original", durationMs: 4000,
       expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: true })]);
     savePlayerCapture(join(output, "silence-control.wav"), silent);
     results.push({ kind: "silence-recorder-control", rms: silent.rms, peak: silent.peak, samplerStarts: silent.samplerStarts.length });
     phase("silence", "exit");
     phase("capture-browser-teardown", "entry");
-    closingBrowser = true;
-    await silentPage.close(); await context.close(); context = undefined; await browser.close(); browser = undefined;
+    await silentPage.close();
+    await closeCaptureBrowser();
     phase("capture-browser-teardown", "exit");
     // Render PDFs after the capture browser exits; both browsers share the same bounded container.
     for (const { mode, packet } of pdfPackets) {

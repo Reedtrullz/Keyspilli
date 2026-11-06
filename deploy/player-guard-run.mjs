@@ -217,23 +217,26 @@ export function parseGuardOutput(output, revision) {
   assert(['passed', 'failed'].includes(result.status));
   return { result, reaper: rows.find(r => r.phase === 'reaper') };
 }
-export function requireDiagnosticEvidence(packet) {
+export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
+  assert(expectedBrowsers === 1 || expectedBrowsers === 2, 'invalid browser observation count');
   const observation = packet.functional?.browserObservation;
   assert(observation?.armed === true && Array.isArray(observation.events), 'missing early browser/launch evidence');
   assert.equal(observation.commandLineSource, 'playwright-launcher-stderr');
   assert.equal(observation.stderrSource, 'guarded-child-stderr');
-  assert(observation.events.some(event => event.kind === 'browser-launched'), 'missing actual launch observation');
+  assert.equal(observation.events.filter(event => event.kind === 'browser-launched').length, expectedBrowsers, 'wrong browser launch count');
   const processes = packet.browserProcesses;
   const smoke = packet.logs?.find(log => log.args?.at(-1) === nativeSmoke(packet.revision, true));
   const stream = smoke?.stderr;
   assert(typeof stream === 'string' && stream.length > 0, 'missing raw smoke launcher stderr');
   assert.deepEqual(processes, browserProcessEvidence(stream), 'browser process evidence provenance mismatch');
-  assert.equal(processes.length, 3, 'one actual browser argv, launch and exit required');
-  const [argv, launch, exit] = processes;
-  assert(argv.kind === 'argv' && argv.commandLineText.length > 0, 'missing actual browser command line');
-  assert(launch.kind === 'launch' && Number.isSafeInteger(launch.pid) && launch.pid > 1, 'missing browser process launch');
-  assert(exit.kind === 'exit' && exit.pid === launch.pid, 'missing matching browser process exit');
-  assert((exit.code === null) !== (exit.signal === null), 'missing unambiguous process exit status');
+  assert.equal(processes.length, expectedBrowsers * 3, 'exact browser argv, launch and exit required');
+  for (let index = 0; index < processes.length; index += 3) {
+    const [argv, launch, exit] = processes.slice(index, index + 3);
+    assert(argv.kind === 'argv' && argv.commandLineText.length > 0, 'missing actual browser command line');
+    assert(launch.kind === 'launch' && Number.isSafeInteger(launch.pid) && launch.pid > 1, 'missing browser process launch');
+    assert(exit.kind === 'exit' && exit.pid === launch.pid, 'missing matching browser process exit');
+    assert((exit.code === null) !== (exit.signal === null), 'missing unambiguous process exit status');
+  }
   assert(Number.isInteger(packet.logBytes) && packet.logBytes <= 65536 && !smoke.clipped, 'clipped inner launcher stream');
   const r = packet.resources;
   assert(Number.isInteger(r?.pid) && r.pid > 1 && r.cgroup?.startsWith('/'), 'missing owned resource identity');
@@ -477,7 +480,7 @@ async function inside(revision) {
   }
 }
 
-async function host(image, revision, profileName) {
+async function host(image, revision, profileName, expectedBrowsers = 1) {
   const diagnostic = profileName !== undefined, profile = diagnosticProfile(profileName ?? 'control');
   validate(image, revision); assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
   assert.equal(process.env.GITHUB_ACTIONS, 'true'); assert(process.env.KEYSPILLI_EVIDENCE && process.env.KEYSPILLI_SCRATCH);
@@ -569,7 +572,7 @@ async function host(image, revision, profileName) {
       assert(receipt.parentBytes <= 16 * 1048576, 'parent16MiB reservation exceeded');
       fs.rmSync(scratch, { recursive: true }); receipt.scratchRemoved = true;
     } catch (error) { receipt.status = 'failed'; receipt.cleanupError = String(error); failure ??= error; }
-    if (diagnostic) { try { requireDiagnosticEvidence(receipt); receipt.evidenceComplete = true; } catch (error) { receipt.evidenceComplete = false; receipt.evidenceError = String(error); receipt.status = 'failed'; failure ??= error; } }
+    if (diagnostic) { try { requireDiagnosticEvidence(receipt, expectedBrowsers); receipt.evidenceComplete = true; } catch (error) { receipt.evidenceComplete = false; receipt.evidenceError = String(error); receipt.status = 'failed'; failure ??= error; } }
     const body = JSON.stringify(receipt, null, 2) + '\n'; assert(Buffer.byteLength(body) <= 1048576, 'receipt output cap');
     fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, diagnostic ? 'player-guard-' + profileName + '.json' : 'player-guard-admission.json'), body, { flag: 'wx' });
   }
@@ -590,7 +593,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     assert.equal(process.env.GITHUB_SHA, process.argv[5]);
     assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
     assert.equal(process.env.ImageOS, 'ubuntu26');
-    const cell = await host(process.argv[3], process.argv[5], 'control');
+    const cell = await host(process.argv[3], process.argv[5], 'control', 2);
     if (!cell.evidenceComplete || cell.status !== 'passed') process.exitCode = 1;
   }
   else if (process.argv[6] === '--diagnostic') {

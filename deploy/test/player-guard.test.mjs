@@ -193,6 +193,14 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   packet.logBytes = Buffer.byteLength(stderr);
   packet.mountUsage = accumulateMountUsage(undefined, packet.resources);
   assert.doesNotThrow(() => requireDiagnosticEvidence(packet));
+  const two = stderr + stderr.replaceAll('pid=44', 'pid=45');
+  const twoPacket = { ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: two }],
+    logBytes: Buffer.byteLength(two), browserProcesses: browserProcessEvidence(two),
+    functional: { browserObservation: { ...packet.functional.browserObservation,
+      events: [{ kind: 'browser-launched' }, { kind: 'browser-disconnected' }, { kind: 'browser-launched' }] } } };
+  assert.doesNotThrow(() => requireDiagnosticEvidence(twoPacket, 2));
+  assert.throws(() => requireDiagnosticEvidence(packet, 2), /launch count/);
+  assert.throws(() => requireDiagnosticEvidence(twoPacket), /launch count/);
   const guardNegative = { command: '/player-guard', args: ['/usr/local/bin/node','-e','process.stdout.write("x".repeat(4096));setInterval(()=>{},1000)'], code: null, signal: 'SIGKILL', stdout: 'x'.repeat(1024), stderr: '', clipped: true };
   const withExpectedNegative = {...packet,logBytes:4096+packet.logBytes,logs:[guardNegative,packet.logs[0]]};
   assert.doesNotThrow(() => requireDiagnosticEvidence(withExpectedNegative), 'intentional output-limit guard negative is retained separately from valid smoke');
