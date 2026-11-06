@@ -201,6 +201,27 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   assert.doesNotThrow(() => requireDiagnosticEvidence(twoPacket, 2));
   assert.throws(() => requireDiagnosticEvidence(packet, 2), /launch count/);
   assert.throws(() => requireDiagnosticEvidence(twoPacket), /launch count/);
+  const counts = (phase, state) => JSON.stringify({
+    kind: 'keyspilli-native-phase', phase, state, processes: 7, threads: 41, vanished: 0,
+  }) + '\n';
+  const three = ['original', 'chords', 'silence'].map((mode, index) => {
+    const [argv, launch, exit] = stderr.replaceAll('pid=44', 'pid=' + (44 + index)).trimEnd().split('\n');
+    return counts(mode + '-browser-startup', 'entry') + argv + '\n' + launch + '\n'
+      + counts(mode + '-browser-startup', 'exit') + counts(mode === 'silence' ? mode : mode + '-capture', 'entry')
+      + counts(mode + '-browser-teardown', 'entry') + exit + '\n' + counts(mode + '-browser-teardown', 'exit');
+  }).join('');
+  const comparison = stream => ({
+    ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: stream }],
+    logBytes: Buffer.byteLength(stream), browserProcesses: browserProcessEvidence(stream),
+    functional: { browserObservation: { ...packet.functional.browserObservation,
+      events: ['original', 'chords', 'silence'].map(mode => ({kind: 'browser-launched', phase: mode + '-browser-startup'})) } },
+  });
+  assert.doesNotThrow(() => requireDiagnosticEvidence(comparison(three), 3));
+  assert.throws(() => requireDiagnosticEvidence(comparison(three.replace('"threads":41', '"threads":2')), 3), /counts/);
+  assert.throws(() => requireDiagnosticEvidence(comparison(three.replace(counts('original-browser-teardown', 'exit'), '')), 3), /phase order/);
+  const exit = three.split('\n').find(line => line.includes('[pid=44] <process did exit')) + '\n';
+  const lateExit = three.replace(exit, '').replace(counts('chords-browser-startup', 'entry'), counts('chords-browser-startup', 'entry') + exit);
+  assert.throws(() => requireDiagnosticEvidence(comparison(lateExit), 3), /teardown/);
   const guardNegative = { command: '/player-guard', args: ['/usr/local/bin/node','-e','process.stdout.write("x".repeat(4096));setInterval(()=>{},1000)'], code: null, signal: 'SIGKILL', stdout: 'x'.repeat(1024), stderr: '', clipped: true };
   const withExpectedNegative = {...packet,logBytes:4096+packet.logBytes,logs:[guardNegative,packet.logs[0]]};
   assert.doesNotThrow(() => requireDiagnosticEvidence(withExpectedNegative), 'intentional output-limit guard negative is retained separately from valid smoke');
@@ -271,7 +292,7 @@ test('unsupported optional browser CDP does not block capture and early terminal
   const scenario = async source => {
     const assert = (await import('node:assert/strict')).default, vm = await import('node:vm'), crypto = await import('node:crypto');
     const {stripTypeScriptTypes} = await import('node:module'), {EventEmitter} = await import('node:events');
-    const files = new Map(), revision = 'b'.repeat(40), processState = { platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [] };
+    const files = new Map(), phases = [], revision = 'b'.repeat(40), processState = { platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [] };
     const context = vm.createContext({ process: processState, Buffer, URL, console: {log(){} } });
     let captured = false, cdpCalls = 0, missingSamples = false;
     const page = new EventEmitter(), browser = new EventEmitter(), browserContext = new EventEmitter();
@@ -284,7 +305,13 @@ test('unsupported optional browser CDP does not block capture and early terminal
     const api = { get: async () => ({json:async()=>({version:revision,status:'healthy'})}), post: async (_url, options) => ({ok:()=>true,json:async()=>{const baseId='upload-'+crypto.createHash('sha256').update(options.data).digest('hex');return {baseId,songIds:[baseId+'-a']};}}), delete:async()=>({ok:()=>true}),dispose:async()=>{} };
     const modules = {
       'node:crypto': crypto,
-      'node:fs': {readFileSync(){},statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(){}},
+      'node:fs': {readFileSync(p) {
+        if (p === '/proc/1/status') return 'Name:\tinit\nThreads:\t1\n';
+        if (p === '/proc/2/status') return 'Name:\tnode\nThreads:\t8\n';
+        if (p === '/proc/3/status') throw Object.assign(Error('exited during sample'), {code:'ENOENT'});
+        throw Error('unexpected read: ' + p);
+      },readdirSync(p) {assert.equal(p, '/proc');return ['1','2','3','self','thread-self'];},
+      statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(_fd, line){phases.push(JSON.parse(line));}},
       'node:path': await import('node:path'), 'node:url': await import('node:url'),
       '@playwright/test': {chromium:{launch:async()=>browser},expect:value=>({toBe:expected=>assert.equal(value,expected),toEqual:expected=>assert.deepEqual(value,expected)}),request:{newContext:async()=>api}},
       '@keyspilli/midi': {parseMidi(){},parseMusicXmlNotes(){}},
@@ -293,12 +320,14 @@ test('unsupported optional browser CDP does not block capture and early terminal
     };
     const load = async name => {const values=modules[name];assert(values, name);const m=new vm.SyntheticModule(Object.keys(values),function(){for(const [key,value] of Object.entries(values))this.setExport(key,value);},{context});await m.link(()=>{});await m.evaluate();return m;};
     const module = new vm.SourceTextModule(stripTypeScriptTypes(source), { context, importModuleDynamically: load });
-    await module.link(load); await module.evaluate(); await module.namespace.verifyNativePlayer(revision);
+    await module.link(load); await module.evaluate(); await module.namespace.verifyNativePlayer(revision, true);
     assert.equal(cdpCalls,0,'optional CDP must not become a startup precondition');
     assert.equal(captured,true,'capture boundary reached');
     const packet=JSON.parse(files.get('/browser-results/result.json'));
     assert.match(packet.error,/Native browser terminal event: page-crash at original-capture/);assert.equal(packet.browserObservation.armed,true);
     assert(packet.browserObservation.events.some(e=>e.kind==='page-crash'&&e.phase==='original-capture'));
+    const failed = phases.find(row => row.phase === 'original-capture' && row.state === 'failure');
+    assert.deepEqual([failed.processes, failed.threads, failed.vanished], [2, 9, 1]);
     const xml=files.get('/browser-results/control.musicxml');missingSamples=true;await module.namespace.verifyNativePlayer(revision);assert.equal(files.get('/browser-results/control.musicxml'),xml);
     const missing=JSON.parse(files.get('/browser-results/result.json'));assert.equal(missing.status,'failed');assert.match(missing.error,/piano\.ogg/);
     console.log(JSON.stringify({captured,cdpCalls,missingSamplesRejected:missing.status==='failed',sourceControlSha256:packet.sourceControlSha256,events:packet.browserObservation.events}));

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { APIRequestContext, Browser, BrowserContext, ConsoleMessage, Page, Request } from "@playwright/test";
@@ -8,8 +8,32 @@ import type { APIRequestContext, Browser, BrowserContext, ConsoleMessage, Page, 
 // Synchronous, fixed-label records survive a later deadline kill; they never imply native acceptance.
 let phaseBytes = 0;
 let activePhase = "startup";
+let observeTasks = false;
+function taskCounts() {
+  let processes = 0, threads = 0, vanished = 0;
+  try {
+    for (const pid of readdirSync("/proc").filter(name => /^[1-9][0-9]*$/.test(name))) {
+      let status: string;
+      try { status = readFileSync("/proc/" + pid + "/status", "utf8"); }
+      catch (error) {
+        if (error && typeof error === "object" && "code" in error && (error.code === "ENOENT" || error.code === "ESRCH")) {
+          vanished++;
+          continue;
+        }
+        throw error;
+      }
+      const count = Number(status.match(/^Threads:[ \t]+([1-9][0-9]*)$/m)?.[1]);
+      if (!Number.isSafeInteger(count)) throw new Error("Invalid process thread count");
+      processes++;
+      threads += count;
+    }
+    return { processes, threads, vanished };
+  } catch {
+    return { processes: null, threads: null, vanished };
+  }
+}
 function phase(name: string, state: "entry" | "exit" | "failure"): void {
-  const line = JSON.stringify({ kind: "keyspilli-native-phase", phase: name, state }) + "\n";
+  const line = JSON.stringify({ kind: "keyspilli-native-phase", phase: name, state, ...(observeTasks ? taskCounts() : {}) }) + "\n";
   const bytes = Buffer.byteLength(line);
   if (phaseBytes + bytes > 8192) throw new Error("Native phase trace exceeds8KiB");
   writeSync(2, line);
@@ -76,7 +100,8 @@ export function controlXml(nonce: string): string {
   return `<score-partwise version="4.0"><work><work-title>Native software control ${nonce}</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
 }
 
-export async function verifyNativePlayer(revision: string): Promise<void> {
+export async function verifyNativePlayer(revision: string, diagnostic = false): Promise<void> {
+  observeTasks = diagnostic;
   phase("startup", "entry");
   if (!/^[a-f0-9]{40}$/.test(revision) || process.platform !== "linux" || process.arch !== "x64"
       || process.env.KEYSPILLI_NATIVE_PROBE_SCOPE !== "owned-restore" || process.env.KEYSPILLI_DATA_DIR !== "/data") {
@@ -140,7 +165,6 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     const id = receipt.songIds.find((value: unknown): value is string => value === baseId + "-a");
     if (!id) throw new Error("Advanced control was not prepared");
     phase("health-upload-chords", "exit");
-    phase("browser-startup", "entry");
     const openCaptureBrowser = async () => {
       closingBrowser = false;
       browser = await chromium.launch({ headless: true });
@@ -167,9 +191,10 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
       await context?.close(); context = undefined;
       await browser?.close(); browser = undefined;
     };
-    const playbackContext = await openCaptureBrowser();
-    phase("browser-startup", "exit");
     for (const mode of ["original", "chords"] as const) {
+      phase(mode + "-browser-startup", "entry");
+      const playbackContext = await openCaptureBrowser();
+      phase(mode + "-browser-startup", "exit");
       phase(mode + "-capture", "entry");
       const page = await playbackContext.newPage();
       const capture = await Promise.race([browserFailure, capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [],
@@ -248,21 +273,24 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
       phase(mode + "-page-teardown", "entry");
       await page.close();
       phase(mode + "-page-teardown", "exit");
+      phase(mode + "-browser-teardown", "entry");
+      await closeCaptureBrowser();
+      phase(mode + "-browser-teardown", "exit");
     }
-    phase("playback-browser-teardown", "entry");
-    await closeCaptureBrowser();
-    phase("playback-browser-teardown", "exit");
+    phase("silence-browser-startup", "entry");
+    const silenceContext = await openCaptureBrowser();
+    phase("silence-browser-startup", "exit");
     phase("silence", "entry");
-    const silentPage = await (await openCaptureBrowser()).newPage();
+    const silentPage = await silenceContext.newPage();
     const silent = await Promise.race([browserFailure, capturePlayerClip(silentPage, { songId: id, mode: "original", durationMs: 4000,
       expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: true })]);
     savePlayerCapture(join(output, "silence-control.wav"), silent);
     results.push({ kind: "silence-recorder-control", rms: silent.rms, peak: silent.peak, samplerStarts: silent.samplerStarts.length });
     phase("silence", "exit");
-    phase("capture-browser-teardown", "entry");
+    phase("silence-browser-teardown", "entry");
     await silentPage.close();
     await closeCaptureBrowser();
-    phase("capture-browser-teardown", "exit");
+    phase("silence-browser-teardown", "exit");
     // Render PDFs after the capture browser exits; both browsers share the same bounded container.
     for (const { mode, packet } of pdfPackets) {
       phase(mode + "-export-pdf", "entry");

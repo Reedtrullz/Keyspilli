@@ -217,8 +217,19 @@ export function parseGuardOutput(output, revision) {
   assert(['passed', 'failed'].includes(result.status));
   return { result, reaper: rows.find(r => r.phase === 'reaper') };
 }
+export function phaseTaskCounts(stderr) {
+  return stderr.split('\n').flatMap((line, index) => {
+    if (!line.startsWith('{"kind":"keyspilli-native-phase",')) return [];
+    const { phase, state, processes, threads, vanished } = JSON.parse(line);
+    if (/^import-(playwright|midi|capture|piano)$/.test(phase) && processes === undefined) return [];
+    assert(/^[a-z][a-z0-9-]{0,63}$/.test(phase) && ['entry', 'exit', 'failure'].includes(state), 'invalid phase record');
+    assert([processes, threads, vanished].every(Number.isSafeInteger) &&
+      processes > 0 && threads >= processes && vanished >= 0, 'missing or invalid process/thread counts');
+    return [{ phase, state, processes, threads, vanished, index }];
+  });
+}
 export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
-  assert(expectedBrowsers === 1 || expectedBrowsers === 2, 'invalid browser observation count');
+  assert([1, 2, 3].includes(expectedBrowsers), 'invalid browser observation count');
   const observation = packet.functional?.browserObservation;
   assert(observation?.armed === true && Array.isArray(observation.events), 'missing early browser/launch evidence');
   assert.equal(observation.commandLineSource, 'playwright-launcher-stderr');
@@ -236,6 +247,27 @@ export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
     assert(launch.kind === 'launch' && Number.isSafeInteger(launch.pid) && launch.pid > 1, 'missing browser process launch');
     assert(exit.kind === 'exit' && exit.pid === launch.pid, 'missing matching browser process exit');
     assert((exit.code === null) !== (exit.signal === null), 'missing unambiguous process exit status');
+  }
+  if (expectedBrowsers === 3) {
+    const phases = phaseTaskCounts(stream), lines = stream.split('\n');
+    let previous = -1;
+    const boundary = (phase, state) => {
+      const matches = phases.filter(row => row.phase === phase && row.state === state);
+      assert(matches.length === 1 && matches[0].index > previous, 'missing or invalid phase order: ' + phase + ' ' + state);
+      return previous = matches[0].index;
+    };
+    const modes = ['original', 'chords', 'silence'];
+    assert.deepEqual(observation.events.filter(event => event.kind === 'browser-launched').map(event => event.phase),
+      modes.map(mode => mode + '-browser-startup'));
+    for (const [index, mode] of modes.entries()) {
+      const start = boundary(mode + '-browser-startup', 'entry');
+      const ready = boundary(mode + '-browser-startup', 'exit');
+      boundary(mode === 'silence' ? mode : mode + '-capture', 'entry');
+      const teardown = boundary(mode + '-browser-teardown', 'entry');
+      const closed = boundary(mode + '-browser-teardown', 'exit');
+      assert.deepEqual(browserProcessEvidence(lines.slice(start + 1, ready).join('\n')), processes.slice(3 * index, 3 * index + 2), 'wrong browser startup sequence');
+      assert.deepEqual(browserProcessEvidence(lines.slice(teardown + 1, closed).join('\n')), processes.slice(3 * index + 2, 3 * index + 3), 'wrong browser teardown sequence');
+    }
   }
   assert(Number.isInteger(packet.logBytes) && packet.logBytes <= 65536 && !smoke.clipped, 'clipped inner launcher stream');
   const r = packet.resources;
@@ -264,7 +296,7 @@ export function nativeSmoke(revision, diagnostic = false) {
   assert.match(revision, /^[a-f0-9]{40}$/);
   // The guard deliberately strips DEBUG; configure the owned Node smoke before Playwright's first load.
   const debug = diagnostic ? "process.env.DEBUG='pw:browser';process.env.DEBUG_COLORS='0';process.env.DEBUG_HIDE_DATE='0';" : '';
-  return `import {createRequire} from 'node:module';${debug}const r=createRequire('${readRoot}/apps/web/package.json');const {chromium}=r('@playwright/test');let worker=false;const launch=chromium.launch.bind(chromium);chromium.launch=async(...args)=>{const b=await launch(...args);const nc=b.newContext.bind(b);b.newContext=async(...args)=>{const c=await nc(...args);c.on('page',p=>{void p.waitForFunction(()=>window.__sheetReady===true&&window.__sheetRenderer==='worker'&&window.__sheetRenderedPages>0,{},{timeout:80000}).then(()=>{worker=true}).catch(()=>{});});return c;};return b;};const {verifyNativePlayer}=await import('${readRoot}/apps/web/scripts/verify-native-player.mts');await verifyNativePlayer('${revision}');if(process.exitCode||!worker)throw Error('functional worker/WASM proof missing');`;
+  return `import {createRequire} from 'node:module';${debug}const r=createRequire('${readRoot}/apps/web/package.json');const {chromium}=r('@playwright/test');let worker=false;const launch=chromium.launch.bind(chromium);chromium.launch=async(...args)=>{const b=await launch(...args);const nc=b.newContext.bind(b);b.newContext=async(...args)=>{const c=await nc(...args);c.on('page',p=>{void p.waitForFunction(()=>window.__sheetReady===true&&window.__sheetRenderer==='worker'&&window.__sheetRenderedPages>0,{},{timeout:80000}).then(()=>{worker=true}).catch(()=>{});});return c;};return b;};const {verifyNativePlayer}=await import('${readRoot}/apps/web/scripts/verify-native-player.mts');await verifyNativePlayer('${revision}', ${diagnostic});if(process.exitCode||!worker)throw Error('functional worker/WASM proof missing');`;
 }
 export function accumulateMountUsage(previous, sample) {
   assert(Number.isInteger(sample?.pid) && sample.pid > 1 && sample.cgroup?.startsWith('/'), 'owned sample identity required');
@@ -593,7 +625,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     assert.equal(process.env.GITHUB_SHA, process.argv[5]);
     assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
     assert.equal(process.env.ImageOS, 'ubuntu26');
-    const cell = await host(process.argv[3], process.argv[5], 'control', 2);
+    const cell = await host(process.argv[3], process.argv[5], 'control', 3);
     if (!cell.evidenceComplete || cell.status !== 'passed') process.exitCode = 1;
   }
   else if (process.argv[6] === '--diagnostic') {
