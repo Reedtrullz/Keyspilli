@@ -3,13 +3,14 @@ import { readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { APIRequestContext, Browser, BrowserContext, ConsoleMessage, Page, Request } from "@playwright/test";
-import { collectTaskCounts } from "./native-task-counts.ts";
 
 // phase:begin
 // Synchronous, fixed-label records survive a later deadline kill; they never imply native acceptance.
 let phaseBytes = 0;
 let activePhase = "startup";
 let observeTasks = false;
+type CountsModule = typeof import("./native-task-counts");
+let collectTaskCounts: CountsModule["collectTaskCounts"];
 const rolePhases = /^(startup|silence|teardown|result|(original|chords|silence)-(browser-startup|capture|browser-teardown))$/;
 function phase(name: string, state: "entry" | "exit" | "failure"): void {
   const counts = observeTasks ? collectTaskCounts() : undefined;
@@ -32,6 +33,8 @@ async function phaseImport<T>(name: string, action: () => Promise<T>): Promise<T
 }
 // phase:end
 
+const nativeTaskCounts = await import("./native-task-counts.ts" as string) as CountsModule;
+collectTaskCounts = nativeTaskCounts.collectTaskCounts;
 const { chromium, expect, request } = await phaseImport("import-playwright", () => import("@playwright/test"));
 const { parseMidi, parseMusicXmlNotes } = await phaseImport("import-midi", () => import("@keyspilli/midi"));
 const { capturePlayerClip, savePlayerCapture } = await phaseImport("import-capture", () => import("../e2e/player-audio-capture"));
