@@ -60,7 +60,7 @@ export async function capacityCommand(command, args, { timeout = 60000, signal, 
     const child = spawn(command, args, { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
     entry.pid = child.pid ?? null; entry.status = 'running';
     let output = '', bytes = 0, stderrBytes = 0, failure;
-    const stop = reason => { failure ??= new Error(reason); try { process.kill(-child.pid, 'SIGKILL'); } catch (e) { if (e.code !== 'ESRCH') failure = e; } };
+    const stop = reason => { failure ??= new Error(reason); try { process.kill(-child.pid, 'SIGKILL'); } catch (e) { if (e.code !== 'ESRCH') failure ??= e; } };
     const cancel = () => stop('capacity cancel');
     signal?.addEventListener('abort', cancel, { once: true });
     const timer = setTimeout(() => stop('capacity deadline'), timeout);
@@ -175,6 +175,7 @@ async function capacityCLI(mode) {
 }
 
 export const WRITABLE = Object.freeze({ '/tmp': 15, '/dev/shm': 4, '/data': 16, '/browser-results': 4, '/sentinels': 1 });
+export const NODE_RUNTIME_ENV = Object.freeze({ NODE_OPTIONS: '--v8-pool-size=2', UV_THREADPOOL_SIZE: '2' });
 const PROFILES = Object.freeze({
   control: Object.freeze({ memoryMiB: 1024, writable: WRITABLE }),
   writable: Object.freeze({ memoryMiB: 1024, writable: Object.freeze({ '/tmp': 256, '/dev/shm': 128, '/data': 32, '/browser-results': 16, '/sentinels': 1 }) }),
@@ -191,6 +192,21 @@ export function guardLaunchArgs(name, profile = PROFILES.control) {
   const args = ['create', '--name', name, '--pull=never', '--network', 'none', '--read-only', '--user', '1000:1000', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--cpus', '1.5', '--memory', profile.memoryMiB + 'm', '--pids-limit', '128', '--workdir', readRoot, '--entrypoint', '/player-guard'];
   for (const [mount, size] of Object.entries(profile.writable)) args.push('--tmpfs', mount + ':rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700');
   return args;
+}
+export function guardEnvironment(diagnosticName) {
+  const pairs = [
+    ['HOME', '/tmp'], ['TMPDIR', '/tmp'], ['PORT', '3000'], ['HOSTNAME', '127.0.0.1'],
+    ['PLAYWRIGHT_BROWSERS_PATH', '/ms-playwright'], ['KEYSPILLI_DATA_DIR', '/data'],
+    ['KEYSPILLI_ORIGIN', 'http://127.0.0.1:3000'], ['KEYSPILLI_API_TOKEN', 'test-token-for-e2e'],
+    ['AUTH_SECRET', 'owned-player-guard-only'], ['KEYSPILLI_TUTORIAL_BETA', '0'],
+    ['KEYSPILLI_NATIVE_PROBE_SCOPE', 'owned-restore'],
+    ...Object.entries(NODE_RUNTIME_ENV),
+  ];
+  if (diagnosticName !== undefined) {
+    assert(typeof diagnosticName === 'string' && Object.hasOwn(PROFILES, diagnosticName), 'unknown diagnostic profile');
+    pairs.push(['KEYSPILLI_GUARD_PROFILE', diagnosticName], ['KEYSPILLI_CRASH_DIAGNOSTIC', 'native-crash-v1'], ['DEBUG', 'pw:browser']);
+  }
+  return pairs;
 }
 export function browserProcessEvidence(stderr) {
   assert(Buffer.byteLength(stderr) <= 65536, 'browser stderr observation cap');
@@ -534,8 +550,7 @@ async function host(image, revision, profileName, expectedBrowsers = 1) {
       const p = path.join(root, relative); assert(fs.realpathSync(p) === p && !p.includes(':')); args.push('-v', p + ':' + readRoot + '/' + relative + ':ro');
     }
     args.push('-v', binary + ':/player-guard:ro', '-v', piano + ':/piano-input:ro');
-    for (const pair of ['HOME=/tmp', 'TMPDIR=/tmp', 'PORT=3000', 'HOSTNAME=127.0.0.1', 'PLAYWRIGHT_BROWSERS_PATH=/ms-playwright', 'KEYSPILLI_DATA_DIR=/data', 'KEYSPILLI_ORIGIN=http://127.0.0.1:3000', 'KEYSPILLI_API_TOKEN=test-token-for-e2e', 'AUTH_SECRET=owned-player-guard-only', 'KEYSPILLI_TUTORIAL_BETA=0', 'KEYSPILLI_NATIVE_PROBE_SCOPE=owned-restore']) args.push('-e', pair);
-    if (diagnostic) args.push('-e', 'KEYSPILLI_GUARD_PROFILE=' + profileName, '-e', 'KEYSPILLI_CRASH_DIAGNOSTIC=native-crash-v1', '-e', 'DEBUG=pw:browser');
+    for (const [key, value] of guardEnvironment(diagnostic ? profileName : undefined)) args.push('-e', key + '=' + value);
     args.push(image, '--init', node, readRoot + '/deploy/player-guard-run.mjs', '--inside', revision);
     const identity = command('docker', args).trim(); assert.match(identity, /^[a-f0-9]{64}$/);
     const inspected = JSON.parse(command('docker', ['inspect', name]))[0]; assert.equal(inspected.HostConfig.NetworkMode, 'none'); assert.equal(inspected.HostConfig.ReadonlyRootfs, true);

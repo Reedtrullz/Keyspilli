@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, NODE_RUNTIME_ENV, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 import * as capacity from '../player-guard-run.mjs';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
@@ -24,6 +24,20 @@ test('capacity requirement covers unchanged writer, export, entry metadata and m
   for (const value of [-1, NaN, Infinity, '6', 1.5, Number.MAX_SAFE_INTEGER]) {
     assert.throws(() => capacity.capacityRequirement({ ...capacityFixture(), managedBytes: value }));
   }
+});
+
+test('guarded runtime caps non-browser Node worker pools without changing Chromium or PID guards', () => {
+  assert.deepEqual(NODE_RUNTIME_ENV, {
+    NODE_OPTIONS: '--v8-pool-size=2',
+    UV_THREADPOOL_SIZE: '2',
+  });
+  const pairs = guardEnvironment();
+  assert(pairs.some(([key, value]) => key === 'NODE_OPTIONS' && value === '--v8-pool-size=2'));
+  assert(pairs.some(([key, value]) => key === 'UV_THREADPOOL_SIZE' && value === '2'));
+  assert(!pairs.some(([key]) => key.startsWith('CHROME_') || key === 'DEBUG'));
+  const args = guardLaunchArgs('owned', diagnosticProfile('control'));
+  assert.equal(args[args.indexOf('--pids-limit') + 1], '128');
+  assert.equal(args[args.indexOf('--cpus') + 1], '1.5');
 });
 
 test('hosted capacity refuses every unsafe identity, path, owner, handle, caller and insufficient full reserve', () => {
