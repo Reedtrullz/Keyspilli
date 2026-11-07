@@ -42,6 +42,24 @@ test('guarded runtime caps non-browser Node worker pools without changing Chromi
   assert.equal(args[args.indexOf('--cpus') + 1], '1.5');
 });
 
+test('guarded C helper compiles without shadowing libc functions', () => {
+  const source = fs.readFileSync(new URL('../player-guard.c', import.meta.url), 'utf8');
+  const helper = source.match(/static void path_allow_if_present\([\s\S]*?\n\}/)?.[0];
+  assert(helper, 'missing optional-path helper');
+  const fixture = [
+    '#include <errno.h>',
+    '#include <stdint.h>',
+    '#include <unistd.h>',
+    'static void die(const char *where) { (void)where; }',
+    'static void path_allow(int fd, const char *path, uint64_t access) { (void)fd; (void)path; (void)access; }',
+    helper,
+    'int main(void) { path_allow_if_present(0, "/tmp", 0); return 0; }',
+  ].join('\n');
+  assert.doesNotThrow(() => execFileSync('cc', ['-fsyntax-only', '-std=c11', '-Wall', '-Wextra', '-Wshadow', '-Werror', '-x', 'c', '-'], {
+    input: fixture, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000,
+  }));
+});
+
 test('app and browser sidecars preserve aggregate resources and independent task guards', () => {
   const profiles = Object.values(SIDECAR_PROFILES);
   assert.equal(profiles.reduce((sum, profile) => sum + profile.memoryMiB, 0), 1024);

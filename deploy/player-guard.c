@@ -43,12 +43,12 @@ static void path_allow(int fd, const char *path, uint64_t access) {
     if (syscall(__NR_landlock_add_rule, fd, 1, &rule, 0)) die("landlock path");
     close(p);
 }
-static void path_allow_if_present(int fd, const char *path, uint64_t access) {
+static void path_allow_if_present(int fd, const char *path, uint64_t access_mask) {
     if (access(path, F_OK)) {
         if (errno == ENOENT) return;
         die("optional path access");
     }
-    path_allow(fd, path, access);
+    path_allow(fd, path, access_mask);
 }
 static int permitted_executable(const char *p) {
     const char *base = strrchr(p, '/'); base = base ? base + 1 : p;
