@@ -1,39 +1,21 @@
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync, statSync, writeFileSync, writeSync } from "node:fs";
+import { readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { APIRequestContext, Browser, BrowserContext, ConsoleMessage, Page, Request } from "@playwright/test";
+import { collectTaskCounts } from "./native-task-counts.ts";
 
 // phase:begin
 // Synchronous, fixed-label records survive a later deadline kill; they never imply native acceptance.
 let phaseBytes = 0;
 let activePhase = "startup";
 let observeTasks = false;
-function taskCounts() {
-  let processes = 0, threads = 0, vanished = 0;
-  try {
-    for (const pid of readdirSync("/proc").filter(name => /^[1-9][0-9]*$/.test(name))) {
-      let status: string;
-      try { status = readFileSync("/proc/" + pid + "/status", "utf8"); }
-      catch (error) {
-        if (error && typeof error === "object" && "code" in error && (error.code === "ENOENT" || error.code === "ESRCH")) {
-          vanished++;
-          continue;
-        }
-        throw error;
-      }
-      const count = Number(status.match(/^Threads:[ \t]+([1-9][0-9]*)$/m)?.[1]);
-      if (!Number.isSafeInteger(count)) throw new Error("Invalid process thread count");
-      processes++;
-      threads += count;
-    }
-    return { processes, threads, vanished };
-  } catch {
-    return { processes: null, threads: null, vanished };
-  }
-}
+const rolePhases = /^(startup|silence|teardown|result|(original|chords|silence)-(browser-startup|capture|browser-teardown))$/;
 function phase(name: string, state: "entry" | "exit" | "failure"): void {
-  const line = JSON.stringify({ kind: "keyspilli-native-phase", phase: name, state, ...(observeTasks ? taskCounts() : {}) }) + "\n";
+  const counts = observeTasks ? collectTaskCounts() : undefined;
+  const { roles, ...aggregate } = counts ?? { processes: undefined, threads: undefined, vanished: undefined };
+  const line = JSON.stringify({ kind: "keyspilli-native-phase", phase: name, state, ...aggregate,
+    ...(counts && rolePhases.test(name) ? { roles } : {}) }) + "\n";
   const bytes = Buffer.byteLength(line);
   if (phaseBytes + bytes > 8192) throw new Error("Native phase trace exceeds8KiB");
   writeSync(2, line);

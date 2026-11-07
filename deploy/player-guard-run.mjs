@@ -236,12 +236,12 @@ export function parseGuardOutput(output, revision) {
 export function phaseTaskCounts(stderr) {
   return stderr.split('\n').flatMap((line, index) => {
     if (!line.startsWith('{"kind":"keyspilli-native-phase",')) return [];
-    const { phase, state, processes, threads, vanished } = JSON.parse(line);
+    const { phase, state, processes, threads, vanished, roles } = JSON.parse(line);
     if (/^import-(playwright|midi|capture|piano)$/.test(phase) && processes === undefined) return [];
     assert(/^[a-z][a-z0-9-]{0,63}$/.test(phase) && ['entry', 'exit', 'failure'].includes(state), 'invalid phase record');
     assert([processes, threads, vanished].every(Number.isSafeInteger) &&
       processes > 0 && threads >= processes && vanished >= 0, 'missing or invalid process/thread counts');
-    return [{ phase, state, processes, threads, vanished, index }];
+    return [{ phase, state, processes, threads, vanished, ...(roles === undefined ? {} : { roles }), index }];
   });
 }
 export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
@@ -270,6 +270,7 @@ export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
     const boundary = (phase, state) => {
       const matches = phases.filter(row => row.phase === phase && row.state === state);
       assert(matches.length === 1 && matches[0].index > previous, 'missing or invalid phase order: ' + phase + ' ' + state);
+      requireRoleEvidence(matches[0]);
       return previous = matches[0].index;
     };
     const modes = ['original', 'chords', 'silence'];
@@ -307,6 +308,23 @@ export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
   assert(packet.containerRemoved && packet.scratchRemoved, 'incomplete cleanup');
   assert(!packet.cancelled && !packet.deadlineExceeded, 'cancelled or expired cell');
   assert(!packet.stdoutClipped && !packet.stderrClipped, 'clipped diagnostic packet');
+}
+
+const ROLE_KEYS = ['guard', 'app-node', 'automation-node', 'chromium', 'crashpad', 'unknown'];
+function requireRoleEvidence(row) {
+  assert(row.roles && typeof row.roles === 'object' && !Array.isArray(row.roles), 'missing role task evidence');
+  assert.deepEqual(Object.keys(row.roles).sort(), [...ROLE_KEYS].sort(), 'invalid role task keys');
+  let processes = 0, threads = 0;
+  for (const role of ROLE_KEYS) {
+    const counts = row.roles[role];
+    assert(counts && Number.isSafeInteger(counts.processes) && counts.processes >= 0
+      && Number.isSafeInteger(counts.threads) && counts.threads >= counts.processes, 'invalid role task counts');
+    processes += counts.processes; threads += counts.threads;
+  }
+  assert.equal(processes, row.processes, 'role process totals differ');
+  assert.equal(threads, row.threads, 'role thread totals differ');
+  assert.equal(row.roles.unknown.processes, 0, 'unknown process ownership in phase tasks');
+  assert(row.threads <= 120, 'insufficient native task headroom');
 }
 export function nativeSmoke(revision, diagnostic = false) {
   assert.match(revision, /^[a-f0-9]{40}$/);
@@ -390,7 +408,7 @@ export function resolveEsbuild(root) {
   const esbuildRequire = createRequire(fs.realpathSync(require.resolve('esbuild/package.json')));
   return fs.realpathSync(esbuildRequire.resolve('@esbuild/linux-x64/bin/esbuild'));
 }
-export const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy/player-guard-run.mjs', 'deploy/player-node-guard.cjs', 'deploy/player-guard.c'];
+export const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/scripts/native-task-counts.ts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy/player-guard-run.mjs', 'deploy/player-node-guard.cjs', 'deploy/player-guard.c'];
 
 // Installed dependencies are the only exempt ignored files; excluding them in Git keeps their names out of the 1MiB buffer.
 const INSTALLED = [':(exclude)node_modules', ':(exclude)apps/web/node_modules', ':(exclude,glob)**/node_modules/**'];

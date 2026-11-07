@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, NODE_RUNTIME_ENV, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
+import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.ts';
 import * as capacity from '../player-guard-run.mjs';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
 
@@ -38,6 +40,33 @@ test('guarded runtime caps non-browser Node worker pools without changing Chromi
   const args = guardLaunchArgs('owned', diagnosticProfile('control'));
   assert.equal(args[args.indexOf('--pids-limit') + 1], '128');
   assert.equal(args[args.indexOf('--cpus') + 1], '1.5');
+});
+
+test('phase task roles cover the owned tree and reject ambiguous process ownership', () => {
+  const rows = [
+    {pid: 10, ppid: 1, name: 'player-guard', threads: 1},
+    {pid: 20, ppid: 10, name: 'node', threads: 18},
+    {pid: 30, ppid: 10, name: 'node', threads: 20},
+    {pid: 40, ppid: 30, name: 'chrome', threads: 31},
+    {pid: 41, ppid: 30, name: 'chrome_crashpad_handler', threads: 3},
+  ];
+  assert.deepEqual(summarizeTaskCounts(rows, 30, 10), {
+    processes: 5, threads: 73, vanished: 0,
+    roles: {
+      guard: {processes: 1, threads: 1},
+      'app-node': {processes: 1, threads: 18},
+      'automation-node': {processes: 1, threads: 20},
+      chromium: {processes: 1, threads: 31},
+      crashpad: {processes: 1, threads: 3},
+      unknown: {processes: 0, threads: 0},
+    },
+  });
+  assert.equal(summarizeTaskCounts([...rows, {pid: 50, ppid: 30, name: 'mystery', threads: 2}], 30, 10).roles.unknown.processes, 1);
+  assert.equal(summarizeTaskCounts([...rows, {pid: 60, ppid: 999, name: 'orphan', threads: 1}], 30, 10).roles.unknown.processes, 1);
+  assert.throws(() => summarizeTaskCounts([...rows, {pid: 30, ppid: 10, name: 'node', threads: 20}], 30, 10), /duplicate/);
+  assert.throws(() => summarizeTaskCounts(rows.map(row => row.pid === 40 ? {...row, threads: 0} : row), 30, 10), /threads/);
+  assert.throws(() => summarizeTaskCounts(rows.filter(row => row.pid !== 10), 30, 10), /guard/);
+  assert.equal(createHash('sha256').update(nativeSmoke('b'.repeat(40), true)).digest('hex'), 'cec1fc70ff803c479e5236733d5411c8c2a5e970e2bbc35ea8cafa08afbd9cea');
 });
 
 test('hosted capacity refuses every unsafe identity, path, owner, handle, caller and insufficient full reserve', () => {
@@ -217,6 +246,14 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   assert.throws(() => requireDiagnosticEvidence(twoPacket), /launch count/);
   const counts = (phase, state) => JSON.stringify({
     kind: 'keyspilli-native-phase', phase, state, processes: 7, threads: 41, vanished: 0,
+    roles: {
+      guard: {processes: 1, threads: 1},
+      'app-node': {processes: 1, threads: 10},
+      'automation-node': {processes: 1, threads: 10},
+      chromium: {processes: 3, threads: 15},
+      crashpad: {processes: 1, threads: 5},
+      unknown: {processes: 0, threads: 0},
+    },
   }) + '\n';
   const three = ['original', 'chords', 'silence'].map((mode, index) => {
     const [argv, launch, exit] = stderr.replaceAll('pid=44', 'pid=' + (44 + index)).trimEnd().split('\n');
@@ -232,6 +269,15 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   });
   assert.doesNotThrow(() => requireDiagnosticEvidence(comparison(three), 3));
   assert.throws(() => requireDiagnosticEvidence(comparison(three.replace('"threads":41', '"threads":2')), 3), /counts/);
+  const unknownRole = three.replace('"chromium":{"processes":3,"threads":15}', '"chromium":{"processes":2,"threads":14}')
+    .replace('"unknown":{"processes":0,"threads":0}', '"unknown":{"processes":1,"threads":1}');
+  assert.throws(() => requireDiagnosticEvidence(comparison(unknownRole), 3), /unknown/);
+  assert.throws(() => requireDiagnosticEvidence(comparison(three.replace('"threads":5', '"threads":4')), 3), /role thread totals/);
+  const withoutRoles = three.split('\n').map(line => {
+    if (!line.startsWith('{"kind":"keyspilli-native-phase",')) return line;
+    const {roles: _roles, ...row} = JSON.parse(line); return JSON.stringify(row);
+  }).join('\n');
+  assert.throws(() => requireDiagnosticEvidence(comparison(withoutRoles), 3), /role task evidence/);
   assert.throws(() => requireDiagnosticEvidence(comparison(three.replace(counts('original-browser-teardown', 'exit'), '')), 3), /phase order/);
   const exit = three.split('\n').find(line => line.includes('[pid=44] <process did exit')) + '\n';
   const lateExit = three.replace(exit, '').replace(counts('chords-browser-startup', 'entry'), counts('chords-browser-startup', 'entry') + exit);
@@ -306,7 +352,7 @@ test('unsupported optional browser CDP does not block capture and early terminal
   const scenario = async source => {
     const assert = (await import('node:assert/strict')).default, vm = await import('node:vm'), crypto = await import('node:crypto');
     const {stripTypeScriptTypes} = await import('node:module'), {EventEmitter} = await import('node:events');
-    const files = new Map(), phases = [], revision = 'b'.repeat(40), processState = { platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [] };
+    const files = new Map(), phases = [], revision = 'b'.repeat(40), processState = { pid: 2, ppid: 1, platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [] };
     const context = vm.createContext({ process: processState, Buffer, URL, console: {log(){} } });
     let captured = false, cdpCalls = 0, missingSamples = false;
     const page = new EventEmitter(), browser = new EventEmitter(), browserContext = new EventEmitter();
@@ -320,13 +366,17 @@ test('unsupported optional browser CDP does not block capture and early terminal
     const modules = {
       'node:crypto': crypto,
       'node:fs': {readFileSync(p) {
-        if (p === '/proc/1/status') return 'Name:\tinit\nThreads:\t1\n';
-        if (p === '/proc/2/status') return 'Name:\tnode\nThreads:\t8\n';
+        if (p === '/proc/1/status') return 'Name:\tplayer-guard\nPPid:\t0\nThreads:\t1\n';
+        if (p === '/proc/2/status') return 'Name:\tnode\nPPid:\t1\nThreads:\t8\n';
         if (p === '/proc/3/status') throw Object.assign(Error('exited during sample'), {code:'ENOENT'});
         throw Error('unexpected read: ' + p);
       },readdirSync(p) {assert.equal(p, '/proc');return ['1','2','3','self','thread-self'];},
       statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(_fd, line){phases.push(JSON.parse(line));}},
       'node:path': await import('node:path'), 'node:url': await import('node:url'),
+      './native-task-counts.ts': {collectTaskCounts: () => ({processes: 2, threads: 9, vanished: 1, roles: {
+        guard: {processes: 1, threads: 1}, 'app-node': {processes: 0, threads: 0}, 'automation-node': {processes: 1, threads: 8},
+        chromium: {processes: 0, threads: 0}, crashpad: {processes: 0, threads: 0}, unknown: {processes: 0, threads: 0},
+      }})},
       '@playwright/test': {chromium:{launch:async()=>browser},expect:value=>({toBe:expected=>assert.equal(value,expected),toEqual:expected=>assert.deepEqual(value,expected)}),request:{newContext:async()=>api}},
       '@keyspilli/midi': {parseMidi(){},parseMusicXmlNotes(){}},
       '../e2e/player-audio-capture': {capturePlayerClip:async()=>{captured=true;assert(browser.listenerCount('disconnected')>0);assert(page.listenerCount('crash')>0);assert(page.listenerCount('close')>0);if(missingSamples)return {sampleAssets:[]};page.emit('crash');throw Error('capture-boundary-sentinel');},savePlayerCapture(){}},
