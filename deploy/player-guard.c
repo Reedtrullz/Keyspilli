@@ -43,6 +43,13 @@ static void path_allow(int fd, const char *path, uint64_t access) {
     if (syscall(__NR_landlock_add_rule, fd, 1, &rule, 0)) die("landlock path");
     close(p);
 }
+static void path_allow_if_present(int fd, const char *path, uint64_t access) {
+    if (access(path, F_OK)) {
+        if (errno == ENOENT) return;
+        die("optional path access");
+    }
+    path_allow(fd, path, access);
+}
 static int permitted_executable(const char *p) {
     const char *base = strrchr(p, '/'); base = base ? base + 1 : p;
     return !strcmp(p, "/usr/local/bin/node")
@@ -124,9 +131,9 @@ int main(int argc, char **argv) {
     if (abi < 4) { fprintf(stderr, "player guard requires Landlock ABI4, observed %d\n", abi); return 125; }
     struct ruleset attr = {fs_mask, 3}; int fd = (int)syscall(__NR_landlock_create_ruleset, &attr, sizeof(attr), 0); if (fd < 0) die("landlock ruleset");
     const char *reads[] = {"/usr", "/lib", "/lib64", "/etc", "/proc", "/sys", "/app", "/qualification-source", "/ms-playwright", "/piano-input", NULL};
-    const char *writes[] = {"/tmp", "/data", "/browser-results", "/dev/shm", NULL};
+    const char *writes[] = {"/tmp", "/data", "/browser-results", "/dev/shm", "/sentinels", NULL};
     for (int i = 0; reads[i]; i++) path_allow(fd, reads[i], read_mask);
-    for (int i = 0; writes[i]; i++) path_allow(fd, writes[i], fs_mask & ~1ULL);
+    for (int i = 0; writes[i]; i++) path_allow_if_present(fd, writes[i], fs_mask & ~1ULL);
     path_allow(fd, "/dev/null", 6); path_allow(fd, "/dev/urandom", 4); path_allow(fd, "/dev/random", 4);
     path_allow(fd, "/lib64/ld-linux-x86-64.so.2", 5); /* ELF interpreter: file EXECUTE+READ only; missing path fails closed */
     char executables[8192] = "";
@@ -146,11 +153,16 @@ int main(int argc, char **argv) {
         int status; need(waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) == 0, "inherited guard"); return 0;
     }
     need(!strcmp(argv[split + 1], "/usr/local/bin/node"), "only Node entry allowed");
-    const char *keep[] = {"VERSION", "HOME", "TMPDIR", "PORT", "HOSTNAME", "PLAYWRIGHT_BROWSERS_PATH", "KEYSPILLI_DATA_DIR", "KEYSPILLI_ORIGIN", "KEYSPILLI_API_TOKEN", "KEYSPILLI_NATIVE_PROBE_SCOPE", "AUTH_SECRET", "KEYSPILLI_TUTORIAL_BETA", NULL};
+    const char *keep[] = {"VERSION", "HOME", "TMPDIR", "PORT", "HOSTNAME", "PLAYWRIGHT_BROWSERS_PATH", "KEYSPILLI_DATA_DIR", "KEYSPILLI_ORIGIN", "KEYSPILLI_API_TOKEN", "KEYSPILLI_NATIVE_PROBE_SCOPE", "AUTH_SECRET", "KEYSPILLI_TUTORIAL_BETA", "NODE_OPTIONS", "UV_THREADPOOL_SIZE", NULL};
     char *values[sizeof(keep) / sizeof(keep[0])] = {0}; for (int i = 0; keep[i]; i++) if (getenv(keep[i])) { values[i] = strdup(getenv(keep[i])); if (!values[i]) die("environment copy"); }
     if (clearenv()) die("clear environment");
     for (int i = 0; keep[i]; i++) if (values[i]) { if (setenv(keep[i], values[i], 1)) die("environment restore"); free(values[i]); }
-    if (setenv("NODE_OPTIONS", "--require=/qualification-source/deploy/player-node-guard.cjs", 1) || setenv("PLAYER_EXECUTABLES", executables, 1) || setenv("PATH", "/usr/local/bin", 1)) die("guard environment");
+    const char *prior_options = getenv("NODE_OPTIONS");
+    char guarded_options[4096];
+    int option_length = snprintf(guarded_options, sizeof(guarded_options), "%s%s--require=/qualification-source/deploy/player-node-guard.cjs",
+        prior_options ? prior_options : "", prior_options ? " " : "");
+    need(option_length > 0 && option_length < (int)sizeof(guarded_options), "guard node options");
+    if (setenv("NODE_OPTIONS", guarded_options, 1) || setenv("PLAYER_EXECUTABLES", executables, 1) || setenv("PATH", "/usr/local/bin", 1)) die("guard environment");
     execv(argv[split + 1], &argv[split + 1]); die("Node entry");
 }
 #endif

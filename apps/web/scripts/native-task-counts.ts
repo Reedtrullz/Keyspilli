@@ -26,23 +26,12 @@ export function summarizeTaskCounts(rows: TaskRow[], selfPid: number, guardPid: 
   if (!byPid.has(guardPid)) throw new Error("guard process missing from owned tree");
   if (!byPid.has(selfPid)) throw new Error("automation process missing from owned tree");
 
-  const children = new Map<number, number[]>();
-  for (const row of rows) children.set(row.ppid, [...(children.get(row.ppid) ?? []), row.pid]);
-  const selfTree = new Set<number>();
-  const walk = (pid: number) => {
-    if (selfTree.has(pid)) return;
-    selfTree.add(pid);
-    for (const child of children.get(pid) ?? []) walk(child);
-  };
-  walk(selfPid);
-
   const classify = (row: TaskRow): TaskRole => {
     if (row.pid === guardPid) return "guard";
     if (row.pid === selfPid) return "automation-node";
     if (row.ppid === guardPid && row.name === "node") return "app-node";
-    if (!selfTree.has(row.pid)) return "unknown";
     if (/crashpad/i.test(row.name)) return "crashpad";
-    if (/^(chrome|chromium|headless_shell|chrome-headless-shell)$/i.test(row.name)) return "chromium";
+    if (/^(chrome|chromium|headless_shell|chrome-headless)/i.test(row.name)) return "chromium";
     return "unknown";
   };
 

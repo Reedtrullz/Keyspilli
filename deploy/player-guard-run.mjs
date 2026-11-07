@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 
 const SDK = '/usr/local/lib/android/sdk';
 const GIB = 1024 ** 3;
@@ -176,6 +176,10 @@ async function capacityCLI(mode) {
 
 export const WRITABLE = Object.freeze({ '/tmp': 15, '/dev/shm': 4, '/data': 16, '/browser-results': 4, '/sentinels': 1 });
 export const NODE_RUNTIME_ENV = Object.freeze({ NODE_OPTIONS: '--v8-pool-size=2', UV_THREADPOOL_SIZE: '2' });
+export const SIDECAR_PROFILES = Object.freeze({
+  app: Object.freeze({ cpus: '0.5', memoryMiB: 384, writable: Object.freeze({ '/tmp': 3, '/dev/shm': 1, '/data': 16 }) }),
+  browser: Object.freeze({ cpus: '1', memoryMiB: 640, writable: Object.freeze({ '/tmp': 10, '/dev/shm': 4, '/data': 1, '/browser-results': 4, '/sentinels': 1 }) }),
+});
 const PROFILES = Object.freeze({
   control: Object.freeze({ memoryMiB: 1024, writable: WRITABLE }),
   writable: Object.freeze({ memoryMiB: 1024, writable: Object.freeze({ '/tmp': 256, '/dev/shm': 128, '/data': 32, '/browser-results': 16, '/sentinels': 1 }) }),
@@ -190,6 +194,15 @@ export function diagnosticProfile(name) {
 export function guardLaunchArgs(name, profile = PROFILES.control) {
   assert(Object.values(PROFILES).includes(profile), 'profile must be a declared immutable profile');
   const args = ['create', '--name', name, '--pull=never', '--network', 'none', '--read-only', '--user', '1000:1000', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--cpus', '1.5', '--memory', profile.memoryMiB + 'm', '--pids-limit', '128', '--workdir', readRoot, '--entrypoint', '/player-guard'];
+  for (const [mount, size] of Object.entries(profile.writable)) args.push('--tmpfs', mount + ':rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700');
+  return args;
+}
+export function sidecarLaunchArgs(name, role, networkMode, profile = SIDECAR_PROFILES[role]) {
+  assert(Object.hasOwn(SIDECAR_PROFILES, role) && profile === SIDECAR_PROFILES[role], 'unknown immutable sidecar profile');
+  assert(typeof networkMode === 'string' && (networkMode === 'none' || /^container:[a-f0-9]{64}$/.test(networkMode)), 'invalid sidecar network');
+  const args = ['create', '--name', name, '--pull=never', '--network', networkMode,
+    '--read-only', '--user', '1000:1000', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+    '--cpus', profile.cpus, '--memory', profile.memoryMiB + 'm', '--pids-limit', '128', '--workdir', readRoot, '--entrypoint', '/player-guard'];
   for (const [mount, size] of Object.entries(profile.writable)) args.push('--tmpfs', mount + ':rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700');
   return args;
 }
@@ -287,25 +300,30 @@ export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
     }
   }
   assert(Number.isInteger(packet.logBytes) && packet.logBytes <= 65536 && !smoke.clipped, 'clipped inner launcher stream');
-  const r = packet.resources;
-  assert(Number.isInteger(r?.pid) && r.pid > 1 && r.cgroup?.startsWith('/'), 'missing owned resource identity');
-  assert(r.beforeTeardown && packet.resourceBarrierAcknowledged, 'missing acknowledged pre-teardown resource snapshot');
-  for (const key of ['memory.events', 'memory.peak', 'memory.max']) assert(typeof r.memory?.[key] === 'string' && r.memory[key].length > 0, 'missing ' + key);
-  for (const key of ['memory.peak', 'memory.max']) assert.match(r.memory[key], /^[0-9]+\n?$/, 'malformed ' + key);
-  assert.match(r.memory['memory.events'], /(?:^|\n)oom [0-9]+(?:\n|$)/, 'missing OOM counter');
-  assert.deepEqual(Object.keys(r.mounts ?? {}).sort(), Object.keys(WRITABLE).sort(), 'missing owned mounts');
-  for (const mount of Object.values(r.mounts)) for (const key of ['blocks', 'free', 'blockSize', 'files', 'freeFiles']) assert(Number.isFinite(mount[key]) && mount[key] >= 0, 'missing mount/inode usage');
-  const usage = packet.mountUsage;
-  assert(usage?.pid === r.pid && usage.cgroup === r.cgroup && Number.isSafeInteger(usage.sampleCount) && usage.sampleCount > 0, 'missing accumulated owned mount samples');
-  assert.equal(usage.provenance, 'owned /proc/PID/root statfs samples; existing 1000ms observer and pre-teardown barrier');
-  assert.deepEqual(Object.keys(usage.mounts ?? {}).sort(), Object.keys(WRITABLE).sort());
-  for (const [mount, value] of Object.entries(r.mounts)) {
-    const aggregate = usage.mounts[mount];
-    for (const key of ['minFreeBytes', 'maxUsedBytes', 'minFreeInodes', 'maxUsedInodes']) assert(Number.isSafeInteger(aggregate[key]) && aggregate[key] >= 0, 'invalid sampled mount aggregate');
-    assert(aggregate.minFreeBytes <= value.free * value.blockSize && aggregate.maxUsedBytes >= (value.blocks - value.free) * value.blockSize && aggregate.minFreeInodes <= value.freeFiles && aggregate.maxUsedInodes >= value.files - value.freeFiles, 'aggregate lost sampled usage');
-  }
-  assert(r.limits?.includes('Max processes'), 'missing launch limits');
-  assert(packet.containerRemoved && packet.scratchRemoved, 'incomplete cleanup');
+  const requireResources = (resource, usage, profile, identity, label, barrier) => {
+    assert(Number.isInteger(resource?.pid) && resource.pid > 1 && resource.cgroup?.includes(identity), 'missing owned ' + label + ' resource identity');
+    if (barrier) assert(resource.beforeTeardown && packet.resourceBarrierAcknowledged, 'missing acknowledged pre-teardown ' + label + ' snapshot');
+    for (const key of ['memory.events', 'memory.peak', 'memory.max']) assert(typeof resource.memory?.[key] === 'string' && resource.memory[key].length > 0, 'missing ' + label + ' ' + key);
+    for (const key of ['memory.peak', 'memory.max']) assert.match(resource.memory[key], /^[0-9]+\n?$/, 'malformed ' + label + ' ' + key);
+    assert.equal(resource.memory['memory.max'].trim(), String(profile.memoryMiB * 1048576), label + ' memory limit differs');
+    for (const event of ['oom 0', 'oom_kill 0']) assert.match(resource.memory['memory.events'], new RegExp('(?:^|\\n)' + event + '(?:\\n|$)'), label + ' OOM event');
+    assert.match(resource.memory['pids.events'], /(?:^|\n)max 0(?:\n|$)/, label + ' PID limit hit');
+    assert.deepEqual(Object.keys(resource.mounts ?? {}).sort(), Object.keys(profile.writable).sort(), 'missing owned ' + label + ' mounts');
+    for (const mount of Object.values(resource.mounts)) for (const key of ['blocks', 'free', 'blockSize', 'files', 'freeFiles']) assert(Number.isFinite(mount[key]) && mount[key] >= 0, 'missing ' + label + ' mount/inode usage');
+    assert(usage?.pid === resource.pid && usage.cgroup === resource.cgroup && Number.isSafeInteger(usage.sampleCount) && usage.sampleCount > 0, 'missing accumulated owned ' + label + ' mount samples');
+    assert.equal(usage.provenance, 'owned /proc/PID/root statfs samples; existing 1000ms observer and pre-teardown barrier');
+    assert.deepEqual(Object.keys(usage.mounts ?? {}).sort(), Object.keys(profile.writable).sort());
+    for (const [mount, value] of Object.entries(resource.mounts)) {
+      const aggregate = usage.mounts[mount];
+      for (const key of ['minFreeBytes', 'maxUsedBytes', 'minFreeInodes', 'maxUsedInodes']) assert(Number.isSafeInteger(aggregate[key]) && aggregate[key] >= 0, 'invalid sampled ' + label + ' mount aggregate');
+      assert(aggregate.minFreeBytes <= value.free * value.blockSize && aggregate.maxUsedBytes >= (value.blocks - value.free) * value.blockSize && aggregate.minFreeInodes <= value.freeFiles && aggregate.maxUsedInodes >= value.files - value.freeFiles, 'aggregate lost sampled ' + label + ' usage');
+    }
+    assert(resource.limits?.includes('Max processes'), 'missing ' + label + ' launch limits');
+  };
+  requireResources(packet.resources, packet.mountUsage, SIDECAR_PROFILES.browser, packet.inspect?.container?.Id, 'browser', true);
+  requireResources(packet.appResources, packet.appMountUsage, SIDECAR_PROFILES.app, packet.appInspect?.container?.Id, 'app', false);
+  assert.equal(packet.appState?.OOMKilled, false, 'app sidecar OOM-killed');
+  assert(packet.containerRemoved && packet.browserContainerRemoved && packet.appContainerRemoved && packet.scratchRemoved, 'incomplete cleanup');
   assert(!packet.cancelled && !packet.deadlineExceeded, 'cancelled or expired cell');
   assert(!packet.stdoutClipped && !packet.stderrClipped, 'clipped diagnostic packet');
 }
@@ -332,9 +350,9 @@ export function nativeSmoke(revision, diagnostic = false) {
   const debug = diagnostic ? "process.env.DEBUG='pw:browser';process.env.DEBUG_COLORS='0';process.env.DEBUG_HIDE_DATE='0';" : '';
   return `import {createRequire} from 'node:module';${debug}const r=createRequire('${readRoot}/apps/web/package.json');const {chromium}=r('@playwright/test');let worker=false;const launch=chromium.launch.bind(chromium);chromium.launch=async(...args)=>{const b=await launch(...args);const nc=b.newContext.bind(b);b.newContext=async(...args)=>{const c=await nc(...args);c.on('page',p=>{void p.waitForFunction(()=>window.__sheetReady===true&&window.__sheetRenderer==='worker'&&window.__sheetRenderedPages>0,{},{timeout:80000}).then(()=>{worker=true}).catch(()=>{});});return c;};return b;};const {verifyNativePlayer}=await import('${readRoot}/apps/web/scripts/verify-native-player.mts');await verifyNativePlayer('${revision}', ${diagnostic});if(process.exitCode||!worker)throw Error('functional worker/WASM proof missing');`;
 }
-export function accumulateMountUsage(previous, sample) {
+export function accumulateMountUsage(previous, sample, expectedMounts = Object.keys(WRITABLE)) {
   assert(Number.isInteger(sample?.pid) && sample.pid > 1 && sample.cgroup?.startsWith('/'), 'owned sample identity required');
-  assert.deepEqual(Object.keys(sample.mounts ?? {}).sort(), Object.keys(WRITABLE).sort(), 'owned sample mounts required');
+  assert.deepEqual(Object.keys(sample.mounts ?? {}).sort(), [...expectedMounts].sort(), 'owned sample mounts required');
   if (previous) { assert.equal(previous.pid, sample.pid); assert.equal(previous.cgroup, sample.cgroup); }
   const mounts = Object.fromEntries(Object.entries(sample.mounts).map(([mount, value]) => {
     for (const key of ['blocks', 'free', 'blockSize', 'files', 'freeFiles']) assert(Number.isSafeInteger(value[key]) && value[key] >= 0, 'invalid mount sample');
@@ -345,14 +363,15 @@ export function accumulateMountUsage(previous, sample) {
   return { pid: sample.pid, cgroup: sample.cgroup, sampleCount: (previous?.sampleCount ?? 0) + 1, provenance: 'owned /proc/PID/root statfs samples; existing 1000ms observer and pre-teardown barrier', interpretation: 'Sampled usage lower bound, not a true kernel peak; final resources retain the barrier snapshot.', mounts };
 }
 // Trusted outer observer: only the inspected container's PID/cgroup and fixed owned mount paths.
-function ownedResources(pidText, identity, release = false) {
+function ownedResources(pidText, identity, sidecar, release = false) {
   assert.match(pidText, /^[1-9][0-9]*$/); assert(Number(pidText) > 1); assert.match(identity, /^[a-f0-9]{64}$/);
+  assert(Object.hasOwn(SIDECAR_PROFILES, sidecar), 'unknown observed sidecar');
   const proc = '/proc/' + pidText;
   const cgroup = fs.readFileSync(proc + '/cgroup', 'utf8').trim().split('\n').find(line => line.startsWith('0::'))?.slice(3);
   assert(cgroup?.startsWith('/') && !cgroup.includes('..') && cgroup.includes(identity), 'owned cgroup v2 identity required');
   const root = '/sys/fs/cgroup' + cgroup;
   const memory = Object.fromEntries(['memory.events', 'memory.peak', 'memory.max', 'memory.current', 'pids.events', 'cpu.stat'].map(key => [key, fs.readFileSync(root + '/' + key, 'utf8').slice(0, 2048)]));
-  const mounts = Object.fromEntries(Object.keys(WRITABLE).map(mount => { const s = fs.statfsSync(proc + '/root' + mount); return [mount, { blocks: s.blocks, free: s.bfree, blockSize: s.bsize, files: s.files, freeFiles: s.ffree }]; }));
+  const mounts = Object.fromEntries(Object.keys(SIDECAR_PROFILES[sidecar].writable).map(mount => { const s = fs.statfsSync(proc + '/root' + mount); return [mount, { blocks: s.blocks, free: s.bfree, blockSize: s.bsize, files: s.files, freeFiles: s.ffree }]; }));
   const result = { pid: Number(pidText), cgroup, memory, mounts, limits: fs.readFileSync(proc + '/limits', 'utf8').slice(0, 8192), beforeTeardown: release };
   if (release) fs.writeFileSync(proc + '/root/tmp/owned-observer-release', 'observed', { flag: 'wx' });
   return result;
@@ -373,8 +392,8 @@ export function requireInspectEvidence(inspect, expected) {
   assert.equal(image.User, 'node'); assert.equal(image.NodeVersion, '22.22.3'); assert.equal(image.Revision, expected.revision);
   assert.deepEqual(image.Cmd, ['node', 'apps/web/server.js']);
   assert.equal(container.Id, expected.identity); assert.equal(container.Image, expected.image); assert.equal(container.User, '1000:1000');
-  assert.equal(host.NetworkMode, 'none'); assert.equal(host.ReadonlyRootfs, true); assert.equal(host.PidMode, ''); assert.equal(host.IpcMode, 'private');
-  assert.equal(host.Memory, expected.profile.memoryMiB * 1048576); assert.equal(host.PidsLimit, 128); assert.equal(host.NanoCpus, 1500000000);
+  assert.equal(host.NetworkMode, expected.networkMode ?? 'none'); assert.equal(host.ReadonlyRootfs, true); assert.equal(host.PidMode, ''); assert.equal(host.IpcMode, 'private');
+  assert.equal(host.Memory, expected.profile.memoryMiB * 1048576); assert.equal(host.PidsLimit, 128); assert.equal(host.NanoCpus, Math.round(Number(expected.profile.cpus ?? '1.5') * 1e9));
   assert(host.CapAdd === null || Array.isArray(host.CapAdd) && host.CapAdd.length === 0); assert.deepEqual(host.CapDrop, ['ALL']);
   assert.deepEqual(host.SecurityOpt, ['no-new-privileges']);
   assert.deepEqual(host.Tmpfs, Object.fromEntries(Object.entries(expected.profile.writable).map(([mount, size]) => [mount, 'rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700'])));
@@ -422,10 +441,11 @@ export function checkSource(root) {
 
 async function inside(revision) {
   const started = Date.now();
-  const profile = diagnosticProfile(process.env.KEYSPILLI_GUARD_PROFILE ?? 'control');
+  diagnosticProfile(process.env.KEYSPILLI_GUARD_PROFILE ?? 'control');
+  const browserProfile = SIDECAR_PROFILES.browser;
   assert.match(revision, /^[a-f0-9]{40}$/); assert.equal(process.getuid(), 1000);
   assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64'); assert.equal(process.version, 'v22.22.3');
-  const capacities = Object.fromEntries(Object.entries(profile.writable).map(([p, mib]) => {
+  const capacities = Object.fromEntries(Object.entries(browserProfile.writable).map(([p, mib]) => {
     const stat = fs.statfsSync(p, { bigint: true }), bytes = stat.blocks * stat.bsize;
     assert(bytes > 0n && bytes <= BigInt(mib) * 1048576n, 'actual tmpfs capacity exceeds declaration'); return [p, Number(bytes)];
   }));
@@ -458,18 +478,32 @@ async function inside(revision) {
   udp.on('message', (body, remote) => { const dns = body.length >= 12 && body.readUInt16BE(0) === 0x1234; counts[dns ? 'dns' : 'udp']++;
     const reply = Buffer.from(body); if (dns) reply.writeUInt16BE(0x8180, 2); udp.send(reply, remote.port, remote.address);
   });
-  const report = { kind: 'keyspilli-guard-admission', revision, status: 'failed', runtime: { node: process.version, platform: process.platform, arch: process.arch, uid: process.getuid() }, capacities, wasmMemory: 'unknown', performanceObservations: 0 };
+  const report = { kind: 'keyspilli-guard-admission', sidecar: 'browser', revision, status: 'failed', runtime: { node: process.version, platform: process.platform, arch: process.arch, uid: process.getuid() }, capacities, profileLimits: browserProfile, wasmMemory: 'unknown', performanceObservations: 0 };
   const deadline = new Promise((_, reject) => { const t = setTimeout(() => { for (const child of live) kill(child); reject(new Error('whole-case 105s deadline')); }, 105000); report.timer = t; });
-  let allowed;
+  const health = report.health = { attempts: 0 };
+  async function waitForApp() {
+    const readyUntil = Date.now() + 20000;
+    while (Date.now() < readyUntil) {
+      let response;
+      try {
+        response = await requestHealth(); const body = await response.json(); observeHealth(health, response.status, body);
+        if (response.ok && body.version === revision && body.status === 'healthy') return;
+      } catch (error) { observeHealth(health, response?.status, undefined, error); }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error('guarded app did not become healthy');
+  }
   try {
     const work = async () => {
       for (const name of ['catalog', 'media', 'home', 'credential', 'protected']) fs.writeFileSync('/sentinels/' + name, 'owned-canary\n', { flag: 'wx' });
       const before = Object.fromEntries(fs.readdirSync('/sentinels').map(name => [name, hash('/sentinels/' + name)]));
-      allowed = await tcp(3000, 'allowed'); const forbidden = await tcp(0, 'forbidden');
+      await waitForApp();
+      const forbidden = await tcp(0, 'forbidden');
       await new Promise(resolve => udp.bind(0, '127.0.0.1', resolve));
       const port = forbidden.address().port;
       async function positive() {
-        for (const p of [3000, port]) await new Promise((resolve, reject) => { const s = net.connect({ host: '127.0.0.1', port: p }); s.on('data', () => {}); s.on('error', reject); s.on('close', resolve); });
+        await new Promise((resolve, reject) => { const s = net.connect({ host: '127.0.0.1', port: 3000 }); s.on('data', () => {}); s.on('error', reject); s.on('close', resolve); }); counts.allowed++;
+        await new Promise((resolve, reject) => { const s = net.connect({ host: '127.0.0.1', port }); s.on('data', () => {}); s.on('error', reject); s.on('close', resolve); });
         for (const body of [Buffer.from('owned-udp'), Buffer.from('123401000001000000000000076669787475726507696e76616c69640000010001', 'hex')]) {
           await new Promise((resolve, reject) => { const s = dgram.createSocket('udp4'); const timer = setTimeout(() => { s.close(); reject(new Error('wire positive timeout')); }, 1000);
             s.once('message', reply => { clearTimeout(timer); s.close(); if (body.length >= 12) { assert.equal(reply.readUInt16BE(0), 0x1234); assert.equal(reply.readUInt16BE(2), 0x8180); } else assert.deepEqual(reply, body); resolve(); }); s.send(body, udp.address().port, '127.0.0.1');
@@ -503,19 +537,8 @@ async function inside(revision) {
       ]) { await assert.rejects(guard(args, options), e => e.code === code); }
       const orphan = JSON.parse(await guard([node, '-e', 'const c=require("node:child_process").spawn(process.execPath,["-e","setInterval(()=>{},1000)"],{detached:true,stdio:"ignore"});c.unref();console.log(JSON.stringify({pid:c.pid}));']));
       process.kill(orphan.pid, 0); report.survivorPid = orphan.pid;
-      await new Promise(resolve => allowed.close(resolve));
       const loader = readRoot + '/node_modules/tsx/dist/loader.mjs';
       await guard([node, '--import', loader, '--input-type=module', '-e', `import {getDb} from '${readRoot}/packages/catalog/src/db.ts';const db=getDb();if(db.prepare('SELECT 1 AS n').get().n!==1)throw Error('addon');db.close();`]);
-      const server = spawn('/player-guard', [String(port), ...new Set(executables), '--', node, '/app/apps/web/server.js'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] }); live.add(server);
-      for (const stream of [server.stdout, server.stderr]) stream.on('data', data => { logBytes += data.length; if (logBytes > 65536) kill(server); else logs.push({ app: data.toString() }); });
-      server.on('close', () => live.delete(server));
-      const readyUntil = Date.now() + 20000; let ready = false; const health = report.health = { attempts: 0 };
-      while (Date.now() < readyUntil && server.exitCode === null) {
-        let h;
-        try { h = await requestHealth(); const body = await h.json(); observeHealth(health, h.status, body); if (h.ok && body.version === revision && body.status === 'healthy') { ready = true; break; } } catch (e) { observeHealth(health, h?.status, undefined, e); }
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      assert(ready, 'guarded app did not become healthy');
       const smoke = nativeSmoke(revision, process.env.KEYSPILLI_CRASH_DIAGNOSTIC === 'native-crash-v1');
       try { await guard([node, '--import', loader, '--input-type=module', '-e', smoke]); }
       finally { report.browserProcesses = browserProcessEvidence(logs.find(log => log.args?.at(-1) === smoke)?.stderr ?? ''); }
@@ -547,7 +570,7 @@ async function inside(revision) {
 }
 
 async function host(image, revision, profileName, expectedBrowsers = 1) {
-  const diagnostic = profileName !== undefined, profile = diagnosticProfile(profileName ?? 'control');
+  const diagnostic = profileName !== undefined; if (diagnostic) diagnosticProfile(profileName);
   validate(image, revision); assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
   assert.equal(process.env.GITHUB_ACTIONS, 'true'); assert(process.env.KEYSPILLI_EVIDENCE && process.env.KEYSPILLI_SCRATCH);
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -558,39 +581,63 @@ async function host(image, revision, profileName, expectedBrowsers = 1) {
   assert.equal(metadata.Id, image); assert.equal(metadata.Architecture, 'amd64'); assert.equal(metadata.Os, 'linux');
   assert(metadata.Config.Env.includes('VERSION=' + revision)); assert.deepEqual(metadata.Config.Cmd, ['node', 'apps/web/server.js']);
   const scratch = fs.mkdtempSync(path.join(process.env.KEYSPILLI_SCRATCH, 'player-guard-'));
-  const binary = path.join(scratch, 'guard'); const name = 'keyspilli-player-guard-' + randomUUID().slice(0, 12);
-  let receipt = { kind: 'keyspilli-guard-admission', status: 'failed', image, revision }, failure, expectedInspect;
+  const binary = path.join(scratch, 'guard'); const suffix = randomUUID().slice(0, 12);
+  const appName = 'keyspilli-player-guard-' + suffix + '-app';
+  const name = 'keyspilli-player-guard-' + suffix + '-browser';
+  let receipt = { kind: 'keyspilli-guard-admission', status: 'failed', image, revision, sidecars: { app: appName, browser: name } }, failure, expectedInspect, expectedAppInspect;
+  let appIdentity, browserIdentity, appInspected, browserInspected;
   const piano = process.env.KEYSPILLI_NATIVE_PIANO_DIR; assert(piano && path.isAbsolute(piano) && fs.realpathSync(piano) === piano);
   try {
     command('gcc', ['-static', '-O2', '-std=c11', '-Wall', '-Wextra', '-Werror', path.join(root, 'deploy/player-guard.c'), '-o', binary], { env: { ...process.env, TMPDIR: scratch } });
-    const args = guardLaunchArgs(name, profile);
+    const nodeGuard = path.join(root, 'deploy/player-node-guard.cjs');
+    const appArgs = sidecarLaunchArgs(appName, 'app', 'none');
+    appArgs.push('-v', binary + ':/player-guard:ro', '-v', nodeGuard + ':/qualification-source/deploy/player-node-guard.cjs:ro', '-v', piano + ':/piano-input:ro');
+    for (const [key, value] of guardEnvironment()) appArgs.push('-e', key + '=' + value);
+    appArgs.push(image, '65534', node, '--', node, '/app/apps/web/server.js');
+    appIdentity = command('docker', appArgs).trim(); assert.match(appIdentity, /^[a-f0-9]{64}$/);
+    appInspected = JSON.parse(command('docker', ['inspect', appName]))[0];
+    expectedAppInspect = { image, revision, identity: appIdentity, profile: SIDECAR_PROFILES.app, networkMode: 'none' };
+    receipt.appInspect = inspectEvidence(metadata, appInspected, expectedAppInspect);
+    const args = sidecarLaunchArgs(name, 'browser', 'container:' + appIdentity);
     for (const relative of MOUNTS) {
       const p = path.join(root, relative); assert(fs.realpathSync(p) === p && !p.includes(':')); args.push('-v', p + ':' + readRoot + '/' + relative + ':ro');
     }
     args.push('-v', binary + ':/player-guard:ro', '-v', piano + ':/piano-input:ro');
     for (const [key, value] of guardEnvironment(diagnostic ? profileName : undefined)) args.push('-e', key + '=' + value);
     args.push(image, '--init', node, readRoot + '/deploy/player-guard-run.mjs', '--inside', revision);
-    const identity = command('docker', args).trim(); assert.match(identity, /^[a-f0-9]{64}$/);
-    const inspected = JSON.parse(command('docker', ['inspect', name]))[0]; assert.equal(inspected.HostConfig.NetworkMode, 'none'); assert.equal(inspected.HostConfig.ReadonlyRootfs, true);
-    expectedInspect = { image, revision, identity, profile };
-    receipt.inspect = inspectEvidence(metadata, inspected, expectedInspect);
+    browserIdentity = command('docker', args).trim(); assert.match(browserIdentity, /^[a-f0-9]{64}$/);
+    browserInspected = JSON.parse(command('docker', ['inspect', name]))[0]; assert.equal(browserInspected.HostConfig.NetworkMode, 'container:' + appIdentity); assert.equal(browserInspected.HostConfig.ReadonlyRootfs, true);
+    expectedInspect = { image, revision, identity: browserIdentity, profile: SIDECAR_PROFILES.browser, networkMode: 'container:' + appIdentity };
+    receipt.inspect = inspectEvidence(metadata, browserInspected, expectedInspect);
     const inspectBody = JSON.stringify(receipt.inspect, null, 2) + '\n'; assert(Buffer.byteLength(inspectBody) <= 1048576, 'inspect output cap');
     receipt.inspectArtifact = diagnostic ? 'player-guard-' + profileName + '-inspect.json' : 'player-guard-inspect.json';
     receipt.inspectSha256 = createHash('sha256').update(inspectBody).digest('hex');
     fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, receipt.inspectArtifact), inspectBody, { flag: 'wx' });
-    assert.equal(inspected.HostConfig.Memory, profile.memoryMiB * 1048576); assert.equal(inspected.HostConfig.PidsLimit, 128); assert.equal(inspected.HostConfig.PidMode, ''); assert.equal(inspected.Config.User, '1000:1000');
-    assert.equal(inspected.HostConfig.NanoCpus, 1500000000); assert.deepEqual(inspected.HostConfig.CapDrop, ['ALL']); assert(inspected.HostConfig.SecurityOpt.includes('no-new-privileges'));
-    assert.deepEqual(Object.keys(inspected.HostConfig.Tmpfs).sort(), Object.keys(WRITABLE).sort());
+    const appInspectBody = JSON.stringify(receipt.appInspect, null, 2) + '\n'; assert(Buffer.byteLength(appInspectBody) <= 1048576, 'app inspect output cap');
+    receipt.appInspectArtifact = diagnostic ? 'player-guard-app-' + profileName + '-inspect.json' : 'player-guard-app-inspect.json';
+    receipt.appInspectSha256 = createHash('sha256').update(appInspectBody).digest('hex');
+    fs.writeFileSync(path.join(process.env.KEYSPILLI_EVIDENCE, receipt.appInspectArtifact), appInspectBody, { flag: 'wx' });
+    assert.equal(browserInspected.HostConfig.Memory, SIDECAR_PROFILES.browser.memoryMiB * 1048576); assert.equal(browserInspected.HostConfig.PidsLimit, 128); assert.equal(browserInspected.HostConfig.PidMode, ''); assert.equal(browserInspected.Config.User, '1000:1000');
+    assert.equal(browserInspected.HostConfig.NanoCpus, 1_000_000_000); assert.deepEqual(browserInspected.HostConfig.CapDrop, ['ALL']); assert(browserInspected.HostConfig.SecurityOpt.includes('no-new-privileges'));
+    assert.deepEqual(Object.keys(browserInspected.HostConfig.Tmpfs).sort(), Object.keys(SIDECAR_PROFILES.browser.writable).sort());
+    assert.equal(appInspected.HostConfig.Memory, SIDECAR_PROFILES.app.memoryMiB * 1048576); assert.equal(appInspected.HostConfig.PidsLimit, 128); assert.equal(appInspected.HostConfig.PidMode, ''); assert.equal(appInspected.Config.User, '1000:1000');
+    assert.equal(appInspected.HostConfig.NanoCpus, 500_000_000); assert.deepEqual(appInspected.HostConfig.CapDrop, ['ALL']); assert(appInspected.HostConfig.SecurityOpt.includes('no-new-privileges'));
+    assert.deepEqual(Object.keys(appInspected.HostConfig.Tmpfs).sort(), Object.keys(SIDECAR_PROFILES.app.writable).sort());
+    command('docker', ['start', appName]);
     let output;
     if (diagnostic) {
       const terminal = await new Promise(resolve => {
         const child = spawn('docker', ['start', '-a', name], { stdio: ['ignore', 'pipe', 'pipe'] });
         let stdout = '', stderr = ''; const resourceErrors = [];
         const observe = (release = false) => { try {
-          const state = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', name], { timeout: 2000 }));
-          if (state.Running && state.Pid > 1 && !receipt.resources?.beforeTeardown) {
-            receipt.resources = JSON.parse(command('sudo', ['-n', process.execPath, fileURLToPath(import.meta.url), '--observe-owned', String(state.Pid), identity, ...(release ? ['--release'] : [])], { timeout: 2000 }));
-            receipt.mountUsage = accumulateMountUsage(receipt.mountUsage, receipt.resources);
+          for (const sidecar of [{ key: 'resources', usage: 'mountUsage', name, identity: browserIdentity, mounts: SIDECAR_PROFILES.browser.writable },
+            { key: 'appResources', usage: 'appMountUsage', name: appName, identity: appIdentity, mounts: SIDECAR_PROFILES.app.writable }]) {
+            const state = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', sidecar.name], { timeout: 2000 }));
+            if (state.Running && state.Pid > 1 && !receipt[sidecar.key]?.beforeTeardown) {
+              const released = release && sidecar.key === 'resources';
+              receipt[sidecar.key] = JSON.parse(command('sudo', ['-n', process.execPath, fileURLToPath(import.meta.url), '--observe-owned', String(state.Pid), sidecar.identity, sidecar.key === 'resources' ? 'browser' : 'app', ...(released ? ['--release'] : [])], { timeout: 2000 }));
+              receipt[sidecar.usage] = accumulateMountUsage(receipt[sidecar.usage], receipt[sidecar.key], Object.keys(sidecar.mounts));
+            }
           }
         } catch (error) { if (resourceErrors.length < 4) resourceErrors.push(String(error.message).slice(0, 512)); } };
         const timer = setInterval(observe, 1000);
@@ -623,16 +670,33 @@ async function host(image, revision, profileName, expectedBrowsers = 1) {
     assert.deepEqual(result.runtime, { node: 'v22.22.3', platform: 'linux', arch: 'x64', uid: 1000 });
     assert.equal(result?.status, 'passed'); assert.equal(reaper?.remainingChildren, 0); assert(reaper.reaped.some(p => p.pid === result.survivorPid && p.signal === 9));
     assert.equal(state.Pid, 0); assert.equal(state.ExitCode, 0); assert.equal(state.OOMKilled, false);
-    Object.assign(receipt, { state, image, writableMiB: Object.values(profile.writable).reduce((a, b) => a + b, 0), helperSha256: hash(binary), sourceSha256: hash(path.join(root, 'deploy/player-guard.c')) });
+    Object.assign(receipt, { state, image, sidecarProfiles: SIDECAR_PROFILES,
+      writableMiB: Object.values(SIDECAR_PROFILES).flatMap(item => Object.values(item.writable)).reduce((a, b) => a + b, 0),
+      aggregateMemoryMiB: Object.values(SIDECAR_PROFILES).reduce((sum, item) => sum + item.memoryMiB, 0),
+      aggregateCpus: Object.values(SIDECAR_PROFILES).reduce((sum, item) => sum + Number(item.cpus), 0),
+      helperSha256: hash(binary), sourceSha256: hash(path.join(root, 'deploy/player-guard.c')) });
   } catch (error) {
     failure = error; receipt.status = 'failed'; receipt.hostError = String(error.message).slice(0, 4096); receipt.error ??= receipt.hostError;
     if (!diagnostic) { receipt.stdout ??= String(error.stdout ?? '').slice(0, 524288); receipt.stderr ??= String(error.stderr ?? '').slice(0, 65536); }
   } finally {
-    try { requireInspectEvidence(receipt.inspect, expectedInspect); } catch (error) { receipt.status = 'failed'; receipt.inspectError = String(error.message).slice(0, 512); failure ??= error; }
-    if (diagnostic) { receipt.scope = 'diagnostic-only'; receipt.profile = profileName; receipt.profileLimits = profile; }
+    try { requireInspectEvidence(receipt.inspect, expectedInspect); requireInspectEvidence(receipt.appInspect, expectedAppInspect); } catch (error) { receipt.status = 'failed'; receipt.inspectError = String(error.message).slice(0, 512); failure ??= error; }
+    if (diagnostic) { receipt.scope = 'diagnostic-only'; receipt.profile = profileName; receipt.profileLimits = { app: SIDECAR_PROFILES.app, browser: SIDECAR_PROFILES.browser }; }
     try {
-      if (command('docker', ['ps', '-aq', '--filter', 'name=^/' + name + '$']).trim()) command('docker', ['rm', '-f', name]);
-      assert.equal(command('docker', ['ps', '-aq', '--filter', 'name=^/' + name + '$']).trim(), ''); receipt.containerRemoved = true;
+      if (appIdentity) {
+        try { command('docker', ['stop', '--time', '5', appName], { timeout: 10000 }); } catch (error) { receipt.appStopError = String(error.message).slice(0, 512); receipt.status = 'failed'; failure ??= error; }
+        const appState = JSON.parse(command('docker', ['inspect', '--format', '{{json .State}}', appName])); receipt.appState = appState;
+        assert.equal(appState.Pid, 0, 'app sidecar remained running'); assert.equal(appState.OOMKilled, false, 'app sidecar OOM-killed');
+        const appLogResult = spawnSync('docker', ['logs', appName], { encoding: 'utf8', timeout: 15000, maxBuffer: 1048576 });
+        const appLog = ((appLogResult.stdout ?? '') + (appLogResult.stderr ?? '')).slice(0, 65536);
+        const appLogPath = path.join(process.env.KEYSPILLI_EVIDENCE, diagnostic ? 'player-guard-app-' + profileName + '.log' : 'player-guard-app.log');
+        fs.writeFileSync(appLogPath, appLog, { flag: 'wx' });
+        receipt.appLogArtifact = path.basename(appLogPath); receipt.appLogSha256 = createHash('sha256').update(appLog).digest('hex'); receipt.appLogBytes = Buffer.byteLength(appLog);
+      }
+      for (const container of [name, appName]) {
+        if (command('docker', ['ps', '-aq', '--filter', 'name=^/' + container + '$']).trim()) command('docker', ['rm', '-f', container]);
+        assert.equal(command('docker', ['ps', '-aq', '--filter', 'name=^/' + container + '$']).trim(), '');
+      }
+      receipt.containerRemoved = true; receipt.browserContainerRemoved = true; receipt.appContainerRemoved = true;
       receipt.parentBytes = fs.readdirSync(scratch).reduce((sum, entry) => sum + fs.statSync(path.join(scratch, entry)).size, 0);
       assert(receipt.parentBytes <= 16 * 1048576, 'parent16MiB reservation exceeded');
       fs.rmSync(scratch, { recursive: true }); receipt.scratchRemoved = true;
@@ -647,7 +711,7 @@ async function host(image, revision, profileName, expectedBrowsers = 1) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv[2] === '--hosted-capacity') { assert.equal(process.argv.length, 4); await capacityCLI(process.argv[3]); }
   else
-  if (process.argv[2] === '--observe-owned') { assert([5, 6].includes(process.argv.length)); if (process.argv.length === 6) assert.equal(process.argv[5], '--release'); console.log(JSON.stringify(ownedResources(process.argv[3], process.argv[4], process.argv.length === 6))); }
+  if (process.argv[2] === '--observe-owned') { assert([6, 7].includes(process.argv.length)); if (process.argv.length === 7) assert.equal(process.argv[6], '--release'); console.log(JSON.stringify(ownedResources(process.argv[3], process.argv[4], process.argv[5], process.argv.length === 7))); }
   else if (process.argv[2] === '--inside') await inside(process.argv[3]);
   else if (process.argv[6] === '--observe-control') {
     assert.equal(process.argv.length, 7);

@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, NODE_RUNTIME_ENV, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.ts';
 import * as capacity from '../player-guard-run.mjs';
@@ -42,13 +42,30 @@ test('guarded runtime caps non-browser Node worker pools without changing Chromi
   assert.equal(args[args.indexOf('--cpus') + 1], '1.5');
 });
 
+test('app and browser sidecars preserve aggregate resources and independent task guards', () => {
+  const profiles = Object.values(SIDECAR_PROFILES);
+  assert.equal(profiles.reduce((sum, profile) => sum + profile.memoryMiB, 0), 1024);
+  assert.equal(profiles.reduce((sum, profile) => sum + Number(profile.cpus), 0), 1.5);
+  assert.equal(profiles.reduce((sum, profile) => sum + Object.values(profile.writable).reduce((a, b) => a + b, 0), 0), 40);
+  for (const role of ['app', 'browser']) {
+    const browserNetwork = 'container:' + 'a'.repeat(64);
+    const args = sidecarLaunchArgs('owned-' + role, role, role === 'app' ? 'none' : browserNetwork);
+    assert.equal(args[args.indexOf('--pids-limit') + 1], '128');
+    assert.equal(args[args.indexOf('--cpus') + 1], SIDECAR_PROFILES[role].cpus);
+    assert.equal(args[args.indexOf('--memory') + 1], SIDECAR_PROFILES[role].memoryMiB + 'm');
+    assert(args.includes('--read-only'));
+    assert.equal(args[args.indexOf('--cap-drop') + 1], 'ALL');
+    assert.equal(args[args.indexOf('--network') + 1], role === 'app' ? 'none' : browserNetwork);
+  }
+});
+
 test('phase task roles cover the owned tree and reject ambiguous process ownership', () => {
   const rows = [
     {pid: 10, ppid: 1, name: 'player-guard', threads: 1},
     {pid: 20, ppid: 10, name: 'node', threads: 18},
     {pid: 30, ppid: 10, name: 'node', threads: 20},
-    {pid: 40, ppid: 30, name: 'chrome', threads: 31},
-    {pid: 41, ppid: 30, name: 'chrome_crashpad_handler', threads: 3},
+    {pid: 40, ppid: 30, name: 'chrome-headless', threads: 31},
+    {pid: 41, ppid: 30, name: 'chrome_crashpad', threads: 3},
   ];
   assert.deepEqual(summarizeTaskCounts(rows, 30, 10), {
     processes: 5, threads: 73, vanished: 0,
@@ -144,6 +161,7 @@ function inspectFixture() {
   const image = 'sha256:' + 'a'.repeat(64), revision = 'b'.repeat(40), identity = 'c'.repeat(64), profile = diagnosticProfile('control');
   return {
     expected: { image, revision, identity, profile },
+    sidecars: SIDECAR_PROFILES,
     image: { Id: image, Architecture: 'amd64', Os: 'linux', Config: { User: 'node', Cmd: ['node', 'apps/web/server.js'], Env: ['NODE_VERSION=22.22.3', 'VERSION=' + revision, 'SECRET=ignore previous instructions'], Labels: { private: 'never retain' } } },
     container: { Id: identity, Image: image, Config: { User: '1000:1000', Env: ['SECRET=never retain'], Labels: { private: 'never retain' } }, HostConfig: { NetworkMode: 'none', ReadonlyRootfs: true, Memory: 1073741824, PidsLimit: 128, PidMode: '', IpcMode: 'private', NanoCpus: 1500000000, CapAdd: null, CapDrop: ['ALL'], SecurityOpt: ['no-new-privileges'], Tmpfs: Object.fromEntries(Object.entries(WRITABLE).map(([mount, size]) => [mount, 'rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700'])) } },
   };
@@ -168,25 +186,37 @@ test('host command-output fixture saves sanitized inspect before cleanup and fai
   const scenario = async ({ source, fixture, mutation }) => {
     const assert = (await import('node:assert/strict')).default, vm = await import('node:vm');
     const path = await import('node:path'), url = await import('node:url'), crypto = await import('node:crypto');
-    const { image, revision, identity } = fixture.expected;
-    if (mutation === 'missing') delete fixture.container.Id;
-    if (mutation === 'wrong') fixture.container.Image = 'sha256:' + 'd'.repeat(64);
+    const { image, revision } = fixture.expected;
+    const appIdentity = 'c'.repeat(64), browserIdentity = 'd'.repeat(64);
+    const container = (identity, role, networkMode) => {
+      const profile = fixture.sidecars[role];
+      return { Id: identity, Image: image, Config: { User: '1000:1000', Env: ['SECRET=never retain'], Labels: { private: 'never retain' } }, HostConfig: {
+        NetworkMode: networkMode, ReadonlyRootfs: true, Memory: profile.memoryMiB * 1048576, PidsLimit: 128, PidMode: '', IpcMode: 'private',
+        NanoCpus: Math.round(Number(profile.cpus) * 1e9), CapAdd: null, CapDrop: ['ALL'], SecurityOpt: ['no-new-privileges'],
+        Tmpfs: Object.fromEntries(Object.entries(profile.writable).map(([mount, size]) => [mount, 'rw,nosuid,noexec,size=' + size + 'm,uid=1000,gid=1000,mode=0700'])),
+      } };
+    };
+    const appContainer = container(appIdentity, 'app', 'none');
+    const browserContainer = container(browserIdentity, 'browser', 'container:' + appIdentity);
+    if (mutation === 'missing') delete appContainer.Id;
+    if (mutation === 'wrong') appContainer.Image = 'sha256:' + 'e'.repeat(64);
     const filename = '/source/deploy/player-guard-run.mjs', writes = new Map(), events = [];
-    let removed = false;
+    const removed = new Set();
     const processState = { platform: 'linux', arch: 'x64', argv: ['node', filename, '--image', image, '--revision', revision], env: { GITHUB_ACTIONS: 'true', KEYSPILLI_EVIDENCE: '/evidence', KEYSPILLI_SCRATCH: '/scratch', KEYSPILLI_NATIVE_PIANO_DIR: '/piano' } };
     const command = (exe, args) => {
       if (exe === 'git') return args[0] === 'rev-parse' ? revision : '';
       if (exe === 'gcc') return '';
       assert.equal(exe, 'docker'); events.push(args[0]);
       if (args[0] === 'image') return JSON.stringify([fixture.image]);
-      if (args[0] === 'create') return identity;
-      if (args[0] === 'inspect') return args[1] === '--format' ? JSON.stringify({ Pid: 0, ExitCode: 0, OOMKilled: false }) : JSON.stringify([fixture.container]);
-      if (args[0] === 'start') return JSON.stringify({ kind: 'keyspilli-guard-admission', status: 'passed', revision, runtime: { node: 'v22.22.3', platform: 'linux', arch: 'x64', uid: 1000 }, survivorPid: 7 }) + '\n' + JSON.stringify({ phase: 'reaper', remainingChildren: 0, reaped: [{ pid: 7, signal: 9 }] });
-      if (args[0] === 'ps') return removed ? '' : identity;
-      if (args[0] === 'rm') { removed = true; return ''; }
+      if (args[0] === 'create') return args[args.indexOf('--name') + 1].endsWith('-app') ? appIdentity : browserIdentity;
+      if (args[0] === 'inspect') return args[1] === '--format' ? JSON.stringify({ Pid: 0, ExitCode: 0, OOMKilled: false }) : JSON.stringify([args[1].endsWith('-app') ? appContainer : browserContainer]);
+      if (args[0] === 'start') return args[1] === '-a' ? JSON.stringify({ kind: 'keyspilli-guard-admission', status: 'passed', revision, runtime: { node: 'v22.22.3', platform: 'linux', arch: 'x64', uid: 1000 }, survivorPid: 7 }) + '\n' + JSON.stringify({ phase: 'reaper', remainingChildren: 0, reaped: [{ pid: 7, signal: 9 }] }) : '';
+      if (args[0] === 'ps') { const name = args.at(-1).slice(7, -1); return removed.has(name) ? '' : (name.endsWith('-app') ? appIdentity : browserIdentity); }
+      if (args[0] === 'rm') { removed.add(args.at(-1)); return ''; }
+      if (args[0] === 'stop') return '';
       throw Error('unexpected Docker command');
     };
-    const modules = { 'node:fs': { default: { realpathSync: p => p, mkdtempSync: () => '/scratch/owned', readFileSync: () => Buffer.from('owned'), readdirSync: () => ['guard'], statSync: () => ({ size: 5 }), rmSync: () => { assert(removed); events.push('scratch-removed'); }, writeFileSync: (p, body) => { if (p.endsWith('-inspect.json')) { assert.equal(removed, false); events.push('inspect-saved'); } else assert(removed); writes.set(p, body); } } }, 'node:path': { default: path.default }, 'node:net': { default: {} }, 'node:dgram': { default: {} }, 'node:assert/strict': { default: assert }, 'node:crypto': crypto, 'node:module': { createRequire() {} }, 'node:url': url, 'node:child_process': { execFileSync: command, spawn() { throw Error('diagnostic execution forbidden'); } } };
+    const modules = { 'node:fs': { default: { realpathSync: p => p, mkdtempSync: () => '/scratch/owned', readFileSync: () => Buffer.from('owned'), readdirSync: () => ['guard'], statSync: () => ({ size: 5 }), rmSync: () => { assert.equal(removed.size, 2); events.push('scratch-removed'); }, writeFileSync: (p, body) => { if (p.endsWith('-inspect.json')) { assert.equal(removed.size, 0); events.push('inspect-saved'); } writes.set(p, body); } } }, 'node:path': { default: path.default }, 'node:net': { default: {} }, 'node:dgram': { default: {} }, 'node:assert/strict': { default: assert }, 'node:crypto': crypto, 'node:module': { createRequire() {} }, 'node:url': url, 'node:child_process': { execFileSync: command, spawn() { throw Error('diagnostic execution forbidden'); }, spawnSync() { return { stdout: 'owned app log\n', stderr: '' }; } } };
     const context = vm.createContext({ process: processState, Buffer, console, setTimeout, clearTimeout });
     context.process = vm.runInContext('(' + JSON.stringify(processState) + ')', context);
     const module = new vm.SourceTextModule(source, { context, initializeImportMeta: meta => { meta.url = url.pathToFileURL(filename).href; } });
@@ -196,7 +226,7 @@ test('host command-output fixture saves sanitized inspect before cleanup and fai
     const receipt = JSON.parse(writes.get('/evidence/player-guard-admission.json'));
     assert.equal(receipt.status, mutation ? 'failed' : 'passed'); assert.equal(rejected, Boolean(mutation));
     assert(receipt.containerRemoved && receipt.scratchRemoved); assert(!/SECRET|Env|Labels|ignore previous|never retain/.test(JSON.stringify(receipt)));
-    if (!mutation) { assert.deepEqual(receipt.inspect.image.Id, image); assert.equal(receipt.inspect.container.Id, identity); assert(events.includes('inspect-saved')); assert(events.indexOf('inspect-saved') < events.indexOf('start')); assert.deepEqual(JSON.parse(writes.get('/evidence/player-guard-inspect.json')), receipt.inspect); }
+    if (!mutation) { assert.deepEqual(receipt.inspect.image.Id, image); assert.equal(receipt.inspect.container.Id, browserIdentity); assert.equal(receipt.appInspect.container.Id, appIdentity); assert(events.includes('inspect-saved')); assert(events.indexOf('inspect-saved') < events.indexOf('start')); assert.deepEqual(JSON.parse(writes.get('/evidence/player-guard-inspect.json')), receipt.inspect); assert.deepEqual(JSON.parse(writes.get('/evidence/player-guard-app-inspect.json')), receipt.appInspect); }
     else { assert(!events.includes('start')); assert(receipt.inspectError); }
     console.log(JSON.stringify({ kind: 'source-inspect-command-fixture', provenance: 'local VM Docker command-output fixture; no Docker execution', mutation, receipt }));
   };
@@ -230,11 +260,13 @@ test('failed cell output retains the failed inner packet and rejects misleading,
 });
 
 test('diagnostic collection fails closed on absent crash, resource, launch or cleanup evidence', () => {
-  const mounts = Object.fromEntries(Object.keys(WRITABLE).map(mount => [mount, { blocks: 15, free: 1, blockSize: 4096, files: 4, freeFiles: 1 }]));
+  const mounts = Object.fromEntries(Object.keys(SIDECAR_PROFILES.browser.writable).map(mount => [mount, { blocks: 15, free: 1, blockSize: 4096, files: 4, freeFiles: 1 }]));
+  const appMounts = Object.fromEntries(Object.keys(SIDECAR_PROFILES.app.writable).map(mount => [mount, { blocks: 8, free: 2, blockSize: 4096, files: 3, freeFiles: 1 }]));
   const revision = 'b'.repeat(40), stderr = '2026-11-04T00:00:00Z pw:browser <launching> /owned/chromium --headless\n2026-11-04T00:00:00Z pw:browser <launched> pid=44\n2026-11-04T00:00:01Z pw:browser [pid=44] <process did exit: exitCode=1, signal=null>\n';
-  const packet = { revision, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr }], functional: { browserObservation: { armed: true, commandLineSource: 'playwright-launcher-stderr', events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: browserProcessEvidence(stderr), resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned', beforeTeardown: true, memory: { 'memory.events': 'oom 0', 'memory.peak': '12', 'memory.max': '1073741824' }, mounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
+  const packet = { revision, inspect: { container: { Id: 'd'.repeat(64) } }, appInspect: { container: { Id: 'e'.repeat(64) } }, appState: { OOMKilled: false }, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr }], functional: { browserObservation: { armed: true, commandLineSource: 'playwright-launcher-stderr', events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: browserProcessEvidence(stderr), resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned/d' + 'd'.repeat(63), beforeTeardown: true, memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '12', 'memory.max': '671088640', 'pids.events': 'max 0\n' }, mounts, limits: 'Max processes 128 128 processes' }, appResources: { pid: 43, cgroup: '/owned/e' + 'e'.repeat(63), memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '11', 'memory.max': '402653184', 'pids.events': 'max 0\n' }, mounts: appMounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, browserContainerRemoved: true, appContainerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
   packet.logBytes = Buffer.byteLength(stderr);
   packet.mountUsage = accumulateMountUsage(undefined, packet.resources);
+  packet.appMountUsage = accumulateMountUsage(undefined, packet.appResources, Object.keys(SIDECAR_PROFILES.app.writable));
   assert.doesNotThrow(() => requireDiagnosticEvidence(packet));
   const two = stderr + stderr.replaceAll('pid=44', 'pid=45');
   const twoPacket = { ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: two }],
@@ -288,8 +320,12 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   assert.throws(() => requireDiagnosticEvidence({...withExpectedNegative,logs:[guardNegative,{...packet.logs[0],clipped:true}]}), /clipped inner launcher stream/);
   assert.throws(() => requireDiagnosticEvidence({...packet,mountUsage:undefined}));
   assert.throws(() => requireDiagnosticEvidence({...packet,mountUsage:{...packet.mountUsage,sampleCount:0}}));
+  assert.throws(() => requireDiagnosticEvidence({...packet,appMountUsage:undefined}));
+  assert.throws(() => requireDiagnosticEvidence({...packet,resources:{...packet.resources,memory:{...packet.resources.memory,'pids.events':'max 1\n'}}}), /PID limit/);
+  assert.throws(() => requireDiagnosticEvidence({...packet,appResources:{...packet.appResources,memory:{...packet.appResources.memory,'pids.events':'max 1\n'}}}), /PID limit/);
+  assert.throws(() => requireDiagnosticEvidence({...packet,resources:{...packet.resources,memory:{...packet.resources.memory,'memory.events':'oom 0\noom_kill 1\n'}}}), /OOM event/);
   for (const key of ['memory.peak', 'memory.max', 'memory.events']) assert.throws(() => requireDiagnosticEvidence({ ...packet, resources: { ...packet.resources, memory: { ...packet.resources.memory, [key]: 'passed' } } }));
-  for (const change of [{ functional: undefined }, { resources: undefined }, { resourceBarrierAcknowledged: false }, { cancelled: true }, { deadlineExceeded: true }, { resources: { ...packet.resources, memory: {} } }, { resources: { ...packet.resources, mounts: { '/tmp': mounts['/tmp'] } } }, { browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 45 }] }, { functional: { browserObservation: { armed: true, commandLine: [], events: [] } } }, { containerRemoved: false }, { stdoutClipped: true }, { stderrClipped: true }]) assert.throws(() => requireDiagnosticEvidence({ ...packet, ...change }));
+  for (const change of [{ functional: undefined }, { resources: undefined }, { appResources: undefined }, { appState: { OOMKilled: true } }, { resourceBarrierAcknowledged: false }, { cancelled: true }, { deadlineExceeded: true }, { resources: { ...packet.resources, memory: {} } }, { resources: { ...packet.resources, mounts: { '/tmp': mounts['/tmp'] } } }, { browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 45 }] }, { functional: { browserObservation: { armed: true, commandLine: [], events: [] } } }, { containerRemoved: false }, { browserContainerRemoved: false }, { appContainerRemoved: false }, { stdoutClipped: true }, { stderrClipped: true }]) assert.throws(() => requireDiagnosticEvidence({ ...packet, ...change }));
   for (const text of ['', stderr.replace(/^.*<launching>.*\n/m, ''), stderr.replace(/^.*<launched>.*\n/m, ''), stderr.replace(/^.*<process did exit:.*\n/m, ''), stderr.replace('[pid=44]', '[pid=45]'), stderr.replace('pid=44', 'pid=0')]) {
     assert.throws(() => requireDiagnosticEvidence({ ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: text }], browserProcesses: browserProcessEvidence(text) }));
   }
