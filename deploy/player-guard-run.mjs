@@ -259,6 +259,35 @@ export function phaseTaskCounts(stderr) {
 }
 export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
   assert([1, 2, 3].includes(expectedBrowsers), 'invalid browser observation count');
+  assert(Array.isArray(packet.trace) && packet.trace.length > 0 && packet.trace.length <= 32, 'invalid trace size');
+  const openTrace = new Set(); let previousTraceTime = -1;
+  for (const row of packet.trace) {
+    assert(row && typeof row === 'object' && !Array.isArray(row), 'invalid trace entry');
+    assert(typeof row.name === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(row.name), 'invalid trace stage');
+    assert(['start', 'end', 'failure'].includes(row.state), 'invalid trace state');
+    assert(Number.isSafeInteger(row.atMs) && row.atMs >= previousTraceTime, 'non-monotonic trace'); previousTraceTime = row.atMs;
+    if (row.state === 'start') {
+      assert.deepEqual(Object.keys(row).sort(), ['atMs', 'name', 'state'], 'invalid trace start fields');
+      assert(!openTrace.has(row.name), 'duplicate open trace stage'); openTrace.add(row.name);
+    } else {
+      assert(Object.keys(row).every(key => ['atMs', 'name', 'state', 'elapsedMs', 'code', 'signal'].includes(key)), 'unsupported trace terminal fields');
+      assert(Number.isSafeInteger(row.elapsedMs) && row.elapsedMs >= 0, 'invalid trace duration');
+      if (row.code !== undefined) assert(row.code === null || Number.isSafeInteger(row.code), 'invalid trace exit code');
+      if (row.signal !== undefined) assert(row.signal === null || typeof row.signal === 'string', 'invalid trace signal');
+      assert(openTrace.delete(row.name), 'trace stage was not opened');
+    }
+  }
+  assert.equal(openTrace.size, 0, 'trace contains an open stage');
+  if (packet.inFlight !== undefined) {
+    assert(Array.isArray(packet.inFlight) && packet.inFlight.length <= 8, 'invalid in-flight size');
+    for (const row of packet.inFlight) {
+      assert.deepEqual(Object.keys(row).sort(), ['elapsedMs', 'stage', 'stderrTail', 'stdoutTail'], 'invalid in-flight fields');
+      assert(typeof row.stage === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(row.stage), 'invalid in-flight stage');
+      assert(Number.isSafeInteger(row.elapsedMs) && row.elapsedMs >= 0, 'invalid in-flight duration');
+      for (const key of ['stdoutTail', 'stderrTail']) assert(typeof row[key] === 'string' && Buffer.byteLength(row[key]) <= 4096, 'invalid in-flight tail');
+    }
+  }
+  assert(Array.isArray(packet.cleanupTimeouts) && packet.cleanupTimeouts.length === 0, 'cleanup timed out');
   const observation = packet.functional?.browserObservation;
   assert(observation?.armed === true && Array.isArray(observation.events), 'missing early browser/launch evidence');
   assert.equal(observation.commandLineSource, 'playwright-launcher-stderr');
@@ -324,6 +353,7 @@ export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
   requireResources(packet.appResources, packet.appMountUsage, SIDECAR_PROFILES.app, packet.appInspect?.container?.Id, 'app', false);
   assert.equal(packet.appState?.OOMKilled, false, 'app sidecar OOM-killed');
   assert(packet.containerRemoved && packet.browserContainerRemoved && packet.appContainerRemoved && packet.scratchRemoved, 'incomplete cleanup');
+  assert(Buffer.byteLength(JSON.stringify(packet)) <= 1048576, 'trace-bearing receipt exceeds cap');
   assert(!packet.cancelled && !packet.deadlineExceeded, 'cancelled or expired cell');
   assert(!packet.stdoutClipped && !packet.stderrClipped, 'clipped diagnostic packet');
 }
@@ -439,6 +469,54 @@ export function checkSource(root) {
   assert.equal(git('ls-files', '--others', '--ignored', '--exclude-standard', '--', ...MOUNTS, ...INSTALLED), '');
 }
 
+const traceStarts = new WeakMap();
+export function appendTrace(report, name, state, details = {}) {
+  assert(report && Array.isArray(report.trace), 'trace report required');
+  assert(typeof name === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(name), 'invalid trace stage');
+  assert(['start', 'end', 'failure'].includes(state), 'invalid trace state');
+  assert(details && typeof details === 'object' && !Array.isArray(details), 'invalid trace details');
+  assert(Object.keys(details).every(key => ['elapsedMs', 'code', 'signal'].includes(key)), 'unsupported trace details');
+  if (details.elapsedMs !== undefined) assert(Number.isSafeInteger(details.elapsedMs) && details.elapsedMs >= 0, 'invalid trace duration');
+  if (details.code !== undefined) assert(details.code === null || Number.isSafeInteger(details.code), 'invalid trace code');
+  if (details.signal !== undefined) assert(details.signal === null || typeof details.signal === 'string', 'invalid trace signal');
+  assert(report.trace.length < 32, 'trace entry cap');
+  const now = performance.now(), atMs = Math.round(now);
+  const previous = report.trace.at(-1)?.atMs ?? -1;
+  assert(Number.isSafeInteger(atMs) && atMs >= previous, 'trace clock moved backwards');
+  let starts = traceStarts.get(report);
+  if (!starts) { starts = new Map(); traceStarts.set(report, starts); }
+  const row = { name, state, atMs };
+  if (state === 'start') {
+    assert(!starts.has(name), 'duplicate open trace stage');
+    starts.set(name, now);
+  } else {
+    assert(starts.has(name), 'trace stage was not started');
+    row.elapsedMs = details.elapsedMs ?? Math.max(0, Math.round(now - starts.get(name)));
+    starts.delete(name);
+  }
+  for (const key of ['code', 'signal']) if (details[key] !== undefined) row[key] = details[key];
+  report.trace.push(row);
+}
+
+export function captureInFlight(report, entries, now = performance.now()) {
+  assert(report && Array.isArray(report.trace), 'trace report required');
+  assert(Array.isArray(entries) && entries.length <= 8, 'in-flight entry cap');
+  const tail = value => {
+    const clean = String(value ?? '').split('\n').filter(line => !line.includes('pw:browser <launching>')).join('\n');
+    return Buffer.from(clean).subarray(-4096).toString('utf8');
+  };
+  report.inFlight = entries.map(entry => {
+    assert(typeof entry?.stage === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(entry.stage), 'invalid in-flight stage');
+    assert(Number.isFinite(entry.startedAt), 'invalid in-flight start');
+    return {
+      stage: entry.stage,
+      elapsedMs: Math.max(0, Math.round(now - entry.startedAt)),
+      stdoutTail: tail(entry.stdout),
+      stderrTail: tail(entry.stderr),
+    };
+  });
+}
+
 async function inside(revision) {
   const started = Date.now();
   diagnosticProfile(process.env.KEYSPILLI_GUARD_PROFILE ?? 'control');
@@ -449,13 +527,47 @@ async function inside(revision) {
     const stat = fs.statfsSync(p, { bigint: true }), bytes = stat.blocks * stat.bsize;
     assert(bytes > 0n && bytes <= BigInt(mib) * 1048576n, 'actual tmpfs capacity exceeds declaration'); return [p, Number(bytes)];
   }));
-  const live = new Set(), servers = [], sockets = new Set(), counts = { allowed: 0, forbidden: 0, udp: 0, dns: 0 };
+  const live = new Set(), active = new Map(), openStages = new Map(), servers = [], sockets = new Set(), counts = { allowed: 0, forbidden: 0, udp: 0, dns: 0 };
   const logs = []; let logBytes = 0; const cleanupErrors = [];
   function kill(child) { try { process.kill(-child.pid, 'SIGKILL'); } catch (e) { if (e.code !== 'ESRCH') throw e; } }
-  async function run(command, args, { timeout = 90000, limit = 65536 } = {}) {
+  const report = { kind: 'keyspilli-guard-admission', sidecar: 'browser', revision, status: 'failed', runtime: { node: process.version, platform: process.platform, arch: process.arch, uid: process.getuid() }, capacities, profileLimits: browserProfile, wasmMemory: 'unknown', performanceObservations: 0, trace: [], cleanupTimeouts: [] };
+  function beginStage(name) {
+    appendTrace(report, name, 'start'); openStages.set(name, performance.now());
+  }
+  function finishStage(name, state, details = {}) {
+    if (!openStages.has(name)) return;
+    openStages.delete(name); appendTrace(report, name, state, details);
+  }
+  async function closeLiveOwned() {
+    const children = [...live];
+    if (!children.length) return;
+    const cleanupStarted = performance.now();
+    for (const child of children) kill(child);
+    let closed = true;
+    const waiter = Promise.all(children.map(child => child.exitCode !== null || child.signalCode !== null
+      ? Promise.resolve()
+      : new Promise(resolve => child.once('close', resolve)))).then(() => {});
+    let timer; await Promise.race([waiter, new Promise(resolve => { timer = setTimeout(() => { closed = false; resolve(); }, 2000); })]); clearTimeout(timer);
+    if (!closed) {
+      for (const child of children.filter(item => live.has(item))) {
+        report.cleanupTimeouts.push({ stage: active.get(child)?.stage ?? null, elapsedMs: Math.max(0, Math.round(performance.now() - (active.get(child)?.startedAt ?? cleanupStarted))) });
+        child.stdout?.destroy(); child.stderr?.destroy(); child.unref();
+      }
+    }
+  }
+  async function traced(name, operation) {
+    beginStage(name);
+    try { const result = await operation(); finishStage(name, 'end'); return result; }
+    catch (error) { finishStage(name, 'failure'); throw error; }
+  }
+  async function run(command, args, { timeout = 90000, limit = 65536, stage } = {}) {
+    assert(typeof stage === 'string' && stage.length > 0, 'run stage required');
+    beginStage(stage);
     return new Promise((resolve, reject) => {
       const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], detached: true }); live.add(child);
       let stdout = '', stderr = '', bytes = 0, failure;
+      const record = { stage, startedAt: performance.now(), stdout: () => stdout, stderr: () => stderr };
+      active.set(child, record);
       const timer = setTimeout(() => { failure = Object.assign(new Error('command deadline'), { code: 'PLAYER_TIMEOUT' }); kill(child); }, timeout);
       const capture = name => data => {
         bytes += data.length; logBytes += data.length;
@@ -465,7 +577,7 @@ async function inside(revision) {
       };
       child.stdout.on('data', capture('stdout')); child.stderr.on('data', capture('stderr'));
       child.on('error', error => { failure = error; });
-      child.on('close', (code, signal) => { clearTimeout(timer); live.delete(child); logs.push({ command, args, code, signal, stdout, stderr, clipped: bytes > limit || logBytes > 65536 });
+      child.on('close', (code, signal) => { clearTimeout(timer); live.delete(child); active.delete(child); finishStage(stage, failure || code !== 0 ? 'failure' : 'end', { code, signal }); logs.push({ command, args, code, signal, stdout, stderr, clipped: bytes > limit || logBytes > 65536 });
         if (failure || code !== 0) reject(failure ?? new Error(`child failed code=${code} signal=${signal}: ${stderr}`)); else resolve(stdout);
       });
     });
@@ -478,8 +590,14 @@ async function inside(revision) {
   udp.on('message', (body, remote) => { const dns = body.length >= 12 && body.readUInt16BE(0) === 0x1234; counts[dns ? 'dns' : 'udp']++;
     const reply = Buffer.from(body); if (dns) reply.writeUInt16BE(0x8180, 2); udp.send(reply, remote.port, remote.address);
   });
-  const report = { kind: 'keyspilli-guard-admission', sidecar: 'browser', revision, status: 'failed', runtime: { node: process.version, platform: process.platform, arch: process.arch, uid: process.getuid() }, capacities, profileLimits: browserProfile, wasmMemory: 'unknown', performanceObservations: 0 };
-  const deadline = new Promise((_, reject) => { const t = setTimeout(() => { for (const child of live) kill(child); reject(new Error('whole-case 105s deadline')); }, 105000); report.timer = t; });
+  const deadline = new Promise((_, reject) => { const t = setTimeout(() => {
+    const now = performance.now();
+    const pending = [...active.values()].map(record => ({ stage: record.stage, startedAt: record.startedAt, stdout: record.stdout(), stderr: record.stderr() }));
+    captureInFlight(report, pending, now);
+    for (const [name, startedAt] of [...openStages]) { openStages.delete(name); appendTrace(report, name, 'failure', { elapsedMs: Math.max(0, Math.round(now - startedAt)) }); }
+    for (const child of live) kill(child);
+    reject(new Error('whole-case 105s deadline'));
+  }, 105000); report.timer = t; });
   const health = report.health = { attempts: 0 };
   async function waitForApp() {
     const readyUntil = Date.now() + 20000;
@@ -495,12 +613,11 @@ async function inside(revision) {
   }
   try {
     const work = async () => {
-      for (const name of ['catalog', 'media', 'home', 'credential', 'protected']) fs.writeFileSync('/sentinels/' + name, 'owned-canary\n', { flag: 'wx' });
-      const before = Object.fromEntries(fs.readdirSync('/sentinels').map(name => [name, hash('/sentinels/' + name)]));
-      await waitForApp();
-      const forbidden = await tcp(0, 'forbidden');
-      await new Promise(resolve => udp.bind(0, '127.0.0.1', resolve));
-      const port = forbidden.address().port;
+      const before = await traced('sentinel-write', async () => {
+        for (const name of ['catalog', 'media', 'home', 'credential', 'protected']) fs.writeFileSync('/sentinels/' + name, 'owned-canary\n', { flag: 'wx' });
+        return Object.fromEntries(fs.readdirSync('/sentinels').map(name => [name, hash('/sentinels/' + name)]));
+      });
+      let port;
       async function positive() {
         await new Promise((resolve, reject) => { const s = net.connect({ host: '127.0.0.1', port: 3000 }); s.on('data', () => {}); s.on('error', reject); s.on('close', resolve); }); counts.allowed++;
         await new Promise((resolve, reject) => { const s = net.connect({ host: '127.0.0.1', port }); s.on('data', () => {}); s.on('error', reject); s.on('close', resolve); });
@@ -510,7 +627,14 @@ async function inside(revision) {
           });
         }
       }
-      await positive(); const pre = { ...counts };
+      await traced('health', waitForApp);
+      await traced('initial-wire-positive', async () => {
+        const forbidden = await tcp(0, 'forbidden');
+        await new Promise(resolve => udp.bind(0, '127.0.0.1', resolve));
+        port = forbidden.address().port;
+        await positive();
+      });
+      const pre = { ...counts };
       const executables = [node];
       function walk(dir, depth) { if (depth < 0) return; for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, entry.name); if (entry.isDirectory()) walk(p, depth - 1);
@@ -519,30 +643,35 @@ async function inside(revision) {
       walk('/ms-playwright', 3); assert(executables.length > 1 && executables.length < 12);
       executables.push(resolveEsbuild(readRoot));
       const guard = (args, options) => run('/player-guard', [String(port), ...new Set(executables), '--', ...args], options);
-      const kernel = report.kernel = (await guard(['--probe'])).trim().split('\n').map(line => JSON.parse(line));
+      const kernel = report.kernel = (await guard(['--probe'], { stage: 'kernel-probe' })).trim().split('\n').map(line => JSON.parse(line));
       assert.deepEqual(kernel.map(p => p.phase), ['kernel-main', 'kernel-child']);
       const checks = `const a=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process');for(const p of ['catalog','media','home','credential'])a.throws(()=>fs.readFileSync('/sentinels/'+p),{code:'EPERM'});a.throws(()=>fs.writeFileSync('/sentinels/protected','changed'),{code:'EPERM'});a.throws(()=>cp.spawnSync('/usr/bin/id'),{code:'EPERM'});a.throws(()=>require('node:net').connect({host:'127.0.0.1',port:${port}}),{code:'EPERM'});a.throws(()=>require('node:dgram').createSocket('udp4'),{code:'EPERM'});a.throws(()=>require('node:dns').resolve4('fixture.invalid'),{code:'EPERM'});`;
       const childProgram = checks + `console.log(JSON.stringify({phase:'node-child',denied:true}));`;
       const program = checks + `const c=cp.spawnSync(process.execPath,['-e',${JSON.stringify(childProgram)}]);a.equal(c.status,0);process.stdout.write(c.stdout);console.log(JSON.stringify({phase:'node-main',denied:true}));`;
-      const nodeProof = report.node = (await guard([node, '-e', program])).trim().split('\n').map(line => JSON.parse(line));
+      const nodeProof = report.node = (await guard([node, '-e', program], { stage: 'node-proof' })).trim().split('\n').map(line => JSON.parse(line));
       assert.deepEqual(nodeProof.map(p => p.phase).sort(), ['node-child', 'node-main']);
-      assert.deepEqual({ forbidden: counts.forbidden, udp: counts.udp, dns: counts.dns }, { forbidden: pre.forbidden, udp: pre.udp, dns: pre.dns });
-      await positive(); assert.equal(counts.forbidden, pre.forbidden + 1); assert.equal(counts.udp, pre.udp + 1); assert.equal(counts.dns, pre.dns + 1);
-      report.wireLiveness = { pre, post: { ...counts } }; // real UDP/DNS wire positives, separate from the guard's socket denials
-      report.counters = counts;
-      assert.deepEqual(Object.fromEntries(fs.readdirSync('/sentinels').map(name => [name, hash('/sentinels/' + name)])), before);
+      await traced('post-probe-wire-positive', async () => {
+        assert.deepEqual({ forbidden: counts.forbidden, udp: counts.udp, dns: counts.dns }, { forbidden: pre.forbidden, udp: pre.udp, dns: pre.dns });
+        await positive(); assert.equal(counts.forbidden, pre.forbidden + 1); assert.equal(counts.udp, pre.udp + 1); assert.equal(counts.dns, pre.dns + 1);
+        report.wireLiveness = { pre, post: { ...counts } }; // real UDP/DNS wire positives, separate from the guard's socket denials
+        report.counters = counts;
+      });
+      await traced('sentinel-integrity', async () =>
+        assert.deepEqual(Object.fromEntries(fs.readdirSync('/sentinels').map(name => [name, hash('/sentinels/' + name)])), before));
       for (const [code, args, options] of [
-        ['PLAYER_TIMEOUT', [node, '-e', 'setInterval(()=>{},1000)'], { timeout: 750 }],
-        ['PLAYER_OUTPUT_LIMIT', [node, '-e', 'process.stdout.write("x".repeat(4096));setInterval(()=>{},1000)'], { limit: 1024 }],
+        ['PLAYER_TIMEOUT', [node, '-e', 'setInterval(()=>{},1000)'], { timeout: 750, stage: 'timeout-negative' }],
+        ['PLAYER_OUTPUT_LIMIT', [node, '-e', 'process.stdout.write("x".repeat(4096));setInterval(()=>{},1000)'], { limit: 1024, stage: 'output-limit-negative' }],
       ]) { await assert.rejects(guard(args, options), e => e.code === code); }
-      const orphan = JSON.parse(await guard([node, '-e', 'const c=require("node:child_process").spawn(process.execPath,["-e","setInterval(()=>{},1000)"],{detached:true,stdio:"ignore"});c.unref();console.log(JSON.stringify({pid:c.pid}));']));
+      const orphan = JSON.parse(await guard([node, '-e', 'const c=require("node:child_process").spawn(process.execPath,["-e","setInterval(()=>{},1000)"],{detached:true,stdio:"ignore"});c.unref();console.log(JSON.stringify({pid:c.pid}));'], { stage: 'orphan' }));
       process.kill(orphan.pid, 0); report.survivorPid = orphan.pid;
       const loader = readRoot + '/node_modules/tsx/dist/loader.mjs';
-      await guard([node, '--import', loader, '--input-type=module', '-e', `import {getDb} from '${readRoot}/packages/catalog/src/db.ts';const db=getDb();if(db.prepare('SELECT 1 AS n').get().n!==1)throw Error('addon');db.close();`]);
+      await guard([node, '--import', loader, '--input-type=module', '-e', `import {getDb} from '${readRoot}/packages/catalog/src/db.ts';const db=getDb();if(db.prepare('SELECT 1 AS n').get().n!==1)throw Error('addon');db.close();`], { stage: 'catalog-addon' });
       const smoke = nativeSmoke(revision, process.env.KEYSPILLI_CRASH_DIAGNOSTIC === 'native-crash-v1');
-      try { await guard([node, '--import', loader, '--input-type=module', '-e', smoke]); }
+      try { await guard([node, '--import', loader, '--input-type=module', '-e', smoke], { stage: 'native-smoke' }); }
       finally { report.browserProcesses = browserProcessEvidence(logs.find(log => log.args?.at(-1) === smoke)?.stderr ?? ''); }
-      report.functional = JSON.parse(fs.readFileSync('/browser-results/result.json', 'utf8')); assert.equal(report.functional.status, 'passed');
+      report.functional = await traced('result-read', async () => {
+        const functional = JSON.parse(fs.readFileSync('/browser-results/result.json', 'utf8')); assert.equal(functional.status, 'passed'); return functional;
+      });
       report.kernel = kernel; report.node = nodeProof; report.counters = counts; report.workerWasm = 'worker produced ready SVG'; report.addon = 'guarded SELECT1'; report.status = 'passed';
     };
     await Promise.race([work(), deadline]);
@@ -559,8 +688,8 @@ async function inside(revision) {
       try { report.functional = JSON.parse(fs.readFileSync('/browser-results/result.json', 'utf8')); }
       catch (error) { report.functionalReadError = String(error); }
     }
-    for (const child of live) { try { kill(child); } catch (e) { cleanupErrors.push(String(e)); } }
-    await Promise.all([...live].map(child => new Promise(resolve => child.once('close', resolve))));
+    for (const [name, startedAt] of [...openStages]) { openStages.delete(name); appendTrace(report, name, 'failure', { elapsedMs: Math.max(0, Math.round(performance.now() - startedAt)) }); }
+    try { await closeLiveOwned(); } catch (e) { cleanupErrors.push(String(e)); }
     for (const socket of sockets) socket.destroy();
     for (const server of servers) if (server.listening) await new Promise(resolve => server.close(resolve));
     if (udp.address) { try { await new Promise(resolve => udp.close(resolve)); } catch (e) { if (e.code !== 'ERR_SOCKET_DGRAM_NOT_RUNNING') cleanupErrors.push(String(e)); } }

@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, appendTrace, captureInFlight, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.ts';
 import * as capacity from '../player-guard-run.mjs';
@@ -66,6 +66,35 @@ test('guarded path policy keeps sentinel files outside writable roots', () => {
   assert(writes, 'missing guarded write roots');
   assert.deepEqual([...writes.matchAll(/"([^"]+)"/g)].map(match => match[1]).sort(),
     ['/browser-results', '/data', '/dev/shm', '/tmp']);
+});
+
+test('trace records bounded stage boundaries and sanitized in-flight tails', () => {
+  const report = { trace: [] };
+  appendTrace(report, 'sentinel-write', 'start');
+  appendTrace(report, 'sentinel-write', 'end');
+  appendTrace(report, 'health', 'start');
+  appendTrace(report, 'health', 'end');
+  assert.deepEqual(report.trace.map(row => [row.name, row.state]), [
+    ['sentinel-write', 'start'], ['sentinel-write', 'end'],
+    ['health', 'start'], ['health', 'end'],
+  ]);
+  assert(report.trace.filter(row => row.state !== 'start').every(row => Number.isSafeInteger(row.elapsedMs) && row.elapsedMs >= 0));
+  assert.throws(() => appendTrace(report, 'health', 'unknown'), /trace state/);
+  assert.throws(() => appendTrace(report, 'health', 'start', { command: 'private' }), /trace details/);
+  assert.throws(() => appendTrace(report, 'health', 'start', { env: {} }), /trace details/);
+  const backwards = { trace: [{ name: 'old', state: 'start', atMs: Number.MAX_SAFE_INTEGER }] };
+  assert.throws(() => appendTrace(backwards, 'new', 'start'), /backwards/);
+  const capped = { trace: [] };
+  for (let index = 0; index < 32; index++) appendTrace(capped, 'stage-' + index, 'start');
+  assert.throws(() => appendTrace(capped, 'overflow', 'start'), /entry cap/);
+
+  const now = performance.now(), inflight = { trace: [] };
+  captureInFlight(inflight, [{ stage: 'native-smoke', startedAt: now - 12, stdout: 'x'.repeat(5000), stderr: 'pw:browser <launching> private command\nkept error' }], now);
+  assert.equal(inflight.inFlight.length, 1);
+  assert.equal(Buffer.byteLength(inflight.inFlight[0].stdoutTail), 4096);
+  assert(!inflight.inFlight[0].stderrTail.includes('<launching>'));
+  assert(inflight.inFlight[0].stderrTail.includes('kept error'));
+  assert.throws(() => captureInFlight(inflight, Array.from({ length: 9 }, () => ({ stage: 'x', startedAt: now, stdout: '', stderr: '' })), now), /in-flight entry cap/);
 });
 
 test('app and browser sidecars preserve aggregate resources and independent task guards', () => {
@@ -289,7 +318,7 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   const mounts = Object.fromEntries(Object.keys(SIDECAR_PROFILES.browser.writable).map(mount => [mount, { blocks: 15, free: 1, blockSize: 4096, files: 4, freeFiles: 1 }]));
   const appMounts = Object.fromEntries(Object.keys(SIDECAR_PROFILES.app.writable).map(mount => [mount, { blocks: 8, free: 2, blockSize: 4096, files: 3, freeFiles: 1 }]));
   const revision = 'b'.repeat(40), stderr = '2026-11-04T00:00:00Z pw:browser <launching> /owned/chromium --headless\n2026-11-04T00:00:00Z pw:browser <launched> pid=44\n2026-11-04T00:00:01Z pw:browser [pid=44] <process did exit: exitCode=1, signal=null>\n';
-  const packet = { revision, inspect: { container: { Id: 'd'.repeat(64) } }, appInspect: { container: { Id: 'e'.repeat(64) } }, appState: { OOMKilled: false }, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr }], functional: { browserObservation: { armed: true, commandLineSource: 'playwright-launcher-stderr', events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: browserProcessEvidence(stderr), resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned/d' + 'd'.repeat(63), beforeTeardown: true, memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '12', 'memory.max': '671088640', 'pids.events': 'max 0\n' }, mounts, limits: 'Max processes 128 128 processes' }, appResources: { pid: 43, cgroup: '/owned/e' + 'e'.repeat(63), memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '11', 'memory.max': '402653184', 'pids.events': 'max 0\n' }, mounts: appMounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, browserContainerRemoved: true, appContainerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
+  const packet = { revision, trace: [{ name: 'sentinel-write', state: 'start', atMs: 1 }, { name: 'sentinel-write', state: 'end', atMs: 2, elapsedMs: 1 }], cleanupTimeouts: [], inspect: { container: { Id: 'd'.repeat(64) } }, appInspect: { container: { Id: 'e'.repeat(64) } }, appState: { OOMKilled: false }, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr }], functional: { browserObservation: { armed: true, commandLineSource: 'playwright-launcher-stderr', events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: browserProcessEvidence(stderr), resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned/d' + 'd'.repeat(63), beforeTeardown: true, memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '12', 'memory.max': '671088640', 'pids.events': 'max 0\n' }, mounts, limits: 'Max processes 128 128 processes' }, appResources: { pid: 43, cgroup: '/owned/e' + 'e'.repeat(63), memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '11', 'memory.max': '402653184', 'pids.events': 'max 0\n' }, mounts: appMounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, browserContainerRemoved: true, appContainerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
   packet.logBytes = Buffer.byteLength(stderr);
   packet.mountUsage = accumulateMountUsage(undefined, packet.resources);
   packet.appMountUsage = accumulateMountUsage(undefined, packet.appResources, Object.keys(SIDECAR_PROFILES.app.writable));
@@ -351,7 +380,9 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   assert.throws(() => requireDiagnosticEvidence({...packet,appResources:{...packet.appResources,memory:{...packet.appResources.memory,'pids.events':'max 1\n'}}}), /PID limit/);
   assert.throws(() => requireDiagnosticEvidence({...packet,resources:{...packet.resources,memory:{...packet.resources.memory,'memory.events':'oom 0\noom_kill 1\n'}}}), /OOM event/);
   for (const key of ['memory.peak', 'memory.max', 'memory.events']) assert.throws(() => requireDiagnosticEvidence({ ...packet, resources: { ...packet.resources, memory: { ...packet.resources.memory, [key]: 'passed' } } }));
-  for (const change of [{ functional: undefined }, { resources: undefined }, { appResources: undefined }, { appState: { OOMKilled: true } }, { resourceBarrierAcknowledged: false }, { cancelled: true }, { deadlineExceeded: true }, { resources: { ...packet.resources, memory: {} } }, { resources: { ...packet.resources, mounts: { '/tmp': mounts['/tmp'] } } }, { browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 45 }] }, { functional: { browserObservation: { armed: true, commandLine: [], events: [] } } }, { containerRemoved: false }, { browserContainerRemoved: false }, { appContainerRemoved: false }, { stdoutClipped: true }, { stderrClipped: true }]) assert.throws(() => requireDiagnosticEvidence({ ...packet, ...change }));
+  for (const change of [{ functional: undefined }, { resources: undefined }, { appResources: undefined }, { appState: { OOMKilled: true } }, { resourceBarrierAcknowledged: false }, { cancelled: true }, { deadlineExceeded: true }, { trace: undefined }, { trace: [] }, { trace: [{ name: 'stage', state: 'start', atMs: 1 }, { name: 'stage', state: 'start', atMs: 2 }] }, { trace: [{ name: 'stage', state: 'end', atMs: 1, elapsedMs: 1 }] }, { inFlight: Array.from({ length: 9 }, () => ({ stage: 'stage', elapsedMs: 1, stdoutTail: '', stderrTail: '' })) }, { cleanupTimeouts: [{ stage: 'stage', elapsedMs: 1 }] }, { resources: { ...packet.resources, memory: {} } }, { resources: { ...packet.resources, mounts: { '/tmp': mounts['/tmp'] } } }, { browserProcesses: [{ kind: 'launch', pid: 44 }, { kind: 'exit', pid: 45 }] }, { functional: { browserObservation: { armed: true, commandLine: [], events: [] } } }, { containerRemoved: false }, { browserContainerRemoved: false }, { appContainerRemoved: false }, { stdoutClipped: true }, { stderrClipped: true }]) assert.throws(() => requireDiagnosticEvidence({ ...packet, ...change }));
+  assert.throws(() => requireDiagnosticEvidence({ ...packet, trace: [{ name: 'stage', state: 'start', atMs: 1, command: 'private' }, { name: 'stage', state: 'end', atMs: 2, elapsedMs: 1 }] }), /trace start fields/);
+  assert.throws(() => requireDiagnosticEvidence({ ...packet, oversized: 'x'.repeat(1048576) }), /receipt exceeds cap/);
   for (const text of ['', stderr.replace(/^.*<launching>.*\n/m, ''), stderr.replace(/^.*<launched>.*\n/m, ''), stderr.replace(/^.*<process did exit:.*\n/m, ''), stderr.replace('[pid=44]', '[pid=45]'), stderr.replace('pid=44', 'pid=0')]) {
     assert.throws(() => requireDiagnosticEvidence({ ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: text }], browserProcesses: browserProcessEvidence(text) }));
   }
