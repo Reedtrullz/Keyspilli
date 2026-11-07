@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
     if (abi < 4) { fprintf(stderr, "player guard requires Landlock ABI4, observed %d\n", abi); return 125; }
     struct ruleset attr = {fs_mask, 3}; int fd = (int)syscall(__NR_landlock_create_ruleset, &attr, sizeof(attr), 0); if (fd < 0) die("landlock ruleset");
     const char *reads[] = {"/usr", "/lib", "/lib64", "/etc", "/proc", "/sys", "/app", "/qualification-source", "/ms-playwright", "/piano-input", NULL};
-    const char *writes[] = {"/tmp", "/data", "/browser-results", "/dev/shm", "/sentinels", NULL};
+    const char *writes[] = {"/tmp", "/data", "/browser-results", "/dev/shm", NULL};
     for (int i = 0; reads[i]; i++) path_allow(fd, reads[i], read_mask);
     for (int i = 0; writes[i]; i++) path_allow_if_present(fd, writes[i], fs_mask & ~1ULL);
     path_allow(fd, "/dev/null", 6); path_allow(fd, "/dev/urandom", 4); path_allow(fd, "/dev/random", 4);

@@ -60,6 +60,14 @@ test('guarded C helper compiles without shadowing libc functions', () => {
   }));
 });
 
+test('guarded path policy keeps sentinel files outside writable roots', () => {
+  const source = fs.readFileSync(new URL('../player-guard.c', import.meta.url), 'utf8');
+  const writes = source.match(/const char \*writes\[\] = \{([^}]*)\};/)?.[1];
+  assert(writes, 'missing guarded write roots');
+  assert.deepEqual([...writes.matchAll(/"([^"]+)"/g)].map(match => match[1]).sort(),
+    ['/browser-results', '/data', '/dev/shm', '/tmp']);
+});
+
 test('app and browser sidecars preserve aggregate resources and independent task guards', () => {
   const profiles = Object.values(SIDECAR_PROFILES);
   assert.equal(profiles.reduce((sum, profile) => sum + profile.memoryMiB, 0), 1024);
