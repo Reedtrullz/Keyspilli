@@ -14,11 +14,6 @@ const candidate = "39fbc14cfa6192c250f87fcac9d3869c51dba9c2";
 const pair = Number(rawPair);
 const output = join(outputDir, `${cohort}-${pair}`);
 mkdirSync(output, { recursive: true });
-process.on("unhandledRejection", (error) => {
-  writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-timing-pair/v1", cohort, pair, status: "failed", error: String(error) }, null, 2) + "\n");
-  console.error(error);
-  process.exitCode = 1;
-});
 
 function run(argv, { cwd, log }) {
   return new Promise((resolve) => {
@@ -54,6 +49,7 @@ function assertRevision(dir, expected) {
   });
 }
 
+async function execute() {
 const baselineRevision = await assertRevision(baselineDir, baseline);
 const candidateRevision = await assertRevision(candidateDir, candidate);
 if (baselineRevision.head !== baseline || candidateRevision.head !== candidate) {
@@ -115,3 +111,9 @@ const receipt = {
 };
 writeFileSync(join(output, "result.json"), JSON.stringify(receipt, null, 2) + "\n");
 console.log(JSON.stringify({ cohort, pair, builds: builds.map(({ label, elapsedMs }) => ({ label, elapsedMs })) }));
+}
+execute().catch((error) => {
+  writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-timing-pair/v1", cohort, pair, status: "failed", error: String(error) }, null, 2) + "\n");
+  console.error(error);
+  process.exitCode = 1;
+});

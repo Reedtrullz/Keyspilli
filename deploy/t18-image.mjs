@@ -15,11 +15,6 @@ const commits = {
 const revision = commits[label];
 const output = join(outputDir, label);
 mkdirSync(output, { recursive: true });
-process.on("unhandledRejection", (error) => {
-  writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-image-offline/v1", label, status: "failed", error: String(error) }, null, 2) + "\n");
-  console.error(error);
-  process.exitCode = 1;
-});
 
 function run(argv, { cwd = sourceDir, log, timeoutMs = 1200000, quiet = false } = {}) {
   return new Promise((resolve) => {
@@ -71,6 +66,7 @@ function compressedDigest(tag, log) {
   });
 }
 
+async function execute() {
 const sourceHead = checked(await run(["git", "-C", sourceDir, "rev-parse", "HEAD"], { log: "revision", quiet: true }), "revision").stdout.trim();
 const sourceTree = checked(await run(["git", "-C", sourceDir, "rev-parse", "HEAD^{tree}"], { log: "tree", quiet: true }), "tree").stdout.trim();
 if (sourceHead !== revision) throw new Error(`source head mismatch: ${sourceHead}`);
@@ -114,11 +110,9 @@ const capability = {
     "--entrypoint", "node", "keyspilli-t18-" + label + "-web:measure", "-e",
     "console.log(JSON.stringify({node:process.version,arch:process.arch,uid:process.getuid(),gid:process.getgid()}))"],
   { log: "capability-web", quiet: true }), "web capability").stdout.trim(),
-  webPlaywright: checked(await run([...base, "--user", "node", "--shm-size", "256m",
-    "--tmpfs", "/tmp:rw,nosuid,nodev,size=32m", "-e", "HOME=/tmp", "-e", "TMPDIR=/tmp",
-    "--entrypoint", "node",
-    `keyspilli-t18-${label}-web:measure`, "apps/web/scripts/verify-playwright-runtime.mjs"],
-  { log: "capability-web-playwright", quiet: true }), "web Playwright capability").stdout.trim(),
+  webChromium: checked(await run([...base, "--user", "node", "--entrypoint", "/bin/sh",
+    `keyspilli-t18-${label}-web:measure`, "-c", "for p in /ms-playwright/chromium-*/chrome-linux/chrome; do \"$p\" --version; done"],
+  { log: "capability-web-chromium", quiet: true }), "web Chromium capability").stdout.trim(),
   worker: checked(await run([...base, "--user", "65532:65532", "--tmpfs", "/tmp:rw,nosuid,nodev,size=32m,uid=65532,gid=65532,mode=0700",
     "--tmpfs", "/data:rw,nosuid,nodev,size=32m,uid=65532,gid=65532,mode=0700",
     "--entrypoint", "/usr/local/bin/python", `keyspilli-t18-${label}-worker:measure`, "-c",
@@ -202,3 +196,9 @@ const receipt = {
 };
 writeFileSync(join(output, "result.json"), JSON.stringify(receipt, null, 2) + "\n");
 console.log(JSON.stringify({ label, source: receipt.source, images: Object.keys(images), offline: offline.length }));
+}
+execute().catch((error) => {
+  writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-image-offline/v1", label, status: "failed", error: String(error) }, null, 2) + "\n");
+  console.error(error);
+  process.exitCode = 1;
+});
