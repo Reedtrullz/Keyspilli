@@ -31,6 +31,7 @@ export function summarizeTaskCounts(rows: TaskRow[], selfPid: number, guardPid: 
     if (row.pid === selfPid) return "automation-node";
     if (row.ppid === guardPid && row.name === "node") return "app-node";
     if (row.name === "node") return "automation-node";
+    if (/^esbuild$/i.test(row.name)) return "automation-node";
     if (/crashpad/i.test(row.name)) return "crashpad";
     if (/^(chrome|chromium|headless_shell|chrome-headless)/i.test(row.name)) return "chromium";
     return "unknown";

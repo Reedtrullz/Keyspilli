@@ -260,9 +260,10 @@ test('phase task roles cover the owned tree and reject ambiguous process ownersh
   const withRenderer = summarizeTaskCounts([...rows,
     {pid: 50, ppid: 1, name: 'player-guard', threads: 1},
     {pid: 60, ppid: 50, name: 'node', threads: 9},
+    {pid: 70, ppid: 50, name: 'esbuild', threads: 8},
   ], 30, 10);
   assert.equal(withRenderer.roles.guard.processes, 2);
-  assert.equal(withRenderer.roles['automation-node'].processes, 2);
+  assert.equal(withRenderer.roles['automation-node'].processes, 3);
   assert.equal(withRenderer.roles.unknown.processes, 0);
   assert.throws(() => summarizeTaskCounts([...rows, {pid: 30, ppid: 10, name: 'node', threads: 20}], 30, 10), /duplicate/);
   assert.throws(() => summarizeTaskCounts(rows.map(row => row.pid === 40 ? {...row, threads: 0} : row), 30, 10), /threads/);
