@@ -1,0 +1,226 @@
+name: Keyspilli Task 17 measurement
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keyspilli-task17-measurement
+  cancel-in-progress: false
+
+env:
+  BASELINE_COMMIT: edb7d0c7b56d9f7a0e020893cf363a05b18a681d
+  CANDIDATE_COMMIT: acc07383dc04e9f029c181b04849b693e22ea903
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  sizing:
+    name: sizing
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          path: harness
+      - name: Check out baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.BASELINE_COMMIT }}
+          fetch-depth: 1
+          path: baseline
+          persist-credentials: false
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_COMMIT }}
+          fetch-depth: 1
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - run: corepack enable
+      - name: Size the longest paired path
+        run: >
+          node harness/deploy/t17-pair.mjs
+          T17-stress-desktop sizing
+          "$GITHUB_WORKSPACE/baseline"
+          "$GITHUB_WORKSPACE/candidate"
+          "$GITHUB_WORKSPACE/harness"
+          "$RUNNER_TEMP/t17-output"
+      - name: Upload sizing evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: t17-sizing-${{ github.run_id }}
+          path: ${{ runner.temp }}/t17-output
+          if-no-files-found: error
+          retention-days: 90
+
+  measurement:
+    name: pair-${{ matrix.job }}
+    needs: sizing
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include:
+          - {case: T17-small-mobile, job: T17-small-mobile__pilot__0}
+          - {case: T17-small-mobile, job: T17-small-mobile__pilot__1}
+          - {case: T17-small-mobile, job: T17-small-mobile__pilot__2}
+          - {case: T17-small-mobile, job: T17-small-mobile__scored__3}
+          - {case: T17-small-mobile, job: T17-small-mobile__scored__4}
+          - {case: T17-small-mobile, job: T17-small-mobile__scored__5}
+          - {case: T17-small-mobile, job: T17-small-mobile__scored__6}
+          - {case: T17-small-mobile, job: T17-small-mobile__scored__7}
+          - {case: T17-small-desktop, job: T17-small-desktop__pilot__0}
+          - {case: T17-small-desktop, job: T17-small-desktop__pilot__1}
+          - {case: T17-small-desktop, job: T17-small-desktop__pilot__2}
+          - {case: T17-small-desktop, job: T17-small-desktop__scored__3}
+          - {case: T17-small-desktop, job: T17-small-desktop__scored__4}
+          - {case: T17-small-desktop, job: T17-small-desktop__scored__5}
+          - {case: T17-small-desktop, job: T17-small-desktop__scored__6}
+          - {case: T17-small-desktop, job: T17-small-desktop__scored__7}
+          - {case: T17-span-mobile, job: T17-span-mobile__pilot__0}
+          - {case: T17-span-mobile, job: T17-span-mobile__pilot__1}
+          - {case: T17-span-mobile, job: T17-span-mobile__pilot__2}
+          - {case: T17-span-mobile, job: T17-span-mobile__pilot__3}
+          - {case: T17-span-mobile, job: T17-span-mobile__pilot__4}
+          - {case: T17-span-mobile, job: T17-span-mobile__scored__5}
+          - {case: T17-span-mobile, job: T17-span-mobile__scored__6}
+          - {case: T17-span-mobile, job: T17-span-mobile__scored__7}
+          - {case: T17-span-mobile, job: T17-span-mobile__scored__8}
+          - {case: T17-span-mobile, job: T17-span-mobile__scored__9}
+          - {case: T17-span-desktop, job: T17-span-desktop__pilot__0}
+          - {case: T17-span-desktop, job: T17-span-desktop__pilot__1}
+          - {case: T17-span-desktop, job: T17-span-desktop__pilot__2}
+          - {case: T17-span-desktop, job: T17-span-desktop__pilot__3}
+          - {case: T17-span-desktop, job: T17-span-desktop__pilot__4}
+          - {case: T17-span-desktop, job: T17-span-desktop__scored__5}
+          - {case: T17-span-desktop, job: T17-span-desktop__scored__6}
+          - {case: T17-span-desktop, job: T17-span-desktop__scored__7}
+          - {case: T17-span-desktop, job: T17-span-desktop__scored__8}
+          - {case: T17-span-desktop, job: T17-span-desktop__scored__9}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__pilot__0}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__pilot__1}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__pilot__2}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__pilot__3}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__pilot__4}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__scored__5}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__scored__6}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__scored__7}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__scored__8}
+          - {case: T17-stress-mobile, job: T17-stress-mobile__scored__9}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__pilot__0}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__pilot__1}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__pilot__2}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__pilot__3}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__pilot__4}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__scored__5}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__scored__6}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__scored__7}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__scored__8}
+          - {case: T17-stress-desktop, job: T17-stress-desktop__scored__9}
+    steps:
+      - name: Check out harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          path: harness
+      - name: Check out baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.BASELINE_COMMIT }}
+          fetch-depth: 1
+          path: baseline
+          persist-credentials: false
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_COMMIT }}
+          fetch-depth: 1
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - run: corepack enable
+      - name: Run frozen pair job
+        run: >
+          node harness/deploy/t17-pair.mjs
+          ${{ matrix.case }} ${{ matrix.job }}
+          "$GITHUB_WORKSPACE/baseline"
+          "$GITHUB_WORKSPACE/candidate"
+          "$GITHUB_WORKSPACE/harness"
+          "$RUNNER_TEMP/t17-output"
+      - name: Upload pair evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: t17-${{ matrix.job }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/t17-output
+          if-no-files-found: error
+          retention-days: 90
+
+  failure:
+    name: failure-${{ matrix.case }}
+    needs: measurement
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include:
+          - {case: T17-small-mobile}
+          - {case: T17-small-desktop}
+          - {case: T17-span-mobile}
+          - {case: T17-span-desktop}
+          - {case: T17-stress-mobile}
+          - {case: T17-stress-desktop}
+    steps:
+      - name: Check out harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          path: harness
+      - name: Check out baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.BASELINE_COMMIT }}
+          fetch-depth: 1
+          path: baseline
+          persist-credentials: false
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_COMMIT }}
+          fetch-depth: 1
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - run: corepack enable
+      - name: Run paired failure batch
+        run: >
+          node harness/deploy/t17-failure.mjs
+          ${{ matrix.case }}
+          "$GITHUB_WORKSPACE/baseline"
+          "$GITHUB_WORKSPACE/candidate"
+          "$GITHUB_WORKSPACE/harness"
+          "$RUNNER_TEMP/t17-output"
+      - name: Upload failure evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: t17-failure-${{ matrix.case }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/t17-output
+          if-no-files-found: error
+          retention-days: 90

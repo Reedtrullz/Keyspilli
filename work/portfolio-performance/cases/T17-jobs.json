@@ -1,0 +1,957 @@
+{
+  "jobs": [
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__pilot__0",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 0,
+          "stage": "pilot"
+        },
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__pilot__1",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 2,
+          "stage": "pilot"
+        },
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__pilot__2",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 4,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__scored__3",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 0,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__scored__4",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 2,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__scored__5",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 4,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 5,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__scored__6",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 6,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 7,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-mobile",
+      "id": "T17-small-mobile__scored__7",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 8,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 9,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__pilot__0",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 0,
+          "stage": "pilot"
+        },
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__pilot__1",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 2,
+          "stage": "pilot"
+        },
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__pilot__2",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 4,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__scored__3",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 0,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__scored__4",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 2,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__scored__5",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 4,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 5,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__scored__6",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 6,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 7,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-small-desktop",
+      "id": "T17-small-desktop__scored__7",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 8,
+          "stage": "scored"
+        },
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 9,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__pilot__0",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 0,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__pilot__1",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__pilot__2",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 2,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__pilot__3",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__pilot__4",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 4,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__scored__5",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 0,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__scored__6",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__scored__7",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 2,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__scored__8",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-mobile",
+      "id": "T17-span-mobile__scored__9",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 4,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__pilot__0",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 0,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__pilot__1",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__pilot__2",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 2,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__pilot__3",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__pilot__4",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 4,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__scored__5",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 0,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__scored__6",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__scored__7",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 2,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__scored__8",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-span-desktop",
+      "id": "T17-span-desktop__scored__9",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 4,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__pilot__0",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 0,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__pilot__1",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__pilot__2",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 2,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__pilot__3",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__pilot__4",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 4,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__scored__5",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 0,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__scored__6",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__scored__7",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 2,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__scored__8",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-mobile",
+      "id": "T17-stress-mobile__scored__9",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 4,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__pilot__0",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 0,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__pilot__1",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__pilot__2",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 2,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__pilot__3",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__pilot__4",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "baseline"
+          ],
+          "pair": 4,
+          "stage": "pilot"
+        }
+      ],
+      "stage": "pilot"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__scored__5",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 0,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__scored__6",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 1,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__scored__7",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 2,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__scored__8",
+      "pairs": [
+        {
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "pair": 3,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    },
+    {
+      "case": "T17-stress-desktop",
+      "id": "T17-stress-desktop__scored__9",
+      "pairs": [
+        {
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "pair": 4,
+          "stage": "scored"
+        }
+      ],
+      "stage": "scored"
+    }
+  ],
+  "schema": "keyspilli-task17-jobs/v1"
+}

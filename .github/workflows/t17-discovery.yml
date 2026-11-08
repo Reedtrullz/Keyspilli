@@ -1,9 +1,7 @@
 name: Keyspilli Task 17 discovery
 
 on:
-  push:
-    branches:
-      - codex/keyspilli-t17-measure-20261108
+  workflow_dispatch:
 
 permissions:
   contents: read

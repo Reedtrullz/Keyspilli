@@ -1,0 +1,128 @@
+{
+  "economicsDigest": "ce5af9d0993060af32033e2f4cef4d4f16950b3ae1d92552cb1e9b57e8af516c",
+  "fixtureDigest": "4d5c7bcc239eeabcf98f8782d61824baaae3257cae49d06adbce49cf2ab84e8a",
+  "harness": {
+    "compareSha256": "7dc3258e6d9b461a0d5925d3ce156fd1c2244bfe4158298f14e69d99f7d7d4d9",
+    "failureSha256": "cc8f101bf060b092532687102be08e5adebfc53d38a9b29d8195396dde989791",
+    "failureSpecSha256": "d1cf37d8519c183f8de57fc915d49fa5f133b3c77187cebd23e0d2284e869d18",
+    "measurementSpecSha256": "2dca3e329467ae3d3dab5ec69a2c2aa79d2e88d7d1d342d0e951aac0b57f8e72",
+    "pairSha256": "1d0be00c777ffb620535a4b34f461d9def4ca680111ccafd3d71e9587089d45b",
+    "probeSha256": "caaf187982ab982b7994b689a9637175865e5d302e2737f70902cf71dd033557",
+    "workflowSha256": "3bee9659e0bb306b64a55416baff4683bd599dd7bcbf3d3dd26c535d16e67aff"
+  },
+  "harnessDigest": "ae64e1ee0e686ae128204238a0d71e78832d68532b20d688a2309a9fb1979845",
+  "id": "T17-stress-mobile",
+  "inPageWarmups": 2,
+  "pairs": {
+    "pilot": 5,
+    "scored": 5
+  },
+  "primary": "worker_direct_sheet_first_ms",
+  "schema": "keyspilli-task17-case/v1",
+  "shape": {
+    "id": "stress",
+    "measures": 500,
+    "notes": 20000,
+    "renderers": [
+      "worker",
+      "main"
+    ],
+    "samples": 6,
+    "stress": "1",
+    "trace": false,
+    "viewport": "390x844"
+  },
+  "slots": [
+    {
+      "order": [
+        "baseline",
+        "baseline"
+      ],
+      "pair": 0,
+      "stage": "pilot"
+    },
+    {
+      "order": [
+        "baseline",
+        "baseline"
+      ],
+      "pair": 1,
+      "stage": "pilot"
+    },
+    {
+      "order": [
+        "baseline",
+        "baseline"
+      ],
+      "pair": 2,
+      "stage": "pilot"
+    },
+    {
+      "order": [
+        "baseline",
+        "baseline"
+      ],
+      "pair": 3,
+      "stage": "pilot"
+    },
+    {
+      "order": [
+        "baseline",
+        "baseline"
+      ],
+      "pair": 4,
+      "stage": "pilot"
+    },
+    {
+      "order": [
+        "baseline",
+        "candidate"
+      ],
+      "pair": 0,
+      "stage": "scored"
+    },
+    {
+      "order": [
+        "candidate",
+        "baseline"
+      ],
+      "pair": 1,
+      "stage": "scored"
+    },
+    {
+      "order": [
+        "baseline",
+        "candidate"
+      ],
+      "pair": 2,
+      "stage": "scored"
+    },
+    {
+      "order": [
+        "candidate",
+        "baseline"
+      ],
+      "pair": 3,
+      "stage": "scored"
+    },
+    {
+      "order": [
+        "baseline",
+        "candidate"
+      ],
+      "pair": 4,
+      "stage": "scored"
+    }
+  ],
+  "sourceRevisions": {
+    "baseline": {
+      "head": "edb7d0c7b56d9f7a0e020893cf363a05b18a681d",
+      "tree": "91f728ce93ea89938261f2e3ab86c06a8cebdbe2"
+    },
+    "candidate": {
+      "head": "acc07383dc04e9f029c181b04849b693e22ea903",
+      "tree": "598e0d139a5f6d1efe688f8a8bcf21aec4958d5d"
+    }
+  },
+  "task": 17
+}
