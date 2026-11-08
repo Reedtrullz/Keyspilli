@@ -12,6 +12,7 @@ on:
       - '.dockerignore'
       - 'apps/web/src/components/player/**'
       - 'apps/web/scripts/verify-native-player.mts'
+      - 'apps/web/scripts/native-page-watch.ts'
       - 'apps/web/scripts/native-phase-trace.ts'
       - 'apps/web/scripts/native-task-counts.ts'
       - 'apps/web/scripts/prepare-native-piano.mts'

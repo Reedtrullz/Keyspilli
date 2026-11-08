@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 import { readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { APIRequestContext, Browser, BrowserContext, ConsoleMessage, Page, Request } from "@playwright/test";
+import type { APIRequestContext, Browser, BrowserContext, Page } from "@playwright/test";
 
 type PhaseModule = typeof import("./native-phase-trace");
 const { createPhaseTrace } = await import("./native-phase-trace.ts" as string) as PhaseModule;
+type PageWatchModule = typeof import("./native-page-watch");
+const { watchPlayerPage } = await import("./native-page-watch.ts" as string) as PageWatchModule;
 
 // phase:begin
 // Synchronous, fixed-label records survive a later deadline kill; they never imply native acceptance.
@@ -59,23 +61,6 @@ const clip = (value: unknown, max = 256) => String(value).replace(/[a-z][a-z0-9+
 const boundedDiag = (diag: Diag) => Buffer.byteLength(JSON.stringify(diag)) <= 8192 ? diag : { counts: diag.counts, samples: [], truncated: true };
 // diag:end
 
-function watchPage(page: Page, label: string, note: (label: string, kind: string, detail?: unknown) => void): () => void {
-  const onConsole = (message: ConsoleMessage) => {
-    const type = message.type();
-    if (type !== "warning" && type !== "error") return;
-    const text = message.text();
-    note(label, (/sampl|decod|audio|ogg|smpldsnds/i.test(text) ? "sampler-" : "console-") + type, text);
-  };
-  const onError = (error: Error) => note(label, "pageerror", error.message);
-  const onFailed = (req: Request) => note(label, "requestfailed", cleanUrl(req.url()) + " " + req.resourceType() + " " + (req.failure()?.errorText ?? ""));
-  const onCrash = () => note(label, "crash", "page crashed");
-  const onClose = () => note(label, "close");
-  page.on("console", onConsole); page.on("pageerror", onError); page.on("requestfailed", onFailed);
-  page.on("crash", onCrash); page.on("close", onClose);
-  return () => { page.off("console", onConsole); page.off("pageerror", onError); page.off("requestfailed", onFailed);
-    page.off("crash", onCrash); page.off("close", onClose); };
-}
-
 export function controlXml(nonce: string): string {
   const measures = Array.from({ length: 16 }, (_, index) => `<measure number="${index + 1}">
     ${index === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><staves>2</staves></attributes><direction><sound tempo="120"/></direction>' : ""}
@@ -103,6 +88,11 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
   let failure: unknown;
   const cleanupErrors: string[] = [];
   const unwatch: Array<() => void> = [];
+  const releasePageWatchers = () => {
+    for (const stop of unwatch.splice(0)) {
+      try { stop(); } catch (error) { cleanupErrors.push(String(error)); }
+    }
+  };
   // Two exemplar slots per label (original, chords, silence, route) keep the total at 8 and stop one page crowding out the rest.
   const diag: Diag = { counts: {}, samples: [] };
   const slots: Record<string, number> = {};
@@ -162,7 +152,11 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
       context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
       context.on("page", (page: Page) => {
         const label = activePhase.startsWith("chords") ? "chords" : activePhase.startsWith("silence") ? "silence" : "original";
-        unwatch.push(watchPage(page, label, note));
+        const stop = watchPlayerPage(page, label, note, stopped => {
+          const index = unwatch.indexOf(stopped);
+          if (index >= 0) unwatch.splice(index, 1);
+        });
+        unwatch.push(stop);
         page.on("crash", () => observeBrowser("page-crash"));
         page.on("close", () => observeBrowser("page-close"));
       });
@@ -261,6 +255,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
       phase(mode + "-page-teardown", "entry");
       await page.close();
       phase(mode + "-page-teardown", "exit");
+      releasePageWatchers();
       phase(mode + "-browser-teardown", "entry");
       await closeCaptureBrowser();
       phase(mode + "-browser-teardown", "exit");
@@ -277,6 +272,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
     phase("silence", "exit");
     phase("silence-browser-teardown", "entry");
     await silentPage.close();
+    releasePageWatchers();
     await closeCaptureBrowser();
     phase("silence-browser-teardown", "exit");
     // Render PDFs after the capture browser exits; both browsers share the same bounded container.
@@ -293,7 +289,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
   } catch (error) { failure = error; phase(activePhase, "failure"); }
   finally {
     phase("diagnostics", "entry");
-    for (const stop of unwatch) { try { stop(); } catch (error) { cleanupErrors.push(String(error)); } }
+    releasePageWatchers();
     if (failure) results.push({ kind: "failure-diagnostics", ...boundedDiag(diag) });
     phase("diagnostics", "exit");
     phase("teardown", "entry");

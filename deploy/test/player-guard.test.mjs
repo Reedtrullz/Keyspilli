@@ -7,10 +7,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, appendTrace, captureInFlight, probeTcp, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.ts';
 import { createPhaseTrace } from '../../apps/web/scripts/native-phase-trace.ts';
+import { watchPlayerPage } from '../../apps/web/scripts/native-page-watch.ts';
 import * as capacity from '../player-guard-run.mjs';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
 
@@ -64,6 +66,21 @@ test('bounded native phase trace absorbs a synchronous writer failure', () => {
   assert.doesNotThrow(() => trace.emit('startup', 'failure', phaseCounts));
   assert.equal(trace.truncated, true);
   assert.equal(trace.bytes, 0);
+});
+
+test('closed player pages release every observer and the page reference', () => {
+  const page = new EventEmitter();
+  page.off = page.removeListener.bind(page);
+  const notes = [];
+  let cleaned = 0;
+  const stop = watchPlayerPage(page, 'original', (label, kind) => notes.push([label, kind]), () => { cleaned++; });
+  for (const event of ['console', 'pageerror', 'requestfailed', 'crash', 'close']) assert.equal(page.listenerCount(event), 1, event);
+  page.emit('close');
+  for (const event of ['console', 'pageerror', 'requestfailed', 'crash', 'close']) assert.equal(page.listenerCount(event), 0, event);
+  assert.deepEqual(notes, [['original', 'close']]);
+  assert.equal(cleaned, 1);
+  stop();
+  assert.equal(cleaned, 1);
 });
 
 function capacityFixture() {
@@ -552,6 +569,7 @@ test('unsupported optional browser CDP does not block capture and early terminal
       statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(_fd, line){phaseBytes += Buffer.byteLength(line); phases.push(JSON.parse(line));}},
       'node:path': await import('node:path'), 'node:url': await import('node:url'),
       './native-phase-trace.ts': await import(new URL('./apps/web/scripts/native-phase-trace.ts', import.meta.url).href),
+      './native-page-watch.ts': await import(new URL('./apps/web/scripts/native-page-watch.ts', import.meta.url).href),
       './native-task-counts.ts': {collectTaskCounts: () => ({processes: 2, threads: 9, vanished: 1, ...(saturate ? { note: 'x'.repeat(9000) } : {}), roles: {
         guard: {processes: 1, threads: 1}, 'app-node': {processes: 0, threads: 0}, 'automation-node': {processes: 1, threads: 8},
         chromium: {processes: 0, threads: 0}, crashpad: {processes: 0, threads: 0}, unknown: {processes: 0, threads: 0},

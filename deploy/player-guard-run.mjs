@@ -458,7 +458,7 @@ export function resolveEsbuild(root) {
   const esbuildRequire = createRequire(fs.realpathSync(require.resolve('esbuild/package.json')));
   return fs.realpathSync(esbuildRequire.resolve('@esbuild/linux-x64/bin/esbuild'));
 }
-export const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/scripts/native-phase-trace.ts', 'apps/web/scripts/native-task-counts.ts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy/player-guard-run.mjs', 'deploy/player-node-guard.cjs', 'deploy/player-guard.c'];
+export const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/scripts/native-page-watch.ts', 'apps/web/scripts/native-phase-trace.ts', 'apps/web/scripts/native-task-counts.ts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy/player-guard-run.mjs', 'deploy/player-node-guard.cjs', 'deploy/player-guard.c'];
 
 // Installed dependencies are the only exempt ignored files; excluding them in Git keeps their names out of the 1MiB buffer.
 const INSTALLED = [':(exclude)node_modules', ':(exclude)apps/web/node_modules', ':(exclude,glob)**/node_modules/**'];
