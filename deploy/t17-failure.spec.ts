@@ -8,8 +8,13 @@ const stress = process.env.KEYSPILLI_PERF_STRESS === "1" || process.env.KEYSPILL
 
 function scoreXml(shape: "small" | "span" | "stress"): string {
   const spec = shape === "small" ? { measures: 160, notes: 4, beats: 4 } : shape === "span" ? { measures: 2048, notes: 2, beats: 2 } : { measures: 500, notes: 40, beats: 5 };
-  const notes = Array.from({ length: spec.notes }, (_, index) => `<note>${index % 4 ? "<chord/>" : ""}<pitch><step>${["C", "E", "G", "C"][index % 4]}</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note>`).join("");
-  return `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${Array.from({ length: spec.measures }, (_, index) => `<measure number="${index + 1}">${index === 0 ? `<attributes><divisions>1</divisions><time><beats>${spec.beats}</beats><beat-type>4</beat-type></time></attributes>` : ""}${notes}</measure>`).join("")}</part></score-partwise>`;
+  return `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${Array.from({ length: spec.measures }, (_, index) => {
+    const attributes = index === 0 ? `<attributes><divisions>${shape === "small" ? 1 : 2}</divisions><time><beats>${spec.beats}</beats><beat-type>4</beat-type></time></attributes>` : "";
+    const notes = shape === "small"
+      ? ["C", "D", "E", "G"].map(step => `<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>`).join("")
+      : Array.from({ length: shape === "span" ? 1 : 10 }, () => (shape === "span" ? ["C", "E"] : ["C", "E", "G", "C"]).map((step, pitch) => `<note>${pitch ? "<chord/>" : ""}<pitch><step>${step}</step><octave>${pitch === 3 ? 5 : 4}</octave></pitch><duration>${shape === "span" ? 4 : 1}</duration><type>${shape === "span" ? "half" : "eighth"}</type></note>`).join("")).join("");
+    return `<measure number="${index + 1}">${attributes}${notes}</measure>`;
+  }).join("")}</part></score-partwise>`;
 }
 
 async function install(browser: import("@playwright/test").Browser, renderer: "worker" | "main") {

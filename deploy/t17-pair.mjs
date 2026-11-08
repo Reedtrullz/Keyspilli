@@ -36,16 +36,22 @@ function command(argv, options) {
     child.on("close", (code, signal) => {
       const result = { argv, code, signal, elapsedMs: Number(process.hrtime.bigint() - started) / 1e6,
         stdout: Buffer.concat(stdout).toString("utf8"), stderr: Buffer.concat(stderr).toString("utf8") };
-      if (code === 0) resolve(result); else reject(new Error(`${argv[0]} failed (${code}/${signal}): ${result.stderr.slice(-4096)}`));
+      resolve(result);
     });
   });
 }
 
+async function required(argv, options) {
+  const result = await command(argv, options);
+  if (result.code !== 0) throw new Error(`${argv[0]} failed (${result.code}/${result.signal}): ${(result.stdout + result.stderr).slice(-4096)}`);
+  return result;
+}
+
 async function revision(dir, expected) {
-  const result = await command(["git", "-C", dir, "rev-parse", "HEAD", "HEAD^{tree}"], { cwd: harnessDir, env: { PATH: process.env.PATH, LANG: "C" } });
+  const result = await required(["git", "-C", dir, "rev-parse", "HEAD", "HEAD^{tree}"], { cwd: harnessDir, env: { PATH: process.env.PATH, LANG: "C" } });
   const [head, tree] = result.stdout.trim().split("\n");
   if (head !== expected.head || tree !== expected.tree) throw new Error(`revision mismatch for ${dir}`);
-  const clean = await command(["git", "-C", dir, "status", "--porcelain", "--untracked-files=no"], { cwd: harnessDir, env: { PATH: process.env.PATH, LANG: "C" } });
+  const clean = await required(["git", "-C", dir, "status", "--porcelain", "--untracked-files=no"], { cwd: harnessDir, env: { PATH: process.env.PATH, LANG: "C" } });
   if (clean.stdout.trim()) throw new Error(`dirty source checkout: ${dir}`);
   return { dir, head, tree };
 }
@@ -77,9 +83,10 @@ async function main() {
       const result = await command(argv, { cwd: source.dir, env });
       writeFileSync(join(output, `${phase}-${name}.log`), result.stdout + result.stderr);
       buildLogs.push({ phase, name, result });
+      if (result.code !== 0) throw new Error(`${phase} ${name} failed: ${(result.stdout + result.stderr).slice(-4096)}`);
     }
   }
-  const browser = await command(["pnpm", "exec", "playwright", "install", "--with-deps", "chromium"], {
+  const browser = await required(["pnpm", "exec", "playwright", "install", "--with-deps", "chromium"], {
     cwd: join(baseline.dir, "apps/web"), env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
   });
   const invocations = [];
@@ -102,9 +109,13 @@ async function main() {
         KEYSPILLI_PERF_KEEP: keep,
       };
       const result = await command([process.execPath, probePath], { cwd: source.dir, env });
+      if (result.code !== 0) {
+        writeFileSync(join(output, `${unit}.json`), JSON.stringify({ request, result }, null, 2) + "\n");
+        throw new Error(`${unit} failed: ${(result.stdout + result.stderr).slice(-4096)}`);
+      }
       const receipt = JSON.parse(result.stdout.trim());
-      if (receipt.status !== "complete") throw new Error(`${unit} did not complete`);
       writeFileSync(join(output, `${unit}.json`), JSON.stringify({ request, result: { ...result, stdout: undefined }, receipt }, null, 2) + "\n");
+      if (receipt.status !== "complete") throw new Error(`${unit} did not complete`);
       invocations.push({ unit, request, receipt });
     }
   }

@@ -12,11 +12,14 @@ const beatsPerMeasure = span ? 2 : stress ? 5 : 4;
 const renderers = stress ? ["worker", "main"] as const : ["worker"] as const;
 
 function fixtureXml(): string {
-  const notes = Array.from({ length: notesPerMeasure }, (_, index) => {
-    const step = ["C", "E", "G", "C"][index % 4];
-    return `<note>${index % 4 ? "<chord/>" : ""}<pitch><step>${step}</step><octave>${step === "G" ? 5 : 4}</octave></pitch><duration>1</duration><type>eighth</type></note>`;
+  const measuresXml = Array.from({ length: measures }, (_, index) => {
+    const attributes = index === 0 ? `<attributes><divisions>${stress ? 2 : 1}</divisions><time><beats>${beatsPerMeasure}</beats><beat-type>4</beat-type></time></attributes>` : "";
+    const notes = stress
+      ? Array.from({ length: span ? 1 : 10 }, () => (span ? ["C", "E"] : ["C", "E", "G", "C"]).map((step, pitch) => `<note>${pitch ? "<chord/>" : ""}<pitch><step>${step}</step><octave>${pitch === 3 ? 5 : 4}</octave></pitch><duration>${span ? 4 : 1}</duration><type>${span ? "half" : "eighth"}</type></note>`).join("")).join("")
+      : ["C", "D", "E", "G"].map(step => `<note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>`).join("");
+    return `<measure number="${index + 1}">${attributes}${notes}</measure>`;
   }).join("");
-  return `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${Array.from({ length: measures }, (_, index) => `<measure number="${index + 1}">${index === 0 ? `<attributes><divisions>1</divisions><time><beats>${beatsPerMeasure}</beats><beat-type>4</beat-type></time></attributes>` : ""}${notes}</measure>`).join("")}</part></score-partwise>`;
+  return `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${measuresXml}</part></score-partwise>`;
 }
 
 function sha(value: Uint8Array | string): string {
