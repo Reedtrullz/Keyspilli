@@ -52,7 +52,8 @@ describe("direct sheet player payload boundary", () => {
     expect(getSongDetail).not.toHaveBeenCalled();
     const tree = rendered as ReactElement<{ children: ReactElement[] }>;
     expect(tree.type).toBe(React.Fragment);
-    const [preload, player] = tree.props.children;
+    const preload = tree.props.children[0]!;
+    const player = tree.props.children[1]!;
     expect(preload.type).toBe("link");
     expect(preload.props).toEqual({
       rel: "preload",
