@@ -131,7 +131,7 @@ for (const [index, test] of tests.entries()) {
     "--user", "65532:65532", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
     "--cpus", "1.5", "--memory", "1g", "--pids-limit", "128",
     "--tmpfs", "/tmp:rw,nosuid,nodev,size=16m,uid=65532,gid=65532,mode=0700",
-    "--tmpfs", "/data:rw,nosuid,nodev,size=16m,uid=65532,gid=65532,mode=0700",
+    "--tmpfs", "/data:rw,nosuid,nodev,size=32g,uid=65532,gid=65532,mode=0700",
     "--tmpfs", "/app/services/transcribe/node_modules/.vite-temp:rw,nosuid,nodev,size=2m,uid=65532,gid=65532,mode=0700",
     "--tmpfs", "/app/services/transcribe/node_modules/.vite:rw,nosuid,nodev,size=2m,uid=65532,gid=65532,mode=0700",
     "-e", "KEYSPILLI_DATA_DIR=/data", "-e", "HOME=/tmp", "--entrypoint", "/bin/sh",
