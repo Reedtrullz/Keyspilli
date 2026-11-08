@@ -37,7 +37,8 @@ async function renderRemotePdfResponse(req:NextRequest,id:string,layout:"classic
     const endpoint=process.env.KEYSPILLI_PDF_RENDERER_URL, token=process.env.KEYSPILLI_API_TOKEN;
     if(!endpoint||!token) return pdfErrorResponse("PDF_GENERATION_UNAVAILABLE");
     try {
-      const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({id,layout,shell:{publicationRevision:shell.publicationRevision},active}),signal:req.signal});
+      const renderUrl=new URL("render",endpoint.endsWith("/")?endpoint:endpoint+"/").toString();
+      const response=await fetch(renderUrl,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({id,layout,shell:{publicationRevision:shell.publicationRevision},active}),signal:req.signal});
       const headers=new Headers();
       for(const name of RESPONSE_HEADERS){const value=response.headers.get(name);if(value!==null)headers.set(name,value);}
       return new NextResponse(response.body,{status:response.status,headers});

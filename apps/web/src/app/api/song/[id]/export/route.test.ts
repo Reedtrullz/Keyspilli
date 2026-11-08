@@ -65,7 +65,7 @@ describe("song export route PDF failures", () => {
   });
 
   it("routes guarded PDF work to the authenticated browser sidecar", async () => {
-    process.env.KEYSPILLI_PDF_RENDERER_URL = "http://127.0.0.1:3001/render";
+    process.env.KEYSPILLI_PDF_RENDERER_URL = "http://127.0.0.1:3001";
     process.env.KEYSPILLI_API_TOKEN = "owned-token";
     const fetchMock = vi.fn().mockResolvedValue(new Response(new Uint8Array([37, 80, 68, 70]), {
       status: 200,
