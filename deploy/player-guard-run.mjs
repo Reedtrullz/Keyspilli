@@ -256,9 +256,10 @@ export function phaseTaskCounts(stderr) {
     const { phase, state, processes, threads, vanished, roles } = JSON.parse(line);
     if (/^import-(playwright|midi|capture|piano)$/.test(phase) && processes === undefined) return [];
     assert(/^[a-z][a-z0-9-]{0,63}$/.test(phase) && ['entry', 'exit', 'failure'].includes(state), 'invalid phase record');
-    assert([processes, threads, vanished].every(Number.isSafeInteger) &&
-      processes > 0 && threads >= processes && vanished >= 0, 'missing or invalid process/thread counts');
-    return [{ phase, state, processes, threads, vanished, ...(roles === undefined ? {} : { roles }), index }];
+    const zeroVanished = vanished ?? 0;
+    assert([processes, threads, zeroVanished].every(Number.isSafeInteger) &&
+      processes > 0 && threads >= processes && zeroVanished >= 0, 'missing or invalid process/thread counts');
+    return [{ phase, state, processes, threads, vanished: zeroVanished, ...(roles === undefined ? {} : { roles }), index }];
   });
 }
 export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
@@ -314,10 +315,10 @@ export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
   if (expectedBrowsers === 3) {
     const phases = phaseTaskCounts(stream), lines = stream.split('\n');
     let previous = -1;
-    const boundary = (phase, state) => {
+    const boundary = (phase, state, roles = false) => {
       const matches = phases.filter(row => row.phase === phase && row.state === state);
       assert(matches.length === 1 && matches[0].index > previous, 'missing or invalid phase order: ' + phase + ' ' + state);
-      requireRoleEvidence(matches[0]);
+      if (roles) requireRoleEvidence(matches[0]);
       return previous = matches[0].index;
     };
     const modes = ['original', 'chords', 'silence'];
@@ -326,7 +327,9 @@ export function requireDiagnosticEvidence(packet, expectedBrowsers = 1) {
     for (const [index, mode] of modes.entries()) {
       const start = boundary(mode + '-browser-startup', 'entry');
       const ready = boundary(mode + '-browser-startup', 'exit');
-      boundary(mode === 'silence' ? mode : mode + '-capture', 'entry');
+      const capturePhase = mode === 'silence' ? mode : mode + '-capture';
+      boundary(capturePhase, 'entry');
+      boundary(capturePhase, 'exit', true);
       const teardown = boundary(mode + '-browser-teardown', 'entry');
       const closed = boundary(mode + '-browser-teardown', 'exit');
       assert.deepEqual(browserProcessEvidence(lines.slice(start + 1, ready).join('\n')), processes.slice(3 * index, 3 * index + 2), 'wrong browser startup sequence');

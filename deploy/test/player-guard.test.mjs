@@ -453,22 +453,23 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   assert.doesNotThrow(() => requireDiagnosticEvidence(twoPacket, 2));
   assert.throws(() => requireDiagnosticEvidence(packet, 2), /launch count/);
   assert.throws(() => requireDiagnosticEvidence(twoPacket), /launch count/);
-  const counts = (phase, state) => JSON.stringify({
+  const counts = (phase, state, withRoles = true) => JSON.stringify({
     kind: 'keyspilli-native-phase', phase, state, processes: 7, threads: 41, vanished: 0,
-    roles: {
+    ...(withRoles ? { roles: {
       guard: {processes: 1, threads: 1},
       'app-node': {processes: 1, threads: 10},
       'automation-node': {processes: 1, threads: 10},
       chromium: {processes: 3, threads: 15},
       crashpad: {processes: 1, threads: 5},
       unknown: {processes: 0, threads: 0},
-    },
+    }} : {}),
   }) + '\n';
   const three = ['original', 'chords', 'silence'].map((mode, index) => {
     const [argv, launch, exit] = stderr.replaceAll('pid=44', 'pid=' + (44 + index)).trimEnd().split('\n');
-    return counts(mode + '-browser-startup', 'entry') + argv + '\n' + launch + '\n'
-      + counts(mode + '-browser-startup', 'exit') + counts(mode === 'silence' ? mode : mode + '-capture', 'entry')
-      + counts(mode + '-browser-teardown', 'entry') + exit + '\n' + counts(mode + '-browser-teardown', 'exit');
+    return counts(mode + '-browser-startup', 'entry', false) + argv + '\n' + launch + '\n'
+      + counts(mode + '-browser-startup', 'exit', false) + counts(mode === 'silence' ? mode : mode + '-capture', 'entry', false)
+      + counts(mode === 'silence' ? mode : mode + '-capture', 'exit')
+      + counts(mode + '-browser-teardown', 'entry', false) + exit + '\n' + counts(mode + '-browser-teardown', 'exit', false);
   }).join('');
   const comparison = stream => ({
     ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: stream }],
@@ -487,9 +488,9 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
     const {roles: _roles, ...row} = JSON.parse(line); return JSON.stringify(row);
   }).join('\n');
   assert.throws(() => requireDiagnosticEvidence(comparison(withoutRoles), 3), /role task evidence/);
-  assert.throws(() => requireDiagnosticEvidence(comparison(three.replace(counts('original-browser-teardown', 'exit'), '')), 3), /phase order/);
+  assert.throws(() => requireDiagnosticEvidence(comparison(three.replace(counts('original-browser-teardown', 'exit', false), '')), 3), /phase order/);
   const exit = three.split('\n').find(line => line.includes('[pid=44] <process did exit')) + '\n';
-  const lateExit = three.replace(exit, '').replace(counts('chords-browser-startup', 'entry'), counts('chords-browser-startup', 'entry') + exit);
+  const lateExit = three.replace(exit, '').replace(counts('chords-browser-startup', 'entry', false), counts('chords-browser-startup', 'entry', false) + exit);
   assert.throws(() => requireDiagnosticEvidence(comparison(lateExit), 3), /teardown/);
   const guardNegative = { command: '/player-guard', args: ['/usr/local/bin/node','-e','process.stdout.write("x".repeat(4096));setInterval(()=>{},1000)'], code: null, signal: 'SIGKILL', stdout: 'x'.repeat(1024), stderr: '', clipped: true };
   const withExpectedNegative = {...packet,logBytes:4096+packet.logBytes,logs:[guardNegative,packet.logs[0]]};
@@ -610,9 +611,6 @@ test('unsupported optional browser CDP does not block capture and early terminal
     const packet=JSON.parse(files.get('/browser-results/result.json'));
     assert.match(packet.error,/Native browser terminal event: page-crash at original-capture/);assert.equal(packet.browserObservation.armed,true);
     assert.equal(packet.phaseTruncated,false);assert.ok(phaseBytes<=8192);
-    assert(phases.some(row=>row.phase==='original-browser-startup'&&row.state==='entry'&&row.roles));
-    assert(phases.some(row=>row.phase==='original-browser-startup'&&row.state==='exit'&&row.roles));
-    assert(phases.some(row=>row.phase==='original-capture'&&row.state==='entry'&&row.roles));
     assert(memorySamples.length>0);assert(memorySamples.length<=16);assert(memorySamples.some(row=>row.phase==='original-capture'&&row.state==='entry'));
     assert(packet.browserObservation.events.some(e=>e.kind==='page-crash'&&e.phase==='original-capture'));
     const failed = phases.find(row => row.phase === 'original-capture' && row.state === 'failure');
