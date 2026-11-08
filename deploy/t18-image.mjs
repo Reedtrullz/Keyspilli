@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { arch, release } from "node:os";
 
@@ -151,13 +151,14 @@ for (const [index, test] of tests.entries()) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   const logs = await run(["docker", "logs", container], { log: `offline-${index + 1}`, quiet: true, timeoutMs: 30000 });
-  const report = await run(["docker", "cp", `${container}:/data/vitest.json`, join(output, `offline-${index + 1}.json`)], { log: `offline-${index + 1}-copy`, quiet: true, timeoutMs: 30000 });
-  const status = await run(["docker", "cp", `${container}:/data/vitest.rc`, join(output, `offline-${index + 1}.rc`)], { log: `offline-${index + 1}-status`, quiet: true, timeoutMs: 30000 });
+  const report = await run(["docker", "exec", container, "cat", "/data/vitest.json"], { log: `offline-${index + 1}-copy`, quiet: true, timeoutMs: 30000 });
+  const status = await run(["docker", "exec", container, "cat", "/data/vitest.rc"], { log: `offline-${index + 1}-status`, quiet: true, timeoutMs: 30000 });
   await run(["docker", "rm", "-f", container], { log: `offline-${index + 1}-remove`, quiet: true, timeoutMs: 30000 });
-  const exitCode = status.code === 0 ? Number(readFileSync(join(output, `offline-${index + 1}.rc`), "utf8").trim()) : -1;
+  const exitCode = status.code === 0 ? Number(status.stdout.trim()) : -1;
   let semantic = null;
   if (report.code === 0) {
-    const parsed = JSON.parse(readFileSync(join(output, `offline-${index + 1}.json`), "utf8"));
+    writeFileSync(join(output, `offline-${index + 1}.json`), report.stdout);
+    const parsed = JSON.parse(report.stdout);
     semantic = (parsed.testResults ?? []).map((file) => ({
       name: file.name,
       assertions: (file.assertionResults ?? []).map((assertion) => ({ fullName: assertion.fullName, status: assertion.status })),
