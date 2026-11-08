@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { arch, release } from "node:os";
 
@@ -125,6 +125,8 @@ const tests = ["acoustic-analyzer.test.ts", "automatic-symbolic.test.ts", "worke
 const offline = [];
 for (const [index, test] of tests.entries()) {
   const name = `t18-${label}-offline-${index + 1}`;
+  const command = "node --import tsx services/transcribe/node_modules/vitest/vitest.mjs run "
+    + `--root services/transcribe --reporter=json --outputFile=/data/vitest.json --silent=true --cache=false --configLoader=runner --fsModuleCachePath=/tmp/vitest-cache test/${test}; rc=$?; printf '%s' "$rc" > /data/vitest.rc; touch /data/vitest.ready; exec sleep 300`;
   const args = ["docker", "run", "-d", "--name", name, "--platform=linux/amd64", "--network", "none", "--read-only",
     "--user", "65532:65532", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
     "--cpus", "1.5", "--memory", "1g", "--pids-limit", "128",
@@ -132,9 +134,8 @@ for (const [index, test] of tests.entries()) {
     "--tmpfs", "/data:rw,nosuid,nodev,size=16m,uid=65532,gid=65532,mode=0700",
     "--tmpfs", "/app/services/transcribe/node_modules/.vite-temp:rw,nosuid,nodev,size=2m,uid=65532,gid=65532,mode=0700",
     "--tmpfs", "/app/services/transcribe/node_modules/.vite:rw,nosuid,nodev,size=2m,uid=65532,gid=65532,mode=0700",
-    "-e", "KEYSPILLI_DATA_DIR=/data", "-e", "HOME=/tmp", `keyspilli-t18-${label}-worker:measure`,
-    "--import", "tsx", "services/transcribe/node_modules/vitest/vitest.mjs", "run",
-    "--root", "services/transcribe", "--reporter=json", "--outputFile=/data/vitest.json", "test/" + test];
+    "-e", "KEYSPILLI_DATA_DIR=/data", "-e", "HOME=/tmp", "--entrypoint", "/bin/sh",
+    `keyspilli-t18-${label}-worker:measure`, "-c", command];
   const start = checked(await run(args, { log: `offline-${index + 1}-start`, quiet: true }), "offline start");
   const container = start.stdout.trim();
   let peakBytes = 0;
@@ -143,29 +144,30 @@ for (const [index, test] of tests.entries()) {
     const state = await run(["docker", "inspect", "--format", "{{json .State}}", container], { log: `offline-${index + 1}-state`, quiet: true });
     if (state.code !== 0) break;
     const value = JSON.parse(state.stdout);
+    const ready = await run(["docker", "exec", container, "test", "-f", "/data/vitest.ready"], { log: `offline-${index + 1}-ready`, quiet: true });
     const usage = await run(["docker", "exec", container, "sh", "-c", "du -sb /tmp /data 2>/dev/null | awk '{s+=$1} END{print s+0}'"], { log: `offline-${index + 1}-scratch`, quiet: true });
     if (usage.code === 0 && /^\d+$/.test(usage.stdout.trim())) peakBytes = Math.max(peakBytes, Number(usage.stdout.trim()));
-    if (value.Status !== "running") break;
+    if (ready.code === 0 || value.Status !== "running") break;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   const logs = await run(["docker", "logs", container], { log: `offline-${index + 1}`, quiet: true, timeoutMs: 30000 });
-  const inspect = await run(["docker", "inspect", "--format", "{{json .State}}", container], { log: `offline-${index + 1}-terminal`, quiet: true });
   const report = await run(["docker", "cp", `${container}:/data/vitest.json`, join(output, `offline-${index + 1}.json`)], { log: `offline-${index + 1}-copy`, quiet: true, timeoutMs: 30000 });
+  const status = await run(["docker", "cp", `${container}:/data/vitest.rc`, join(output, `offline-${index + 1}.rc`)], { log: `offline-${index + 1}-status`, quiet: true, timeoutMs: 30000 });
   await run(["docker", "rm", "-f", container], { log: `offline-${index + 1}-remove`, quiet: true, timeoutMs: 30000 });
-  const terminal = inspect.code === 0 ? JSON.parse(inspect.stdout) : { ExitCode: -1 };
+  const exitCode = status.code === 0 ? Number(readFileSync(join(output, `offline-${index + 1}.rc`), "utf8").trim()) : -1;
   let semantic = null;
   if (report.code === 0) {
-    const parsed = JSON.parse(await import("node:fs/promises").then(({ readFile }) => readFile(join(output, `offline-${index + 1}.json`), "utf8")));
+    const parsed = JSON.parse(readFileSync(join(output, `offline-${index + 1}.json`), "utf8"));
     semantic = (parsed.testResults ?? []).map((file) => ({
       name: file.name,
       assertions: (file.assertionResults ?? []).map((assertion) => ({ fullName: assertion.fullName, status: assertion.status })),
     }));
   }
   const semanticSha256 = semantic === null ? null : createHash("sha256").update(JSON.stringify(semantic)).digest("hex");
-  offline.push({ test, exitCode: terminal.ExitCode, peakScratchBytes: peakBytes,
+  offline.push({ test, exitCode, peakScratchBytes: peakBytes,
     reportCopied: report.code === 0, semanticSha256,
-    stdoutSha256: logs.stdoutSha256, stderrSha256: logs.stderrSha256, terminal });
-  if (terminal.ExitCode !== 0) throw new Error(`offline job failed: ${test}`);
+    stdoutSha256: logs.stdoutSha256, stderrSha256: logs.stderrSha256 });
+  if (exitCode !== 0) throw new Error(`offline job failed: ${test}`);
   if (report.code !== 0) throw new Error(`offline report missing: ${test}`);
 }
 
