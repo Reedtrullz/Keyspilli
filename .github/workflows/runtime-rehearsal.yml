@@ -92,6 +92,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Restore pinned public seed corpus from owned history
+        shell: bash
+        run: |
+          seed_commit=d359a20b0cbce582a311fcb525c65787468f7c6b
+          git fetch --no-tags --depth=1 origin "$seed_commit"
+          git restore --source="$seed_commit" --worktree -- data/seed-midi
+          git restore --source=HEAD --worktree -- data/seed-midi
+
       - name: Require native amd64 and exact commit
         run: |
           test "$(uname -m)" = x86_64
@@ -163,7 +171,7 @@ jobs:
 
       - name: Build the public seed catalog
         run: |
-          pnpm exec tsx packages/catalog/scripts/fetch-seed.ts
+          pnpm exec tsx packages/catalog/scripts/fetch-seed.ts --require-existing
           pnpm run pipeline
 
       - name: Build web and worker candidates on native amd64
