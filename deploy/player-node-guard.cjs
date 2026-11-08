@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- CommonJS preload executes before the guarded app module graph. */
 const fs = require('node:fs');
 const path = require('node:path');
 const net = require('node:net');

@@ -175,6 +175,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Restore pinned public seed corpus from owned history
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin d359a20b0cbce582a311fcb525c65787468f7c6b
+          git restore --source=d359a20b0cbce582a311fcb525c65787468f7c6b --worktree -- data/seed-midi
+          git restore --source=HEAD --worktree -- data/seed-midi
+
       # Runs before fetch-seed/pipeline: the pipeline regenerates
       # catalog/manifest.json, and the map integrity check must see the
       # committed manifest rather than the regenerated subset.
@@ -182,7 +189,7 @@ jobs:
         run: pnpm --filter @keyspilli/catalog run audit:sections
 
       - name: Fetch seed catalog (public-domain MIDI)
-        run: pnpm exec tsx packages/catalog/scripts/fetch-seed.ts
+        run: pnpm exec tsx packages/catalog/scripts/fetch-seed.ts --require-existing
 
       - name: Build catalog pipeline (db + artifacts)
         run: pnpm run pipeline
