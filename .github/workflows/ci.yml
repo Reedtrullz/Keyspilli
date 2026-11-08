@@ -234,6 +234,7 @@ jobs:
           sudo python3 deploy/test/test-backup.py
           sudo python3 deploy/test/test-storage.py
           sudo env KEYSPILLI_TEST_NODE="$(command -v node)" python3 -B deploy/test/test-evidence.py
+          python3 -B deploy/test/test-web-dockerignore.py
           python3 deploy/test/test-replicate-backup.py
           node deploy/test/restore-app-verifier.mjs
           python3 -B deploy/test/test-restore-app.py
