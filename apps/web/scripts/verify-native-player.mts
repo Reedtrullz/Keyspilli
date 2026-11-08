@@ -288,7 +288,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
     phase("silence", "entry");
     const silentPage = await silenceContext.newPage();
     const silent = await Promise.race([browserFailure, capturePlayerClip(silentPage, { songId: id, mode: "original", durationMs: 4000,
-      expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: true })]);
+      expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: false })]);
     savePlayerCapture(join(output, "silence-control.wav"), silent);
     results.push({ kind: "silence-recorder-control", rms: silent.rms, peak: silent.peak, samplerStarts: silent.samplerStarts.length });
     phase("silence", "exit");
