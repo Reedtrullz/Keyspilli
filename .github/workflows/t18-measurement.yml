@@ -1,0 +1,133 @@
+name: Task 18 measurement
+
+on:
+  push:
+    branches:
+      - codex/keyspilli-t18-measure-20261108
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_COMMIT: edb7d0c7b56d9f7a0e020893cf363a05b18a681d
+  CANDIDATE_COMMIT: 39fbc14cfa6192c250f87fcac9d3869c51dba9c2
+
+jobs:
+  timing-pair:
+    name: timing-${{ matrix.cohort }}-${{ matrix.pair }}
+    needs: image-and-offline
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include:
+          - {cohort: warmup, pair: 0}
+          - {cohort: warmup, pair: 1}
+          - {cohort: cold, pair: 0}
+          - {cohort: cold, pair: 1}
+          - {cohort: cold, pair: 2}
+          - {cohort: cold, pair: 3}
+          - {cohort: cold, pair: 4}
+          - {cohort: cold-scored, pair: 0}
+          - {cohort: cold-scored, pair: 1}
+          - {cohort: cold-scored, pair: 2}
+          - {cohort: cold-scored, pair: 3}
+          - {cohort: cold-scored, pair: 4}
+          - {cohort: steady, pair: 0}
+          - {cohort: steady, pair: 1}
+          - {cohort: steady, pair: 2}
+          - {cohort: steady, pair: 3}
+          - {cohort: steady, pair: 4}
+          - {cohort: steady-scored, pair: 0}
+          - {cohort: steady-scored, pair: 1}
+          - {cohort: steady-scored, pair: 2}
+          - {cohort: steady-scored, pair: 3}
+          - {cohort: steady-scored, pair: 4}
+          - {cohort: steady-scored, pair: 5}
+          - {cohort: steady-scored, pair: 6}
+          - {cohort: steady-scored, pair: 7}
+          - {cohort: steady-scored, pair: 8}
+          - {cohort: steady-scored, pair: 9}
+    steps:
+      - name: Check out harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          path: harness
+
+      - name: Check out baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.BASELINE_COMMIT }}
+          fetch-depth: 1
+          path: baseline
+          persist-credentials: false
+
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_COMMIT }}
+          fetch-depth: 1
+          path: candidate
+          persist-credentials: false
+
+      - name: Measure one paired build
+        run: >
+          node harness/deploy/t18-pair.mjs
+          "${{ matrix.cohort }}"
+          "${{ matrix.pair }}"
+          "$GITHUB_WORKSPACE/baseline"
+          "$GITHUB_WORKSPACE/candidate"
+          "$RUNNER_TEMP/t18-output"
+
+      - name: Upload pair evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: t18-${{ matrix.cohort }}-${{ matrix.pair }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/t18-output
+          if-no-files-found: error
+          retention-days: 90
+
+  image-and-offline:
+    name: image-and-offline-${{ matrix.revision }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        revision: [baseline, candidate]
+    steps:
+      - name: Check out harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          path: harness
+
+      - name: Check out measured revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ matrix.revision == 'baseline' && env.BASELINE_COMMIT || env.CANDIDATE_COMMIT }}
+          fetch-depth: 1
+          path: source
+          persist-credentials: false
+
+      - name: Build, inspect and run fixed offline jobs
+        run: >
+          node harness/deploy/t18-image.mjs
+          "${{ matrix.revision }}"
+          "$GITHUB_WORKSPACE/source"
+          "$GITHUB_WORKSPACE/harness"
+          "$RUNNER_TEMP/t18-output"
+
+      - name: Upload image and offline evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: t18-image-${{ matrix.revision }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/t18-output
+          if-no-files-found: error
+          retention-days: 90
