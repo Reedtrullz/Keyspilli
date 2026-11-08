@@ -55,8 +55,15 @@ jobs:
           "$GITHUB_WORKSPACE/candidate"
           "$GITHUB_WORKSPACE/harness"
           "$RUNNER_TEMP/t17-output"
-      - name: Upload sizing evidence
+      - name: Enforce sizing evidence cap
+        id: sizing-cap
         if: always()
+        run: |
+          bytes=$(du -sb "$RUNNER_TEMP/t17-output" | cut -f1)
+          echo "sizing evidence bytes: $bytes"
+          test "$bytes" -le 67108864
+      - name: Upload sizing evidence
+        if: always() && steps.sizing-cap.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: t17-sizing-${{ github.run_id }}

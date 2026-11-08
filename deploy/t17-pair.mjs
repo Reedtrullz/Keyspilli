@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { EVIDENCE_CAP } from "./t17-evidence.mjs";
 
 const [rawCase, jobId, baselineDir, candidateDir, harnessDir, outputDir] = process.argv.slice(2);
 if (!rawCase || !jobId || !baselineDir || !candidateDir || !harnessDir || !outputDir) {
@@ -60,9 +61,11 @@ async function main() {
   if (definition.schema !== "keyspilli-task17-case/v1" || definition.id !== rawCase || definition.task !== 17) throw new Error("invalid Task 17 case");
   if (definition.pairs.pilot !== 5 || definition.pairs.scored !== (definition.shape.id === "small" ? 10 : 5)) throw new Error("wrong frozen pair count");
   const specPath = join(harnessDir, "deploy/t17-performance.spec.ts");
+  const evidencePath = join(harnessDir, "deploy/t17-evidence.mjs");
   const probePath = join(harnessDir, "work/portfolio-performance/tools/keyspilli_perf_probe.mjs");
   const harnessPaths = {
     measurementSpecSha256: "deploy/t17-performance.spec.ts", probeSha256: "work/portfolio-performance/tools/keyspilli_perf_probe.mjs",
+    evidenceModuleSha256: "deploy/t17-evidence.mjs",
     pairSha256: "deploy/t17-pair.mjs", failureSpecSha256: "deploy/t17-failure.spec.ts",
     failureSha256: "deploy/t17-failure.mjs", compareSha256: "deploy/t17-compare.mjs",
     workflowSha256: ".github/workflows/t17-measurement.yml",
@@ -78,6 +81,7 @@ async function main() {
   for (const phase of used) {
     const source = sources.get(phase);
     copyFileSync(specPath, join(source.dir, "apps/web/e2e/performance-baseline.spec.ts"));
+    copyFileSync(evidencePath, join(source.dir, "apps/web/e2e/t17-evidence.mjs"));
     const env = { ...process.env, NEXT_TELEMETRY_DISABLED: "1" };
     for (const [name, argv] of [["install", ["pnpm", "install", "--frozen-lockfile"]], ["build", ["pnpm", "run", "build"]]]) {
       const result = await command(argv, { cwd: source.dir, env });
@@ -100,7 +104,8 @@ async function main() {
       const request = {
         caseHash: sha(caseBytes), phase, unit, sample: pair.pair * 2 + member, scenario: "happy",
         revision: source.head, tree: source.tree, fixtureDigest: definition.fixtureDigest,
-        harnessDigest: definition.harnessDigest, shape: sizing ? { ...definition.shape, trace: true } : definition.shape,
+        harnessDigest: definition.harnessDigest,
+        shape: sizing ? { ...definition.shape, trace: pair.pair === 0 && member === 0 && phase === "baseline" } : definition.shape,
         economicsDigest: definition.economicsDigest,
       };
       const env = {
@@ -119,6 +124,7 @@ async function main() {
       invocations.push({ unit, request, receipt });
     }
   }
+  if (sizing && invocations.filter(row => row.request.shape.trace).length !== 1) throw new Error("expected exactly one sizing trace");
   writeFileSync(join(output, "job.json"), JSON.stringify({
     schema: "keyspilli-task17-pair-job/v1", id: jobId, case: rawCase, stage: job.stage, pairs: job.pairs,
     startedAt: new Date().toISOString(), caseSha256: sha(caseBytes), jobsSha256: sha(jobsBytes),
@@ -128,6 +134,20 @@ async function main() {
     browserInstallMs: browser.elapsedMs, invocations: invocations.map(row => ({ unit: row.unit, semanticDigest: row.receipt.semanticDigest, metrics: row.receipt.metrics })),
   }, null, 2) + "\n");
   const elapsedMs = Number(process.hrtime.bigint() - processStarted) / 1e6;
+  function filesUnder(path) {
+    return readdirSync(path).flatMap(name => {
+      const child = join(path, name);
+      return statSync(child).isDirectory() ? filesUnder(child) : [child];
+    });
+  }
+  writeFileSync(join(output, "evidence-size.json"), JSON.stringify({ bytes: 0, cap: EVIDENCE_CAP }, null, 2) + "\n");
+  let evidenceBytes = filesUnder(output).reduce((sum, path) => sum + statSync(path).size, 0);
+  writeFileSync(join(output, "evidence-size.json"), JSON.stringify({ bytes: evidenceBytes, cap: EVIDENCE_CAP }, null, 2) + "\n");
+  evidenceBytes = filesUnder(output).reduce((sum, path) => sum + statSync(path).size, 0);
+  if (evidenceBytes > EVIDENCE_CAP) {
+    writeFileSync(join(output, "cap.json"), JSON.stringify({ bytes: evidenceBytes, cap: EVIDENCE_CAP }, null, 2) + "\n");
+    throw new Error(`evidence exceeds cap: ${evidenceBytes} > ${EVIDENCE_CAP}`);
+  }
   if (sizing && elapsedMs > 25 * 60_000) throw new Error(`sizing exceeded the 25-minute measured allowance: ${elapsedMs}ms`);
   console.log(JSON.stringify({ jobId, invocations: invocations.map(row => row.unit) }));
 }

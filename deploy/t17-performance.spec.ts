@@ -1,7 +1,8 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type BrowserContext } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { perfViewport } from "./perf-viewport";
+import { canonicalPdfSha256 } from "./t17-evidence.mjs";
 
 const viewport = perfViewport(process.env.KEYSPILLI_PERF_VIEWPORT);
 const span = process.env.KEYSPILLI_PERF_STRESS === "span";
@@ -10,7 +11,7 @@ const measures = span ? 2048 : stress ? 500 : 160;
 const notesPerMeasure = span ? 2 : stress ? 40 : 4;
 const beatsPerMeasure = span ? 2 : stress ? 5 : 4;
 const renderers = stress ? ["worker", "main"] as const : ["worker"] as const;
-test.use({ trace: process.env.KEYSPILLI_PERF_TRACE === "1" ? "on" : "retain-on-failure" });
+test.use({ trace: "off" });
 
 function fixtureXml(): string {
   const measuresXml = Array.from({ length: measures }, (_, index) => {
@@ -42,9 +43,15 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
   const receipt = await created.json();
   const id = receipt.songIds.find((value: string) => value.endsWith("-a"));
   const samples: Record<string, unknown>[] = [];
+  let trace: { context: BrowserContext; path: string } | null = null;
   try {
     for (const renderer of renderers) for (let sample = 0; sample < 3; sample++) {
       const context = await browser.newContext({ viewport });
+      if (process.env.KEYSPILLI_PERF_TRACE === "1" && renderer === "worker" && sample === 0) {
+        const path = info.outputPath("t17-sizing.trace.zip");
+        await context.tracing.start({ screenshots: false, snapshots: false, sources: false });
+        trace = { context, path };
+      }
       const page = await context.newPage();
       const observedPaths: string[] = [];
       page.on("response", response => observedPaths.push(new URL(response.url()).pathname));
@@ -198,9 +205,15 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
         inPageFirstSheetMs, inPageWarmSheetMs, sheetMs: sheet, pdfMs, pageCount: count, retention,
         longTasks: { player: playerLongTasks, sheet: sheetLongTasks, direct: directLongTasks },
         workerTiming: { warm: warmWorkerTiming, direct: directWorkerTiming }, resources,
-        memory, transferredBytes: Object.fromEntries(transferred), semantic: { scoreXmlSha256, pdfSha256: sha(pdfBytes), pdfBytes: pdfBytes.byteLength },
+        memory, transferredBytes: Object.fromEntries(transferred), semantic: {
+          scoreXmlSha256, pdfSha256: sha(pdfBytes), pdfCanonicalSha256: canonicalPdfSha256(pdfBytes), pdfBytes: pdfBytes.byteLength,
+        },
       });
       console.log(JSON.stringify({ renderer, sample, sheetMs: sheet, inPageWarmSheetMs, pdfMs, retainedPages: Math.max(...retention.map(row => Number(row.pages))) }));
+      if (trace?.context === context) {
+        await trace.context.tracing.stop({ path: trace.path });
+        trace = null;
+      }
       await context.close();
     }
     const output = info.outputPath(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json");
@@ -211,6 +224,11 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
     }, null, 2));
     await info.attach(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json", { path: output, contentType: "application/json" });
   } finally {
+    if (trace) {
+      await trace.context.tracing.stop({ path: trace.path }).catch(() => undefined);
+      await trace.context.close().catch(() => undefined);
+      trace = null;
+    }
     expect((await request.delete(`/api/songs/${receipt.baseId}`, { headers: { Authorization: "Bearer test-token-for-e2e" } })).ok()).toBe(true);
   }
 });

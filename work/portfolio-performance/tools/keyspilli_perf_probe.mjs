@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+import { copyBoundedEvidence } from "../../../deploy/t17-evidence.mjs";
 
 const SHAPES = {
   small: { notes: 640, measures: 160, samples: 3, renderers: ["worker"], stress: "" },
@@ -52,6 +53,12 @@ function filesUnder(root) {
   };
   visit(root);
   return files;
+}
+
+function findTrace(root) {
+  if (!existsSync(root)) return undefined;
+  const traces = filesUnder(root).filter(path => path.endsWith(".zip"));
+  return traces.length === 1 ? traces[0] : undefined;
 }
 
 function runPlaywright(shape, output, timeoutMs) {
@@ -157,6 +164,9 @@ async function main() {
   const matches = filesUnder(output).filter(path => /performance-(baseline|span|stress)\.json$/.test(path));
   requireCondition(matches.length === 1, `expected one attachment, found ${matches.length}`);
   requireCondition(statSync(matches[0]).size <= OUTPUT_LIMIT, "attachment bound exceeded");
+  const traces = filesUnder(output).filter(path => path.endsWith(".zip"));
+  requireCondition(traces.length <= 1, `expected at most one trace, found ${traces.length}`);
+  const trace = traces[0];
   const attachment = readFileSync(matches[0]);
   const result = JSON.parse(attachment.toString("utf8"));
   requireCondition(result.viewport?.width === Number(shape.viewport.split("x")[0]) && result.viewport?.height === Number(shape.viewport.split("x")[1]), "viewport mismatch");
@@ -173,11 +183,21 @@ async function main() {
     requireCondition(row.retention?.every(item => item.renderer === row.renderer && item.pages <= 5 && item.estimatedStringBytes <= 4 * 1024 * 1024 && item.fallbackBytes === 0), "retention or renderer proof failed");
   }
   const metrics = collectMetrics(result.samples, renderers, spec.samples);
+  const scoreXmlSha256 = result.samples.map(row => row.semantic?.scoreXmlSha256);
+  requireCondition(scoreXmlSha256.every(value => typeof value === "string" && /^[a-f0-9]{64}$/.test(value)), "missing score XML hash");
+  requireCondition(new Set(scoreXmlSha256).size === 1, "score XML drift");
+  const pdfCanonicalSha256 = result.samples.map(row => row.semantic?.pdfCanonicalSha256);
+  requireCondition(pdfCanonicalSha256.every(value => typeof value === "string" && /^[a-f0-9]{64}$/.test(value)), "missing canonical PDF hash");
+  requireCondition(new Set(pdfCanonicalSha256).size === 1, "canonical PDF drift");
   const semantic = {
     fixture: result.fixture, viewport: result.viewport, renderers,
     pageCounts: result.samples.map(row => row.pageCount),
-    scoreXmlSha256: result.samples.map(row => row.semantic.scoreXmlSha256),
+    scoreXmlSha256,
+    pdfCanonicalSha256,
+  };
+  const rawSemantics = {
     pdfSha256: result.samples.map(row => row.semantic.pdfSha256),
+    pdfBytes: result.samples.map(row => row.semantic.pdfBytes),
   };
   const receipt = {
     status: "complete",
@@ -187,25 +207,27 @@ async function main() {
     attachment: { path: relative(scratch, matches[0]), sha256: hash(attachment), bytes: attachment.byteLength },
     child: { stdoutSha256: hash(child.stdout), stderrSha256: hash(child.stderr), stdoutBytes: child.stdout.byteLength, stderrBytes: child.stderr.byteLength },
     metrics,
+    semantic,
+    rawSemantics,
     semanticDigest: hash(JSON.stringify(semantic)),
     capabilities: CAPABILITIES,
     unsupported: { nativeWasmMemoryBytes: "Chromium does not expose Verovio WASM/native memory separately" },
   };
   writeFileSync(join(scratch, "receipt.json"), JSON.stringify(receipt, null, 2) + "\n");
   process.stdout.write(JSON.stringify(receipt) + "\n");
-  if (process.env.KEYSPILLI_PERF_KEEP) {
-    mkdirSync(process.env.KEYSPILLI_PERF_KEEP, { recursive: true });
-    cpSync(scratch, process.env.KEYSPILLI_PERF_KEEP, { recursive: true });
-  } else rmSync(scratch, { recursive: true, force: true });
+  if (process.env.KEYSPILLI_PERF_KEEP) copyBoundedEvidence({ scratch, keep: process.env.KEYSPILLI_PERF_KEEP, attachment: matches[0], trace });
+  rmSync(scratch, { recursive: true, force: true });
   activeScratch = null;
 }
 
 main().catch(error => {
-  if (activeScratch && process.env.KEYSPILLI_PERF_KEEP) {
-    mkdirSync(process.env.KEYSPILLI_PERF_KEEP, { recursive: true });
-    cpSync(activeScratch, process.env.KEYSPILLI_PERF_KEEP, { recursive: true });
+  if (activeScratch) {
+    writeFileSync(join(activeScratch, "failure.json"), JSON.stringify({ status: "incomplete", error: error instanceof Error ? error.message : String(error) }) + "\n");
+    if (process.env.KEYSPILLI_PERF_KEEP) {
+      copyBoundedEvidence({ scratch: activeScratch, keep: process.env.KEYSPILLI_PERF_KEEP, attachment: undefined, trace: findTrace(join(activeScratch, "playwright")) });
+    }
+    rmSync(activeScratch, { recursive: true, force: true });
   }
-  if (activeScratch) rmSync(activeScratch, { recursive: true, force: true });
   process.stdout.write(JSON.stringify({ status: "incomplete", error: error instanceof Error ? error.message : String(error) }) + "\n");
   process.exitCode = 1;
 });
