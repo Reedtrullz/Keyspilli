@@ -8,9 +8,9 @@
     "measurementSpecSha256": "2dca3e329467ae3d3dab5ec69a2c2aa79d2e88d7d1d342d0e951aac0b57f8e72",
     "pairSha256": "1d0be00c777ffb620535a4b34f461d9def4ca680111ccafd3d71e9587089d45b",
     "probeSha256": "caaf187982ab982b7994b689a9637175865e5d302e2737f70902cf71dd033557",
-    "workflowSha256": "d1c9fd6ddd343f31cca5fff6ea3f60ff1e71d74c5d27be3470e5ec72ea2cd06f"
+    "workflowSha256": "d9d76ea9155c657edbca7414582300c9080a546af0c69fa6cd3537cc7083a5ce"
   },
-  "harnessDigest": "ded0ed6d5995ce571511910f348c0289fa86029716d0079aed61a67d691cc095",
+  "harnessDigest": "7701bb63ab2647fd435d4b4076a568163d7292c7fd14e42e453f0515935eaaab",
   "id": "T17-stress-desktop",
   "inPageWarmups": 2,
   "pairs": {
@@ -120,8 +120,8 @@
       "tree": "91f728ce93ea89938261f2e3ab86c06a8cebdbe2"
     },
     "candidate": {
-      "head": "acc07383dc04e9f029c181b04849b693e22ea903",
-      "tree": "598e0d139a5f6d1efe688f8a8bcf21aec4958d5d"
+      "head": "2d3c040871d3028dd9d4da5182a05399010623e4",
+      "tree": "b3acd819fae278584d1c5026ec4287c76de985f8"
     }
   },
   "task": 17
