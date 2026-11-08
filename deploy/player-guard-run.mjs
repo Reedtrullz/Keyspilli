@@ -525,7 +525,7 @@ export async function probeTcp(port) {
     socket.once('error', fail);
     socket.once('connect', () => {
       socket.removeListener('error', fail); socket.on('error', () => {});
-      socket.destroy(); resolve();
+      socket.end(); socket.unref(); resolve();
     });
   });
 }
@@ -596,7 +596,7 @@ async function inside(revision) {
     });
   }
   async function tcp(port, key) {
-    const server = net.createServer(socket => { sockets.add(socket); socket.on('close', () => sockets.delete(socket)); counts[key]++; socket.end('owned'); });
+    const server = net.createServer(socket => { sockets.add(socket); socket.on('error', () => {}); socket.on('close', () => sockets.delete(socket)); counts[key]++; socket.end('owned'); });
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); }); servers.push(server); return server;
   }
   const udp = dgram.createSocket('udp4');

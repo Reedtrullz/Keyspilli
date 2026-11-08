@@ -98,9 +98,17 @@ test('trace records bounded stage boundaries and sanitized in-flight tails', () 
   assert.throws(() => captureInFlight(inflight, Array.from({ length: 9 }, () => ({ stage: 'x', startedAt: now, stdout: '', stderr: '' })), now), /in-flight entry cap/);
 });
 
-test('wire probe completes when the server does not close the accepted connection', async () => {
+test('wire probe completes with a graceful FIN and no loopback reset', async () => {
   const sockets = new Set();
-  const server = net.createServer(socket => { sockets.add(socket); socket.once('close', () => sockets.delete(socket)); });
+  let ended = false, serverError;
+  let settle;
+  const completed = new Promise((resolve, reject) => { settle = { resolve, reject }; });
+  const server = net.createServer(socket => {
+    sockets.add(socket); socket.once('close', () => sockets.delete(socket));
+    socket.once('end', () => { ended = true; settle.resolve(); });
+    socket.once('error', error => { serverError = error; settle.reject(error); });
+    socket.end('owned');
+  });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
   const port = server.address().port;
   try {
@@ -108,6 +116,8 @@ test('wire probe completes when the server does not close the accepted connectio
       probeTcp(port),
       new Promise((_, reject) => setTimeout(() => reject(new Error('wire probe waited for server close')), 500)),
     ]);
+    await Promise.race([completed, new Promise((_, reject) => setTimeout(() => reject(new Error('server did not observe FIN')), 500))]);
+    assert.equal(serverError, undefined); assert.equal(ended, true);
   } finally {
     for (const socket of sockets) socket.destroy();
     await new Promise(resolve => server.close(resolve));
