@@ -12,6 +12,7 @@ const SDK = '/usr/local/lib/android/sdk';
 const GIB = 1024 ** 3;
 export const NATIVE_COMMAND_TIMEOUT_MS = 180000;
 export const NATIVE_WHOLE_CASE_TIMEOUT_MS = 240000;
+export const RESOURCE_BARRIER_WAIT_MS = 8000;
 export function capacityModes(leafMode, parentModes) {
   return Number.isInteger(leafMode) && (leafMode & 0o7777) === 0o777 && parentModes.length > 0 && parentModes.every(mode => Number.isInteger(mode) && (mode & 0o022) === 0);
 }
@@ -535,7 +536,6 @@ export async function probeTcp(port) {
 }
 
 async function inside(revision) {
-  const started = Date.now();
   diagnosticProfile(process.env.KEYSPILLI_GUARD_PROFILE ?? 'control');
   const browserProfile = SIDECAR_PROFILES.browser;
   assert.match(revision, /^[a-f0-9]{40}$/); assert.equal(process.getuid(), 1000);
@@ -720,7 +720,7 @@ async function inside(revision) {
     clearTimeout(report.timer); delete report.timer;
     if (process.env.KEYSPILLI_CRASH_DIAGNOSTIC === 'native-crash-v1') {
       console.log(JSON.stringify({ kind: 'keyspilli-resource-barrier', revision }));
-      const until = Math.min(started + 105000, Date.now() + 1500);
+      const until = Date.now() + RESOURCE_BARRIER_WAIT_MS;
       while (!fs.existsSync('/tmp/owned-observer-release') && Date.now() < until) await new Promise(resolve => setTimeout(resolve, 25));
       report.resourceBarrierAcknowledged = fs.existsSync('/tmp/owned-observer-release');
     }

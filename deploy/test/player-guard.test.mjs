@@ -8,7 +8,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, NATIVE_COMMAND_TIMEOUT_MS, NATIVE_WHOLE_CASE_TIMEOUT_MS, appendTrace, captureInFlight, probeTcp, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, NATIVE_COMMAND_TIMEOUT_MS, NATIVE_WHOLE_CASE_TIMEOUT_MS, RESOURCE_BARRIER_WAIT_MS, appendTrace, captureInFlight, probeTcp, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.ts';
 import { createPhaseTrace } from '../../apps/web/scripts/native-phase-trace.ts';
@@ -34,6 +34,7 @@ const phaseCounts = {
 test('native smoke keeps a bounded deadline with enough room for three browser lifetimes', () => {
   assert.equal(NATIVE_COMMAND_TIMEOUT_MS, 180000);
   assert.equal(NATIVE_WHOLE_CASE_TIMEOUT_MS, 240000);
+  assert.equal(RESOURCE_BARRIER_WAIT_MS, 8000);
   assert(NATIVE_COMMAND_TIMEOUT_MS < NATIVE_WHOLE_CASE_TIMEOUT_MS);
   assert(NATIVE_WHOLE_CASE_TIMEOUT_MS < 5 * 60 * 1000);
 });
