@@ -2,6 +2,9 @@ name: Keyspilli Task 17 measurement
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/keyspilli-t17-measure-20261108
 
 permissions:
   contents: read

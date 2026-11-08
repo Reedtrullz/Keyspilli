@@ -8,9 +8,9 @@
     "measurementSpecSha256": "2dca3e329467ae3d3dab5ec69a2c2aa79d2e88d7d1d342d0e951aac0b57f8e72",
     "pairSha256": "1d0be00c777ffb620535a4b34f461d9def4ca680111ccafd3d71e9587089d45b",
     "probeSha256": "caaf187982ab982b7994b689a9637175865e5d302e2737f70902cf71dd033557",
-    "workflowSha256": "3bee9659e0bb306b64a55416baff4683bd599dd7bcbf3d3dd26c535d16e67aff"
+    "workflowSha256": "d1c9fd6ddd343f31cca5fff6ea3f60ff1e71d74c5d27be3470e5ec72ea2cd06f"
   },
-  "harnessDigest": "ae64e1ee0e686ae128204238a0d71e78832d68532b20d688a2309a9fb1979845",
+  "harnessDigest": "ded0ed6d5995ce571511910f348c0289fa86029716d0079aed61a67d691cc095",
   "id": "T17-stress-mobile",
   "inPageWarmups": 2,
   "pairs": {
