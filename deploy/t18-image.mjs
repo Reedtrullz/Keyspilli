@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { arch, release } from "node:os";
 
@@ -121,7 +121,7 @@ const capability = {
   { log: "capability-worker", quiet: true }), "worker capability").stdout.trim(),
 };
 
-const tests = ["acoustic-analyzer.test.ts", "automatic-symbolic.test.ts", "worker-native.test.ts", "worker-runtime.test.ts", "tutorial-cache.test.ts"];
+const tests = ["automatic-symbolic.test.ts", "external-symbolic-route.test.ts", "worker-native.test.ts", "worker-runtime.test.ts", "tutorial-cache.test.ts"];
 const offline = [];
 for (const [index, test] of tests.entries()) {
   const name = `t18-${label}-offline-${index + 1}`;
@@ -168,8 +168,6 @@ for (const [index, test] of tests.entries()) {
   offline.push({ test, exitCode, peakScratchBytes: peakBytes,
     reportCopied: report.code === 0, semanticSha256,
     stdoutSha256: logs.stdoutSha256, stderrSha256: logs.stderrSha256 });
-  if (exitCode !== 0) throw new Error(`offline job failed: ${test}`);
-  if (report.code !== 0) throw new Error(`offline report missing: ${test}`);
 }
 
 const failureProbes = [];
@@ -187,11 +185,14 @@ for (const [name, extra, script, expected] of [
   const observed = result.code === 0 ? JSON.parse(result.stdout.trim()) : { code: null };
   failureProbes.push({ name, expected, exitCode: result.code, observed,
     stderrSha256: createHash("sha256").update(result.stderr).digest("hex") });
-  if (result.code !== 0 || !expected.includes(observed.code)) throw new Error(`failure probe mismatch: ${name}`);
+  failureProbes.at(-1).pass = result.code === 0 && expected.includes(observed.code);
 }
 
+const offlineOk = !offline.some((job) => job.exitCode !== 0 || !job.reportCopied);
+const probesOk = !failureProbes.some((probe) => !probe.pass);
 const receipt = {
   schema: "keyspilli-t18-image-offline/v1",
+  status: offlineOk && probesOk ? "passed" : "failed",
   label,
   source: { head: sourceHead, tree: sourceTree },
   runner: { platform: process.platform, arch: arch(), release: release() },
@@ -201,10 +202,15 @@ const receipt = {
   failureProbes,
 };
 writeFileSync(join(output, "result.json"), JSON.stringify(receipt, null, 2) + "\n");
+if (!offlineOk || !probesOk) {
+  throw new Error("offline or failure-parity checks failed");
+}
 console.log(JSON.stringify({ label, source: receipt.source, images: Object.keys(images), offline: offline.length }));
 }
 execute().catch((error) => {
-  writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-image-offline/v1", label, status: "failed", error: String(error) }, null, 2) + "\n");
+  if (!existsSync(join(output, "result.json"))) {
+    writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-image-offline/v1", label, status: "failed", error: String(error) }, null, 2) + "\n");
+  }
   console.error(error);
   process.exitCode = 1;
 });

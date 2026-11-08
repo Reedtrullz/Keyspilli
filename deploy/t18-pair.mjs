@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const [cohort, rawPair, baselineDir, candidateDir, outputDir] = process.argv.slice(2);
@@ -113,7 +113,9 @@ writeFileSync(join(output, "result.json"), JSON.stringify(receipt, null, 2) + "\
 console.log(JSON.stringify({ cohort, pair, builds: builds.map(({ label, elapsedMs }) => ({ label, elapsedMs })) }));
 }
 execute().catch((error) => {
-  writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-timing-pair/v1", cohort, pair, status: "failed", error: String(error) }, null, 2) + "\n");
+  if (!existsSync(join(output, "result.json"))) {
+    writeFileSync(join(output, "result.json"), JSON.stringify({ schema: "keyspilli-t18-timing-pair/v1", cohort, pair, status: "failed", error: String(error) }, null, 2) + "\n");
+  }
   console.error(error);
   process.exitCode = 1;
 });
