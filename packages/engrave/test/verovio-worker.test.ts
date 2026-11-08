@@ -25,6 +25,10 @@ class FakeWorker {
           : { id: request.id, type: "opened", sessionId } } as MessageEvent);
         return;
       }
+      if (request.type === "warm") {
+        this.onmessage?.({ data: { id: request.id, type: "warm" } } as MessageEvent);
+        return;
+      }
       if (request.type === "prepare") {
         this.onmessage?.({ data: { id: request.id, type: "prepared", sessionId, pageCount: 2, width: 1600, height: 2200 } } as MessageEvent);
         return;
@@ -87,6 +91,53 @@ describe("renderMusicXmlPagesInWorker", () => {
       "renderPage",
       "close",
     ]);
+  });
+
+  it("warms the existing module worker before opening a score", async () => {
+    Object.defineProperty(globalThis, "Worker", {
+      configurable: true,
+      writable: true,
+      value: FakeWorker,
+    });
+    vi.resetModules();
+    const { openMusicXmlInWorker, warmMusicXmlWorker } = await import("../src/verovio-worker.js");
+
+    await warmMusicXmlWorker();
+    const session = await openMusicXmlInWorker("<score/>");
+    await session.close();
+
+    expect(FakeWorker.instances).toHaveLength(1);
+    expect(FakeWorker.instances[0]?.messages.map((message) => (message as { type: string }).type)).toEqual([
+      "warm",
+      "open",
+      "close",
+    ]);
+  });
+
+  it("disposes a worker after warm failure and opens with a fresh worker", async () => {
+    class FailingWarmWorker extends FakeWorker {
+      static failWarm = true;
+      override postMessage(message: unknown): void {
+        if (FailingWarmWorker.failWarm && (message as { type?: string }).type === "warm") {
+          this.messages.push(message);
+          queueMicrotask(() => this.onmessage?.({ data: { id: (message as { id: number }).id, type: "error", error: "warm failed" } } as MessageEvent));
+          return;
+        }
+        super.postMessage(message);
+      }
+    }
+    Object.defineProperty(globalThis, "Worker", { configurable: true, writable: true, value: FailingWarmWorker });
+    vi.resetModules();
+    const { openMusicXmlInWorker, warmMusicXmlWorker } = await import("../src/verovio-worker.js");
+
+    await expect(warmMusicXmlWorker()).rejects.toThrow("warm failed");
+    expect(FakeWorker.instances).toHaveLength(1);
+    expect(FakeWorker.instances[0]?.terminated).toBe(true);
+
+    FailingWarmWorker.failWarm = false;
+    const session = await openMusicXmlInWorker("<score/>");
+    expect(FakeWorker.instances).toHaveLength(2);
+    await session.close();
   });
 
   it("times out every pending request, then isolates a fresh worker from late errors", async () => {

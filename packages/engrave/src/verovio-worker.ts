@@ -17,6 +17,7 @@ export interface MusicXmlWorkerSession {
 }
 
 type WorkerResponse =
+  | { id: number; type: "warm" }
   | { id: number; type: "opened"; sessionId: number }
   | { id: number; type: "prepared"; sessionId: number; pageCount: number; width: number; height: number }
   | { id: number; type: "page"; sessionId: number; page: number; svg: string }
@@ -25,6 +26,7 @@ type WorkerResponse =
   | { id: number; type: "error"; error: string };
 
 type WorkerRequest =
+  | { id: number; type: "warm" }
   | { id: number; type: "open"; xml: string; options: RenderOptions; prepare?: boolean }
   | { id: number; type: "prepare"; sessionId: number }
   | { id: number; type: "renderPage"; sessionId: number; page: number }
@@ -35,6 +37,7 @@ type WorkerRequest =
 // shared fields. Keep the request union distributed so each message retains
 // the payload required by its `type` discriminator.
 type WorkerRequestInput =
+  | { type: "warm" }
   | { type: "open"; xml: string; options: RenderOptions; prepare?: boolean }
   | { type: "prepare"; sessionId: number }
   | { type: "renderPage"; sessionId: number; page: number }
@@ -194,6 +197,19 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
       // Closing is best effort. A worker failure has already rejected page
       // requests, and terminating it is handled by disposeWorker().
     }
+  }
+}
+
+/** Start module initialization before a score payload is available. */
+export async function warmMusicXmlWorker(): Promise<void> {
+  const worker = getVerovioWorker();
+  try {
+    const response = await request({ type: "warm" });
+    if (response.type !== "warm") throw new Error("Verovio worker returned an invalid warm response");
+  } catch (error) {
+    const failure = error instanceof Error ? error : new Error(String(error));
+    if (verovioWorker === worker) disposeWorker(failure, worker);
+    throw failure;
   }
 }
 

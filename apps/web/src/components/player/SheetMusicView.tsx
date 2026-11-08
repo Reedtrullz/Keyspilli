@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, memo, type CSSProperties } from "
 import {
   openMusicXmlInWorker,
   openMusicXmlOnMainThread,
+  warmMusicXmlWorker,
   type MusicXmlWorkerSession,
 } from "@keyspilli/engrave";
 
@@ -127,6 +128,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
 
   useEffect(() => {
     if (suspended) return;
+    void warmMusicXmlWorker().catch(() => undefined);
     let cancelled = false;
     const generation=++renderGenerationRef.current;
     const current=()=>!cancelled&&generation===renderGenerationRef.current;

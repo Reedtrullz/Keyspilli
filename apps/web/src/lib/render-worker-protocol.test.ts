@@ -60,3 +60,18 @@ it("serializes cold preparation, replacement and stale closure without corruptin
   await self.onmessage!({data:{id:4,type:"renderPage",sessionId:replies[1]!.sessionId,page:1}});
   expect(replies.at(-1)).toMatchObject({type:"page",svg:'<svg width="100" height="100"><text>new</text></svg>'});
 });
+
+it("warms the toolkit without creating a session or loading score data", async () => {
+  const replies: Array<Record<string,unknown>>=[];
+  const marks={moduleStarted:0,moduleReady:0,loadData:0};
+  const toolkit={setOptions(){},loadData(){marks.loadData+=1;return true;},getPageCount(){return 1;},renderToSVG(){return "<svg/>";}};
+  const self={onmessage:null as null|((event:{data:unknown})=>Promise<void>),postMessage(reply:Record<string,unknown>){replies.push(reply);}};
+  const context=createContext({self,URL,fakeToolkit:toolkit,marks});
+  runInContext(readFileSync(join(process.cwd(),"public/verovio/render-worker.mjs"),"utf8").replaceAll("import.meta.url",'"file:///render-worker.mjs"'),context);
+  runInContext("loadVerovio = async () => { marks.moduleStarted += 1; await Promise.resolve(); marks.moduleReady += 1; return fakeToolkit; }",context);
+
+  await self.onmessage!({data:{id:91,type:"warm"}});
+
+  expect(replies).toEqual([{id:91,type:"warm"}]);
+  expect(marks).toEqual({moduleStarted:1,moduleReady:1,loadData:0});
+});

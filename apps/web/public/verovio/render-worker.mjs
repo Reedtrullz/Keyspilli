@@ -172,6 +172,12 @@ async function handleMessage(event) {
   if (!Number.isInteger(id) || typeof type !== "string") return;
 
   try {
+    if (type === "warm") {
+      await loadVerovio();
+      self.postMessage({ id, type: "warm" });
+      return;
+    }
+
     if (type === "open") {
       if (typeof request.xml !== "string") throw new Error("MusicXML is required");
       const options = normalizedRenderOptions(request.options ?? {});
