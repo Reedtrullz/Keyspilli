@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import React, { type ReactElement } from "react";
 
 const notFound = vi.hoisted(() => vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -49,8 +50,18 @@ describe("direct sheet player payload boundary", () => {
 
     expect(getSongDetailShell).toHaveBeenCalledWith("song-a");
     expect(getSongDetail).not.toHaveBeenCalled();
-    expect((rendered as { type: unknown; props: unknown }).type).toBe(Player);
-    expect((rendered as { props: unknown }).props).toEqual({ initial: shell, mode: "sheet" });
+    const tree = rendered as ReactElement<{ children: ReactElement[] }>;
+    expect(tree.type).toBe(React.Fragment);
+    const [preload, player] = tree.props.children;
+    expect(preload.type).toBe("link");
+    expect(preload.props).toEqual({
+      rel: "preload",
+      href: "/verovio/verovio-module.mjs",
+      as: "script",
+      fetchPriority: "high",
+    });
+    expect(player.type).toBe(Player);
+    expect(player.props).toEqual({ initial: shell, mode: "sheet" });
   });
 
   it("keeps full detail loading for interactive non-sheet modes", async () => {

@@ -28,7 +28,13 @@ export default async function PlayerModePage({ params }: { params: Promise<{ id:
   if (mode === "sheet") {
     const shell = await getSongDetailShell(id);
     if (!shell) notFound();
-    return <Player initial={shell as PlayerShell} mode="sheet" />;
+    return (
+      <>
+        {/* Start the worker's 7 MB module while the metadata-only shell streams. */}
+        <link rel="preload" href="/verovio/verovio-module.mjs" as="script" fetchPriority="high" />
+        <Player initial={shell as PlayerShell} mode="sheet" />
+      </>
+    );
   }
 
   const detail = await getSongDetail(id);
