@@ -10,8 +10,61 @@ import { execFileSync } from 'node:child_process';
 import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, appendTrace, captureInFlight, probeTcp, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.ts';
+import { createPhaseTrace } from '../../apps/web/scripts/native-phase-trace.ts';
 import * as capacity from '../player-guard-run.mjs';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
+
+const phaseCounts = {
+  processes: 2,
+  threads: 9,
+  vanished: 0,
+  roles: {
+    guard: { processes: 1, threads: 1 },
+    'automation-node': { processes: 1, threads: 8 },
+    'app-node': { processes: 0, threads: 0 },
+    chromium: { processes: 0, threads: 0 },
+    crashpad: { processes: 0, threads: 0 },
+    unknown: { processes: 0, threads: 0 },
+  },
+};
+
+test('bounded native phase trace reserves a compact failure without masking the primary error', () => {
+  const writes = [];
+  const trace = createPhaseTrace(line => writes.push(line), { limitBytes: 512, failureReserveBytes: 128 });
+  for (let index = 0; index < 8; index++) trace.emit('filler', 'entry', phaseCounts);
+  const primary = new Error('post-Chords sentinel');
+  try {
+    throw primary;
+  } catch (error) {
+    trace.emit('chords-capture', 'failure', phaseCounts);
+    assert.equal(error, primary);
+  }
+  assert.ok(Buffer.byteLength(writes.join('')) <= 512);
+  assert.equal(trace.truncated, true);
+  assert.ok(writes.some(line => JSON.parse(line).state === 'failure'));
+  assert.ok(!writes.join('').includes('Native phase trace exceeds8KiB'));
+});
+
+test('bounded native phase trace leaves an ordinary trace byte-identical', () => {
+  const writes = [];
+  const trace = createPhaseTrace(line => writes.push(line));
+  trace.emit('startup', 'entry', phaseCounts);
+  trace.emit('startup', 'exit', phaseCounts);
+  const expected = [
+    JSON.stringify({ kind: 'keyspilli-native-phase', phase: 'startup', state: 'entry', ...phaseCounts }) + '\n',
+    JSON.stringify({ kind: 'keyspilli-native-phase', phase: 'startup', state: 'exit', ...phaseCounts }) + '\n',
+  ];
+  assert.deepEqual(writes, expected);
+  assert.equal(trace.truncated, false);
+  assert.equal(trace.bytes, Buffer.byteLength(expected.join('')));
+});
+
+test('bounded native phase trace absorbs a synchronous writer failure', () => {
+  const trace = createPhaseTrace(() => { throw new Error('closed stderr'); });
+  assert.doesNotThrow(() => trace.emit('startup', 'failure', phaseCounts));
+  assert.equal(trace.truncated, true);
+  assert.equal(trace.bytes, 0);
+});
 
 function capacityFixture() {
   return { repository: 'Reedtrullz/Keyspilli', event: 'workflow_dispatch', ref: 'refs/heads/codex/keyspilli-native-full-20261104', expected: 'b'.repeat(40), dispatchCommit: 'b'.repeat(40), commit: 'b'.repeat(40), clean: true,
@@ -350,7 +403,7 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   const mounts = Object.fromEntries(Object.keys(SIDECAR_PROFILES.browser.writable).map(mount => [mount, { blocks: 15, free: 1, blockSize: 4096, files: 4, freeFiles: 1 }]));
   const appMounts = Object.fromEntries(Object.keys(SIDECAR_PROFILES.app.writable).map(mount => [mount, { blocks: 8, free: 2, blockSize: 4096, files: 3, freeFiles: 1 }]));
   const revision = 'b'.repeat(40), stderr = '2026-11-04T00:00:00Z pw:browser <launching> /owned/chromium --headless\n2026-11-04T00:00:00Z pw:browser <launched> pid=44\n2026-11-04T00:00:01Z pw:browser [pid=44] <process did exit: exitCode=1, signal=null>\n';
-  const packet = { revision, trace: [{ name: 'sentinel-write', state: 'start', atMs: 1 }, { name: 'sentinel-write', state: 'end', atMs: 2, elapsedMs: 1 }], cleanupTimeouts: [], inspect: { container: { Id: 'd'.repeat(64) } }, appInspect: { container: { Id: 'e'.repeat(64) } }, appState: { OOMKilled: false }, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr }], functional: { browserObservation: { armed: true, commandLineSource: 'playwright-launcher-stderr', events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: browserProcessEvidence(stderr), resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned/d' + 'd'.repeat(63), beforeTeardown: true, memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '12', 'memory.max': '671088640', 'pids.events': 'max 0\n' }, mounts, limits: 'Max processes 128 128 processes' }, appResources: { pid: 43, cgroup: '/owned/e' + 'e'.repeat(63), memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '11', 'memory.max': '402653184', 'pids.events': 'max 0\n' }, mounts: appMounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, browserContainerRemoved: true, appContainerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
+  const packet = { revision, trace: [{ name: 'sentinel-write', state: 'start', atMs: 1 }, { name: 'sentinel-write', state: 'end', atMs: 2, elapsedMs: 1 }], cleanupTimeouts: [], inspect: { container: { Id: 'd'.repeat(64) } }, appInspect: { container: { Id: 'e'.repeat(64) } }, appState: { OOMKilled: false }, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr }], functional: { phaseTruncated: false, browserObservation: { armed: true, commandLineSource: 'playwright-launcher-stderr', events: [{ kind: 'browser-launched' }], stderrSource: 'guarded-child-stderr' } }, browserProcesses: browserProcessEvidence(stderr), resourceBarrierAcknowledged: true, resources: { pid: 42, cgroup: '/owned/d' + 'd'.repeat(63), beforeTeardown: true, memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '12', 'memory.max': '671088640', 'pids.events': 'max 0\n' }, mounts, limits: 'Max processes 128 128 processes' }, appResources: { pid: 43, cgroup: '/owned/e' + 'e'.repeat(63), memory: { 'memory.events': 'oom 0\noom_kill 0\n', 'memory.peak': '11', 'memory.max': '402653184', 'pids.events': 'max 0\n' }, mounts: appMounts, limits: 'Max processes 128 128 processes' }, containerRemoved: true, browserContainerRemoved: true, appContainerRemoved: true, scratchRemoved: true, stdoutClipped: false, stderrClipped: false };
   packet.logBytes = Buffer.byteLength(stderr);
   packet.mountUsage = accumulateMountUsage(undefined, packet.resources);
   packet.appMountUsage = accumulateMountUsage(undefined, packet.appResources, Object.keys(SIDECAR_PROFILES.app.writable));
@@ -358,7 +411,7 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   const two = stderr + stderr.replaceAll('pid=44', 'pid=45');
   const twoPacket = { ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: two }],
     logBytes: Buffer.byteLength(two), browserProcesses: browserProcessEvidence(two),
-    functional: { browserObservation: { ...packet.functional.browserObservation,
+    functional: { phaseTruncated: false, browserObservation: { ...packet.functional.browserObservation,
       events: [{ kind: 'browser-launched' }, { kind: 'browser-disconnected' }, { kind: 'browser-launched' }] } } };
   assert.doesNotThrow(() => requireDiagnosticEvidence(twoPacket, 2));
   assert.throws(() => requireDiagnosticEvidence(packet, 2), /launch count/);
@@ -383,7 +436,7 @@ test('diagnostic collection fails closed on absent crash, resource, launch or cl
   const comparison = stream => ({
     ...packet, logs: [{ args: ['-e', nativeSmoke(revision, true)], stderr: stream }],
     logBytes: Buffer.byteLength(stream), browserProcesses: browserProcessEvidence(stream),
-    functional: { browserObservation: { ...packet.functional.browserObservation,
+    functional: { phaseTruncated: false, browserObservation: { ...packet.functional.browserObservation,
       events: ['original', 'chords', 'silence'].map(mode => ({kind: 'browser-launched', phase: mode + '-browser-startup'})) } },
   });
   assert.doesNotThrow(() => requireDiagnosticEvidence(comparison(three), 3));
@@ -479,7 +532,7 @@ test('unsupported optional browser CDP does not block capture and early terminal
     const {stripTypeScriptTypes} = await import('node:module'), {EventEmitter} = await import('node:events');
     const files = new Map(), phases = [], revision = 'b'.repeat(40), processState = { pid: 2, ppid: 1, platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [] };
     const context = vm.createContext({ process: processState, Buffer, URL, console: {log(){} } });
-    let captured = false, cdpCalls = 0, missingSamples = false;
+    let captured = false, cdpCalls = 0, missingSamples = false, saturate = false, phaseBytes = 0;
     const page = new EventEmitter(), browser = new EventEmitter(), browserContext = new EventEmitter();
     browser.newBrowserCDPSession = async () => { cdpCalls++; throw Error('Browser.getBrowserCommandLine unsupported without --enable-automation'); };
     browser.close = async () => browser.emit('disconnected');
@@ -496,9 +549,10 @@ test('unsupported optional browser CDP does not block capture and early terminal
         if (p === '/proc/3/status') throw Object.assign(Error('exited during sample'), {code:'ENOENT'});
         throw Error('unexpected read: ' + p);
       },readdirSync(p) {assert.equal(p, '/proc');return ['1','2','3','self','thread-self'];},
-      statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(_fd, line){phases.push(JSON.parse(line));}},
+      statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(_fd, line){phaseBytes += Buffer.byteLength(line); phases.push(JSON.parse(line));}},
       'node:path': await import('node:path'), 'node:url': await import('node:url'),
-      './native-task-counts.ts': {collectTaskCounts: () => ({processes: 2, threads: 9, vanished: 1, roles: {
+      './native-phase-trace.ts': await import(new URL('./apps/web/scripts/native-phase-trace.ts', import.meta.url).href),
+      './native-task-counts.ts': {collectTaskCounts: () => ({processes: 2, threads: 9, vanished: 1, ...(saturate ? { note: 'x'.repeat(9000) } : {}), roles: {
         guard: {processes: 1, threads: 1}, 'app-node': {processes: 0, threads: 0}, 'automation-node': {processes: 1, threads: 8},
         chromium: {processes: 0, threads: 0}, crashpad: {processes: 0, threads: 0}, unknown: {processes: 0, threads: 0},
       }})},
@@ -514,11 +568,12 @@ test('unsupported optional browser CDP does not block capture and early terminal
     assert.equal(captured,true,'capture boundary reached');
     const packet=JSON.parse(files.get('/browser-results/result.json'));
     assert.match(packet.error,/Native browser terminal event: page-crash at original-capture/);assert.equal(packet.browserObservation.armed,true);
+    assert.equal(packet.phaseTruncated,true);assert.ok(phaseBytes<=8192);
     assert(packet.browserObservation.events.some(e=>e.kind==='page-crash'&&e.phase==='original-capture'));
     const failed = phases.find(row => row.phase === 'original-capture' && row.state === 'failure');
     assert.deepEqual([failed.processes, failed.threads, failed.vanished], [2, 9, 1]);
-    const xml=files.get('/browser-results/control.musicxml');missingSamples=true;await module.namespace.verifyNativePlayer(revision);assert.equal(files.get('/browser-results/control.musicxml'),xml);
-    const missing=JSON.parse(files.get('/browser-results/result.json'));assert.equal(missing.status,'failed');assert.match(missing.error,/piano\.ogg/);
+    const xml=files.get('/browser-results/control.musicxml');saturate=true;phaseBytes=0;missingSamples=true;await module.namespace.verifyNativePlayer(revision);assert.equal(files.get('/browser-results/control.musicxml'),xml);
+    const missing=JSON.parse(files.get('/browser-results/result.json'));assert.equal(missing.status,'failed');assert.match(missing.error,/piano\.ogg/);assert.equal(missing.phaseTruncated,true);assert.ok(phaseBytes<=8192);
     console.log(JSON.stringify({captured,cdpCalls,missingSamplesRejected:missing.status==='failed',sourceControlSha256:packet.sourceControlSha256,events:packet.browserObservation.events}));
   };
   const result=JSON.parse(runModuleScenario(scenario, source));

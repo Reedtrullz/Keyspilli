@@ -4,23 +4,26 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { APIRequestContext, Browser, BrowserContext, ConsoleMessage, Page, Request } from "@playwright/test";
 
+type PhaseModule = typeof import("./native-phase-trace");
+const { createPhaseTrace } = await import("./native-phase-trace.ts" as string) as PhaseModule;
+
 // phase:begin
 // Synchronous, fixed-label records survive a later deadline kill; they never imply native acceptance.
-let phaseBytes = 0;
 let activePhase = "startup";
 let observeTasks = false;
+let phaseEvidenceIncomplete = false;
 type CountsModule = typeof import("./native-task-counts");
 let collectTaskCounts: CountsModule["collectTaskCounts"];
 const rolePhases = /^(startup|silence|teardown|result|(original|chords|silence)-(browser-startup|capture|browser-teardown))$/;
+const phaseTrace = createPhaseTrace(line => writeSync(2, line));
 function phase(name: string, state: "entry" | "exit" | "failure"): void {
-  const counts = observeTasks ? collectTaskCounts() : undefined;
+  let counts: ReturnType<CountsModule["collectTaskCounts"]> | undefined;
+  if (observeTasks) {
+    try { counts = collectTaskCounts(); }
+    catch { phaseEvidenceIncomplete = true; }
+  }
   const { roles, ...aggregate } = counts ?? { processes: undefined, threads: undefined, vanished: undefined };
-  const line = JSON.stringify({ kind: "keyspilli-native-phase", phase: name, state, ...aggregate,
-    ...(counts && rolePhases.test(name) ? { roles } : {}) }) + "\n";
-  const bytes = Buffer.byteLength(line);
-  if (phaseBytes + bytes > 8192) throw new Error("Native phase trace exceeds8KiB");
-  writeSync(2, line);
-  phaseBytes += bytes;
+  phaseTrace.emit(name, state, { ...aggregate, ...(counts && rolePhases.test(name) ? { roles } : {}) });
   activePhase = state === "entry" ? name : "between-phases";
 }
 async function phaseImport<T>(name: string, action: () => Promise<T>): Promise<T> {
@@ -287,7 +290,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
       results.push({ kind: "active-api-export", mode, format: "pdf", bytes: bytes.length, sha256: sha(bytes) });
       phase(mode + "-export-pdf", "exit");
     }
-  } catch (error) { phase(activePhase, "failure"); failure = error; }
+  } catch (error) { failure = error; phase(activePhase, "failure"); }
   finally {
     phase("diagnostics", "entry");
     for (const stop of unwatch) { try { stop(); } catch (error) { cleanupErrors.push(String(error)); } }
@@ -306,6 +309,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
     phase("result", "entry");
     const proof = { kind: "keyspilli-native-sampled", revision, status: failure || cleanupErrors.length ? "failed" : "passed",
       platform: process.platform, architecture: process.arch, sourceControlSha256: sha(xml), results, browserObservation,
+      phaseTruncated: phaseTrace.truncated || phaseEvidenceIncomplete,
       error: failure instanceof Error ? failure.message : failure ? String(failure) : null, cleanupErrors,
       scope: "Generated software control in an owned writable restore copy; actual sampled UI, MIDI/XML UI parity and PDF API transport; no musical, physical or production acceptance" };
     writeFileSync(join(output, "result.json"), JSON.stringify(proof, null, 2), { flag: "wx" });
