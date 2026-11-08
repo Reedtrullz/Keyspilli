@@ -228,7 +228,8 @@ export function guardEnvironment(diagnosticName) {
 export function browserProcessEvidence(stderr) {
   assert(Buffer.byteLength(stderr) <= 65536, 'browser stderr observation cap');
   const events = [];
-  for (const line of stderr.replace(/\u001b\[[0-9;]*m/g, '').split('\n')) {
+  const ansiEscape = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g');
+  for (const line of stderr.replace(ansiEscape, '').split('\n')) {
     const body = line.match(/^(?:\d{4}-\d\d-\d\dT\S+\s+)?\s*pw:browser\s+(.+)$/)?.[1];
     if (!body) continue;
     const argv = body.match(/^<launching> (.+)$/);

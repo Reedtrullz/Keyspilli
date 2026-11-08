@@ -356,7 +356,7 @@ test('inspect receipt preserves only bounded allowed fields and rejects missing,
   const fixture = inspectFixture(), expected = fixture.expected;
   const receipt = inspectEvidence(fixture.image, fixture.container, expected);
   assert.doesNotThrow(() => requireInspectEvidence(JSON.parse(JSON.stringify(receipt)), expected));
-  assert(!/\"Env\":|\"Config\":|\"Labels\":|SECRET|ignore previous|never retain/.test(JSON.stringify(receipt)));
+  assert(!/"Env":|"Config":|"Labels":|SECRET|ignore previous|never retain/.test(JSON.stringify(receipt)));
   for (const change of [undefined, {}, { ...receipt, Env: [] }, { ...receipt, image: { ...receipt.image, Config: {} } }, { ...receipt, container: { ...receipt.container, Labels: {} } }]) assert.throws(() => requireInspectEvidence(change, expected));
   for (const key of Object.keys(receipt.image)) { const bad = structuredClone(receipt); delete bad.image[key]; assert.throws(() => requireInspectEvidence(bad, expected), key); }
   for (const key of Object.keys(receipt.container.HostConfig)) { const bad = structuredClone(receipt); delete bad.container.HostConfig[key]; assert.throws(() => requireInspectEvidence(bad, expected), key); }
@@ -639,7 +639,7 @@ test('diagnostic CLI rejects every other branch before any native command', () =
 
 test('workflow admits the corrective branch only for its exact diagnostic dispatch', () => {
   const workflow=fs.readFileSync(new URL('../../.github/workflows/runtime-rehearsal.yml',import.meta.url),'utf8');
-  const expression=workflow.match(/^    if: \$\{\{ (.+) \}\}$/m)?.[1];assert(expression);
+  const expression=workflow.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)?.[1];assert(expression);
   const admitted=new Function('github','inputs','return ('+expression+');');
   const branch='refs/heads/codex/keyspilli-observer-corrective-20261104';
   const gate=workflow.slice(workflow.indexOf('          case "$REHEARSAL_MODE" in'),workflow.indexOf('          esac')+'          esac'.length);
@@ -655,7 +655,7 @@ test('workflow admits the corrective branch only for its exact diagnostic dispat
 
 test('fresh full ref runs the player guard only in full rehearsal and preserves old ref admission', () => {
   const workflow = fs.readFileSync(new URL('../../.github/workflows/runtime-rehearsal.yml', import.meta.url), 'utf8');
-  const job = new Function('github', 'inputs', 'return (' + workflow.match(/^    if: \$\{\{ (.+) \}\}$/m)[1] + ');');
+  const job = new Function('github', 'inputs', 'return (' + workflow.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1] + ');');
   const step = workflow.slice(workflow.indexOf('      - name: Qualify the player guard'), workflow.indexOf('      - name: Worker startup'));
   const guard = new Function('github', 'env', 'return (' + step.match(/if: \$\{\{ (.+) \}\}/)[1] + ');');
   const full = 'refs/heads/codex/keyspilli-native-full-20261104', old = 'refs/heads/codex/keyspilli-o17-phase-20261103';
@@ -672,7 +672,7 @@ test('fresh full ref runs the player guard only in full rehearsal and preserves 
   }
   assert.match(workflow, /default: rehearsal/); assert.match(workflow, /timeout-minutes: 45/);
   const capacityJob = workflow.slice(workflow.indexOf('\n  capacity:'));
-  const capacityGate = new Function('github', 'inputs', 'return (' + capacityJob.match(/^    if: \$\{\{ (.+) \}\}$/m)[1] + ');');
+  const capacityGate = new Function('github', 'inputs', 'return (' + capacityJob.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1] + ');');
   for (const [event, ref, mode, repository, expected] of [
     ['workflow_dispatch', full, 'hosted-capacity-v1', 'Reedtrullz/Keyspilli', true],
     ['workflow_dispatch', full, 'rehearsal', 'Reedtrullz/Keyspilli', false],
