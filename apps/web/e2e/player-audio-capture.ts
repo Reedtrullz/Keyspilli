@@ -54,7 +54,10 @@ export async function checkPlayerCapture(result: RawPlayerCapture, signalControl
   retain?: (result: RawPlayerCapture) => void | Promise<void>): Promise<void> {
   await retain?.(result);
   if (signalControl === "silence") {
-    if (result.samplerStarts.length || result.rms !== 0 || result.peak !== 0 || result.beforeCompressor?.peak !== 0) throw new Error("Silence recorder control contains signal or sampled starts");
+    if (result.samplerStarts.length || result.rms !== 0 || result.peak !== 0
+        || (result.beforeCompressor !== undefined && result.beforeCompressor.peak !== 0)) {
+      throw new Error("Silence recorder control contains signal or sampled starts");
+    }
   } else if (!result.samplerStarts.length) throw new Error("No sampled buffer starts were observed");
   if (result.oscillatorStarts !== 0) throw new Error(`Sampled Player used oscillator fallback (${result.oscillatorStarts} oscillator starts)`);
 }
