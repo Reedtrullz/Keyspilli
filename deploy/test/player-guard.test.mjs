@@ -554,7 +554,7 @@ test('unsupported optional browser CDP does not block capture and early terminal
   const scenario = async source => {
     const assert = (await import('node:assert/strict')).default, vm = await import('node:vm'), crypto = await import('node:crypto');
     const {stripTypeScriptTypes} = await import('node:module'), {EventEmitter} = await import('node:events');
-    const files = new Map(), phases = [], revision = 'b'.repeat(40), processState = { pid: 2, ppid: 1, platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [] };
+    const files = new Map(), phases = [], memorySamples = [], revision = 'b'.repeat(40), processState = { pid: 2, ppid: 1, platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [], memoryUsage: () => ({ rss: 64 * 1024 ** 2, heapTotal: 32 * 1024 ** 2, heapUsed: 16 * 1024 ** 2, external: 4 * 1024 ** 2, arrayBuffers: 3 * 1024 ** 2 }) };
     const context = vm.createContext({ process: processState, Buffer, URL, console: {log(){} } });
     let captured = false, cdpCalls = 0, missingSamples = false, saturate = false, phaseBytes = 0;
     const page = new EventEmitter(), browser = new EventEmitter(), browserContext = new EventEmitter();
@@ -573,8 +573,9 @@ test('unsupported optional browser CDP does not block capture and early terminal
         if (p === '/proc/3/status') throw Object.assign(Error('exited during sample'), {code:'ENOENT'});
         throw Error('unexpected read: ' + p);
       },readdirSync(p) {assert.equal(p, '/proc');return ['1','2','3','self','thread-self'];},
-      statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(_fd, line){phaseBytes += Buffer.byteLength(line); phases.push(JSON.parse(line));}},
+      statSync(){},writeFileSync:(p,b)=>files.set(p,b),writeSync(_fd, line){const row=JSON.parse(line);if(row.kind==='keyspilli-native-memory')memorySamples.push(row);else{phaseBytes += Buffer.byteLength(line); phases.push(row);}}},
       'node:path': await import('node:path'), 'node:url': await import('node:url'),
+      'node:v8': await import('node:v8'),
       './native-phase-trace.ts': await import(new URL('./apps/web/scripts/native-phase-trace.ts', import.meta.url).href),
       './native-page-watch.ts': await import(new URL('./apps/web/scripts/native-page-watch.ts', import.meta.url).href),
       './native-task-counts.ts': {collectTaskCounts: () => ({processes: 2, threads: 9, vanished: 1, ...(saturate ? { note: 'x'.repeat(9000) } : {}), roles: {
@@ -594,6 +595,7 @@ test('unsupported optional browser CDP does not block capture and early terminal
     const packet=JSON.parse(files.get('/browser-results/result.json'));
     assert.match(packet.error,/Native browser terminal event: page-crash at original-capture/);assert.equal(packet.browserObservation.armed,true);
     assert.equal(packet.phaseTruncated,true);assert.ok(phaseBytes<=8192);
+    assert(memorySamples.length>0);assert(memorySamples.length<=16);assert(memorySamples.some(row=>row.phase==='original-capture'&&row.state==='entry'));
     assert(packet.browserObservation.events.some(e=>e.kind==='page-crash'&&e.phase==='original-capture'));
     const failed = phases.find(row => row.phase === 'original-capture' && row.state === 'failure');
     assert.deepEqual([failed.processes, failed.threads, failed.vanished], [2, 9, 1]);

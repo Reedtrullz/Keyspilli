@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { getHeapSpaceStatistics } from "node:v8";
 import type { APIRequestContext, Browser, BrowserContext, Page } from "@playwright/test";
 
 type PhaseModule = typeof import("./native-phase-trace");
@@ -14,10 +15,23 @@ const { watchPlayerPage } = await import("./native-page-watch.ts" as string) as 
 let activePhase = "startup";
 let observeTasks = false;
 let phaseEvidenceIncomplete = false;
+let memoryDiagnosticBytes = 0;
 type CountsModule = typeof import("./native-task-counts");
 let collectTaskCounts: CountsModule["collectTaskCounts"];
 const rolePhases = /^(startup|silence|teardown|result|(original|chords|silence)-(browser-startup|capture|browser-teardown))$/;
 const phaseTrace = createPhaseTrace(line => writeSync(2, line));
+const memoryPhases = /^(startup|original-capture|original-browser-teardown|chords-capture|chords-browser-teardown|silence-browser-startup|silence|result)$/;
+function memorySample(name: string, state: "entry" | "exit" | "failure"): void {
+  if (!observeTasks || memoryDiagnosticBytes >= 4096 || !memoryPhases.test(name)) return;
+  const usage = process.memoryUsage();
+  const spaces = Object.fromEntries(getHeapSpaceStatistics()
+    .filter(space => ["new_space", "old_space", "large_object_space", "code_space"].includes(space.space_name))
+    .map(space => [space.space_name, space.space_used_size]));
+  const line = JSON.stringify({ kind: "keyspilli-native-memory", phase: name, state, rss: usage.rss,
+    heapTotal: usage.heapTotal, heapUsed: usage.heapUsed, external: usage.external, arrayBuffers: usage.arrayBuffers, spaces }) + "\n";
+  if (memoryDiagnosticBytes + Buffer.byteLength(line) > 4096) return;
+  try { writeSync(2, line); memoryDiagnosticBytes += Buffer.byteLength(line); } catch { /* diagnostics never alter the run */ }
+}
 function phase(name: string, state: "entry" | "exit" | "failure"): void {
   let counts: ReturnType<CountsModule["collectTaskCounts"]> | undefined;
   if (observeTasks) {
@@ -26,6 +40,7 @@ function phase(name: string, state: "entry" | "exit" | "failure"): void {
   }
   const { roles, ...aggregate } = counts ?? { processes: undefined, threads: undefined, vanished: undefined };
   phaseTrace.emit(name, state, { ...aggregate, ...(counts && rolePhases.test(name) ? { roles } : {}) });
+  memorySample(name, state);
   activePhase = state === "entry" ? name : "between-phases";
 }
 async function phaseImport<T>(name: string, action: () => Promise<T>): Promise<T> {
