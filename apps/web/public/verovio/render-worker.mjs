@@ -92,6 +92,9 @@ const SVG_VIEWBOX_RE = /<svg\b[^>]*\bviewBox=["']\s*[-+0-9.e]+\s+[-+0-9.e]+\s+([
 async function loadVerovio() {
   if (toolkitPromise) return toolkitPromise;
   toolkitPromise = (async () => {
+    if (typeof globalThis.__keyspilliVerovioFactory === "function") {
+      return globalThis.__keyspilliVerovioFactory();
+    }
     const moduleUrl = new URL("./verovio-module.mjs", import.meta.url).href;
     const toolkitUrl = new URL("./verovio.mjs", import.meta.url).href;
     const createVerovioModule = await import(moduleUrl);
@@ -166,7 +169,7 @@ function assertActiveSession(sessionId, requirePrepared = true) {
   return activeSession;
 }
 
-async function handleMessage(event) {
+async function handleMessage(event, reply) {
   const request = event.data ?? {};
   const { id, type } = request;
   if (!Number.isInteger(id) || typeof type !== "string") return;
@@ -174,7 +177,7 @@ async function handleMessage(event) {
   try {
     if (type === "warm") {
       await loadVerovio();
-      self.postMessage({ id, type: "warm" });
+      reply({ id, type: "warm" });
       return;
     }
 
@@ -200,9 +203,9 @@ async function handleMessage(event) {
       activeSession = session;
       if (request.prepare) {
         if (!session.prepared) await prepareSession(session);
-        self.postMessage({id,type:"prepared",sessionId:session.sessionId,pageCount:session.pageCount,
+        reply({id,type:"prepared",sessionId:session.sessionId,pageCount:session.pageCount,
           width:session.options.pageWidth,height:session.options.pageHeight});
-      } else self.postMessage({ id, type: "opened", sessionId: session.sessionId });
+      } else reply({ id, type: "opened", sessionId: session.sessionId });
       return;
     }
 
@@ -212,7 +215,7 @@ async function handleMessage(event) {
       // silently forces the caller onto the much slower main-thread fallback.
       const session = assertActiveSession(request.sessionId, false);
       if (!session.prepared) await prepareSession(session);
-      self.postMessage({
+      reply({
         id,
         type: "prepared",
         sessionId: session.sessionId,
@@ -234,12 +237,12 @@ async function handleMessage(event) {
         session.cacheEntry.lastUsed = ++cacheClock;
         session.cacheEntry.pages.delete(page);
         session.cacheEntry.pages.set(page, cachedSvg);
-        self.postMessage({ id, type: "page", sessionId: session.sessionId, page, svg: cachedSvg });
+        reply({ id, type: "page", sessionId: session.sessionId, page, svg: cachedSvg });
         return;
       }
       const svg = assertRenderedPage(session.toolkit.renderToSVG(page), page);
       rememberRenderedPage(session, page, svg);
-      self.postMessage({ id, type: "page", sessionId: session.sessionId, page, svg });
+      reply({ id, type: "page", sessionId: session.sessionId, page, svg });
       return;
     }
 
@@ -248,19 +251,19 @@ async function handleMessage(event) {
       if (typeof request.elementId !== "string" || !/^keyspilli-score-\d{1,4}$/.test(request.elementId)) throw new Error("invalid score measure identity");
       const page = session.toolkit.getPageWithElement(request.elementId);
       if (!Number.isInteger(page) || page < 1 || page > session.pageCount) throw new Error("score measure has no rendered page");
-      self.postMessage({ id, type: "elementPage", sessionId: session.sessionId, elementId: request.elementId, page });
+      reply({ id, type: "elementPage", sessionId: session.sessionId, elementId: request.elementId, page });
       return;
     }
 
     if (type === "close") {
       if (activeSession?.sessionId === request.sessionId) activeSession = null;
-      self.postMessage({ id, type: "closed", sessionId: request.sessionId });
+      reply({ id, type: "closed", sessionId: request.sessionId });
       return;
     }
 
     throw new Error(`Unknown Verovio worker request: ${type}`);
   } catch (error) {
-    self.postMessage({
+    reply({
       id,
       type: "error",
       error: error instanceof Error ? error.message : String(error),
@@ -269,8 +272,12 @@ async function handleMessage(event) {
 }
 // ponytail: one mutable toolkit; serialize its messages rather than retain a toolkit per view.
 let messageQueue = Promise.resolve();
-self.onmessage = (event) => {
-  const pending = messageQueue.then(() => handleMessage(event));
+function dispatch(event, reply) {
+  const pending = messageQueue.then(() => handleMessage(event, reply));
   messageQueue = pending.catch(() => {});
   return pending;
-};
+}
+globalThis.__keyspilliVerovioDispatch = dispatch;
+if (!(typeof ServiceWorkerGlobalScope !== "undefined" && self instanceof ServiceWorkerGlobalScope)) {
+  self.onmessage = event => dispatch(event, message => self.postMessage(message));
+}
