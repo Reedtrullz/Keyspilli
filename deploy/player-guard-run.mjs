@@ -10,6 +10,8 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process';
 
 const SDK = '/usr/local/lib/android/sdk';
 const GIB = 1024 ** 3;
+export const NATIVE_COMMAND_TIMEOUT_MS = 180000;
+export const NATIVE_WHOLE_CASE_TIMEOUT_MS = 240000;
 export function capacityModes(leafMode, parentModes) {
   return Number.isInteger(leafMode) && (leafMode & 0o7777) === 0o777 && parentModes.length > 0 && parentModes.every(mode => Number.isInteger(mode) && (mode & 0o022) === 0);
 }
@@ -574,7 +576,7 @@ async function inside(revision) {
     try { const result = await operation(); finishStage(name, 'end'); return result; }
     catch (error) { finishStage(name, 'failure'); throw error; }
   }
-  async function run(command, args, { timeout = 90000, limit = 65536, stage } = {}) {
+  async function run(command, args, { timeout = NATIVE_COMMAND_TIMEOUT_MS, limit = 65536, stage } = {}) {
     assert(typeof stage === 'string' && stage.length > 0, 'run stage required');
     beginStage(stage);
     return new Promise((resolve, reject) => {
@@ -610,8 +612,8 @@ async function inside(revision) {
     captureInFlight(report, pending, now);
     for (const [name, startedAt] of [...openStages]) { openStages.delete(name); appendTrace(report, name, 'failure', { elapsedMs: Math.max(0, Math.round(now - startedAt)) }); }
     for (const child of live) kill(child);
-    reject(new Error('whole-case 105s deadline'));
-  }, 105000); report.timer = t; });
+    reject(new Error('whole-case ' + NATIVE_WHOLE_CASE_TIMEOUT_MS / 1000 + 's deadline'));
+  }, NATIVE_WHOLE_CASE_TIMEOUT_MS); report.timer = t; });
   const health = report.health = { attempts: 0 };
   async function waitForApp() {
     const readyUntil = Date.now() + 20000;
