@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import net from 'node:net';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, appendTrace, captureInFlight, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
+import { validate, WRITABLE, resolveEsbuild, checkSource, MOUNTS, observeHealth, requestHealth, diagnosticProfile, guardLaunchArgs, guardEnvironment, sidecarLaunchArgs, SIDECAR_PROFILES, NODE_RUNTIME_ENV, appendTrace, captureInFlight, probeTcp, parseGuardOutput, requireDiagnosticEvidence, browserProcessEvidence, nativeSmoke, accumulateMountUsage, inspectEvidence, requireInspectEvidence } from '../player-guard-run.mjs';
 import { perfViewport } from '../../apps/web/e2e/perf-viewport.ts';
 import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.ts';
 import * as capacity from '../player-guard-run.mjs';
@@ -95,6 +96,27 @@ test('trace records bounded stage boundaries and sanitized in-flight tails', () 
   assert(!inflight.inFlight[0].stderrTail.includes('<launching>'));
   assert(inflight.inFlight[0].stderrTail.includes('kept error'));
   assert.throws(() => captureInFlight(inflight, Array.from({ length: 9 }, () => ({ stage: 'x', startedAt: now, stdout: '', stderr: '' })), now), /in-flight entry cap/);
+});
+
+test('wire probe completes when the server does not close the accepted connection', async () => {
+  const sockets = new Set();
+  const server = net.createServer(socket => { sockets.add(socket); socket.once('close', () => sockets.delete(socket)); });
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+  const port = server.address().port;
+  try {
+    await Promise.race([
+      probeTcp(port),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('wire probe waited for server close')), 500)),
+    ]);
+  } finally {
+    for (const socket of sockets) socket.destroy();
+    await new Promise(resolve => server.close(resolve));
+  }
+  const closed = net.createServer();
+  await new Promise((resolve, reject) => { closed.once('error', reject); closed.listen(0, '127.0.0.1', resolve); });
+  const closedPort = closed.address().port;
+  await new Promise((resolve, reject) => closed.close(error => error ? reject(error) : resolve()));
+  await assert.rejects(probeTcp(closedPort));
 });
 
 test('app and browser sidecars preserve aggregate resources and independent task guards', () => {

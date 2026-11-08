@@ -517,6 +517,19 @@ export function captureInFlight(report, entries, now = performance.now()) {
   });
 }
 
+export async function probeTcp(port) {
+  assert(Number.isSafeInteger(port) && port >= 0 && port <= 65535, 'invalid probe port');
+  await new Promise((resolve, reject) => {
+    const socket = net.connect({ host: '127.0.0.1', port });
+    const fail = error => { socket.destroy(); reject(error); };
+    socket.once('error', fail);
+    socket.once('connect', () => {
+      socket.removeListener('error', fail); socket.on('error', () => {});
+      socket.destroy(); resolve();
+    });
+  });
+}
+
 async function inside(revision) {
   const started = Date.now();
   diagnosticProfile(process.env.KEYSPILLI_GUARD_PROFILE ?? 'control');
@@ -619,8 +632,8 @@ async function inside(revision) {
       });
       let port;
       async function positive() {
-        await new Promise((resolve, reject) => { const s = net.connect({ host: '127.0.0.1', port: 3000 }); s.on('data', () => {}); s.on('error', reject); s.on('close', resolve); }); counts.allowed++;
-        await new Promise((resolve, reject) => { const s = net.connect({ host: '127.0.0.1', port }); s.on('data', () => {}); s.on('error', reject); s.on('close', resolve); });
+        await probeTcp(3000); counts.allowed++;
+        await probeTcp(port);
         for (const body of [Buffer.from('owned-udp'), Buffer.from('123401000001000000000000076669787475726507696e76616c69640000010001', 'hex')]) {
           await new Promise((resolve, reject) => { const s = dgram.createSocket('udp4'); const timer = setTimeout(() => { s.close(); reject(new Error('wire positive timeout')); }, 1000);
             s.once('message', reply => { clearTimeout(timer); s.close(); if (body.length >= 12) { assert.equal(reply.readUInt16BE(0), 0x1234); assert.equal(reply.readUInt16BE(2), 0x8180); } else assert.deepEqual(reply, body); resolve(); }); s.send(body, udp.address().port, '127.0.0.1');
