@@ -18,7 +18,8 @@ let phaseEvidenceIncomplete = false;
 let memoryDiagnosticBytes = 0;
 type CountsModule = typeof import("./native-task-counts");
 let collectTaskCounts: CountsModule["collectTaskCounts"];
-const rolePhases = /^(startup|silence|teardown|result|(original|chords|silence)-(browser-startup|capture|browser-teardown))$/;
+const rolePhases = /^(original|chords|silence)-(browser-startup|browser-teardown)$/;
+const roleEntryPhases = /^(original|chords)-capture$|^silence$/;
 const phaseTrace = createPhaseTrace(line => writeSync(2, line));
 const memoryPhases = /^(startup|original-capture|original-browser-teardown|chords-capture|chords-browser-teardown|silence-browser-startup|silence|result)$/;
 function memorySample(name: string, state: "entry" | "exit" | "failure"): void {
@@ -39,7 +40,7 @@ function phase(name: string, state: "entry" | "exit" | "failure"): void {
     catch { phaseEvidenceIncomplete = true; }
   }
   const { roles, ...aggregate } = counts ?? { processes: undefined, threads: undefined, vanished: undefined };
-  phaseTrace.emit(name, state, { ...aggregate, ...(counts && rolePhases.test(name) ? { roles } : {}) });
+  phaseTrace.emit(name, state, { ...aggregate, ...(counts && (rolePhases.test(name) || (state === "entry" && roleEntryPhases.test(name))) ? { roles } : {}) });
   memorySample(name, state);
   activePhase = state === "entry" ? name : "between-phases";
 }

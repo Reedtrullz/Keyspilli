@@ -609,13 +609,16 @@ test('unsupported optional browser CDP does not block capture and early terminal
     assert(gcCalls > 0, 'native lifetime cleanup must request GC');
     const packet=JSON.parse(files.get('/browser-results/result.json'));
     assert.match(packet.error,/Native browser terminal event: page-crash at original-capture/);assert.equal(packet.browserObservation.armed,true);
-    assert.equal(packet.phaseTruncated,true);assert.ok(phaseBytes<=8192);
+    assert.equal(packet.phaseTruncated,false);assert.ok(phaseBytes<=8192);
+    assert(phases.some(row=>row.phase==='original-browser-startup'&&row.state==='entry'&&row.roles));
+    assert(phases.some(row=>row.phase==='original-browser-startup'&&row.state==='exit'&&row.roles));
+    assert(phases.some(row=>row.phase==='original-capture'&&row.state==='entry'&&row.roles));
     assert(memorySamples.length>0);assert(memorySamples.length<=16);assert(memorySamples.some(row=>row.phase==='original-capture'&&row.state==='entry'));
     assert(packet.browserObservation.events.some(e=>e.kind==='page-crash'&&e.phase==='original-capture'));
     const failed = phases.find(row => row.phase === 'original-capture' && row.state === 'failure');
     assert.deepEqual([failed.processes, failed.threads, failed.vanished], [2, 9, 1]);
     const xml=files.get('/browser-results/control.musicxml');saturate=true;phaseBytes=0;missingSamples=true;await module.namespace.verifyNativePlayer(revision);assert.equal(files.get('/browser-results/control.musicxml'),xml);
-    const missing=JSON.parse(files.get('/browser-results/result.json'));assert.equal(missing.status,'failed');assert.match(missing.error,/piano\.ogg/);assert.equal(missing.phaseTruncated,true);assert.ok(phaseBytes<=8192);
+    const missing=JSON.parse(files.get('/browser-results/result.json'));assert.equal(missing.status,'failed');assert.match(missing.error,/piano\.ogg/);assert.equal(missing.phaseTruncated,false);assert.ok(phaseBytes<=8192);
     console.log(JSON.stringify({captured,cdpCalls,missingSamplesRejected:missing.status==='failed',sourceControlSha256:packet.sourceControlSha256,events:packet.browserObservation.events}));
   };
   const result=JSON.parse(runModuleScenario(scenario, source));
