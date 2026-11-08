@@ -52,6 +52,10 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm run build
 
+      - name: Install Playwright Chromium
+        working-directory: source/apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Run unscored discovery
         run: >
           node harness/deploy/t17-discovery.mjs
