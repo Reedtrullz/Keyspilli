@@ -60,6 +60,11 @@ class Lifecycle(unittest.TestCase):
     def documents(self):
         return [json.loads(p.read_text()) for p in (self.root / "runs").glob("*/run.json")]
 
+    def test_runtime_workflow_preserves_transport_omission_through_sudo(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/runtime-rehearsal.yml").read_text()
+        self.assertIn('KEYSPILLI_EVIDENCE_OMIT_NATIVE_PIANO: "1"', workflow)
+        self.assertIn("KEYSPILLI_EVIDENCE_OMIT_NATIVE_PIANO,JOB_STATUS", workflow)
+
     def test_success_failure_and_repeated_cleanup_preserve_evidence_and_reconstruct(self):
         for exit_code in (0, 7):
             result = self.cli(*self.worker("print('raw-result')", exit_code), check=False)
