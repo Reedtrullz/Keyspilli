@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
         printf("{\"phase\":\"reaper\",\"remainingChildren\":0,\"reaped\":[%s]}\n", rows); fflush(stdout); return result;
     }
     need(argc > 4 && getuid() == 1000, "requires owned uid1000 container");
-    char *end; long forbidden = strtol(argv[1], &end, 10); need(!*end && forbidden > 1024 && forbidden <= 65535 && forbidden != 3000, "forbidden port");
+    char *end; long forbidden = strtol(argv[1], &end, 10); need(!*end && forbidden > 1024 && forbidden <= 65535 && forbidden != 3000 && forbidden != 3001, "forbidden port");
     int split = 2; while (split < argc && strcmp(argv[split], "--")) split++;
     need(split > 2 && split < 20 && split + 1 < argc, "exact executable list and command required");
     if (syscall(__NR_close_range, 3U, ~0U, 0)) die("close inherited descriptors");
@@ -143,7 +143,9 @@ int main(int argc, char **argv) {
         if (*executables) strcat(executables, ":");
         strcat(executables, p); path_allow(fd, p, 5);
     }
-    struct port_rule port = {3, 3000}; if (syscall(__NR_landlock_add_rule, fd, 2, &port, 0)) die("landlock TCP port");
+    struct port_rule ports[] = {{3, 3000}, {3, 3001}};
+    for (size_t i = 0; i < sizeof(ports) / sizeof(ports[0]); i++)
+        if (syscall(__NR_landlock_add_rule, fd, 2, &ports[i], 0)) die("landlock TCP port");
     if (syscall(__NR_landlock_restrict_self, fd, 0)) die("landlock restriction");
     close(fd); socket_filter();
     struct rlimit core = {0, 0}; if (setrlimit(RLIMIT_CORE, &core)) die("core limit");
@@ -153,7 +155,7 @@ int main(int argc, char **argv) {
         int status; need(waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) == 0, "inherited guard"); return 0;
     }
     need(!strcmp(argv[split + 1], "/usr/local/bin/node"), "only Node entry allowed");
-    const char *keep[] = {"VERSION", "HOME", "TMPDIR", "PORT", "HOSTNAME", "PLAYWRIGHT_BROWSERS_PATH", "KEYSPILLI_DATA_DIR", "KEYSPILLI_ORIGIN", "KEYSPILLI_API_TOKEN", "KEYSPILLI_NATIVE_PROBE_SCOPE", "AUTH_SECRET", "KEYSPILLI_TUTORIAL_BETA", "NODE_OPTIONS", "UV_THREADPOOL_SIZE", NULL};
+    const char *keep[] = {"VERSION", "HOME", "TMPDIR", "PORT", "HOSTNAME", "PLAYWRIGHT_BROWSERS_PATH", "KEYSPILLI_DATA_DIR", "KEYSPILLI_ORIGIN", "KEYSPILLI_API_TOKEN", "KEYSPILLI_PDF_RENDERER_URL", "KEYSPILLI_NATIVE_PROBE_SCOPE", "AUTH_SECRET", "KEYSPILLI_TUTORIAL_BETA", "NODE_OPTIONS", "UV_THREADPOOL_SIZE", NULL};
     char *values[sizeof(keep) / sizeof(keep[0])] = {0}; for (int i = 0; keep[i]; i++) if (getenv(keep[i])) { values[i] = strdup(getenv(keep[i])); if (!values[i]) die("environment copy"); }
     if (clearenv()) die("clear environment");
     for (int i = 0; keep[i]; i++) if (values[i]) { if (setenv(keep[i], values[i], 1)) die("environment restore"); free(values[i]); }

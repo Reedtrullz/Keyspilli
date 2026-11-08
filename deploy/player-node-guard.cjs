@@ -13,7 +13,7 @@ function connectionAllowed(args) {
   const first = Array.isArray(args[0]) ? args[0][0] : args[0];
   const options = first && typeof first === 'object' ? first : { port: first, host: typeof args[1] === 'string' ? args[1] : 'localhost' };
   if (options.path) return typeof options.path === 'string' && path.resolve(options.path).startsWith('/tmp/');
-  return Number(options.port) === 3000 && ['localhost', '127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(options.host ?? 'localhost');
+  return [3000, 3001].includes(Number(options.port)) && ['localhost', '127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(options.host ?? 'localhost');
 }
 module.exports = { privatePath, connectionAllowed };
 if (process.env.PLAYER_EXECUTABLES) {

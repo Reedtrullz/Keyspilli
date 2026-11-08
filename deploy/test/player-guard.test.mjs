@@ -14,6 +14,7 @@ import { summarizeTaskCounts } from '../../apps/web/scripts/native-task-counts.t
 import { createPhaseTrace } from '../../apps/web/scripts/native-phase-trace.ts';
 import { watchPlayerPage } from '../../apps/web/scripts/native-page-watch.ts';
 import * as capacity from '../player-guard-run.mjs';
+import { pdfRequestAllowed } from '../pdf-render-server.mjs';
 const { privatePath, connectionAllowed } = createRequire(import.meta.url)('../player-node-guard.cjs');
 
 const phaseCounts = {
@@ -114,6 +115,7 @@ test('guarded runtime caps non-browser Node worker pools without changing Chromi
   const pairs = guardEnvironment();
   assert(pairs.some(([key, value]) => key === 'NODE_OPTIONS' && value === '--v8-pool-size=2 --expose-gc'));
   assert(pairs.some(([key, value]) => key === 'UV_THREADPOOL_SIZE' && value === '2'));
+  assert(pairs.some(([key, value]) => key === 'KEYSPILLI_PDF_RENDERER_URL' && value === 'http://127.0.0.1:3001'));
   assert(!pairs.some(([key]) => key.startsWith('CHROME_') || key === 'DEBUG'));
   const args = guardLaunchArgs('owned', diagnosticProfile('control'));
   assert.equal(args[args.indexOf('--pids-limit') + 1], '128');
@@ -144,6 +146,16 @@ test('guarded path policy keeps sentinel files outside writable roots', () => {
   assert(writes, 'missing guarded write roots');
   assert.deepEqual([...writes.matchAll(/"([^"]+)"/g)].map(match => match[1]).sort(),
     ['/browser-results', '/data', '/dev/shm', '/tmp']);
+});
+
+test('guarded loopback policy adds only the authenticated PDF renderer port', () => {
+  const source = fs.readFileSync(new URL('../player-guard.c', import.meta.url), 'utf8');
+  assert.match(source, /struct port_rule ports\[\] = \{\{3, 3000\}, \{3, 3001\}\};/);
+  const allowed = req => pdfRequestAllowed(req, 'owned-token');
+  assert.equal(allowed({ method: 'GET', url: '/health', headers: {} }), true);
+  assert.equal(allowed({ method: 'POST', url: '/render', headers: { authorization: 'Bearer owned-token' } }), true);
+  assert.equal(allowed({ method: 'POST', url: '/render', headers: { authorization: 'Bearer wrong' } }), false);
+  assert.equal(allowed({ method: 'POST', url: '/other', headers: { authorization: 'Bearer owned-token' } }), false);
 });
 
 test('trace records bounded stage boundaries and sanitized in-flight tails', () => {
@@ -676,9 +688,9 @@ test('private paths include URL, Buffer and normalized traversal forms', () => {
   for (const p of ['/sentinels/catalog', '/tmp/../sentinels/credential', '/root/.config', '/home/runner/private', Buffer.from('/sentinels/media'), new URL('file:///sentinels/home')]) assert.equal(privatePath(p), true);
   for (const p of ['/tmp/input', '/data/catalog.db', '/app/server.js', '/sentinels-lookalike']) assert.equal(privatePath(p), false);
 });
-test('socket calls permit only the app loopback port or an owned Unix socket', () => {
-  for (const args of [[3000, '127.0.0.1'], [{ port: 3000, host: '::1' }], [{ path: '/tmp/socket' }], [[{ port: 3000, host: 'localhost' }]]]) assert.equal(connectionAllowed(args), true);
-  for (const args of [[443, 'api.example.invalid'], [3000, '203.0.113.1'], [{ port: 3001, host: '127.0.0.1' }], [{ path: '/tmp/../sentinels/socket' }], [{ host: '127.0.0.1' }]]) assert.equal(connectionAllowed(args), false);
+test('socket calls permit only the app and PDF loopback ports or an owned Unix socket', () => {
+  for (const args of [[3000, '127.0.0.1'], [{ port: 3001, host: '127.0.0.1' }], [{ path: '/tmp/socket' }], [[{ port: 3000, host: 'localhost' }]]]) assert.equal(connectionAllowed(args), true);
+  for (const args of [[443, 'api.example.invalid'], [3000, '203.0.113.1'], [{ port: 3002, host: '127.0.0.1' }], [{ path: '/tmp/../sentinels/socket' }], [{ host: '127.0.0.1' }]]) assert.equal(connectionAllowed(args), false);
 });
 test('health observation distinguishes 503, version mismatch, success and fetch failure within a small bound', () => {
   const rev = 'b'.repeat(40), h = { attempts: 0 };

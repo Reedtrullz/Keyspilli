@@ -213,6 +213,7 @@ export function guardEnvironment(diagnosticName) {
     ['HOME', '/tmp'], ['TMPDIR', '/tmp'], ['PORT', '3000'], ['HOSTNAME', '127.0.0.1'],
     ['PLAYWRIGHT_BROWSERS_PATH', '/ms-playwright'], ['KEYSPILLI_DATA_DIR', '/data'],
     ['KEYSPILLI_ORIGIN', 'http://127.0.0.1:3000'], ['KEYSPILLI_API_TOKEN', 'test-token-for-e2e'],
+    ['KEYSPILLI_PDF_RENDERER_URL', 'http://127.0.0.1:3001'],
     ['AUTH_SECRET', 'owned-player-guard-only'], ['KEYSPILLI_TUTORIAL_BETA', '0'],
     ['KEYSPILLI_NATIVE_PROBE_SCOPE', 'owned-restore'],
     ...Object.entries(NODE_RUNTIME_ENV),
@@ -460,7 +461,7 @@ export function resolveEsbuild(root) {
   const esbuildRequire = createRequire(fs.realpathSync(require.resolve('esbuild/package.json')));
   return fs.realpathSync(esbuildRequire.resolve('@esbuild/linux-x64/bin/esbuild'));
 }
-export const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/scripts/native-page-watch.ts', 'apps/web/scripts/native-phase-trace.ts', 'apps/web/scripts/native-task-counts.ts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy/player-guard-run.mjs', 'deploy/player-node-guard.cjs', 'deploy/player-guard.c'];
+export const MOUNTS = ['node_modules', 'apps/web/node_modules', 'packages', 'package.json', 'pnpm-lock.yaml', 'tsconfig.base.json', 'apps/web/package.json', 'apps/web/e2e', 'apps/web/scripts/verify-native-player.mts', 'apps/web/scripts/native-page-watch.ts', 'apps/web/scripts/native-phase-trace.ts', 'apps/web/scripts/native-task-counts.ts', 'apps/web/src/lib/native-player-assets.ts', 'apps/web/src/lib/player-reference-bank.ts', 'apps/web/src/lib/pdf-render-core.mjs', 'apps/web/scripts/fixtures/native-piano-assets.json', 'deploy/player-guard-run.mjs', 'deploy/player-node-guard.cjs', 'deploy/player-guard.c', 'deploy/pdf-render-server.mjs'];
 
 // Installed dependencies are the only exempt ignored files; excluding them in Git keeps their names out of the 1MiB buffer.
 const INSTALLED = [':(exclude)node_modules', ':(exclude)apps/web/node_modules', ':(exclude,glob)**/node_modules/**'];
@@ -545,6 +546,7 @@ async function inside(revision) {
   }));
   const live = new Set(), active = new Map(), openStages = new Map(), servers = [], sockets = new Set(), counts = { allowed: 0, forbidden: 0, udp: 0, dns: 0 };
   const logs = []; let logBytes = 0; const cleanupErrors = [];
+  let pdfRenderer;
   function kill(child) { try { process.kill(-child.pid, 'SIGKILL'); } catch (e) { if (e.code !== 'ESRCH') throw e; } }
   const report = { kind: 'keyspilli-guard-admission', sidecar: 'browser', revision, status: 'failed', runtime: { node: process.version, platform: process.platform, arch: process.arch, uid: process.getuid() }, capacities, profileLimits: browserProfile, wasmMemory: 'unknown', performanceObservations: 0, trace: [], cleanupTimeouts: [] };
   function beginStage(name) {
@@ -576,7 +578,7 @@ async function inside(revision) {
     try { const result = await operation(); finishStage(name, 'end'); return result; }
     catch (error) { finishStage(name, 'failure'); throw error; }
   }
-  async function run(command, args, { timeout = NATIVE_COMMAND_TIMEOUT_MS, limit = 65536, stage } = {}) {
+  async function run(command, args, { timeout = NATIVE_COMMAND_TIMEOUT_MS, limit = 65536, stage, ready } = {}) {
     assert(typeof stage === 'string' && stage.length > 0, 'run stage required');
     beginStage(stage);
     return new Promise((resolve, reject) => {
@@ -585,16 +587,29 @@ async function inside(revision) {
       const record = { stage, startedAt: performance.now(), stdout: () => stdout, stderr: () => stderr };
       active.set(child, record);
       const timer = setTimeout(() => { failure = Object.assign(new Error('command deadline'), { code: 'PLAYER_TIMEOUT' }); kill(child); }, timeout);
+      let readyDone = false;
+      const settleReady = () => {
+        if (readyDone || !ready?.(stdout)) return;
+        readyDone = true; clearTimeout(timer); finishStage(stage, 'end');
+        resolve({
+          child,
+          stop: () => child.exitCode !== null || child.signalCode !== null ? Promise.resolve() : new Promise(resolveStopped => {
+            child.once('close', resolveStopped); kill(child);
+          }),
+        });
+      };
       const capture = name => data => {
         bytes += data.length; logBytes += data.length;
         const remaining = Math.max(0, Math.min(limit - (bytes - data.length), 65536 - (logBytes - data.length)));
         if (name === 'stdout') stdout += data.subarray(0, remaining); else stderr += data.subarray(0, remaining);
         if (bytes > limit || logBytes > 65536) { failure = Object.assign(new Error('output limit'), { code: 'PLAYER_OUTPUT_LIMIT' }); kill(child); }
+        if (name === 'stdout') settleReady();
       };
       child.stdout.on('data', capture('stdout')); child.stderr.on('data', capture('stderr'));
       child.on('error', error => { failure = error; });
       child.on('close', (code, signal) => { clearTimeout(timer); live.delete(child); active.delete(child); finishStage(stage, failure || code !== 0 ? 'failure' : 'end', { code, signal }); logs.push({ command, args, code, signal, stdout, stderr, clipped: bytes > limit || logBytes > 65536 });
-        if (failure || code !== 0) reject(failure ?? new Error(`child failed code=${code} signal=${signal}: ${stderr}`)); else resolve(stdout);
+        if (readyDone) return;
+        if (failure || code !== 0) reject(failure ?? new Error(`child failed code=${code} signal=${signal}: ${stderr}`)); else if (ready) reject(new Error(stage + ' exited before readiness')); else resolve(stdout);
       });
     });
   }
@@ -659,6 +674,15 @@ async function inside(revision) {
       walk('/ms-playwright', 3); assert(executables.length > 1 && executables.length < 12);
       executables.push(resolveEsbuild(readRoot));
       const guard = (args, options) => run('/player-guard', [String(port), ...new Set(executables), '--', ...args], options);
+      if (process.env.KEYSPILLI_PDF_RENDERER_URL) {
+        const rendererUrl = new URL(process.env.KEYSPILLI_PDF_RENDERER_URL);
+        assert.equal(rendererUrl.protocol, 'http:'); assert.equal(rendererUrl.hostname, '127.0.0.1'); assert.equal(rendererUrl.port, '3001'); assert.equal(rendererUrl.pathname, '/');
+        pdfRenderer = await guard([node, readRoot + '/deploy/pdf-render-server.mjs'], {
+          stage: 'pdf-renderer-start', timeout: 10000,
+          ready: stdout => stdout.includes('"kind":"keyspilli-pdf-renderer","state":"ready"'),
+        });
+        const health = await fetch(rendererUrl + 'health'); assert.equal(health.status, 200); assert.deepEqual(await health.json(), { status: 'ready' });
+      }
       const kernel = report.kernel = (await guard(['--probe'], { stage: 'kernel-probe' })).trim().split('\n').map(line => JSON.parse(line));
       assert.deepEqual(kernel.map(p => p.phase), ['kernel-main', 'kernel-child']);
       const checks = `const a=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process');for(const p of ['catalog','media','home','credential'])a.throws(()=>fs.readFileSync('/sentinels/'+p),{code:'EPERM'});a.throws(()=>fs.writeFileSync('/sentinels/protected','changed'),{code:'EPERM'});a.throws(()=>cp.spawnSync('/usr/bin/id'),{code:'EPERM'});a.throws(()=>require('node:net').connect({host:'127.0.0.1',port:${port}}),{code:'EPERM'});a.throws(()=>require('node:dgram').createSocket('udp4'),{code:'EPERM'});a.throws(()=>require('node:dns').resolve4('fixture.invalid'),{code:'EPERM'});`;
@@ -705,6 +729,14 @@ async function inside(revision) {
       catch (error) { report.functionalReadError = String(error); }
     }
     for (const [name, startedAt] of [...openStages]) { openStages.delete(name); appendTrace(report, name, 'failure', { elapsedMs: Math.max(0, Math.round(performance.now() - startedAt)) }); }
+    if (pdfRenderer) {
+      let timer; const closed = await Promise.race([
+        pdfRenderer.stop().then(() => true).catch((error) => { cleanupErrors.push(String(error)); return false; }),
+        new Promise((resolve) => { timer = setTimeout(() => resolve(false), 3000); }),
+      ]);
+      clearTimeout(timer);
+      if (!closed) cleanupErrors.push('PDF renderer cleanup timeout');
+    }
     try { await closeLiveOwned(); } catch (e) { cleanupErrors.push(String(e)); }
     for (const socket of sockets) socket.destroy();
     for (const server of servers) if (server.listening) await new Promise(resolve => server.close(resolve));
