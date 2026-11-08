@@ -56,7 +56,8 @@ if __name__ == "__main__":
                     raise RuntimeError("bundle helper missing")
                 bundle = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(bundle)
-                bundle.export_bundle(store, Path(os.environ["RUNNER_TEMP"]) / "keyspilli-evidence.tar.gz")
+                bundle.export_bundle(store, Path(os.environ["RUNNER_TEMP"]) / "keyspilli-evidence.tar.gz",
+                                     omit_native_piano=os.environ.get("KEYSPILLI_EVIDENCE_OMIT_NATIVE_PIANO") == "1")
             sys.exit(result)
         sys.exit(main())
     except Exception as error:

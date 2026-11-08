@@ -1,12 +1,10 @@
 import {NextRequest,NextResponse} from "next/server";
 import {chromium,type Browser,type Page} from "playwright";
 import {PublicationRevisionConflictError,type SongDetailShell} from "./catalog-api";
+import {PdfPublicationConflictError,PdfRenderError,pdfPageOptions,renderPdfPage} from "./pdf-render-core.mjs";
 
 let browserPromise: Promise<Browser> | null = null;
 let activeRenders = 0;
-
-class PdfRenderError extends Error {}
-class PdfPublicationConflictError extends Error {}
 
 async function getBrowser(): Promise<Browser> {
   if (browserPromise) {
@@ -26,76 +24,6 @@ async function getBrowser(): Promise<Browser> {
   return browserPromise;
 }
 
-async function waitForExportReady(page: Page, layout: "simplify" | "classic"): Promise<void> {
-  try {
-    await page.waitForFunction(
-      () => {
-        const state = window as unknown as { __sheetReady?: boolean; __sheetError?: string; __publicationConflict?: boolean };
-        return state.__sheetReady === true || typeof state.__sheetError === "string" || state.__publicationConflict === true || Boolean(document.querySelector("[data-publication-conflict]"));
-      },
-      undefined,
-      // The large classic smoke score produces 69 pages / 138 SVG elements
-      // and can take about 39 seconds on the production VPS when cold. Leave
-      // bounded headroom so a valid render does not trigger a rollback.
-      { timeout: 60_000 },
-    );
-  } catch {
-    throw new PdfRenderError("score render readiness timed out");
-  }
-
-  const state = await page.evaluate((expectedLayout) => {
-    const windowState = window as unknown as { __sheetReady?: boolean; __sheetError?: string; __publicationConflict?: boolean };
-    const svg = document.querySelector(".sheet-svg svg");
-    const rect = svg?.getBoundingClientRect();
-    return {
-      ready: windowState.__sheetReady === true,
-      error: windowState.__sheetError,
-      publicationConflict: windowState.__publicationConflict === true || Boolean(document.querySelector("[data-publication-conflict]")),
-      // The simplified score is server-rendered; the heading plus body text
-      // confirms that the export page did not render an empty/error document.
-      hasContent:
-        expectedLayout === "classic"
-          ? Boolean(svg && rect && rect.width > 0 && rect.height >= 32)
-          : Boolean(document.querySelector("h1") && document.body.textContent?.trim()),
-    };
-  }, layout);
-
-  if (state.publicationConflict) throw new PdfPublicationConflictError("publication changed; reload and retry");
-  if (state.error) throw new PdfRenderError("score render failed");
-  if (!state.ready || !state.hasContent) throw new PdfRenderError("score render did not produce printable content");
-}
-
-/**
- * Chromium's PDF compositor spends much longer laying out thousands of SVG
- * nodes than it does decoding the same SVG as an image. Keep the artwork
- * vector-based, but replace each page subtree with a Blob URL before capture;
- * this is an export-only representation and does not change the interactive
- * sheet DOM.
- */
-async function prepareClassicPdfCapture(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const pageNodes = Array.from(document.querySelectorAll<HTMLElement>(".sheet-svg__page"));
-    const images: HTMLImageElement[] = [];
-    for (const pageNode of pageNodes) {
-      const svg = pageNode.querySelector(":scope > svg");
-      if (!svg) continue;
-      const source = new XMLSerializer().serializeToString(svg);
-      const image = document.createElement("img");
-      image.alt = "";
-      image.dataset.pdfSvg = "true";
-      image.style.display = "block";
-      image.style.width = "100%";
-      image.src = URL.createObjectURL(new Blob([source], { type: "image/svg+xml" }));
-      pageNode.replaceChildren(image);
-      images.push(image);
-    }
-    await Promise.all(images.map((image) => image.decode().catch(() => undefined)));
-    if (images.length !== pageNodes.length || images.some((image) => image.naturalWidth <= 0)) {
-      throw new Error("score SVG image preparation failed");
-    }
-  });
-}
-
 function pdfErrorResponse(code: "PDF_GENERATION_UNAVAILABLE" | "PDF_RENDER_FAILED") {
   return NextResponse.json(
     { error: code === "PDF_RENDER_FAILED" ? "PDF score rendering failed" : "PDF generation is unavailable", code },
@@ -103,7 +31,22 @@ function pdfErrorResponse(code: "PDF_GENERATION_UNAVAILABLE" | "PDF_RENDER_FAILE
   );
 }
 
+const RESPONSE_HEADERS = ["content-type", "content-disposition", "cache-control", "retry-after", "x-publication-revision", "x-active-arrangement-sha256"];
+
+async function renderRemotePdfResponse(req:NextRequest,id:string,layout:"classic"|"simplify",shell:Pick<SongDetailShell,"publicationRevision">,active?:{xml:string;title:string;hash:string}):Promise<Response>{
+    const endpoint=process.env.KEYSPILLI_PDF_RENDERER_URL, token=process.env.KEYSPILLI_API_TOKEN;
+    if(!endpoint||!token) return pdfErrorResponse("PDF_GENERATION_UNAVAILABLE");
+    try {
+      const renderUrl=new URL("render",endpoint.endsWith("/")?endpoint:endpoint+"/").toString();
+      const response=await fetch(renderUrl,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({id,layout,shell:{publicationRevision:shell.publicationRevision},active}),signal:req.signal});
+      const headers=new Headers();
+      for(const name of RESPONSE_HEADERS){const value=response.headers.get(name);if(value!==null)headers.set(name,value);}
+      return new NextResponse(response.body,{status:response.status,headers});
+    } catch { return pdfErrorResponse("PDF_GENERATION_UNAVAILABLE"); }
+}
+
 export async function renderPdfResponse(req:NextRequest,id:string,layout:"classic"|"simplify",shell:Pick<SongDetailShell,"publicationRevision">,active?:{xml:string;title:string;hash:string}):Promise<Response>{
+    if(process.env.KEYSPILLI_PDF_RENDERER_URL) return renderRemotePdfResponse(req,id,layout,shell,active);
     // ponytail: two renders per web process; a render queue is only needed at higher load.
     if (activeRenders >= 2) return NextResponse.json({ error: "PDF render busy", code: "PDF_RENDER_BUSY" }, { status: 503, headers: { "Retry-After": "5" } });
     activeRenders++;
@@ -129,24 +72,13 @@ export async function renderPdfResponse(req:NextRequest,id:string,layout:"classi
         checkCancelled();
         const apiToken = process.env.KEYSPILLI_API_TOKEN;
         // The renderer loads this app's own pages, which the login gate would turn away.
-        const created = await browser.newPage({
-          viewport: { width: 1240, height: 1754 },
-          ...(apiToken ? { extraHTTPHeaders: { "x-keyspilli-api-token": `Bearer ${apiToken}` } } : {}),
-        });
+        const created = await browser.newPage(pdfPageOptions(apiToken));
         if (cancelled) { void created.close().catch(() => undefined); checkCancelled(); }
         page = created;
-        if(active) await page.route(`**/api/v1/sheet/${encodeURIComponent(id)}*`,route=>route.fulfill({status:200,contentType:"application/vnd.recordare.musicxml+xml",headers:{"X-Publication-Revision":shell.publicationRevision??"unpinned"},body:active.xml}));
         const origin = process.env.KEYSPILLI_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
-        const pin = `&revision=${shell.publicationRevision === null ? "unpinned" : encodeURIComponent(shell.publicationRevision)}`;
-        const response = await page.goto(`${origin}/export/${id}?layout=${layout}${pin}`, { waitUntil: "networkidle" });
-        if (response?.status() === 409) throw new PdfPublicationConflictError("publication changed; reload and retry");
+        const pdf = await renderPdfPage(page, { origin, id, layout, publicationRevision: shell.publicationRevision, active });
         checkCancelled();
-        await waitForExportReady(page, layout);
-        checkCancelled();
-        if (layout === "classic") await prepareClassicPdfCapture(page);
-        checkCancelled();
-        if(active) await page.evaluate(title=>{const heading=document.querySelector("h1");if(heading)heading.textContent=title;},active.title);
-        return page.pdf({ format: "A4", printBackground: true });
+        return pdf;
       };
       const pdf = await Promise.race([render(), deadline]);
       return new NextResponse(new Uint8Array(pdf), {

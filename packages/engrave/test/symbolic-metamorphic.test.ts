@@ -15,6 +15,7 @@ interface VerovioConsumer {
   setOptions(options: { inputFrom: string }): unknown;
   loadData(xml: string): boolean | number;
   renderToMIDI(): string;
+  renderToSVG(page: number): string;
   destroy(): void;
 }
 
@@ -77,6 +78,29 @@ describe("bounded symbolic differential and metamorphic checks", () => {
   });
 
   afterAll(() => toolkit.destroy());
+
+  it("keeps hostile MusicXML text and identifiers inert in SVG", () => {
+    const xml = `<?xml version="1.0"?><score-partwise version="3.1">
+<work><work-title>&lt;script&gt;alert(1)&lt;/script&gt;</work-title></work>
+<credit page="1"><credit-words>&lt;img src=x onerror=alert(2)&gt;</credit-words></credit>
+<part-list><score-part id="P1"><part-name>P</part-name></score-part></part-list>
+<part id="P1"><measure number="1" id="m&quot;&gt;&lt;script&gt;alert(3)&lt;/script&gt;">
+<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>
+<direction placement="above"><direction-type><words>&lt;foreignObject&gt;&lt;iframe src=//evil&gt;</words></direction-type></direction>
+<note id="a&quot; onmouseover=&quot;alert(4)&quot; x=&quot;"><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type>
+<lyric><syllable>single</syllable><text>&lt;script&gt;alert(5)&lt;/script&gt;</text></lyric></note>
+</measure></part></score-partwise>`;
+    expect(toolkit.loadData(xml)).toBeTruthy();
+    const svg = toolkit.renderToSVG(1);
+    const allowed = new Set(["svg", "desc", "defs", "symbol", "path", "style", "g", "text", "tspan", "use", "title", "rect", "line", "polyline", "polygon", "circle", "ellipse"]);
+    const elements = [...svg.matchAll(/<([A-Za-z][\w:-]*)/g)].map((match) => (match[1] ?? "").toLowerCase());
+    expect(elements.filter((name) => !allowed.has(name))).toEqual([]);
+    // Keep quoted '>' inside attributes and exclude escaped text from markup checks.
+    const tags = (svg.match(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g) ?? []).join("\n");
+    expect(tags.replace(/"[^"]*"/g, '""')).not.toMatch(/\son\w+\s*=/i);
+    expect(tags).not.toMatch(/\s(?:href|xlink:href|src)=["']\s*(?:javascript:|data:|https?:|\/\/)/i);
+    expect(svg).toContain("&lt;img src=x onerror=alert(2)&gt;");
+  });
 
   const compareMusicXml = (variant: Variant, context: string) => {
     const xml = writeMusicXml(variant, context, "Synthetic fixture");

@@ -23,6 +23,28 @@ describe("upload route", () => {
     });
   });
 
+  it.each(["title", "artist"])("rejects an oversized %s before catalog access", async (field) => {
+    const response = await POST(new NextRequest(`https://keys.reidar.tech/api/uploads?${field}=${"x".repeat(201)}`, {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: new Uint8Array([1, 2, 3]),
+    }));
+    expect(response.status).toBe(400);
+    expect(ingestSource).not.toHaveBeenCalled();
+    expect(getUploadPublicationReceipt).not.toHaveBeenCalled();
+  });
+
+  it("accepts title and artist at the metadata limit", async () => {
+    ingestSource.mockResolvedValueOnce({ baseId: "upload", songIds: ["upload-e"] });
+    const response = await POST(new NextRequest(`https://keys.reidar.tech/api/uploads?title=${"x".repeat(200)}&artist=${"y".repeat(200)}`, {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+      body: new Uint8Array([1, 2, 3]),
+    }));
+    expect(response.status).toBe(200);
+    expect(ingestSource).toHaveBeenCalledWith(expect.objectContaining({ title: "x".repeat(200), artist: "y".repeat(200) }), expect.anything());
+  });
+
   it("returns the committed receipt on a replay even when submitted metadata changed", async () => {
     const sourceHash = createHash("sha256").update(new Uint8Array([4, 5, 6])).digest("hex");
     const receipt = {

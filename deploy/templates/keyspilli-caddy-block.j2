@@ -14,6 +14,7 @@
   # services on the parent domain are not managed here.
   header {
     Strict-Transport-Security "max-age=31536000"
+    Permissions-Policy "camera=(), geolocation=(), payment=()"
     -Server
   }
   # Caddy's default response matcher excludes the vendor MusicXML MIME, so
