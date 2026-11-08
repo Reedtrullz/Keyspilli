@@ -433,6 +433,35 @@ class Lifecycle(unittest.TestCase):
         imported.reconstruct(doc["id"], destination)
         self.assertEqual((destination / "external-fixtures" / directory.name / "unique.sqlite").read_bytes(), b"unique-fixture")
 
+    def test_bundle_omits_only_sealed_public_piano_samples_with_an_explicit_manifest(self):
+        module = self.module()
+        store = module.Store(self.root)
+        doc = store.begin(1048576, self.dead_pid)
+        scratch = self.root / "scratch" / doc["id"]
+        bank = scratch / "native-piano"
+        bank.mkdir()
+        payload = b"public-piano-sample"
+        sha = hashlib.sha256(payload).hexdigest()
+        (bank / f"{sha}.ogg").write_bytes(payload)
+        (scratch / "other.txt").write_text("keep")
+        store.finish(doc["id"], "success")
+        bundle = self.root.parent / "omitted-native-piano.tar.gz"
+        module.helper("evidence_bundle").export_bundle(store, bundle, omit_native_piano=True)
+        omitted_path = f"evidence/{doc['id']}/files/native-piano/{sha}.ogg"
+        with tarfile.open(bundle) as archive:
+            self.assertNotIn(omitted_path, archive.getnames())
+            self.assertIn(f"evidence/{doc['id']}/files/other.txt", archive.getnames())
+            omission = json.load(archive.extractfile("transport-omitted.json"))
+        self.assertEqual(omission["schema"], "keyspilli-evidence-omissions/v1")
+        self.assertEqual(omission["members"], [dict(path=omitted_path, bytes=len(payload), sha256=sha)])
+        reconstruction = json.loads((self.root / "evidence" / doc["id"] / "reconstruction.json").read_text())
+        self.assertEqual(reconstruction["files"][f"native-piano/{sha}.ogg"]["sha256"], sha)
+
+        reconstruction["files"][f"native-piano/{sha}.ogg"]["sha256"] = "0" * 64
+        (self.root / "evidence" / doc["id"] / "reconstruction.json").write_text(json.dumps(reconstruction))
+        with self.assertRaisesRegex(ValueError, "matching sealed evidence"):
+            module.helper("evidence_bundle").export_bundle(store, self.root.parent / "must-not-export.tar.gz", omit_native_piano=True)
+
     def test_export_capacity_is_reserved_before_admitting_a_hosted_writer(self):
         module = self.module()
         mib = 1024 ** 2

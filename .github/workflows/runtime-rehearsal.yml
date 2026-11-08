@@ -332,6 +332,7 @@ jobs:
         if: always()
         env:
           KEYSPILLI_EVIDENCE_FINISHING: "1"
+          KEYSPILLI_EVIDENCE_OMIT_NATIVE_PIANO: "1"
           JOB_STATUS: ${{ job.status }}
         run: sudo --preserve-env=RUNNER_TEMP,KEYSPILLI_EVIDENCE_ROOT,KEYSPILLI_EVIDENCE_RUN,KEYSPILLI_REAL_DOCKER,JOB_STATUS python3 deploy/evidence-job.py finish
 
