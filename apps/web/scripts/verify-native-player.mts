@@ -108,6 +108,12 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
       try { stop(); } catch (error) { cleanupErrors.push(String(error)); }
     }
   };
+  const settleLifetime = async () => {
+    releasePageWatchers();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    (globalThis as typeof globalThis & { gc?: () => void }).gc?.();
+    await new Promise<void>(resolve => setImmediate(resolve));
+  };
   // Two exemplar slots per label (original, chords, silence, route) keep the total at 8 and stop one page crowding out the rest.
   const diag: Diag = { counts: {}, samples: [] };
   const slots: Record<string, number> = {};
@@ -273,6 +279,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
       releasePageWatchers();
       phase(mode + "-browser-teardown", "entry");
       await closeCaptureBrowser();
+      await settleLifetime();
       phase(mode + "-browser-teardown", "exit");
     }
     phase("silence-browser-startup", "entry");
@@ -289,6 +296,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
     await silentPage.close();
     releasePageWatchers();
     await closeCaptureBrowser();
+    await settleLifetime();
     phase("silence-browser-teardown", "exit");
     // Render PDFs after the capture browser exits; both browsers share the same bounded container.
     for (const { mode, packet } of pdfPackets) {
@@ -311,6 +319,7 @@ export async function verifyNativePlayer(revision: string, diagnostic = false): 
     closingBrowser = true;
     await context?.close().catch(error => cleanupErrors.push(String(error)));
     await browser?.close().catch(error => cleanupErrors.push(String(error)));
+    await settleLifetime().catch(error => cleanupErrors.push(String(error)));
     if (baseId && api) {
       try { expect((await api.delete(`/api/songs/${baseId}`)).ok()).toBe(true); }
       catch (error) { cleanupErrors.push(String(error)); }

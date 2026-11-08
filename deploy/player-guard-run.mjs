@@ -177,7 +177,7 @@ async function capacityCLI(mode) {
 }
 
 export const WRITABLE = Object.freeze({ '/tmp': 15, '/dev/shm': 4, '/data': 16, '/browser-results': 4, '/sentinels': 1 });
-export const NODE_RUNTIME_ENV = Object.freeze({ NODE_OPTIONS: '--v8-pool-size=2', UV_THREADPOOL_SIZE: '2' });
+export const NODE_RUNTIME_ENV = Object.freeze({ NODE_OPTIONS: '--v8-pool-size=2 --expose-gc', UV_THREADPOOL_SIZE: '2' });
 export const SIDECAR_PROFILES = Object.freeze({
   app: Object.freeze({ cpus: '0.5', memoryMiB: 384, writable: Object.freeze({ '/tmp': 3, '/dev/shm': 1, '/data': 16 }) }),
   browser: Object.freeze({ cpus: '1', memoryMiB: 640, writable: Object.freeze({ '/tmp': 10, '/dev/shm': 4, '/data': 1, '/browser-results': 4, '/sentinels': 1 }) }),

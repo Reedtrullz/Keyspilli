@@ -108,11 +108,11 @@ test('capacity requirement covers unchanged writer, export, entry metadata and m
 
 test('guarded runtime caps non-browser Node worker pools without changing Chromium or PID guards', () => {
   assert.deepEqual(NODE_RUNTIME_ENV, {
-    NODE_OPTIONS: '--v8-pool-size=2',
+    NODE_OPTIONS: '--v8-pool-size=2 --expose-gc',
     UV_THREADPOOL_SIZE: '2',
   });
   const pairs = guardEnvironment();
-  assert(pairs.some(([key, value]) => key === 'NODE_OPTIONS' && value === '--v8-pool-size=2'));
+  assert(pairs.some(([key, value]) => key === 'NODE_OPTIONS' && value === '--v8-pool-size=2 --expose-gc'));
   assert(pairs.some(([key, value]) => key === 'UV_THREADPOOL_SIZE' && value === '2'));
   assert(!pairs.some(([key]) => key.startsWith('CHROME_') || key === 'DEBUG'));
   const args = guardLaunchArgs('owned', diagnosticProfile('control'));
@@ -555,7 +555,8 @@ test('unsupported optional browser CDP does not block capture and early terminal
     const assert = (await import('node:assert/strict')).default, vm = await import('node:vm'), crypto = await import('node:crypto');
     const {stripTypeScriptTypes} = await import('node:module'), {EventEmitter} = await import('node:events');
     const files = new Map(), phases = [], memorySamples = [], revision = 'b'.repeat(40), processState = { pid: 2, ppid: 1, platform: 'linux', arch: 'x64', env: { KEYSPILLI_NATIVE_PROBE_SCOPE: 'owned-restore', KEYSPILLI_DATA_DIR: '/data' }, argv: [], memoryUsage: () => ({ rss: 64 * 1024 ** 2, heapTotal: 32 * 1024 ** 2, heapUsed: 16 * 1024 ** 2, external: 4 * 1024 ** 2, arrayBuffers: 3 * 1024 ** 2 }) };
-    const context = vm.createContext({ process: processState, Buffer, URL, console: {log(){} } });
+    let gcCalls = 0;
+    const context = vm.createContext({ process: processState, Buffer, URL, console: {log(){} }, setImmediate: (fn) => { fn(); return 0; }, gc: () => { gcCalls++; } });
     let captured = false, cdpCalls = 0, missingSamples = false, saturate = false, phaseBytes = 0;
     const page = new EventEmitter(), browser = new EventEmitter(), browserContext = new EventEmitter();
     browser.newBrowserCDPSession = async () => { cdpCalls++; throw Error('Browser.getBrowserCommandLine unsupported without --enable-automation'); };
@@ -592,6 +593,7 @@ test('unsupported optional browser CDP does not block capture and early terminal
     await module.link(load); await module.evaluate(); await module.namespace.verifyNativePlayer(revision, true);
     assert.equal(cdpCalls,0,'optional CDP must not become a startup precondition');
     assert.equal(captured,true,'capture boundary reached');
+    assert(gcCalls > 0, 'native lifetime cleanup must request GC');
     const packet=JSON.parse(files.get('/browser-results/result.json'));
     assert.match(packet.error,/Native browser terminal event: page-crash at original-capture/);assert.equal(packet.browserObservation.armed,true);
     assert.equal(packet.phaseTruncated,true);assert.ok(phaseBytes<=8192);
