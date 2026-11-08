@@ -49,6 +49,10 @@ export function capturesSampleAssets(signalControl?: "silence" | "below-level"):
   return signalControl !== "silence";
 }
 
+export function sampleReadinessTimeoutMs(signalControl?: "silence" | "below-level"): number {
+  return signalControl === "silence" ? 30_000 : 5_000;
+}
+
 /** Keep rejected signal evidence without changing its acceptance criteria. */
 export async function checkPlayerCapture(result: RawPlayerCapture, signalControl?: "silence" | "below-level",
   retain?: (result: RawPlayerCapture) => void | Promise<void>): Promise<void> {
@@ -352,8 +356,9 @@ export async function capturePlayerClip(page: Page, options: {
   if (capturesSampleAssets(options.signalControl)) await Promise.all(assetPromises);
   await openPlayerTool(page, "Sound");
   const soundDialog = page.getByRole("dialog", { name: "Sound settings", exact: true });
-  await expect(soundDialog.getByRole("status")).toContainText("Samples: ready");
-  await expect(soundDialog.getByRole("status")).toContainText("Current sound: sampled piano");
+  const sampleReadyTimeout = sampleReadinessTimeoutMs(options.signalControl);
+  await expect(soundDialog.getByRole("status")).toContainText("Samples: ready", { timeout: sampleReadyTimeout });
+  await expect(soundDialog.getByRole("status")).toContainText("Current sound: sampled piano", { timeout: sampleReadyTimeout });
   await expect(soundDialog.getByRole("radio", { name: "Original arrangement", exact: true }))
     .toHaveAttribute("aria-checked", options.mode === "original" ? "true" : "false");
   await expect(soundDialog.getByRole("radio", { name: "Chord mode", exact: true }))
