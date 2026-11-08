@@ -10,6 +10,7 @@ const measures = span ? 2048 : stress ? 500 : 160;
 const notesPerMeasure = span ? 2 : stress ? 40 : 4;
 const beatsPerMeasure = span ? 2 : stress ? 5 : 4;
 const renderers = stress ? ["worker", "main"] as const : ["worker"] as const;
+test.use({ trace: process.env.KEYSPILLI_PERF_TRACE === "1" ? "on" : "retain-on-failure" });
 
 function fixtureXml(): string {
   const measuresXml = Array.from({ length: measures }, (_, index) => {
@@ -44,8 +45,6 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
   try {
     for (const renderer of renderers) for (let sample = 0; sample < 3; sample++) {
       const context = await browser.newContext({ viewport });
-      const trace = process.env.KEYSPILLI_PERF_TRACE === "1" && sample === 0;
-      if (trace) await context.tracing.start({ screenshots: false, snapshots: false, sources: false });
       const page = await context.newPage();
       const observedPaths: string[] = [];
       page.on("response", response => observedPaths.push(new URL(response.url()).pathname));
@@ -201,11 +200,6 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
         workerTiming: { warm: warmWorkerTiming, direct: directWorkerTiming }, resources,
         memory, transferredBytes: Object.fromEntries(transferred), semantic: { scoreXmlSha256, pdfSha256: sha(pdfBytes), pdfBytes: pdfBytes.byteLength },
       });
-      if (trace) {
-        const tracePath = info.outputPath(`${renderer}-${sample}-trace.zip`);
-        await context.tracing.stop({ path: tracePath });
-        await info.attach(`${renderer}-${sample}-trace`, { path: tracePath, contentType: "application/zip" });
-      }
       console.log(JSON.stringify({ renderer, sample, sheetMs: sheet, inPageWarmSheetMs, pdfMs, retainedPages: Math.max(...retention.map(row => Number(row.pages))) }));
       await context.close();
     }
