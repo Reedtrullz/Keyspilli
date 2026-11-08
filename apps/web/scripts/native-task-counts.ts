@@ -27,9 +27,10 @@ export function summarizeTaskCounts(rows: TaskRow[], selfPid: number, guardPid: 
   if (!byPid.has(selfPid)) throw new Error("automation process missing from owned tree");
 
   const classify = (row: TaskRow): TaskRole => {
-    if (row.pid === guardPid) return "guard";
+    if (row.pid === guardPid || /^player-guard(?:-|\.|$)/.test(row.name)) return "guard";
     if (row.pid === selfPid) return "automation-node";
     if (row.ppid === guardPid && row.name === "node") return "app-node";
+    if (row.name === "node") return "automation-node";
     if (/crashpad/i.test(row.name)) return "crashpad";
     if (/^(chrome|chromium|headless_shell|chrome-headless)/i.test(row.name)) return "chromium";
     return "unknown";
