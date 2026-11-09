@@ -9,9 +9,9 @@
     "measurementSpecSha256": "c8f620478ac6c088bcff6378ae792b651fcb615cbe6f1788cc1cec1d0c649e91",
     "pairSha256": "7bd9ac6475bc3524b99c71a59b623426c89dcea62d55f652f926da433759924a",
     "probeSha256": "34691d25ac987bee8ab530e9f9d5577a1e0f73f70811d0439bfbfd014fa466e3",
-    "workflowSha256": "060d034cbaa93dd05b7418430741d50ed99d802597fdb696e45d07efea87ca75"
+    "workflowSha256": "65981ceb7db2bb569783e79002783da65e798c2415156de187e8bd023ab6a4ac"
   },
-  "harnessDigest": "250ec54ff19655dedc19bcfaa11ea32111ea4fcc4c2b68317fe1321f1701ba20",
+  "harnessDigest": "58bfe2803745e1b37c15c225e8c8529a3b851885e3bbf43ca4aec8dbaf8aa5f6",
   "id": "T17-span-mobile",
   "inPageWarmups": 2,
   "pairs": {
@@ -121,8 +121,8 @@
       "tree": "91f728ce93ea89938261f2e3ab86c06a8cebdbe2"
     },
     "candidate": {
-      "head": "e7880a7cc6eb199d3d8fab894a5bd1ba4f73cac9",
-      "tree": "f068c949a61484d4c0a95e9d97cc76c5d1c23ef4"
+      "head": "8fb11119788f2e8f90a5f9606217c1b8a1302389",
+      "tree": "02f8535afc18fe1ca819b4c765b03596df70fc36"
     }
   },
   "task": 17
