@@ -160,6 +160,7 @@ async function installMelodyTrace(page: Page): Promise<void> {
 
 async function installMelodyOptionTrace(page: Page): Promise<void> {
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
     const target = window as unknown as MelodyOptionTraceWindow;
     target.__keyspilliMelodyOptionTraceEvents = [];
     const originalPostMessage = Worker.prototype.postMessage;
@@ -180,6 +181,7 @@ async function installMelodyOptionTrace(page: Page): Promise<void> {
 
 async function installWorkerConstructorFailure(page: Page): Promise<void> {
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
     const target = window as unknown as Window & { __keyspilliOriginalWorker?: typeof Worker };
     target.__keyspilliOriginalWorker = window.Worker;
     const failure = function WorkerConstructorFailure(): never {
@@ -191,6 +193,7 @@ async function installWorkerConstructorFailure(page: Page): Promise<void> {
 
 async function installWorkerPostMessageFailure(page: Page): Promise<void> {
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
     const originalPostMessage = Worker.prototype.postMessage;
     Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
       if (message && typeof message === "object" && "requestKey" in message) throw new Error("e2e worker postMessage failure");
@@ -201,6 +204,7 @@ async function installWorkerPostMessageFailure(page: Page): Promise<void> {
 
 async function installDelayedWorker(page: Page): Promise<void> {
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
     const originalPostMessage = Worker.prototype.postMessage;
     Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
       if (message && typeof message === "object" && "requestKey" in message) {
@@ -229,6 +233,7 @@ async function restoreWorkerConstructor(page: Page): Promise<void> {
 
 async function installResumePolicyOverride(page: Page): Promise<void> {
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
     const originalPostMessage = Worker.prototype.postMessage;
     Worker.prototype.postMessage = function (message: unknown, ...rest: unknown[]) {
       if (message && typeof message === "object" && "options" in message) {

@@ -30,6 +30,7 @@ test("record local library, upload, playback, sheet/PDF and retained-page baseli
       const page = await context.newPage();
       expect(page.viewportSize()).toEqual(viewport);
       await page.addInitScript(renderer => {
+        Object.defineProperty(navigator,"serviceWorker",{configurable:true,value:undefined});
         if(renderer === "main") Object.defineProperty(window,"Worker",{configurable:true,value:class {constructor(){throw new Error("Controlled worker unavailability");}}});
         localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth", hand: "both" }));
         const state = window as unknown as { __longTasks: number[]; __firstScheduledNote?: number };

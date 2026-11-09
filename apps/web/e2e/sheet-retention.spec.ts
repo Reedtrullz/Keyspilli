@@ -8,8 +8,8 @@ test('worker late replies and forced main-thread fallback retain only the curren
   for(const renderer of ['worker','main']){
    const context=await browser.newContext({viewport:{width:1280,height:800}}),page=await context.newPage();
    await page.addInitScript(renderer=>{
+    Object.defineProperty(navigator,"serviceWorker",{configurable:true,value:undefined});
     if(renderer==='main'){
-     if(navigator.serviceWorker)Object.defineProperty(navigator.serviceWorker,'register',{configurable:true,value:()=>Promise.reject(new Error('Controlled service-worker unavailability'))});
      Object.defineProperty(window,'Worker',{configurable:true,value:class{constructor(){throw new Error('Controlled worker unavailability');}}});
     }
     else {const Original=window.Worker;window.Worker=class extends Original{
