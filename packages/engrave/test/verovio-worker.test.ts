@@ -57,6 +57,7 @@ class FakeWorker {
 describe("renderMusicXmlPagesInWorker", () => {
   const originalWorker = globalThis.Worker;
   const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const originalMessageChannel = Object.getOwnPropertyDescriptor(globalThis, "MessageChannel");
 
   afterEach(() => {
     vi.useRealTimers();
@@ -67,6 +68,9 @@ describe("renderMusicXmlPagesInWorker", () => {
       value: originalWorker,
     });
     if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+    else Reflect.deleteProperty(globalThis, "navigator");
+    if (originalMessageChannel) Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel);
+    else Reflect.deleteProperty(globalThis, "MessageChannel");
   });
 
   it("posts the score to a module worker and resolves rendered pages", async () => {
@@ -151,6 +155,7 @@ describe("renderMusicXmlPagesInWorker", () => {
     const messages: string[] = [];
     const registration = {
       active: {
+        scriptURL: "http://localhost/verovio/render-service-worker.mjs",
         postMessage(message: { id: number; type: string }, ports?: MessagePort[]) {
           messages.push(message.type);
           queueMicrotask(() => {
@@ -165,6 +170,7 @@ describe("renderMusicXmlPagesInWorker", () => {
           });
         },
       },
+      unregister: vi.fn(async () => true),
     };
     const container = { getRegistration: vi.fn(async () => registration), ready: Promise.resolve(registration) };
     Object.defineProperty(globalThis, "navigator", { configurable: true, writable: true, value: { serviceWorker: container } });
@@ -176,6 +182,36 @@ describe("renderMusicXmlPagesInWorker", () => {
     await session.close();
 
     expect(messages).toEqual(["warm", "open", "close"]);
+  });
+
+  it("retires a stalled service worker, closes its port and falls back to a dedicated worker", async () => {
+    const close = vi.fn();
+    class TestMessageChannel {
+      port1 = { start: vi.fn(), close };
+      port2 = {};
+    }
+    Object.defineProperty(globalThis, "MessageChannel", { configurable: true, writable: true, value: TestMessageChannel });
+    const unregister = vi.fn(async () => true);
+    const registration = {
+      active: { scriptURL: "http://localhost/verovio/render-service-worker.mjs", postMessage: vi.fn() },
+      unregister,
+    };
+    const container = { getRegistration: vi.fn(async () => registration), ready: Promise.resolve(registration) };
+    Object.defineProperty(globalThis, "navigator", { configurable: true, writable: true, value: { serviceWorker: container } });
+    vi.resetModules();
+    const { openMusicXmlInWorker, VEROVIO_REQUEST_TIMEOUT_MS } = await import("../src/verovio-worker.js");
+    vi.useFakeTimers();
+    const failed = openMusicXmlInWorker("<score/>").catch((error: Error) => error.message);
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(VEROVIO_REQUEST_TIMEOUT_MS);
+    expect(await failed).toContain("timed out");
+    expect(unregister).toHaveBeenCalledOnce();
+    expect(close).toHaveBeenCalledOnce();
+
+    Object.defineProperty(globalThis, "Worker", { configurable: true, writable: true, value: FakeWorker });
+    const session = await openMusicXmlInWorker("<score/>");
+    expect(FakeWorker.instances).toHaveLength(1);
+    await session.close();
   });
 
   it("times out every pending request, then isolates a fresh worker from late errors", async () => {

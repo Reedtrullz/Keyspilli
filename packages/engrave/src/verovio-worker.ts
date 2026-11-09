@@ -48,12 +48,13 @@ type PendingRender = {
   resolve: (response: WorkerResponse) => void;
   reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
+  cancel: () => void;
 };
 
 type VerovioWorkerChannel = {
   onmessage: ((event: MessageEvent<WorkerResponse>) => void) | null;
   onerror: ((event: Event) => void) | null;
-  postMessage: (message: WorkerRequest) => void;
+  postMessage: (message: WorkerRequest) => () => void;
   terminate: () => void;
 };
 
@@ -66,8 +67,9 @@ class DedicatedWorkerChannel implements VerovioWorkerChannel {
     worker.onerror = event => this.onerror?.(event);
   }
 
-  postMessage(message: WorkerRequest): void {
+  postMessage(message: WorkerRequest): () => void {
     this.worker.postMessage(message);
+    return () => undefined;
   }
 
   terminate(): void {
@@ -79,29 +81,52 @@ class ServiceWorkerChannel implements VerovioWorkerChannel {
   onmessage: ((event: MessageEvent<WorkerResponse>) => void) | null = null;
   onerror: ((event: Event) => void) | null = null;
 
-  constructor(private readonly worker: ServiceWorker) {}
+  constructor(private readonly worker: ServiceWorker, private readonly registration: ServiceWorkerRegistration) {}
 
-  postMessage(message: WorkerRequest): void {
+  postMessage(message: WorkerRequest): () => void {
     const channel = new MessageChannel();
-    channel.port1.onmessage = event => this.onmessage?.({ data: event.data } as MessageEvent<WorkerResponse>);
-    channel.port1.onmessageerror = () => this.onerror?.(new Event("messageerror"));
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      channel.port1.close();
+    };
+    channel.port1.onmessage = event => {
+      close();
+      this.onmessage?.({ data: event.data } as MessageEvent<WorkerResponse>);
+    };
+    channel.port1.onmessageerror = () => {
+      close();
+      this.onerror?.(new Event("messageerror"));
+    };
     channel.port1.start();
     this.worker.postMessage(message, [channel.port2]);
+    return close;
   }
 
-  terminate(): void {}
+  terminate(): void {
+    disableServiceWorker();
+    void this.registration.unregister().catch(() => undefined);
+  }
 }
 
 export const VEROVIO_REQUEST_TIMEOUT_MS = 30_000;
+const SERVICE_WORKER_URL = "/verovio/render-service-worker.mjs";
+const SERVICE_WORKER_DISABLED_KEY = "keyspilli:verovio-service-worker-disabled";
 let verovioWorker: VerovioWorkerChannel | null = null;
 let workerChannelPromise: Promise<VerovioWorkerChannel> | null = null;
 let serviceWorkerRegistration: Promise<ServiceWorkerRegistration | null> | null = null;
+let serviceWorkerDisabled = (() => {
+  try { return globalThis.sessionStorage?.getItem(SERVICE_WORKER_DISABLED_KEY) === "1"; }
+  catch { return false; }
+})();
 let workerGeneration = 0;
 let nextRequestId = 1;
 const pendingRenders = new Map<number, PendingRender>();
 
 function rejectPendingRenders(error: Error): void {
   for (const pending of pendingRenders.values()) {
+    pending.cancel();
     clearTimeout(pending.timer);
     pending.reject(error);
   }
@@ -123,6 +148,7 @@ function attachVerovioWorker(worker: VerovioWorkerChannel): VerovioWorkerChannel
     const response = event.data;
     const pending = pendingRenders.get(response.id);
     if (!pending) return;
+    pending.cancel();
     pendingRenders.delete(response.id);
     clearTimeout(pending.timer);
     if (response.type === "error") {
@@ -142,19 +168,30 @@ function serviceWorkerContainer(): ServiceWorkerContainer | null {
   return (globalThis.navigator as Navigator | undefined)?.serviceWorker ?? null;
 }
 
+function disableServiceWorker(): void {
+  serviceWorkerDisabled = true;
+  serviceWorkerRegistration = null;
+  try { globalThis.sessionStorage?.setItem(SERVICE_WORKER_DISABLED_KEY, "1"); }
+  catch { /* Storage can be unavailable under privacy policy. */ }
+}
+
 function readyServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (serviceWorkerDisabled) return Promise.resolve(null);
   if (serviceWorkerRegistration) return serviceWorkerRegistration;
-  serviceWorkerRegistration = (async () => {
+  const pending = (async (): Promise<ServiceWorkerRegistration | null> => {
     const container = serviceWorkerContainer();
     if (!container) return null;
     try {
+      const scriptURL = new URL(SERVICE_WORKER_URL, globalThis.location?.origin ?? "http://localhost").href;
+      const matches = (registration: ServiceWorkerRegistration | null | undefined) => registration?.active?.scriptURL === scriptURL ? registration : null;
       const existing = await container.getRegistration();
-      if (existing?.active) return existing;
-      await container.register("/verovio/render-service-worker.mjs", { type: "module", scope: "/" });
+      const matched = matches(existing);
+      if (matched) return matched;
+      await container.register(SERVICE_WORKER_URL, { type: "module", scope: "/" });
       return await new Promise<ServiceWorkerRegistration | null>(resolve => {
         const timer = setTimeout(() => resolve(null), 1_500);
         container.ready.then(
-          registration => { clearTimeout(timer); resolve(registration); },
+          registration => { clearTimeout(timer); resolve(matches(registration)); },
           () => { clearTimeout(timer); resolve(null); },
         );
       });
@@ -162,12 +199,13 @@ function readyServiceWorker(): Promise<ServiceWorkerRegistration | null> {
       return null;
     }
   })();
-  return serviceWorkerRegistration;
+  serviceWorkerRegistration = pending;
+  return pending;
 }
 
 async function createVerovioWorker(): Promise<VerovioWorkerChannel> {
   const registration = await readyServiceWorker();
-  if (registration?.active) return new ServiceWorkerChannel(registration.active);
+  if (registration?.active) return new ServiceWorkerChannel(registration.active, registration);
 
   const WorkerConstructor = globalThis.Worker;
   if (!WorkerConstructor) throw new Error("Verovio workers are unavailable in this environment");
@@ -193,10 +231,12 @@ function request(request: WorkerRequestInput): Promise<WorkerResponse> {
   return new Promise<WorkerResponse>((resolve, reject) => {
     void getVerovioWorker().then(worker => {
       const timer = setTimeout(() => disposeWorker(new Error("Verovio worker request timed out"), worker), VEROVIO_REQUEST_TIMEOUT_MS);
-      pendingRenders.set(id, { resolve, reject, timer });
+      let cancel: () => void = () => undefined;
+      pendingRenders.set(id, { resolve, reject, timer, cancel: () => cancel() });
       try {
-        worker.postMessage({ id, ...request } satisfies WorkerRequest);
+        cancel = worker.postMessage({ id, ...request } satisfies WorkerRequest);
       } catch (error) {
+        cancel();
         pendingRenders.delete(id);
         clearTimeout(timer);
         reject(error instanceof Error ? error : new Error(String(error)));

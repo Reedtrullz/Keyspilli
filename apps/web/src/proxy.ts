@@ -24,5 +24,5 @@ export const proxy = auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/|api/auth/|api/health/live$|signin$|favicon\\.ico$|icon\\.svg$|manifest\\.webmanifest$|verovio/).*)"],
+  matcher: ["/((?!_next/|api/auth/|api/health/live$|signin$|favicon\\.ico$|icon\\.svg$|manifest\\.webmanifest$|verovio/(?:COPYING(?:\\.LESSER)?|NOTICE\\.txt|render-service-worker\\.mjs|render-worker\\.mjs|service-worker-verovio-loader\\.mjs|verovio-module\\.mjs|verovio\\.mjs)$).*)"],
 };

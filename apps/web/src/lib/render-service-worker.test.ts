@@ -16,6 +16,6 @@ it("wires service-worker messages to the shared render dispatcher", () => {
   expect(source).toContain("event.ports[0]");
   expect(source).toContain("event.waitUntil");
   expect(source).toContain("__keyspilliVerovioDispatch");
-  expect(source).toContain('self.addEventListener("fetch"');
-  expect(source).toContain("prefetch-sheet-navigation");
+  expect(source).not.toContain('self.addEventListener("fetch"');
+  expect(source).not.toContain("prefetch-sheet-navigation");
 });

@@ -10,5 +10,7 @@ it("keeps Verovio static assets and its service worker outside the app session g
   expect(matcher.test("/verovio/render-service-worker.mjs")).toBe(false);
   expect(matcher.test("/verovio/render-worker.mjs")).toBe(false);
   expect(matcher.test("/verovio/verovio-module.mjs")).toBe(false);
+  expect(matcher.test("/verovio/COPYING")).toBe(false);
+  expect(matcher.test("/verovio/nested/private.mjs")).toBe(true);
   expect(matcher.test("/player/song/sheet")).toBe(true);
 });
