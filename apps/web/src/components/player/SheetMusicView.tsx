@@ -47,7 +47,7 @@ const SheetPage = memo(function SheetPage({svg, page, count, zoom, dimensions, v
     {...(html?{dangerouslySetInnerHTML:html}:{children:<span className="sheet-svg__page-status">Preparing page {page}…</span>})} />;
 });
 
-const PAGE_RADIUS = 2;
+const PAGE_RADIUS = 1;
 const INITIAL_PAGES = 2;
 const RENDER_OPTIONS = {
   scale: 40,
