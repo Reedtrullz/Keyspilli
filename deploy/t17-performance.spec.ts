@@ -46,7 +46,9 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
   let trace: { context: BrowserContext; path: string } | null = null;
   try {
     for (const renderer of renderers) for (let sample = 0; sample < 3; sample++) {
+      console.log(JSON.stringify({ phase: "context-start", renderer, sample }));
       const context = await browser.newContext({ viewport });
+      console.log(JSON.stringify({ phase: "context-ready", renderer, sample }));
       if (process.env.KEYSPILLI_PERF_TRACE === "1" && renderer === "worker" && sample === 0) {
         const path = info.outputPath("t17-sizing.trace.zip");
         await context.tracing.start({ screenshots: false, snapshots: false, sources: false });
@@ -218,7 +220,9 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
         await trace.context.tracing.stop({ path: trace.path });
         trace = null;
       }
+      console.log(JSON.stringify({ phase: "sample-complete", renderer, sample }));
       await context.close();
+      console.log(JSON.stringify({ phase: "context-closed", renderer, sample }));
     }
     const output = info.outputPath(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json");
     await writeFile(output, JSON.stringify({
