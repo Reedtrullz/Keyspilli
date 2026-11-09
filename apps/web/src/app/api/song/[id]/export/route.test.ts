@@ -17,6 +17,8 @@ const params = Promise.resolve({ id: "song-a" });
 describe("song export route PDF failures", () => {
   beforeEach(async () => {
     vi.resetModules();
+    delete process.env.KEYSPILLI_PDF_RENDERER_URL;
+    delete process.env.KEYSPILLI_API_TOKEN;
     ({ GET } = await import("./route"));
     launch.mockReset();
     getSongDetailShell.mockReset().mockResolvedValue({ song: { hasSheetXml: 1 }, variants: [], publicationRevision: null });
@@ -60,6 +62,33 @@ describe("song export route PDF failures", () => {
       code: "PDF_GENERATION_UNAVAILABLE",
     });
     expect(JSON.stringify(body)).not.toContain("/root/.cache");
+  });
+
+  it("routes guarded PDF work to the authenticated browser sidecar", async () => {
+    process.env.KEYSPILLI_PDF_RENDERER_URL = "http://127.0.0.1:3001";
+    process.env.KEYSPILLI_API_TOKEN = "owned-token";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(new Uint8Array([37, 80, 68, 70]), {
+      status: 200,
+      headers: { "Content-Type": "application/pdf", "X-Publication-Revision": "revision-a" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    getSongDetailShell.mockResolvedValueOnce({ song: { hasSheetXml: 1 }, variants: [], publicationRevision: "revision-a" });
+    try {
+      const response = await GET(requestFor("type=pdf&layout=classic"), { params });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("application/pdf");
+      expect(response.headers.get("x-publication-revision")).toBe("revision-a");
+      expect(launch).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledOnce();
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toBe("http://127.0.0.1:3001/render");
+      expect(init.headers).toMatchObject({ Authorization: "Bearer owned-token" });
+      expect(JSON.parse(init.body)).toEqual({ id: "song-a", layout: "classic", shell: { publicationRevision: "revision-a" } });
+    } finally {
+      vi.unstubAllGlobals();
+      delete process.env.KEYSPILLI_PDF_RENDERER_URL;
+      delete process.env.KEYSPILLI_API_TOKEN;
+    }
   });
 
   it("rejects classic PDF when the song has no MusicXML score", async () => {

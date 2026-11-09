@@ -25,6 +25,10 @@ class FakeWorker {
           : { id: request.id, type: "opened", sessionId } } as MessageEvent);
         return;
       }
+      if (request.type === "warm") {
+        this.onmessage?.({ data: { id: request.id, type: "warm" } } as MessageEvent);
+        return;
+      }
       if (request.type === "prepare") {
         this.onmessage?.({ data: { id: request.id, type: "prepared", sessionId, pageCount: 2, width: 1600, height: 2200 } } as MessageEvent);
         return;
@@ -52,6 +56,8 @@ class FakeWorker {
 
 describe("renderMusicXmlPagesInWorker", () => {
   const originalWorker = globalThis.Worker;
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const originalMessageChannel = Object.getOwnPropertyDescriptor(globalThis, "MessageChannel");
 
   afterEach(() => {
     vi.useRealTimers();
@@ -61,6 +67,10 @@ describe("renderMusicXmlPagesInWorker", () => {
       writable: true,
       value: originalWorker,
     });
+    if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+    else Reflect.deleteProperty(globalThis, "navigator");
+    if (originalMessageChannel) Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel);
+    else Reflect.deleteProperty(globalThis, "MessageChannel");
   });
 
   it("posts the score to a module worker and resolves rendered pages", async () => {
@@ -89,6 +99,121 @@ describe("renderMusicXmlPagesInWorker", () => {
     ]);
   });
 
+  it("warms the existing module worker before opening a score", async () => {
+    Object.defineProperty(globalThis, "Worker", {
+      configurable: true,
+      writable: true,
+      value: FakeWorker,
+    });
+    vi.resetModules();
+    const { openMusicXmlInWorker, warmMusicXmlWorker } = await import("../src/verovio-worker.js");
+
+    await warmMusicXmlWorker();
+    const session = await openMusicXmlInWorker("<score/>");
+    await session.close();
+
+    expect(FakeWorker.instances).toHaveLength(1);
+    expect(FakeWorker.instances[0]?.messages.map((message) => (message as { type: string }).type)).toEqual([
+      "warm",
+      "open",
+      "close",
+    ]);
+  });
+
+  it("disposes a worker after warm failure and opens with a fresh worker", async () => {
+    class FailingWarmWorker extends FakeWorker {
+      static failWarm = true;
+      override postMessage(message: unknown): void {
+        if (FailingWarmWorker.failWarm && (message as { type?: string }).type === "warm") {
+          this.messages.push(message);
+          queueMicrotask(() => this.onmessage?.({ data: { id: (message as { id: number }).id, type: "error", error: "warm failed" } } as MessageEvent));
+          return;
+        }
+        super.postMessage(message);
+      }
+    }
+    Object.defineProperty(globalThis, "Worker", { configurable: true, writable: true, value: FailingWarmWorker });
+    vi.resetModules();
+    const { openMusicXmlInWorker, warmMusicXmlWorker } = await import("../src/verovio-worker.js");
+
+    await expect(warmMusicXmlWorker()).rejects.toThrow("warm failed");
+    expect(FakeWorker.instances).toHaveLength(1);
+    expect(FakeWorker.instances[0]?.terminated).toBe(true);
+
+    FailingWarmWorker.failWarm = false;
+    const session = await openMusicXmlInWorker("<score/>");
+    expect(FakeWorker.instances).toHaveLength(2);
+    await session.close();
+  });
+
+  it("uses a ready service worker instead of constructing a dedicated worker", async () => {
+    Object.defineProperty(globalThis, "Worker", {
+      configurable: true,
+      writable: true,
+      value: class { constructor() { throw new Error("dedicated worker must not be constructed"); } },
+    });
+    const messages: string[] = [];
+    const registration = {
+      active: {
+        scriptURL: "http://localhost/verovio/render-service-worker.mjs",
+        postMessage(message: { id: number; type: string }, ports?: MessagePort[]) {
+          messages.push(message.type);
+          queueMicrotask(() => {
+            const response = message.type === "open"
+              ? { id: message.id, type: "prepared", sessionId: 5, pageCount: 2, width: 1600, height: 2200 }
+              : message.type === "warm"
+                ? { id: message.id, type: "warm" }
+                : message.type === "close"
+                  ? { id: message.id, type: "closed", sessionId: 5 }
+                  : null;
+            if (response) ports?.[0]?.postMessage(response);
+          });
+        },
+      },
+      unregister: vi.fn(async () => true),
+    };
+    const container = { getRegistration: vi.fn(async () => registration), ready: Promise.resolve(registration) };
+    Object.defineProperty(globalThis, "navigator", { configurable: true, writable: true, value: { serviceWorker: container } });
+    vi.resetModules();
+    const { openMusicXmlInWorker, warmMusicXmlWorker } = await import("../src/verovio-worker.js");
+
+    await warmMusicXmlWorker();
+    const session = await openMusicXmlInWorker("<score/>");
+    await session.close();
+
+    expect(messages).toEqual(["warm", "open", "close"]);
+  });
+
+  it("retires a stalled service worker, closes its port and falls back to a dedicated worker", async () => {
+    const close = vi.fn();
+    class TestMessageChannel {
+      port1 = { start: vi.fn(), close };
+      port2 = {};
+    }
+    Object.defineProperty(globalThis, "MessageChannel", { configurable: true, writable: true, value: TestMessageChannel });
+    const unregister = vi.fn(async () => true);
+    const registration = {
+      active: { scriptURL: "http://localhost/verovio/render-service-worker.mjs", postMessage: vi.fn() },
+      unregister,
+    };
+    const container = { getRegistration: vi.fn(async () => registration), ready: Promise.resolve(registration) };
+    Object.defineProperty(globalThis, "navigator", { configurable: true, writable: true, value: { serviceWorker: container } });
+    vi.resetModules();
+    const { openMusicXmlInWorker, VEROVIO_REQUEST_TIMEOUT_MS } = await import("../src/verovio-worker.js");
+    vi.useFakeTimers();
+    const failed = openMusicXmlInWorker("<score/>").catch((error: Error) => error.message);
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(VEROVIO_REQUEST_TIMEOUT_MS);
+    expect(await failed).toContain("timed out");
+    expect(unregister).toHaveBeenCalledOnce();
+    expect(close).toHaveBeenCalledOnce();
+
+    Object.defineProperty(globalThis, "Worker", { configurable: true, writable: true, value: FakeWorker });
+    const session = await openMusicXmlInWorker("<score/>");
+    expect(FakeWorker.instances).toHaveLength(1);
+    await session.close();
+  });
+
   it("times out every pending request, then isolates a fresh worker from late errors", async () => {
     class ControlledWorker extends FakeWorker {
       static stall = true;
@@ -105,6 +230,7 @@ describe("renderMusicXmlPagesInWorker", () => {
     const errors: string[] = [];
     void openMusicXmlInWorker("<score-a/>").catch((error: Error) => errors.push(error.message));
     void openMusicXmlInWorker("<score-b/>").catch((error: Error) => errors.push(error.message));
+    await vi.advanceTimersByTimeAsync(0);
     expect(FakeWorker.instances).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(VEROVIO_REQUEST_TIMEOUT_MS);
     expect(errors).toHaveLength(2);

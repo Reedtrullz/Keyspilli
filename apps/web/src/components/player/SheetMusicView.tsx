@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, memo, type CSSProperties } from "
 import {
   openMusicXmlInWorker,
   openMusicXmlOnMainThread,
+  warmMusicXmlWorker,
   type MusicXmlWorkerSession,
 } from "@keyspilli/engrave";
 
@@ -45,7 +46,7 @@ const SheetPage = memo(function SheetPage({svg, page, count, zoom, dimensions, v
     {...(html?{dangerouslySetInnerHTML:html}:{children:<span className="sheet-svg__page-status">Preparing page {page}…</span>})} />;
 });
 
-const PAGE_RADIUS = 2;
+const PAGE_RADIUS = 1;
 const INITIAL_PAGES = 2;
 const RENDER_OPTIONS = {
   scale: 40,
@@ -127,6 +128,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
 
   useEffect(() => {
     if (suspended) return;
+    void warmMusicXmlWorker().catch(() => undefined);
     let cancelled = false;
     const generation=++renderGenerationRef.current;
     const current=()=>!cancelled&&generation===renderGenerationRef.current;

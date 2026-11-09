@@ -10,6 +10,7 @@ test("direct sheet stays light, then exact passages seek/loop by keyboard across
  page.on('request',req=>{if(new URL(req.url()).pathname===`/api/songs/${id}`)detailRequests++;});
  await page.addInitScript(()=>localStorage.setItem('keyspilli.prefs.v1',JSON.stringify({soundSource:'synth',backgroundMode:'piano',transpose:0})));
  await page.addInitScript(()=>{
+  Object.defineProperty(navigator,"serviceWorker",{configurable:true,value:undefined});
   const state=window as unknown as {__holdScorePage:number;__scoreRepliesHeld:number;__releaseScore:()=>void},pending:Array<()=>void>=[];
   state.__holdScorePage=0;state.__scoreRepliesHeld=0;state.__releaseScore=()=>{state.__holdScorePage=0;pending.splice(0).forEach(release=>release());state.__scoreRepliesHeld=0;};
   const Original=window.Worker;window.Worker=class extends Original{constructor(url:string|URL,options?:WorkerOptions){super(url,options);const native=Object.getOwnPropertyDescriptor(Original.prototype,'onmessage')!;

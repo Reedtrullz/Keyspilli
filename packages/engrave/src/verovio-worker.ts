@@ -17,6 +17,7 @@ export interface MusicXmlWorkerSession {
 }
 
 type WorkerResponse =
+  | { id: number; type: "warm" }
   | { id: number; type: "opened"; sessionId: number }
   | { id: number; type: "prepared"; sessionId: number; pageCount: number; width: number; height: number }
   | { id: number; type: "page"; sessionId: number; page: number; svg: string }
@@ -25,6 +26,7 @@ type WorkerResponse =
   | { id: number; type: "error"; error: string };
 
 type WorkerRequest =
+  | { id: number; type: "warm" }
   | { id: number; type: "open"; xml: string; options: RenderOptions; prepare?: boolean }
   | { id: number; type: "prepare"; sessionId: number }
   | { id: number; type: "renderPage"; sessionId: number; page: number }
@@ -35,6 +37,7 @@ type WorkerRequest =
 // shared fields. Keep the request union distributed so each message retains
 // the payload required by its `type` discriminator.
 type WorkerRequestInput =
+  | { type: "warm" }
   | { type: "open"; xml: string; options: RenderOptions; prepare?: boolean }
   | { type: "prepare"; sessionId: number }
   | { type: "renderPage"; sessionId: number; page: number }
@@ -45,47 +48,107 @@ type PendingRender = {
   resolve: (response: WorkerResponse) => void;
   reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
+  cancel: () => void;
 };
 
+type VerovioWorkerChannel = {
+  onmessage: ((event: MessageEvent<WorkerResponse>) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  postMessage: (message: WorkerRequest) => () => void;
+  terminate: () => void;
+};
+
+class DedicatedWorkerChannel implements VerovioWorkerChannel {
+  onmessage: ((event: MessageEvent<WorkerResponse>) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+
+  constructor(private readonly worker: Worker) {
+    worker.onmessage = event => this.onmessage?.(event);
+    worker.onerror = event => this.onerror?.(event);
+  }
+
+  postMessage(message: WorkerRequest): () => void {
+    this.worker.postMessage(message);
+    return () => undefined;
+  }
+
+  terminate(): void {
+    this.worker.terminate();
+  }
+}
+
+class ServiceWorkerChannel implements VerovioWorkerChannel {
+  onmessage: ((event: MessageEvent<WorkerResponse>) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+
+  constructor(private readonly worker: ServiceWorker, private readonly registration: ServiceWorkerRegistration) {}
+
+  postMessage(message: WorkerRequest): () => void {
+    const channel = new MessageChannel();
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      channel.port1.close();
+    };
+    channel.port1.onmessage = event => {
+      close();
+      this.onmessage?.({ data: event.data } as MessageEvent<WorkerResponse>);
+    };
+    channel.port1.onmessageerror = () => {
+      close();
+      this.onerror?.(new Event("messageerror"));
+    };
+    channel.port1.start();
+    this.worker.postMessage(message, [channel.port2]);
+    return close;
+  }
+
+  terminate(): void {
+    disableServiceWorker();
+    void this.registration.unregister().catch(() => undefined);
+  }
+}
+
 export const VEROVIO_REQUEST_TIMEOUT_MS = 30_000;
-let verovioWorker: Worker | null = null;
+const SERVICE_WORKER_URL = "/verovio/render-service-worker.mjs";
+const SERVICE_WORKER_DISABLED_KEY = "keyspilli:verovio-service-worker-disabled";
+let verovioWorker: VerovioWorkerChannel | null = null;
+let workerChannelPromise: Promise<VerovioWorkerChannel> | null = null;
+let serviceWorkerRegistration: Promise<ServiceWorkerRegistration | null> | null = null;
+let serviceWorkerDisabled = (() => {
+  try { return globalThis.sessionStorage?.getItem(SERVICE_WORKER_DISABLED_KEY) === "1"; }
+  catch { return false; }
+})();
 let workerGeneration = 0;
 let nextRequestId = 1;
 const pendingRenders = new Map<number, PendingRender>();
 
 function rejectPendingRenders(error: Error): void {
   for (const pending of pendingRenders.values()) {
+    pending.cancel();
     clearTimeout(pending.timer);
     pending.reject(error);
   }
   pendingRenders.clear();
 }
 
-function disposeWorker(error: Error, worker: Worker): void {
+function disposeWorker(error: Error, worker: VerovioWorkerChannel): void {
   if (verovioWorker !== worker) return;
   verovioWorker = null;
+  workerChannelPromise = null;
   worker.terminate();
   rejectPendingRenders(error);
 }
 
-function getVerovioWorker(): Worker {
-  if (verovioWorker) return verovioWorker;
-
-  const WorkerConstructor = globalThis.Worker;
-  if (!WorkerConstructor) {
-    throw new Error("Verovio workers are unavailable in this environment");
-  }
-
-  const worker = new WorkerConstructor("/verovio/render-worker.mjs", {
-    type: "module",
-    name: "keyspilli-verovio",
-  });
+function attachVerovioWorker(worker: VerovioWorkerChannel): VerovioWorkerChannel {
   workerGeneration += 1;
   worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
     if (verovioWorker !== worker) return;
     const response = event.data;
     const pending = pendingRenders.get(response.id);
     if (!pending) return;
+    pending.cancel();
     pendingRenders.delete(response.id);
     clearTimeout(pending.timer);
     if (response.type === "error") {
@@ -101,26 +164,84 @@ function getVerovioWorker(): Worker {
   return worker;
 }
 
+function serviceWorkerContainer(): ServiceWorkerContainer | null {
+  return (globalThis.navigator as Navigator | undefined)?.serviceWorker ?? null;
+}
+
+function disableServiceWorker(): void {
+  serviceWorkerDisabled = true;
+  serviceWorkerRegistration = null;
+  try { globalThis.sessionStorage?.setItem(SERVICE_WORKER_DISABLED_KEY, "1"); }
+  catch { /* Storage can be unavailable under privacy policy. */ }
+}
+
+function readyServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (serviceWorkerDisabled) return Promise.resolve(null);
+  if (serviceWorkerRegistration) return serviceWorkerRegistration;
+  const pending = (async (): Promise<ServiceWorkerRegistration | null> => {
+    const container = serviceWorkerContainer();
+    if (!container) return null;
+    try {
+      const scriptURL = new URL(SERVICE_WORKER_URL, globalThis.location?.origin ?? "http://localhost").href;
+      const matches = (registration: ServiceWorkerRegistration | null | undefined) => registration?.active?.scriptURL === scriptURL ? registration : null;
+      const existing = await container.getRegistration();
+      const matched = matches(existing);
+      if (matched) return matched;
+      await container.register(SERVICE_WORKER_URL, { type: "module", scope: "/" });
+      return await new Promise<ServiceWorkerRegistration | null>(resolve => {
+        const timer = setTimeout(() => resolve(null), 1_500);
+        container.ready.then(
+          registration => { clearTimeout(timer); resolve(matches(registration)); },
+          () => { clearTimeout(timer); resolve(null); },
+        );
+      });
+    } catch {
+      return null;
+    }
+  })();
+  serviceWorkerRegistration = pending;
+  return pending;
+}
+
+async function createVerovioWorker(): Promise<VerovioWorkerChannel> {
+  const registration = await readyServiceWorker();
+  if (registration?.active) return new ServiceWorkerChannel(registration.active, registration);
+
+  const WorkerConstructor = globalThis.Worker;
+  if (!WorkerConstructor) throw new Error("Verovio workers are unavailable in this environment");
+  return new DedicatedWorkerChannel(new WorkerConstructor("/verovio/render-worker.mjs", {
+    type: "module",
+    name: "keyspilli-verovio",
+  }));
+}
+
+async function getVerovioWorker(): Promise<VerovioWorkerChannel> {
+  if (verovioWorker) return verovioWorker;
+  workerChannelPromise ??= createVerovioWorker();
+  try {
+    return attachVerovioWorker(await workerChannelPromise);
+  } catch (error) {
+    workerChannelPromise = null;
+    throw error;
+  }
+}
+
 function request(request: WorkerRequestInput): Promise<WorkerResponse> {
   const id = nextRequestId++;
   return new Promise<WorkerResponse>((resolve, reject) => {
-    let worker: Worker;
-    try {
-      worker = getVerovioWorker();
-    } catch (error) {
-      reject(error instanceof Error ? error : new Error(String(error)));
-      return;
-    }
-
-    const timer = setTimeout(() => disposeWorker(new Error("Verovio worker request timed out"), worker), VEROVIO_REQUEST_TIMEOUT_MS);
-    pendingRenders.set(id, { resolve, reject, timer });
-    try {
-      worker.postMessage({ id, ...request } satisfies WorkerRequest);
-    } catch (error) {
-      pendingRenders.delete(id);
-      clearTimeout(timer);
-      reject(error instanceof Error ? error : new Error(String(error)));
-    }
+    void getVerovioWorker().then(worker => {
+      const timer = setTimeout(() => disposeWorker(new Error("Verovio worker request timed out"), worker), VEROVIO_REQUEST_TIMEOUT_MS);
+      let cancel: () => void = () => undefined;
+      pendingRenders.set(id, { resolve, reject, timer, cancel: () => cancel() });
+      try {
+        cancel = worker.postMessage({ id, ...request } satisfies WorkerRequest);
+      } catch (error) {
+        cancel();
+        pendingRenders.delete(id);
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    }, error => reject(error instanceof Error ? error : new Error(String(error))));
   });
 }
 
@@ -194,6 +315,19 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
       // Closing is best effort. A worker failure has already rejected page
       // requests, and terminating it is handled by disposeWorker().
     }
+  }
+}
+
+/** Start module initialization before a score payload is available. */
+export async function warmMusicXmlWorker(): Promise<void> {
+  const worker = await getVerovioWorker();
+  try {
+    const response = await request({ type: "warm" });
+    if (response.type !== "warm") throw new Error("Verovio worker returned an invalid warm response");
+  } catch (error) {
+    const failure = error instanceof Error ? error : new Error(String(error));
+    if (verovioWorker === worker) disposeWorker(failure, worker);
+    throw failure;
   }
 }
 

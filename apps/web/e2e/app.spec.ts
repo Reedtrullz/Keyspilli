@@ -161,6 +161,7 @@ test("sheet warm-up rejection reaches the visible error state", async ({ page })
   page.on("pageerror", error => pageErrors.push(error.message));
   await page.addInitScript(() => {
     const NativeWorker = window.Worker;
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
     window.Worker = class extends NativeWorker {
       postMessage(message: unknown, transfer: Transferable[]): void;
       postMessage(message: unknown, options?: StructuredSerializeOptions): void;

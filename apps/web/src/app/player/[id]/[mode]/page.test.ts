@@ -51,6 +51,7 @@ describe("direct sheet player payload boundary", () => {
     expect(getSongDetail).not.toHaveBeenCalled();
     expect((rendered as { type: unknown; props: unknown }).type).toBe(Player);
     expect((rendered as { props: unknown }).props).toEqual({ initial: shell, mode: "sheet" });
+    expect(JSON.stringify(rendered)).not.toContain("/verovio/verovio-module.mjs");
   });
 
   it("keeps full detail loading for interactive non-sheet modes", async () => {
