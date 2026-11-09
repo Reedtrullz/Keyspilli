@@ -16,6 +16,7 @@ const OUTPUT_LIMIT = 2 * 1024 * 1024;
 const REQUEST_KEYS = ["caseHash", "phase", "unit", "sample", "scenario", "revision", "tree", "fixtureDigest", "harnessDigest", "shape", "economicsDigest"];
 const CAPABILITIES = ["chromium", "musicxml-sheet", "verovio-worker", "forced-main-fallback", "pdf-export", "retained-pages<=5", "retained-svg<=4MiB"];
 let activeScratch = null;
+let currentChild = null;
 
 function fail(message) {
   throw new Error(message);
@@ -158,6 +159,7 @@ async function main() {
   const output = join(scratch, "playwright");
   const timeoutMs = spec.samples === 3 ? 180_000 : 600_000;
   const child = await runPlaywright({ ...spec, ...shape }, output, timeoutMs);
+  currentChild = child;
   requireCondition(child.bounded, "playwright output bound exceeded");
   requireCondition(!child.timedOut, "playwright deadline exceeded");
   requireCondition(child.code === 0, `playwright failed: ${child.stderr.toString("utf8").slice(-2048)}`);
@@ -222,7 +224,15 @@ async function main() {
 
 main().catch(error => {
   if (activeScratch) {
-    writeFileSync(join(activeScratch, "failure.json"), JSON.stringify({ status: "incomplete", error: error instanceof Error ? error.message : String(error) }) + "\n");
+    const diagnostic = currentChild ? {
+      code: currentChild.code,
+      signal: currentChild.signal,
+      timedOut: currentChild.timedOut,
+      bounded: currentChild.bounded,
+      stdout: currentChild.stdout.toString("utf8").slice(-4096),
+      stderr: currentChild.stderr.toString("utf8").slice(-4096),
+    } : null;
+    writeFileSync(join(activeScratch, "failure.json"), JSON.stringify({ status: "incomplete", error: error instanceof Error ? error.message : String(error), diagnostic }) + "\n");
     if (process.env.KEYSPILLI_PERF_KEEP) {
       copyBoundedEvidence({ scratch: activeScratch, keep: process.env.KEYSPILLI_PERF_KEEP, attachment: undefined, trace: findTrace(join(activeScratch, "playwright")) });
     }

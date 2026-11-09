@@ -8,10 +8,10 @@
     "failureSpecSha256": "6bf0c852ff5b7111fae6fa2ab459a15c447a87be4c58306a388a7c394def908e",
     "measurementSpecSha256": "36b06c92adebc56651728ae6ba501fb567ef8d0815dc97350e2ade41666a34e0",
     "pairSha256": "7bd9ac6475bc3524b99c71a59b623426c89dcea62d55f652f926da433759924a",
-    "probeSha256": "34691d25ac987bee8ab530e9f9d5577a1e0f73f70811d0439bfbfd014fa466e3",
+    "probeSha256": "b77ecc1180594ebd8b19d4849cff5ce63aa525e07f1e42c834fbbc4a9c88c445",
     "workflowSha256": "a18db887ad99d482485cb6c0f1e8a687fff0658de04d0b40a2379807a6e39301"
   },
-  "harnessDigest": "8ebd25d45e7e293958ea3003be33f1a464476bf33e83c4ad77023658122fb0b9",
+  "harnessDigest": "57d3ed3db0ebc0d7fc2d16859eaba75b6fbc47733c3ec23d8cd8b9666ff4f13a",
   "id": "T17-span-desktop",
   "inPageWarmups": 2,
   "pairs": {
