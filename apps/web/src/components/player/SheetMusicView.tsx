@@ -10,6 +10,7 @@ import {
   warmMusicXmlWorker,
   type MusicXmlWorkerSession,
 } from "@keyspilli/engrave";
+import { prefetchSheetNavigation } from "@/lib/sheet-navigation-prefetch";
 
 export type SheetRenderMode = "virtual" | "all";
 export type SheetReaderPosition = { zoom: number; page: number; offset: number; scrollLeft: number };
@@ -129,6 +130,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
   useEffect(() => {
     if (suspended) return;
     void warmMusicXmlWorker().catch(() => undefined);
+    void prefetchSheetNavigation(songId);
     let cancelled = false;
     const generation=++renderGenerationRef.current;
     const current=()=>!cancelled&&generation===renderGenerationRef.current;
