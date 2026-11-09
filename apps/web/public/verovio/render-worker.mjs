@@ -278,6 +278,6 @@ function dispatch(event, reply) {
   return pending;
 }
 globalThis.__keyspilliVerovioDispatch = dispatch;
-if (!(typeof ServiceWorkerGlobalScope !== "undefined" && self instanceof ServiceWorkerGlobalScope)) {
+if (!("ServiceWorkerGlobalScope" in globalThis && self instanceof globalThis.ServiceWorkerGlobalScope)) {
   self.onmessage = event => dispatch(event, message => self.postMessage(message));
 }

@@ -1,8 +1,13 @@
-import createVerovioModule from "/verovio/verovio-module.mjs";
 import { VerovioToolkit } from "/verovio/verovio.mjs";
 import "/verovio/render-worker.mjs";
+import { loadServiceWorkerVerovio } from "/verovio/service-worker-verovio-loader.mjs";
 
-globalThis.__keyspilliVerovioFactory = async () => new VerovioToolkit(await createVerovioModule());
+let toolkitPromise = null;
+globalThis.__keyspilliVerovioFactory = () => {
+  toolkitPromise ??= loadServiceWorkerVerovio(fetch, VerovioToolkit, new URL("/verovio/verovio-module.mjs", self.location.origin).href);
+  toolkitPromise.catch(() => { toolkitPromise = null; });
+  return toolkitPromise;
+};
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));

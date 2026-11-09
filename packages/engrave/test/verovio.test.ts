@@ -85,11 +85,18 @@ describe("renderMusicXml", () => {
   });
 });
 
-it("ships the same browser renderer bytes as the pinned independent consumer", () => {
+it("ships the pinned browser renderer plus the exact ServiceWorker compatibility transform", () => {
+  const nodeOnlyImport = 'if(ENVIRONMENT_IS_NODE){const{createRequire}=await import("node:module");var require=createRequire(import.meta.url)}';
+  const serviceWorkerCompatible = 'if(ENVIRONMENT_IS_NODE){const{createRequire}=process.getBuiltinModule("node:module");var require=createRequire(import.meta.url)}';
   for (const [specifier,name] of [["verovio/wasm","verovio-module.mjs"],["verovio/esm","verovio.mjs"]]) {
-    expect(readFileSync(new URL(`../../../apps/web/public/verovio/${name}`,import.meta.url))
-      .equals(readFileSync(new URL(import.meta.resolve(specifier!))))).toBe(true);
+    const shipped=readFileSync(new URL(`../../../apps/web/public/verovio/${name}`,import.meta.url));
+    const pinned=readFileSync(new URL(import.meta.resolve(specifier!)));
+    const expected=name==="verovio-module.mjs"
+      ? Buffer.from(pinned.toString("utf8").replace(nodeOnlyImport,serviceWorkerCompatible),"utf8")
+      : pinned;
+    expect(shipped.equals(expected)).toBe(true);
   }
+  expect(readFileSync(new URL("../../../apps/web/public/verovio/verovio-module.mjs",import.meta.url),"utf8")).not.toContain('import("node:module")');
 });
 
 it("keeps the main-thread fallback page-at-a-time, locates IDs and destroys its owned renderer",async()=>{
