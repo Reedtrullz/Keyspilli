@@ -67,7 +67,7 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
       });
       await cdp.send("Network.enable");
       await page.addInitScript(forced => {
-        const state = window as unknown as Record<string, number | number[]>;
+        const state = window as unknown as Record<string, number | number[] | boolean | null>;
         state.__longTasks = [];
         if (PerformanceObserver.supportedEntryTypes.includes("longtask")) {
           new PerformanceObserver(list => (state.__longTasks as number[]).push(...list.getEntries().map(entry => entry.duration)))
@@ -77,9 +77,11 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
         const originalStart = OscillatorNode.prototype.start;
         OscillatorNode.prototype.start = function (when?: number) { state.__firstScheduledNote ??= performance.now(); return originalStart.call(this, when); };
         if (forced === "main") {
+          if (navigator.serviceWorker) Object.defineProperty(navigator.serviceWorker, "register", { configurable: true, value: () => Promise.reject(new Error("Controlled service-worker unavailability")) });
           Object.defineProperty(window, "Worker", { configurable: true, value: class { constructor() { throw new Error("Controlled worker unavailability"); } } });
           return;
         }
+        if (navigator.serviceWorker) navigator.serviceWorker.addEventListener("controllerchange", () => { state.__serviceWorkerControlled = Boolean(navigator.serviceWorker.controller); });
         const NativeWorker = window.Worker;
         const MeasuredWorker = new Proxy(NativeWorker, {
           construct(target, args: [string | URL, WorkerOptions?]) {
@@ -189,17 +191,19 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
       expect(pdf.ok()).toBe(true);
       const pdfBytes = await pdf.body();
       const pdfMs = performance.now() - pdfStart;
-      const directWorkerTiming = await page.evaluate(() => {
-        const state = window as unknown as Record<string, number | undefined>;
-        return { created: state.__workerCreatedAt ?? null, opened: state.__workerOpenAt ?? null, prepared: state.__workerPreparedAt ?? null, firstPage: state.__workerFirstPageAt ?? null };
+      const directWorkerTiming = await page.evaluate(async () => {
+        const state = window as unknown as Record<string, number | boolean | string | undefined>;
+        const registration = await navigator.serviceWorker?.getRegistration();
+        return { created: state.__workerCreatedAt ?? null, opened: state.__workerOpenAt ?? null, prepared: state.__workerPreparedAt ?? null, firstPage: state.__workerFirstPageAt ?? null, renderer: state.__sheetRenderer ?? null, serviceWorkerActive: Boolean(registration?.active), serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller) };
       });
       const resources = await page.evaluate(() => performance.getEntriesByType("resource").map(entry => {
         const resource = entry as PerformanceResourceTiming;
         return { name: resource.name, initiatorType: resource.initiatorType, durationMs: resource.duration, transferSize: resource.transferSize, encodedBodySize: resource.encodedBodySize };
       }).filter(entry => entry.name.includes("/verovio/") || entry.name.includes("/api/v1/sheet/") || entry.name.includes("/export?")));
       const memory = await page.evaluate(() => ({ heapBytes: (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? null }));
-      expect(directWorkerTiming.opened !== null).toBe(renderer === "worker");
-      expect(observedPaths).toContain("/verovio/verovio-module.mjs");
+      expect(directWorkerTiming.renderer).toBe(renderer);
+      if (renderer === "worker") expect(directWorkerTiming.opened !== null || directWorkerTiming.serviceWorkerActive).toBe(true);
+      expect(observedPaths.includes("/verovio/verovio-module.mjs") || directWorkerTiming.serviceWorkerActive).toBe(true);
       samples.push({
         renderer, sample, libraryMs: library, playerViewMs, firstScheduledNoteMs,
         inPageFirstSheetMs, inPageWarmSheetMs, sheetMs: sheet, pdfMs, pageCount: count, retention,

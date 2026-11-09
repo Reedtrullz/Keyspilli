@@ -5,13 +5,13 @@
     "compareSha256": "7dc3258e6d9b461a0d5925d3ce156fd1c2244bfe4158298f14e69d99f7d7d4d9",
     "evidenceModuleSha256": "1c6b90d9adaa9c94aca8742b733183b53b61267d52a38855ef00a8202c0aaeae",
     "failureSha256": "cc8f101bf060b092532687102be08e5adebfc53d38a9b29d8195396dde989791",
-    "failureSpecSha256": "1882898943558bec7e78e3efa73109e07dd77b6133be35ba39a0ff25b27df240",
-    "measurementSpecSha256": "3176bc6779459e524a3a468c96eaf563fcd327f312a62e8470cd257fbbfd6903",
+    "failureSpecSha256": "a05dc5651867f55d10266d097a7afce3fec5567dc0dcbacd5fe1523b4bb6b83b",
+    "measurementSpecSha256": "c8f620478ac6c088bcff6378ae792b651fcb615cbe6f1788cc1cec1d0c649e91",
     "pairSha256": "7bd9ac6475bc3524b99c71a59b623426c89dcea62d55f652f926da433759924a",
     "probeSha256": "34691d25ac987bee8ab530e9f9d5577a1e0f73f70811d0439bfbfd014fa466e3",
-    "workflowSha256": "c0f44b5a847f19528a4b12e362169790758f18f31651df03e65d4eb43b53ca48"
+    "workflowSha256": "e351ca1fd753193afddd753ca991b15387f868609fe928f64a869f247fc30a8d"
   },
-  "harnessDigest": "173ec05301cde280ed31334051eef40b3d128090a3d61a40262a4448dec7ca80",
+  "harnessDigest": "b5c9c33dce896005b16ee444ac8c142315441e89b9f49e3fd746f8ed7d3c22e6",
   "id": "T17-span-desktop",
   "inPageWarmups": 2,
   "pairs": {
@@ -121,8 +121,8 @@
       "tree": "91f728ce93ea89938261f2e3ab86c06a8cebdbe2"
     },
     "candidate": {
-      "head": "2d3c040871d3028dd9d4da5182a05399010623e4",
-      "tree": "b3acd819fae278584d1c5026ec4287c76de985f8"
+      "head": "e5ef6a8e293a24e78e3f5011c81c25fac8264a15",
+      "tree": "294974bceedb9f54376f5e8c4a4a2af24bbbb3e6"
     }
   },
   "task": 17
