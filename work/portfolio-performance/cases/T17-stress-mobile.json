@@ -9,9 +9,9 @@
     "measurementSpecSha256": "c8f620478ac6c088bcff6378ae792b651fcb615cbe6f1788cc1cec1d0c649e91",
     "pairSha256": "7bd9ac6475bc3524b99c71a59b623426c89dcea62d55f652f926da433759924a",
     "probeSha256": "34691d25ac987bee8ab530e9f9d5577a1e0f73f70811d0439bfbfd014fa466e3",
-    "workflowSha256": "e351ca1fd753193afddd753ca991b15387f868609fe928f64a869f247fc30a8d"
+    "workflowSha256": "060d034cbaa93dd05b7418430741d50ed99d802597fdb696e45d07efea87ca75"
   },
-  "harnessDigest": "b5c9c33dce896005b16ee444ac8c142315441e89b9f49e3fd746f8ed7d3c22e6",
+  "harnessDigest": "250ec54ff19655dedc19bcfaa11ea32111ea4fcc4c2b68317fe1321f1701ba20",
   "id": "T17-stress-mobile",
   "inPageWarmups": 2,
   "pairs": {
@@ -121,8 +121,8 @@
       "tree": "91f728ce93ea89938261f2e3ab86c06a8cebdbe2"
     },
     "candidate": {
-      "head": "e5ef6a8e293a24e78e3f5011c81c25fac8264a15",
-      "tree": "294974bceedb9f54376f5e8c4a4a2af24bbbb3e6"
+      "head": "e7880a7cc6eb199d3d8fab894a5bd1ba4f73cac9",
+      "tree": "f068c949a61484d4c0a95e9d97cc76c5d1c23ef4"
     }
   },
   "task": 17
