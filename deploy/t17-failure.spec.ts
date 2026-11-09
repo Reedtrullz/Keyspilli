@@ -25,7 +25,7 @@ async function install(browser: import("@playwright/test").Browser, renderer: "w
   await page.addInitScript(forced => {
     localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth", hand: "both" }));
     if (forced === "main") {
-      if (navigator.serviceWorker) Object.defineProperty(navigator.serviceWorker, "register", { configurable: true, value: () => Promise.reject(new Error("Controlled service-worker unavailability")) });
+      Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
       Object.defineProperty(window, "Worker", { configurable: true, value: class { constructor() { throw new Error("Controlled worker unavailability"); } } });
     }
   }, renderer);

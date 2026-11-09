@@ -77,7 +77,7 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
         const originalStart = OscillatorNode.prototype.start;
         OscillatorNode.prototype.start = function (when?: number) { state.__firstScheduledNote ??= performance.now(); return originalStart.call(this, when); };
         if (forced === "main") {
-          if (navigator.serviceWorker) Object.defineProperty(navigator.serviceWorker, "register", { configurable: true, value: () => Promise.reject(new Error("Controlled service-worker unavailability")) });
+          Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
           Object.defineProperty(window, "Worker", { configurable: true, value: class { constructor() { throw new Error("Controlled worker unavailability"); } } });
           return;
         }
