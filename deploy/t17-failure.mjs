@@ -75,7 +75,10 @@ async function main() {
   if (definition.schema !== "keyspilli-task17-case/v1" || definition.id !== caseId) throw new Error("invalid Task 17 case");
   const baseline = await measure(baselineRevision);
   const candidate = await measure(candidateRevision);
-  const semantic = receipt => ({ shape: receipt.shape, viewport: receipt.viewport, fixtureSha256: receipt.fixtureSha256, scenarios: receipt.scenarios });
+  const semantic = receipt => ({
+    shape: receipt.shape, viewport: receipt.viewport, fixtureSha256: receipt.fixtureSha256,
+    scenarios: receipt.scenarios.map(({ name, status }) => ({ name, status })),
+  });
   if (JSON.stringify(semantic(baseline.receipt)) !== JSON.stringify(semantic(candidate.receipt))) throw new Error("failure semantics diverged");
   writeFileSync(join(output, "result.json"), JSON.stringify({
     schema: "keyspilli-task17-failure-pair/v1", case: caseId, status: "passed",

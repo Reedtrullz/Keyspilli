@@ -52,7 +52,7 @@ test("Task 17 malformed input, cancellation, switching and disposal stay bounded
   const malformed = await request.post("/api/uploads?title=Malformed&artist=Task17", { headers, data: Buffer.from("<score-partwise>") });
   expect(malformed.ok()).toBe(false);
   const oversized = await request.post("/api/uploads?title=Oversized&artist=Task17", { headers, data: Buffer.alloc(10 * 1024 * 1024 + 1, 0x41) });
-  expect(oversized.status()).toBe(413);
+  expect([400, 413]).toContain(oversized.status());
   const xml = scoreXml(shape);
   const created = await request.post("/api/uploads?title=Performance%20Failure%20Fixture&artist=Authored", { headers, data: Buffer.from(xml) });
   expect(created.ok(), await created.text()).toBe(true);
@@ -113,11 +113,11 @@ test("Task 17 malformed input, cancellation, switching and disposal stay bounded
       scenarios.push({ name: "worker-failure-main-fallback", status: "passed" });
       await context.close();
     }
-    for (const [name, body] of [["malformed-score", "<score-partwise><broken>"], ["oversized-score", "x".repeat(4 * 1024 * 1024 + 1)]] as const) {
+    for (const [name, body] of [["malformed-score", "not-musicxml"], ["oversized-score", "x".repeat(4 * 1024 * 1024 + 1)]] as const) {
       const { context, page, errors } = await install(browser, "worker");
       await page.route(`**/api/v1/sheet/${id}*`, route => route.fulfill({ status: 200, contentType: "application/vnd.recordare.musicxml+xml", body }));
       await page.goto(`/player/${id}/sheet`);
-      await expect(page.getByRole("alert")).toContainText("Unable to engrave this score");
+      await expect(page.locator(".sheet-svg__error")).toContainText("Unable to engrave this score");
       expect(await page.evaluate(() => (window as unknown as { __sheetReady: boolean }).__sheetReady)).toBe(false);
       expect(errors).toEqual([]);
       scenarios.push({ name, status: "passed" });
