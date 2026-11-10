@@ -9,9 +9,9 @@
     "measurementSpecSha256": "5f4fcd9373fe630554a4011aa591be19c3b85544e1801716c3d974acc0856aa1",
     "pairSha256": "7bd9ac6475bc3524b99c71a59b623426c89dcea62d55f652f926da433759924a",
     "probeSha256": "afd64f8fbf01d2500073b6008f98f65481bde314c0085571e9058965b5fcf5a7",
-    "workflowSha256": "f3ab55d76594bd850b76d0f1b2e9ea56789e89444112fd5c8406351862209f61"
+    "workflowSha256": "ced75852d5fb599fdabb7f72f57a6c3159ecf19de5c3371174818ef847deeda6"
   },
-  "harnessDigest": "0bd591328989a78ceae04aec823e1b1e5f1cae94a8ee0d8927e0fefd8b249b03",
+  "harnessDigest": "03fbfe82fbff4992de4b2ee7d6faae05964d01753c07033917c2b8e39503f725",
   "id": "T17-small-desktop",
   "inPageWarmups": 2,
   "pairs": {
