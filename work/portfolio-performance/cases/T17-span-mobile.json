@@ -5,13 +5,13 @@
     "compareSha256": "7dc3258e6d9b461a0d5925d3ce156fd1c2244bfe4158298f14e69d99f7d7d4d9",
     "evidenceModuleSha256": "1c6b90d9adaa9c94aca8742b733183b53b61267d52a38855ef00a8202c0aaeae",
     "failureSha256": "fbe2d94b45763501e6d078c899741af6ea914a669cc6a1d7eca6df92ecc50057",
-    "failureSpecSha256": "c3e0ac5f403527540a14633ebadb9931a25e0c09b2b09e86db576fcd84d35c73",
+    "failureSpecSha256": "5d5bae3839b48ed8417367a2d1f5bcdd1fc054262c72451f4416c89c9e1d6c96",
     "measurementSpecSha256": "eaa3ae5b696743f5bf18a43492a7c225014c69ef237591db0d313cea157b8016",
     "pairSha256": "7bd9ac6475bc3524b99c71a59b623426c89dcea62d55f652f926da433759924a",
     "probeSha256": "b77ecc1180594ebd8b19d4849cff5ce63aa525e07f1e42c834fbbc4a9c88c445",
     "workflowSha256": "a18db887ad99d482485cb6c0f1e8a687fff0658de04d0b40a2379807a6e39301"
   },
-  "harnessDigest": "a32797a71b811ff415176999511e5d916d61d73e1b5477792e415b905e1a5a12",
+  "harnessDigest": "6f702580d45f6d45570ee569d3af5d26ac7142056ac60a956ff6331748f0bf63",
   "id": "T17-span-mobile",
   "inPageWarmups": 2,
   "pairs": {

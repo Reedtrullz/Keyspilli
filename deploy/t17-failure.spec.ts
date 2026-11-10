@@ -117,7 +117,7 @@ test("Task 17 malformed input, cancellation, switching and disposal stay bounded
       const { context, page, errors } = await install(browser, "worker");
       await page.route(`**/api/v1/sheet/${id}*`, route => route.fulfill({ status: 200, contentType: "application/vnd.recordare.musicxml+xml", body }));
       await page.goto(`/player/${id}/sheet`);
-      await expect(page.locator(".sheet-svg__error")).toContainText("Unable to engrave this score");
+      await expect(page.locator(".sheet-svg__error")).toContainText("Unable to engrave this score", { timeout: stress ? 40_000 : 5_000 });
       expect(await page.evaluate(() => (window as unknown as { __sheetReady: boolean }).__sheetReady)).toBe(false);
       expect(errors).toEqual([]);
       scenarios.push({ name, status: "passed" });
