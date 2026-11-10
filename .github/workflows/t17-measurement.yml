@@ -15,7 +15,7 @@ concurrency:
 
 env:
   BASELINE_COMMIT: edb7d0c7b56d9f7a0e020893cf363a05b18a681d
-  CANDIDATE_COMMIT: d610e0b006b6b7d9434731e6ff8e6d11ca0df13f
+  CANDIDATE_COMMIT: 89e7f3233b4e54eaf117198cdb6aba740a975dc0
   NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:
@@ -78,7 +78,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: true
-      max-parallel: 8
+      max-parallel: 1
       matrix:
         include:
           - {case: T17-small-mobile, job: T17-small-mobile__pilot__0}

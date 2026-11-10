@@ -6,12 +6,12 @@
     "evidenceModuleSha256": "1c6b90d9adaa9c94aca8742b733183b53b61267d52a38855ef00a8202c0aaeae",
     "failureSha256": "fbe2d94b45763501e6d078c899741af6ea914a669cc6a1d7eca6df92ecc50057",
     "failureSpecSha256": "5d5bae3839b48ed8417367a2d1f5bcdd1fc054262c72451f4416c89c9e1d6c96",
-    "measurementSpecSha256": "eaa3ae5b696743f5bf18a43492a7c225014c69ef237591db0d313cea157b8016",
+    "measurementSpecSha256": "5f4fcd9373fe630554a4011aa591be19c3b85544e1801716c3d974acc0856aa1",
     "pairSha256": "7bd9ac6475bc3524b99c71a59b623426c89dcea62d55f652f926da433759924a",
-    "probeSha256": "b77ecc1180594ebd8b19d4849cff5ce63aa525e07f1e42c834fbbc4a9c88c445",
-    "workflowSha256": "db89c0c0a0203cd8cfbd743db4f6718e280d0a99d61f0a46ca44b988dae01f1a"
+    "probeSha256": "afd64f8fbf01d2500073b6008f98f65481bde314c0085571e9058965b5fcf5a7",
+    "workflowSha256": "f3ab55d76594bd850b76d0f1b2e9ea56789e89444112fd5c8406351862209f61"
   },
-  "harnessDigest": "5c33c1bf71f3eeb2c50f040983666ab43441112fe2339718a4fc699ea39da5cc",
+  "harnessDigest": "0bd591328989a78ceae04aec823e1b1e5f1cae94a8ee0d8927e0fefd8b249b03",
   "id": "T17-small-mobile",
   "inPageWarmups": 2,
   "pairs": {
@@ -160,8 +160,8 @@
       "tree": "91f728ce93ea89938261f2e3ab86c06a8cebdbe2"
     },
     "candidate": {
-      "head": "d610e0b006b6b7d9434731e6ff8e6d11ca0df13f",
-      "tree": "718b2a29824cd3876071aa2b3018dc74b9535829"
+      "head": "89e7f3233b4e54eaf117198cdb6aba740a975dc0",
+      "tree": "8ffba37f9a0428f9910792c154408b14b2db7715"
     }
   },
   "task": 17

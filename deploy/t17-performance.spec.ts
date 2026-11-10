@@ -28,6 +28,39 @@ function sha(value: Uint8Array | string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
+async function waitForSheetIdle(page: import("@playwright/test").Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const state = window as unknown as { __workerPending?: number; __workerIdleSince?: number; __lastLongTaskAt?: number };
+    const quietSince = Math.max(state.__workerIdleSince ?? 0, state.__lastLongTaskAt ?? 0);
+    return (state.__workerPending ?? 0) === 0 && performance.now() - quietSince >= 1_500;
+  }, undefined, { timeout: 30_000 });
+  await page.evaluate(async () => {
+    const worker = navigator.serviceWorker?.controller;
+    if (!worker) return;
+    await new Promise<void>((resolve, reject) => {
+      const channel = new MessageChannel();
+      const timer = setTimeout(() => {
+        channel.port1.close();
+        reject(new Error("Verovio worker did not become idle"));
+      }, 30_000);
+      channel.port1.onmessage = () => {
+        clearTimeout(timer);
+        channel.port1.close();
+        resolve();
+      };
+      channel.port1.start();
+      worker.postMessage({ id: 2_147_483_647, type: "warm" }, [channel.port2]);
+    });
+    const state = window as unknown as { __workerIdleSince?: number };
+    state.__workerIdleSince = performance.now();
+  });
+  await page.waitForFunction(() => {
+    const state = window as unknown as { __workerPending?: number; __workerIdleSince?: number; __lastLongTaskAt?: number };
+    const quietSince = Math.max(state.__workerIdleSince ?? 0, state.__lastLongTaskAt ?? 0);
+    return (state.__workerPending ?? 0) === 0 && performance.now() - quietSince >= 1_500;
+  }, undefined, { timeout: 30_000 });
+}
+
 test("record local library, playback, sheet, PDF and retained-page baselines", async ({ browser, request }, info) => {
   test.setTimeout(stress ? 600_000 : 180_000);
   const xml = fixtureXml();
@@ -71,13 +104,29 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
       await page.addInitScript(forced => {
         const state = window as unknown as Record<string, number | number[] | boolean | null>;
         state.__longTasks = [];
+        state.__workerPending = 0;
+        state.__workerIdleSince = performance.now();
+        state.__lastLongTaskAt = 0;
         if (PerformanceObserver.supportedEntryTypes.includes("longtask")) {
-          new PerformanceObserver(list => (state.__longTasks as number[]).push(...list.getEntries().map(entry => entry.duration)))
+          new PerformanceObserver(list => {
+            state.__lastLongTaskAt = performance.now();
+            (state.__longTasks as number[]).push(...list.getEntries().map(entry => entry.duration));
+          })
             .observe({ type: "longtask", buffered: true });
         }
         localStorage.setItem("keyspilli.prefs.v1", JSON.stringify({ soundSource: "synth", hand: "both" }));
+        window.addEventListener("click", event => {
+          if (!event.isTrusted || state.__t17PlayClickAt !== undefined) return;
+          const button = event.composedPath().find(target => target instanceof HTMLButtonElement);
+          if (button instanceof HTMLButtonElement && (button.getAttribute("aria-label") ?? button.textContent?.trim()) === "Play") {
+            state.__t17PlayClickAt = event.timeStamp;
+          }
+        }, true);
         const originalStart = OscillatorNode.prototype.start;
-        OscillatorNode.prototype.start = function (when?: number) { state.__firstScheduledNote ??= performance.now(); return originalStart.call(this, when); };
+        OscillatorNode.prototype.start = function (when?: number) {
+          if (typeof state.__t17PlayClickAt === "number") state.__firstScheduledNote ??= performance.now();
+          return originalStart.call(this, when);
+        };
         if (forced === "main") {
           Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: undefined });
           Object.defineProperty(window, "Worker", { configurable: true, value: class { constructor() { throw new Error("Controlled worker unavailability"); } } });
@@ -90,6 +139,10 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
             const worker = Reflect.construct(target, args) as Worker;
             state.__workerCreatedAt = performance.now();
             worker.addEventListener("message", event => {
+              if (typeof event.data?.id === "number") {
+                state.__workerPending = Math.max(0, Number(state.__workerPending ?? 0) - 1);
+                if (state.__workerPending === 0) state.__workerIdleSince = performance.now();
+              }
               if (event.data?.type === "prepared") state.__workerPreparedAt = performance.now();
               if (event.data?.type === "page" && event.data.page === 1) state.__workerFirstPageAt = performance.now();
             });
@@ -97,6 +150,10 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
             Object.defineProperty(worker, "postMessage", {
               configurable: true,
               value: (message: unknown, transfer?: Transferable[]) => {
+                if (typeof (message as { id?: number } | undefined)?.id === "number") {
+                  state.__workerPending = Number(state.__workerPending ?? 0) + 1;
+                  state.__workerIdleSince = null;
+                }
                 if ((message as { type?: string } | undefined)?.type === "open") state.__workerOpenAt = performance.now();
                 transfer ? postMessage(message, transfer) : postMessage(message);
               },
@@ -124,10 +181,17 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
       await page.goto(`/player/${id}/beginner`);
       await expect(page.getByRole("button", { name: /^View\s*Note letters$/ })).toBeVisible();
       const playerViewMs = performance.now() - playerStart;
-      const noteStart = await page.evaluate(() => performance.now());
       await page.getByRole("button", { name: "Play", exact: true }).click();
       await expect.poll(() => page.evaluate(() => (window as unknown as { __firstScheduledNote?: number }).__firstScheduledNote ?? 0)).toBeGreaterThan(0);
-      const firstScheduledNoteMs = await page.evaluate(start => (window as unknown as { __firstScheduledNote: number }).__firstScheduledNote - start, noteStart);
+      const firstScheduledNoteMs = await page.evaluate(() => {
+        const { __t17PlayClickAt: click, __firstScheduledNote: note } = window as unknown as {
+          __t17PlayClickAt?: number; __firstScheduledNote?: number;
+        };
+        if (click === undefined || note === undefined || !Number.isFinite(click) || !Number.isFinite(note) || click <= 0 || note < click) {
+          throw new Error("missing or invalid Play click/oscillator timing");
+        }
+        return note - click;
+      });
       const playerLongTasks = await takeLongTasks();
 
       const openSheet = async () => {
@@ -188,6 +252,7 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
         retention.push(current);
       }
 
+      await waitForSheetIdle(page);
       const pdfStart = performance.now();
       const pdf = await request.get(`/api/song/${id}/export?type=pdf&layout=classic&revision=${receipt.publicationRevision}`);
       expect(pdf.ok()).toBe(true);
@@ -202,7 +267,10 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
         const resource = entry as PerformanceResourceTiming;
         return { name: resource.name, initiatorType: resource.initiatorType, durationMs: resource.duration, transferSize: resource.transferSize, encodedBodySize: resource.encodedBodySize };
       }).filter(entry => entry.name.includes("/verovio/") || entry.name.includes("/api/v1/sheet/") || entry.name.includes("/export?")));
-      const memory = await page.evaluate(() => ({ heapBytes: (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? null }));
+      await cdp.send("HeapProfiler.collectGarbage");
+      const { usedSize: heapBytes } = await cdp.send("Runtime.getHeapUsage");
+      expect(Number.isFinite(heapBytes) && heapBytes > 0).toBe(true);
+      const memory = { heapBytes };
       expect(directWorkerTiming.renderer).toBe(renderer);
       if (renderer === "worker") expect(directWorkerTiming.opened !== null || directWorkerTiming.serviceWorkerActive).toBe(true);
       expect(observedPaths.includes("/verovio/verovio-module.mjs") || directWorkerTiming.serviceWorkerActive).toBe(true);
@@ -226,9 +294,9 @@ test("record local library, playback, sheet, PDF and retained-page baselines", a
     }
     const output = info.outputPath(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json");
     await writeFile(output, JSON.stringify({
-      schemaVersion: 2, engravingVersion: "6.3.0", runtime: process.version, browser: browser.version(), viewport,
+      schemaVersion: 3, engravingVersion: "6.3.0", runtime: process.version, browser: browser.version(), viewport,
       fixture, sampleCount: samples.length, samples,
-      limitations: ["Local Chromium; audio scheduled, not speaker latency", "String bytes and Chromium heap exclude WASM/native memory", "No device or production budget adopted", "Browser timestamps are not CPU profiles"],
+      limitations: ["Local Chromium; trusted Play click to first oscillator scheduling, not speaker latency", "Live page JavaScript heap after GC; excludes WASM/native memory and separate worker isolates", "No device or production budget adopted", "Browser timestamps are not CPU profiles"],
     }, null, 2));
     await info.attach(span ? "performance-span.json" : stress ? "performance-stress.json" : "performance-baseline.json", { path: output, contentType: "application/json" });
   } finally {

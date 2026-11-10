@@ -130,7 +130,7 @@ function collectMetrics(samples, renderers, expectedSamples) {
     metrics[`${renderer}_sheet_long_task_ms`] = metric(rows.map(row => row.longTasks?.sheet?.durationMs));
     metrics[`${renderer}_max_retained_pages`] = metric(rows.map(row => Math.max(...row.retention.map(item => item.pages))), "count");
     metrics[`${renderer}_max_retained_svg_bytes`] = metric(rows.map(row => Math.max(...row.retention.map(item => item.estimatedStringBytes))), "bytes");
-    metrics[`${renderer}_heap_bytes`] = metric(rows.map(row => row.memory?.heapBytes ?? 0), "bytes");
+    metrics[`${renderer}_heap_bytes`] = metric(rows.map(row => row.memory?.heapBytes), "bytes");
     metrics[`${renderer}_transferred_bytes`] = metric(rows.map(row => Object.values(row.transferredBytes ?? {}).reduce((sum, value) => sum + value, 0)), "bytes");
   }
   return metrics;
@@ -171,6 +171,7 @@ async function main() {
   const trace = traces[0];
   const attachment = readFileSync(matches[0]);
   const result = JSON.parse(attachment.toString("utf8"));
+  requireCondition(result.schemaVersion === 3, "wrong measurement contract; require click-to-note and live post-GC heap");
   requireCondition(result.viewport?.width === Number(shape.viewport.split("x")[0]) && result.viewport?.height === Number(shape.viewport.split("x")[1]), "viewport mismatch");
   requireCondition(result.fixture?.notes === spec.notes && result.fixture?.measures === spec.measures && result.fixture?.sha256 === request.fixtureDigest, "fixture mismatch");
   requireCondition(Array.isArray(result.samples) && result.samples.length === spec.samples && result.sampleCount === spec.samples, "sample count mismatch");
@@ -182,6 +183,7 @@ async function main() {
   }
   for (const row of result.samples) {
     requireCondition(row.renderer === "worker" || row.renderer === "main", "unknown renderer");
+    requireCondition(Number.isFinite(row.memory?.heapBytes) && row.memory.heapBytes > 0, "missing live post-GC heap");
     requireCondition(row.retention?.every(item => item.renderer === row.renderer && item.pages <= 5 && item.estimatedStringBytes <= 4 * 1024 * 1024 && item.fallbackBytes === 0), "retention or renderer proof failed");
   }
   const metrics = collectMetrics(result.samples, renderers, spec.samples);
