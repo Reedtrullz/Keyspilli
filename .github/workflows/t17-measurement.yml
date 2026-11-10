@@ -78,7 +78,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: true
-      max-parallel: 1
+      max-parallel: 8
       matrix:
         include:
           - {case: T17-small-mobile, job: T17-small-mobile__pilot__0}
