@@ -97,8 +97,7 @@ async function loadVerovio() {
     }
     const moduleUrl = new URL("./verovio-module.mjs", import.meta.url).href;
     const toolkitUrl = new URL("./verovio.mjs", import.meta.url).href;
-    const createVerovioModule = await import(moduleUrl);
-    const { VerovioToolkit } = await import(toolkitUrl);
+    const [createVerovioModule, { VerovioToolkit }] = await Promise.all([import(moduleUrl), import(toolkitUrl)]);
     const verovioModule = await createVerovioModule.default();
     return new VerovioToolkit(verovioModule);
   })();

@@ -117,7 +117,7 @@ describe("song export route PDF failures", () => {
 
     const response = await GET(requestFor("type=pdf&layout=classic"), { params });
 
-    expect(page.goto).toHaveBeenCalledWith(expect.stringContaining("revision=revision-a"), { waitUntil: "networkidle" });
+    expect(page.goto).toHaveBeenCalledWith(expect.stringContaining("revision=revision-a&capture=pdf"), { waitUntil: "domcontentloaded" });
     expect(response.status).toBe(200);
     expect(response.headers.get("x-publication-revision")).toBe("revision-a");
   });

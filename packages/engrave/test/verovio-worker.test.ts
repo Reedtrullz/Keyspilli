@@ -120,6 +120,24 @@ describe("renderMusicXmlPagesInWorker", () => {
     ]);
   });
 
+  it("starts a capture worker without waiting for service worker registration", async () => {
+    const getRegistration = vi.fn(() => new Promise<never>(() => {}));
+    Object.defineProperty(globalThis, "navigator", { configurable: true, value: { serviceWorker: { getRegistration } } });
+    Object.defineProperty(globalThis, "Worker", { configurable: true, writable: true, value: FakeWorker });
+    vi.resetModules();
+    const { warmMusicXmlWorker, openMusicXmlInWorker } = await import("../src/verovio-worker.js");
+    const policy = { dedicated: true };
+
+    const [session] = await Promise.all([
+      openMusicXmlInWorker("<score/>", {}, policy),
+      warmMusicXmlWorker(policy),
+    ]);
+    expect(await session.renderPage(1)).toContain("<svg");
+    await session.close();
+    expect(getRegistration).not.toHaveBeenCalled();
+    expect(FakeWorker.instances).toHaveLength(1);
+  });
+
   it("disposes a worker after warm failure and opens with a fresh worker", async () => {
     class FailingWarmWorker extends FakeWorker {
       static failWarm = true;

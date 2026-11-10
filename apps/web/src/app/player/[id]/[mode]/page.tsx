@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import React from "react";
 import { notFound } from "next/navigation";
+import { preload } from "react-dom";
+import { sheetMusicUrl } from "@/lib/sheet-music-url";
 import { getSongDetail, getSongDetailShell } from "@/lib/catalog-api";
 import { Player, type PlayerDetail, type PlayerShell } from "@/components/player/Player";
 import { levelLabel } from "../../../../components/level-labels";
@@ -28,6 +30,7 @@ export default async function PlayerModePage({ params }: { params: Promise<{ id:
   if (mode === "sheet") {
     const shell = await getSongDetailShell(id);
     if (!shell) notFound();
+    if (shell.song.hasSheetXml === 1) preload(sheetMusicUrl(shell.song.id, shell.publicationRevision), { as: "fetch", crossOrigin: "anonymous" });
     return <Player initial={shell as PlayerShell} mode="sheet" />;
   }
 

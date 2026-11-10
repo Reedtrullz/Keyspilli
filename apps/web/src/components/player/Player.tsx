@@ -3121,6 +3121,7 @@ function PlayerShellView({ initial, mode, versionControls }: { initial: PlayerSh
               <Link
                 key={variant.id}
                 href={`/player/${variant.id}`}
+                prefetch={false}
                 className={`px-3 py-2 rounded-full text-sm border ${variant.id === initial.song.id ? "bg-zinc-900 text-white border-zinc-900" : "border-zinc-300 hover:bg-zinc-100"}`}
               >
                 {levelLabel(variant.difficulty)}

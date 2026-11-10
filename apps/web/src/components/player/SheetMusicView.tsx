@@ -1,5 +1,6 @@
 "use client";
 import {retainSheetPages,SHEET_WINDOW_BYTES,SHEET_PRINT_BYTES} from "./sheet-pages";
+import { sheetMusicUrl } from "@/lib/sheet-music-url";
 
 import type { Note, MeasureInfo } from "@keyspilli/midi";
 import type { ScoreMeasure } from "./sheet-navigation";
@@ -33,17 +34,18 @@ type SheetMusicViewProps = {
    * surfaces must opt into `all` so page layout is complete before capture.
    */
   renderMode?: SheetRenderMode;
+  pdfCapture?: boolean;
 };
 
 type PageMap = Record<number, string>;
 
 // Preserve the actual SVG nodes (and keyboard focus) when neighboring pages update.
-const SheetPage = memo(function SheetPage({svg, page, count, zoom, dimensions, virtual}: {svg?:string;page:number;count:number;zoom:number;dimensions:{width:number;height:number};virtual:boolean}) {
+const SheetPage = memo(function SheetPage({svg, pdfImage, page, count, zoom, dimensions, virtual}: {svg?:string;pdfImage?:string;page:number;count:number;zoom:number;dimensions:{width:number;height:number};virtual:boolean}) {
   const html = useMemo(()=>svg?{__html:svg}:undefined,[svg]);
-  return <div className={`sheet-svg__page${svg?"":" sheet-svg__page--placeholder"}${svg&&virtual?" motion-scale-in":""}`}
+  return <div className={`sheet-svg__page${svg || pdfImage ? "" : " sheet-svg__page--placeholder"}${svg&&virtual?" motion-scale-in":""}`}
     data-page={page} role="group" aria-label={`Sheet music page ${page} of ${count}`} aria-posinset={page} aria-setsize={count}
     style={{...(virtual?{width:`${zoom}%`,alignSelf:"flex-start"}:{}),"--sheet-page-aspect":`${dimensions.width} / ${dimensions.height}`} as CSSProperties}
-    {...(html?{dangerouslySetInnerHTML:html}:{children:<span className="sheet-svg__page-status">Preparing page {page}…</span>})} />;
+    {...(pdfImage ? {children: <img alt="" data-pdf-svg="true" style={{display:"block",width:"100%"}} src={pdfImage} />} : html ? {dangerouslySetInnerHTML:html} : {children:<span className="sheet-svg__page-status">Preparing page {page}…</span>})} />;
 });
 
 const PAGE_RADIUS = 1;
@@ -80,7 +82,7 @@ function updateSheetState(values: Record<string, unknown>): void {
   Object.assign(window as unknown as Record<string, unknown>, values);
 }
 
-export function SheetMusicView({ suspended = false, songId, publicationRevision, renderMode = "virtual", initialPosition, interaction }: SheetMusicViewProps) {
+export function SheetMusicView({ suspended = false, songId, publicationRevision, renderMode = "virtual", pdfCapture = false, initialPosition, interaction }: SheetMusicViewProps) {
   const [zoom, setZoom] = useState(initialPosition?.zoom ?? 100);
   const restoredPositionRef = useRef(false);
   const manualScoreNavigationRef = useRef(false);
@@ -128,8 +130,11 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
 
   useEffect(() => {
     if (suspended) return;
-    void warmMusicXmlWorker().catch(() => undefined);
+    const workerOptions = { dedicated: pdfCapture };
+    void warmMusicXmlWorker(workerOptions).catch(() => undefined);
     let cancelled = false;
+    const pdfImages: PageMap = {};
+    let pdfSvgBytes = 0;
     const generation=++renderGenerationRef.current;
     const current=()=>!cancelled&&generation===renderGenerationRef.current;
     requestRef.current?.abort();
@@ -167,7 +172,13 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
     const markPage = (page: number, svg: string) => {
       if (!current()) return;
       const range=renderMode==='all'?{start:1,end:2048}:windowRef.current;
-      loadedPagesRef.current=retainSheetPages(loadedPagesRef.current,range.start,range.end,page,svg,renderMode==='all'?SHEET_PRINT_BYTES:SHEET_WINDOW_BYTES);
+      if (pdfCapture) {
+        pdfSvgBytes += svg.length * 2;
+        if (pdfSvgBytes > SHEET_PRINT_BYTES) throw new Error("Sheet SVG window exceeds its memory ceiling; use a smaller source or another learning view.");
+        pdfImages[page] = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+      } else {
+        loadedPagesRef.current=retainSheetPages(loadedPagesRef.current,range.start,range.end,page,svg,renderMode==='all'?SHEET_PRINT_BYTES:SHEET_WINDOW_BYTES);
+      }
       const parsed = parseSvgDimensions(svg);
       if (parsed && page === 1) setDimensions(parsed);
       // Export/print renders every page, but publishing each SVG into React
@@ -187,9 +198,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
 
     const load = async () => {
       try {
-        const query = publicationRevision === undefined ? ""
-          : `?revision=${publicationRevision === null ? "unpinned" : encodeURIComponent(publicationRevision)}`;
-        const response = await fetch(`/api/v1/sheet/${encodeURIComponent(songId)}${query}`, { signal: controller.signal });
+        const response = await fetch(sheetMusicUrl(songId, publicationRevision), { signal: controller.signal });
         if (response.status === 409) {
           updateSheetState({ __publicationConflict: true });
           throw new Error("This score changed while loading. Reload the page to continue.");
@@ -212,7 +221,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
         let session: MusicXmlWorkerSession | null = null;
         let renderer="worker";
         try {
-          session = await openMusicXmlInWorker(xml, RENDER_OPTIONS);
+          session = await openMusicXmlInWorker(xml, RENDER_OPTIONS, workerOptions);
         } catch {
           // Both renderer paths hold the layout and render only requested pages.
           session=await openMusicXmlOnMainThread(xml,RENDER_OPTIONS);renderer="main";
@@ -230,7 +239,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
         updateSheetState({ __sheetPageCount: count });
         const renderPage = async (page: number): Promise<void> => {
           if (!current() || page < 1 || page > count) return;
-          const existing = loadedPagesRef.current[page];
+          const existing = pdfCapture ? pdfImages[page] : loadedPagesRef.current[page];
           if (existing) return;
           const inFlight = inFlightRequests.get(page);
           if (inFlight) return inFlight;
@@ -256,7 +265,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
         if (renderMode === "all") {
           for (const page of pageRange(2, count)) await renderPage(page);
           if (current()) {
-            setPages({ ...loadedPagesRef.current });
+            setPages({ ...(pdfCapture ? pdfImages : loadedPagesRef.current) });
             updateSheetState({ __sheetRenderedPages: count });
             setReady(true);
             updateSheetState({ __sheetReady: true, __sheetPrintReady: true });
@@ -282,13 +291,14 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
     return () => {
       cancelled = true;
       controller.abort();
+      for (const url of Object.values(pdfImages)) URL.revokeObjectURL(url);
       if (requestRef.current === controller) requestRef.current = null;
       renderPageRef.current = async () => undefined;
       const session = sessionRef.current;
       sessionRef.current = null;
       void session?.close();
     };
-  }, [suspended, songId, publicationRevision, renderMode, interactionSource, interactionEnabled]);
+  }, [suspended, songId, publicationRevision, renderMode, pdfCapture, interactionSource, interactionEnabled]);
 
   useEffect(() => {
     if (suspended || renderMode !== "virtual" || pageCount < 1 || error) return;
@@ -472,7 +482,7 @@ export function SheetMusicView({ suspended = false, songId, publicationRevision,
         </>}
         {interaction && scoreNotice && <p className="w-full" role="status">{scoreNotice}</p>}
       </div>}
-      {mountedPages.map(page=><SheetPage key={page} page={page} count={pageCount} svg={pages[page]} zoom={zoom} dimensions={dimensions} virtual={renderMode==="virtual"}/>)}
+      {mountedPages.map(page=><SheetPage key={page} page={page} count={pageCount} svg={pdfCapture ? undefined : pages[page]} pdfImage={pdfCapture ? pages[page] : undefined} zoom={zoom} dimensions={dimensions} virtual={renderMode==="virtual"}/>)}
       {renderMode === "virtual" && pageCount > windowEnd && (
         <p className="sheet-svg__window-status motion-feedback" role="status" aria-live="polite">
           Showing pages {windowStart}–{windowEnd} of {pageCount}; scroll to load more.

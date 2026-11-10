@@ -106,6 +106,42 @@ function withPedal(notes: readonly Note[], measures: readonly HarmonySegment[], 
   });
 }
 
+function firstMatching(length: number, matches: (index: number) => boolean): number {
+  let left = 0, right = length;
+  while (left < right) {
+    const middle = left + Math.floor((right - left) / 2);
+    if (matches(middle)) right = middle;
+    else left = middle + 1;
+  }
+  return left;
+}
+
+function indexNotes(notes: readonly Note[]) {
+  const entries = notes.map((note, order) => ({ note, order, end: note.start + note.dur }))
+    .filter(({ note, end }) => !Number.isNaN(note.start) && !Number.isNaN(end))
+    .sort((a, b) => a.note.start - b.note.start);
+  const ordered = entries.every((entry, i) => i === 0 || (entries[i - 1]?.order ?? -1) < entry.order);
+  let latestEnd = -Infinity;
+  const releaseBounds = entries.map(({ end }) => latestEnd = Math.max(latestEnd, end));
+  const startAt = (i: number) => entries[i]?.note.start ?? Infinity;
+  return {
+    overlap(minEnd: number, maxStart: number, includeRelease = false): Note[] {
+      const releasesInRange = (end: number) => includeRelease ? end >= minEnd : end > minEnd;
+      const first = firstMatching(entries.length, i => releasesInRange(releaseBounds[i] ?? -Infinity));
+      const last = firstMatching(entries.length, i => startAt(i) >= maxStart);
+      const matches = entries.slice(first, last).filter(({ end }) => releasesInRange(end));
+      // Keep input order for floating-point accumulation and tie handling.
+      if (!ordered) matches.sort((a, b) => a.order - b.order);
+      return matches.map(({ note }) => note);
+    },
+    startingNear(beat: number): Note[] {
+      const first = firstMatching(entries.length, i => startAt(i) >= beat - 1e-7);
+      const last = firstMatching(entries.length, i => startAt(i) > beat + 1e-7);
+      return entries.slice(first, last).filter(({ note }) => Math.abs(note.start - beat) < 1e-7).map(({ note }) => note);
+    },
+  };
+}
+
 function evidence(notes: readonly Note[], startBeat: number, endBeat: number) {
   const weights = new Array<number>(12).fill(0);
   const bass = new Array<number>(12).fill(0);
@@ -209,6 +245,8 @@ export function inferHarmonyTimeline(
   const pickupEnd = first && second && first.endBeat - first.startBeat < second.endBeat - second.startBeat ? first.endBeat : -Infinity;
   const sorted = withPedal(source, measures, tuning.pedal)
     .sort((a, b) => a.start - b.start);
+  const pedalledNotes = indexNotes(sorted);
+  const sourceNotes = strict ? indexNotes(source) : undefined;
   const candidates = templates(options.key, tuning, conservative);
   const rest = candidates.length;
   let previous = new Array<number>(rest + 1).fill(0);
@@ -218,24 +256,23 @@ export function inferHarmonyTimeline(
   const windows = harmonySegments(measures, "half-bar");
   let heldStack: { notes: readonly Note[]; candidate: number; pcs: ReadonlySet<number> } | undefined;
   for (const segment of segments) {
-    // Notes that could overlap this segment; `sorted` is by start.
-    const local = sorted.filter((note) => note.start < segment.endBeat && note.start + note.dur > segment.startBeat);
+    const local = pedalledNotes.overlap(segment.startBeat, segment.endBeat);
     let observed = evidence(local, segment.startBeat, segment.endBeat);
     let allowed: Set<number> | undefined;
-    if (strict) {
-      const raw = source.filter(n => n.start < segment.endBeat && n.start + n.dur > segment.startBeat);
+    if (sourceNotes) {
+      const raw = sourceNotes.overlap(segment.startBeat, segment.endBeat);
       // Short articulation gaps do not imply a new harmony. The backing's
       // source-rhythm resolver still releases the notes through these gaps.
       const previousEnd = raw.length ? segment.startBeat : source.reduce((end, n) =>
         n.start + n.dur <= segment.startBeat + 1e-7 ? Math.max(end, n.start + n.dur) : end, -Infinity);
       const nextStart = raw.length ? segment.endBeat : source.reduce((start, n) =>
         n.start >= segment.endBeat - 1e-7 ? Math.min(start, n.start) : start, Infinity);
-      const beforeGap = new Set(source.filter(n => n.start < previousEnd && n.start + n.dur >= previousEnd - 1e-7).map(n => n.midi % 12));
-      const afterGap = new Set(source.filter(n => Math.abs(n.start - nextStart) < 1e-7).map(n => n.midi % 12));
+      const beforeGap = new Set(sourceNotes.overlap(previousEnd - 1e-7, previousEnd, true).map(n => n.midi % 12));
+      const afterGap = new Set(sourceNotes.startingNear(nextStart).map(n => n.midi % 12));
       const articulationGap = nextStart - previousEnd <= 0.5 + 1e-7 && beforeGap.size >= 2
         && beforeGap.size === afterGap.size && [...beforeGap].every(pc => afterGap.has(pc));
       const window = windows.find(w => w.startBeat <= segment.startBeat && segment.startBeat < w.endBeat);
-      const context = window ? source.filter(n => n.start < window.endBeat && n.start + n.dur > window.startBeat) : raw;
+      const context = window ? sourceNotes.overlap(window.startBeat, window.endBeat) : raw;
       const attacks = groupAttackClusters(context);
       const hasStack = attacks.some(a => new Set(a.notes.map(n => n.midi % 12)).size >= 2);
       const left = context.filter(n => n.hand === "L");

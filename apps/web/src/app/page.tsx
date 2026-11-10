@@ -68,7 +68,7 @@ function SongGrid({ songs }: { songs: GroupedSong[] }) {
               <span>{s.representative.tempo} BPM</span>
               <span className="ml-auto">{s.totalPlays > 0 ? `${s.totalPlays} plays` : ""}</span>
             </div>
-            <Link href={`/player/${s.representative.id}`} className="font-semibold leading-tight hover:underline" title={s.representative.title}>
+            <Link href={`/player/${s.representative.id}`} prefetch={false} className="font-semibold leading-tight hover:underline" title={s.representative.title}>
               {displaySong(s.representative.title, s.representative.artist).title}
             </Link>
             <div className="text-sm text-zinc-500">{displaySong(s.representative.title, s.representative.artist).artist}</div>
@@ -79,6 +79,7 @@ function SongGrid({ songs }: { songs: GroupedSong[] }) {
                   <Link
                     key={l.id}
                     href={`/player/${l.id}`}
+                      prefetch={false}
                     title={`${LEVEL_LABEL[l.difficulty] ?? l.difficulty} arrangement`}
                     aria-label={`Open ${LEVEL_LABEL[l.difficulty] ?? l.difficulty} level`}
                     className="pressable px-2.5 py-1 rounded-full border border-zinc-300 text-xs text-zinc-700 hover:bg-zinc-900 hover:text-white hover:border-zinc-900"

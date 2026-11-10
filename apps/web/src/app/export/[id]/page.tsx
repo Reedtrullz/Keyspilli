@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import React from "react";
+import { preload } from "react-dom";
+import { sheetMusicUrl } from "@/lib/sheet-music-url";
 import { getSongDetail, getSongDetailShell, PublicationRevisionConflictError } from "@/lib/catalog-api";
 import { SimplifyScore } from "@/components/export/SimplifyScore";
 import { SheetMusicView } from "@/components/player/SheetMusicView";
@@ -11,10 +13,10 @@ export default async function ExportPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ layout?: string; revision?: string }>;
+  searchParams: Promise<{ layout?: string; revision?: string; capture?: string }>;
 }) {
   const { id } = await params;
-  const { layout, revision: revisionValue } = await searchParams;
+  const { layout, revision: revisionValue, capture } = await searchParams;
   const revision = revisionValue === undefined ? undefined : revisionValue === "unpinned" ? null : revisionValue;
   if (layout !== undefined && layout !== "simplify" && layout !== "classic") notFound();
   const publicationConflict = () => (
@@ -31,12 +33,14 @@ export default async function ExportPage({
       throw error;
     }
     if (!shell || shell.song.hasSheetXml !== 1) notFound();
+    const pinnedRevision = revision ?? shell.publicationRevision;
+    if (capture === "pdf") preload(sheetMusicUrl(id, pinnedRevision), { as: "fetch", crossOrigin: "anonymous" });
     return (
       <html lang="en">
         <body style={{ margin: 0, background: "#fff" }}>
           <div style={{ padding: 40, fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
             <h1 style={{ fontSize: 20, margin: "0 0 16px" }}>{`${shell.song.title} — ${shell.song.artist}`}</h1>
-            <SheetMusicView songId={id} publicationRevision={revision ?? shell.publicationRevision} renderMode="all" />
+            <SheetMusicView songId={id} publicationRevision={pinnedRevision} renderMode="all" pdfCapture={capture === "pdf"} />
           </div>
         </body>
       </html>

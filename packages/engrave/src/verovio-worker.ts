@@ -203,8 +203,8 @@ function readyServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   return pending;
 }
 
-async function createVerovioWorker(): Promise<VerovioWorkerChannel> {
-  const registration = await readyServiceWorker();
+async function createVerovioWorker(dedicated: boolean): Promise<VerovioWorkerChannel> {
+  const registration = dedicated ? null : await readyServiceWorker();
   if (registration?.active) return new ServiceWorkerChannel(registration.active, registration);
 
   const WorkerConstructor = globalThis.Worker;
@@ -215,21 +215,21 @@ async function createVerovioWorker(): Promise<VerovioWorkerChannel> {
   }));
 }
 
-async function getVerovioWorker(): Promise<VerovioWorkerChannel> {
+async function getVerovioWorker(dedicated = false): Promise<VerovioWorkerChannel> {
   if (verovioWorker) return verovioWorker;
-  workerChannelPromise ??= createVerovioWorker();
+  workerChannelPromise ??= createVerovioWorker(dedicated).then(attachVerovioWorker);
   try {
-    return attachVerovioWorker(await workerChannelPromise);
+    return await workerChannelPromise;
   } catch (error) {
     workerChannelPromise = null;
     throw error;
   }
 }
 
-function request(request: WorkerRequestInput): Promise<WorkerResponse> {
+function request(request: WorkerRequestInput, dedicated = false): Promise<WorkerResponse> {
   const id = nextRequestId++;
   return new Promise<WorkerResponse>((resolve, reject) => {
-    void getVerovioWorker().then(worker => {
+    void getVerovioWorker(dedicated).then(worker => {
       const timer = setTimeout(() => disposeWorker(new Error("Verovio worker request timed out"), worker), VEROVIO_REQUEST_TIMEOUT_MS);
       let cancel: () => void = () => undefined;
       pendingRenders.set(id, { resolve, reject, timer, cancel: () => cancel() });
@@ -319,8 +319,8 @@ class WorkerScoreSession implements MusicXmlWorkerSession {
 }
 
 /** Start module initialization before a score payload is available. */
-export async function warmMusicXmlWorker(): Promise<void> {
-  const worker = await getVerovioWorker();
+export async function warmMusicXmlWorker({ dedicated = false } = {}): Promise<void> {
+  const worker = await getVerovioWorker(dedicated);
   try {
     const response = await request({ type: "warm" });
     if (response.type !== "warm") throw new Error("Verovio worker returned an invalid warm response");
@@ -332,8 +332,8 @@ export async function warmMusicXmlWorker(): Promise<void> {
 }
 
 /** Open/layout atomically so another view cannot replace the session between messages. */
-export async function openMusicXmlInWorker(xml: string, opts: RenderOptions = {}): Promise<MusicXmlWorkerSession> {
-  const prepared = await request({ type: "open", xml, options: opts, prepare: true });
+export async function openMusicXmlInWorker(xml: string, opts: RenderOptions = {}, { dedicated = false } = {}): Promise<MusicXmlWorkerSession> {
+  const prepared = await request({ type: "open", xml, options: opts, prepare: true }, dedicated);
   if (prepared.type !== "prepared") throw new Error("Verovio worker returned an invalid open response");
   const session = new WorkerScoreSession(prepared.sessionId, workerGeneration);
   try {return await session.prepare(prepared);}
