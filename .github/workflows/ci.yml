@@ -96,7 +96,8 @@ jobs:
             sleep 1
           done
           test "$ready" = true
-          docker exec keyspilli-worker-smoke node -e '
+          # pnpm keeps better-sqlite3 in packages/catalog (not hoisted to /app), so resolve from there.
+          docker exec -w /app/packages/catalog keyspilli-worker-smoke node -e '
             const assert = require("node:assert/strict"), fs = require("node:fs");
             assert.equal(process.getuid(), 1000);
             assert.equal(process.getgid(), 1000);
