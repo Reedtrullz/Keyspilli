@@ -23,6 +23,17 @@ it("publishes verified bytes once as an isolated read-only file and reuses them 
   expect(lstatSync(result.path).ino).toBe(before.ino);
 });
 
+it("retries one transient public-asset response without weakening byte validation", async () => {
+  const root = directory();
+  let calls = 0;
+  const result = await acquireNativePianoSample(pin, root, async () => {
+    calls++;
+    return calls === 1 ? new Response(null, { status: 503 }) : new Response(body);
+  });
+  expect(calls).toBe(2);
+  expect(readFileSync(result.path)).toEqual(body);
+});
+
 it.each([new Response("unavailable", { status: 503 }), new Response(Buffer.alloc(body.length, 1)), new Response(Buffer.alloc(body.length + 1))])(
   "refuses failed, tampered or oversized transfers without publishing an input", async response => {
     const root = directory();

@@ -8,7 +8,10 @@ test('worker late replies and forced main-thread fallback retain only the curren
   for(const renderer of ['worker','main']){
    const context=await browser.newContext({viewport:{width:1280,height:800}}),page=await context.newPage();
    await page.addInitScript(renderer=>{
-    if(renderer==='main')Object.defineProperty(window,'Worker',{configurable:true,value:class{constructor(){throw new Error('Controlled worker unavailability');}}});
+    Object.defineProperty(navigator,"serviceWorker",{configurable:true,value:undefined});
+    if(renderer==='main'){
+     Object.defineProperty(window,'Worker',{configurable:true,value:class{constructor(){throw new Error('Controlled worker unavailability');}}});
+    }
     else {const Original=window.Worker;window.Worker=class extends Original{
      constructor(url:string|URL,options?:WorkerOptions){super(url,options);const native=Object.getOwnPropertyDescriptor(Original.prototype,'onmessage')!;
       Object.defineProperty(this,'onmessage',{configurable:true,set(callback:(e:MessageEvent)=>void){native.set!.call(this,(event:MessageEvent)=>{if(event.data.type==='page'&&event.data.page===2)setTimeout(()=>callback(event),800);else callback(event);});},get(){return native.get!.call(this);}});
@@ -21,7 +24,7 @@ test('worker late replies and forced main-thread fallback retain only the curren
    await page.waitForTimeout(1000); // specifically let the old delayed page-2 reply arrive
    for(const n of [count,1,count,1]){const group=page.getByRole('group',{name:`Sheet music page ${n} of ${count}`,exact:true});await group.scrollIntoViewIfNeeded();await expect(group.locator(':scope > svg')).toBeVisible();
     const state=await page.evaluate(()=>{const s=window as unknown as {__sheetRenderedPages:number;__sheetRetainedSvgBytes:number;__sheetFallbackSvgBytes:number;__sheetRenderer:string};return {pages:s.__sheetRenderedPages,bytes:s.__sheetRetainedSvgBytes,fallback:s.__sheetFallbackSvgBytes,renderer:s.__sheetRenderer};});
-    expect(state.renderer).toBe(renderer);expect(state.pages).toBeLessThanOrEqual(Math.min(count,n+2)-Math.max(1,n-2)+1);expect(state.bytes).toBeLessThanOrEqual(4*1024*1024);expect(state.fallback).toBe(0);
+    expect(state.renderer).toBe(renderer);expect(state.pages).toBeLessThanOrEqual(Math.min(count,n+1)-Math.max(1,n-1)+1);expect(state.bytes).toBeLessThanOrEqual(4*1024*1024);expect(state.fallback).toBe(0);
    }
    await context.close();
   }

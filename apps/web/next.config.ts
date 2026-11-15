@@ -40,6 +40,13 @@ const nextConfig: NextConfig = {
         source: "/verovio/:file(render-worker.mjs|verovio.mjs)",
         headers: [{ key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" }],
       },
+      {
+        source: "/verovio/render-service-worker.mjs",
+        headers: [
+          { key: "Cache-Control", value: "no-cache" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
     ];
   },
   outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),

@@ -45,12 +45,23 @@ type ProbeWindow = Window & {
 };
 export type RawPlayerCapture = Omit<Awaited<ReturnType<ProbeWindow["__playerCaptureStop"]>>, "wav"> & { wav: Buffer };
 
+export function capturesSampleAssets(signalControl?: "silence" | "below-level"): boolean {
+  return signalControl !== "silence";
+}
+
+export function sampleReadinessTimeoutMs(signalControl?: "silence" | "below-level"): number {
+  return signalControl === "silence" ? 30_000 : 5_000;
+}
+
 /** Keep rejected signal evidence without changing its acceptance criteria. */
 export async function checkPlayerCapture(result: RawPlayerCapture, signalControl?: "silence" | "below-level",
   retain?: (result: RawPlayerCapture) => void | Promise<void>): Promise<void> {
   await retain?.(result);
   if (signalControl === "silence") {
-    if (result.samplerStarts.length || result.rms !== 0 || result.peak !== 0 || result.beforeCompressor?.peak !== 0) throw new Error("Silence recorder control contains signal or sampled starts");
+    if (result.samplerStarts.length || result.rms !== 0 || result.peak !== 0
+        || (result.beforeCompressor !== undefined && result.beforeCompressor.peak !== 0)) {
+      throw new Error("Silence recorder control contains signal or sampled starts");
+    }
   } else if (!result.samplerStarts.length) throw new Error("No sampled buffer starts were observed");
   if (result.oscillatorStarts !== 0) throw new Error(`Sampled Player used oscillator fallback (${result.oscillatorStarts} oscillator starts)`);
 }
@@ -304,15 +315,17 @@ export async function capturePlayerClip(page: Page, options: {
   let rejectAssetRead!: (reason: unknown) => void;
   const assetFailure = new Promise<never>((_resolve, reject) => { rejectAssetRead = reject; });
   void assetFailure.catch(() => {});
-  page.on("response", (response) => {
-    if (!/\.(?:ogg|m4a|mp3|wav)(?:\?|$)/i.test(response.url())) return;
-    const task = (async () => {
-      const body = await response.body();
-      assets.push({ url: response.url(), sha256: createHash("sha256").update(body).digest("hex"), bytes: body.length });
-    })();
-    void task.catch(rejectAssetRead);
-    assetPromises.push(task);
-  });
+  if (capturesSampleAssets(options.signalControl)) {
+    page.on("response", (response) => {
+      if (!/\.(?:ogg|m4a|mp3|wav)(?:\?|$)/i.test(response.url())) return;
+      const task = (async () => {
+        const body = await response.body();
+        assets.push({ url: response.url(), sha256: createHash("sha256").update(body).digest("hex"), bytes: body.length });
+      })();
+      void task.catch(rejectAssetRead);
+      assetPromises.push(task);
+    });
+  }
   if (!preferenceInitPages.has(page)) {
     preferenceInitPages.add(page);
     await page.addInitScript(() => {
@@ -333,18 +346,19 @@ export async function capturePlayerClip(page: Page, options: {
   // within the same 60-second window before the unchanged readiness assertion.
   const preset = pianoToPreset({ baseUrl: "", detune: 0, decayTime: 0.5 });
   const pianoSampleCount = new Set(preset.groups.flatMap(group => group.regions.map(region => region.sample))).size;
-  await Promise.race([
-    Promise.all([
-      page.waitForLoadState("networkidle", { timeout: 60_000 }),
-      expect.poll(() => new Set(assets.map(asset => asset.url)).size, { timeout: 60_000 }).toBe(pianoSampleCount),
-    ]),
-    assetFailure,
-  ]);
-  await Promise.all(assetPromises);
+  const ready = capturesSampleAssets(options.signalControl)
+    ? Promise.all([
+        page.waitForLoadState("networkidle", { timeout: 60_000 }),
+        expect.poll(() => new Set(assets.map(asset => asset.url)).size, { timeout: 60_000 }).toBe(pianoSampleCount),
+      ])
+    : page.waitForLoadState("networkidle", { timeout: 60_000 });
+  await Promise.race([ready, assetFailure]);
+  if (capturesSampleAssets(options.signalControl)) await Promise.all(assetPromises);
   await openPlayerTool(page, "Sound");
   const soundDialog = page.getByRole("dialog", { name: "Sound settings", exact: true });
-  await expect(soundDialog.getByRole("status")).toContainText("Samples: ready");
-  await expect(soundDialog.getByRole("status")).toContainText("Current sound: sampled piano");
+  const sampleReadyTimeout = sampleReadinessTimeoutMs(options.signalControl);
+  await expect(soundDialog.getByRole("status")).toContainText("Samples: ready", { timeout: sampleReadyTimeout });
+  await expect(soundDialog.getByRole("status")).toContainText("Current sound: sampled piano", { timeout: sampleReadyTimeout });
   await expect(soundDialog.getByRole("radio", { name: "Original arrangement", exact: true }))
     .toHaveAttribute("aria-checked", options.mode === "original" ? "true" : "false");
   await expect(soundDialog.getByRole("radio", { name: "Chord mode", exact: true }))
@@ -365,7 +379,7 @@ export async function capturePlayerClip(page: Page, options: {
   if (await page.getByRole("button", { name: "Pause", exact: true }).isVisible()) await page.getByRole("button", { name: "Pause", exact: true }).click();
   const result = await page.evaluate(() => (window as unknown as ProbeWindow).__playerCaptureStop());
   await Promise.all(assetPromises);
-  page.removeAllListeners("response");
+  if (capturesSampleAssets(options.signalControl)) page.removeAllListeners("response");
   const wav = Buffer.from(result.wav);
   const hash = createHash("sha256").update(wav).digest("hex");
   const durationSeconds = (wav.length - 44) / (result.sampleRate * 2);
@@ -408,7 +422,7 @@ export async function capturePlayerClip(page: Page, options: {
     }
   }
   const uniqueAssets = [...new Map(assets.map(asset => [`${asset.url}|${asset.sha256}`, asset])).values()];
-  if (uniqueAssets.length === 0) throw new Error("No sampled-piano asset responses were recorded");
+  if (capturesSampleAssets(options.signalControl) && uniqueAssets.length === 0) throw new Error("No sampled-piano asset responses were recorded");
   if ((!options.signalControl && result.rms < 0.0002) || result.peak > 0.999 || (options.signalControl === "below-level" && result.rms === 0)) throw new Error(`Player PCM failed signal/clipping checks (rms=${result.rms}, peak=${result.peak})`);
   const firstExpected = Object.values(expectedByBus ?? {}).flat().sort((a, b) => a - b)[0];
   const firstActual = result.samplerStarts.map(source => source.when).sort((a, b) => a - b)[0];

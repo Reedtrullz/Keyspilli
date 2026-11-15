@@ -53,9 +53,18 @@ export async function acquireNativePianoSample(pin: Pin, root: string, request: 
     readPinnedSampleAssets([{ ...pin, path }]);
     return { path, reused: true };
   }
-  const response = await request(pin.url, { redirect: "error", signal: signal
-    ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000) });
-  check(response.ok && response.body, "piano asset request failed");
+  let response: Response | undefined;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await request(pin.url, { redirect: "error", signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000) });
+      if (response.ok && response.body) break;
+    } catch (error) {
+      if (attempt || signal?.aborted) throw error;
+    }
+    if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  check(response && response.ok && response.body, "piano asset request failed");
   const reader = response.body.getReader(), chunks: Uint8Array[] = []; let bytes = 0;
   try {
     for (;;) {

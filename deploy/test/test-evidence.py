@@ -60,6 +60,11 @@ class Lifecycle(unittest.TestCase):
     def documents(self):
         return [json.loads(p.read_text()) for p in (self.root / "runs").glob("*/run.json")]
 
+    def test_runtime_workflow_preserves_transport_omission_through_sudo(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/runtime-rehearsal.yml").read_text()
+        self.assertIn('KEYSPILLI_EVIDENCE_OMIT_NATIVE_PIANO: "1"', workflow)
+        self.assertIn("KEYSPILLI_EVIDENCE_OMIT_NATIVE_PIANO,JOB_STATUS", workflow)
+
     def test_success_failure_and_repeated_cleanup_preserve_evidence_and_reconstruct(self):
         for exit_code in (0, 7):
             result = self.cli(*self.worker("print('raw-result')", exit_code), check=False)
@@ -252,6 +257,55 @@ class Lifecycle(unittest.TestCase):
                 self.assertEqual(store.image_pins(image), str(path))
                 path.unlink()
 
+    def test_containerd_owned_digest_does_not_mask_protected_image_references(self):
+        module = self.module()
+        store = module.Store(self.root)
+        run = store.begin(1048576, self.dead_pid)["id"]
+        name = f"keyspilli-evidence-{run}:" + "a" * 12
+        image = "sha256:" + "b" * 64
+        own_digest = name.split(":")[0] + "@" + image
+        foreign = "ghcr.io/reedtrullz/keyspilli"
+        store.resource(run, "image", name)
+        cases = (
+            ("same manifest", [name], [own_digest], image, "", False, True),
+            ("foreign tag", [name, foreign + ":stable"], [own_digest], image, "", False, False),
+            ("foreign digest", [name], [own_digest, foreign + "@" + image], image, "", False, False),
+            ("other manifest", [name], [own_digest], "sha256:" + "c" * 64, "", False, False),
+            ("no descriptor", [name], [own_digest], None, "", False, False),
+            ("container", [name], [own_digest], image, "live-container", False, False),
+            ("rollback pin", [name], [own_digest], image, "", True, False),
+        )
+        for label, tags, digests, descriptor, containers, pinned, should_remove in cases:
+            with self.subTest(label=label):
+                calls = []
+
+                def docker(*args):
+                    calls.append(args)
+                    if args[:2] == ("image", "ls"):
+                        return image
+                    if args[:2] == ("image", "inspect"):
+                        return json.dumps([dict(Id=image, Config={"Labels": {module.LABEL: run}},
+                            RepoTags=tags, RepoDigests=digests,
+                            Descriptor={"digest": descriptor} if descriptor else None)])
+                    if args[0] == "ps":
+                        return containers
+                    if args[:2] == ("image", "rm"):
+                        return ""
+                    raise AssertionError(args)
+
+                doc = store.path(run)[1]
+                with mock.patch.object(store, "docker", docker), mock.patch.object(
+                    store, "image_pins", return_value="/protected/rollback" if pinned else None
+                ) as pins:
+                    if should_remove or pinned:
+                        store.cleanup_resources(doc)
+                        pins.assert_called_once_with(image, (name, own_digest))
+                    else:
+                        with self.assertRaises(ValueError):
+                            store.cleanup_resources(doc)
+                self.assertEqual([c for c in calls if c[:2] == ("image", "rm")],
+                                 [("image", "rm", "--no-prune", image)] if should_remove else [])
+
     def test_invalid_known_recovery_records_never_mean_no_pin(self):
         module = self.module()
         store = module.Store(self.root)
@@ -383,6 +437,35 @@ class Lifecycle(unittest.TestCase):
         destination = self.root.parent / "reconstructed-lease"
         imported.reconstruct(doc["id"], destination)
         self.assertEqual((destination / "external-fixtures" / directory.name / "unique.sqlite").read_bytes(), b"unique-fixture")
+
+    def test_bundle_omits_only_sealed_public_piano_samples_with_an_explicit_manifest(self):
+        module = self.module()
+        store = module.Store(self.root)
+        doc = store.begin(1048576, self.dead_pid)
+        scratch = self.root / "scratch" / doc["id"]
+        bank = scratch / "native-piano"
+        bank.mkdir()
+        payload = b"public-piano-sample"
+        sha = hashlib.sha256(payload).hexdigest()
+        (bank / f"{sha}.ogg").write_bytes(payload)
+        (scratch / "other.txt").write_text("keep")
+        store.finish(doc["id"], "success")
+        bundle = self.root.parent / "omitted-native-piano.tar.gz"
+        module.helper("evidence_bundle").export_bundle(store, bundle, omit_native_piano=True)
+        omitted_path = f"evidence/{doc['id']}/files/native-piano/{sha}.ogg"
+        with tarfile.open(bundle) as archive:
+            self.assertNotIn(omitted_path, archive.getnames())
+            self.assertIn(f"evidence/{doc['id']}/files/other.txt", archive.getnames())
+            omission = json.load(archive.extractfile("transport-omitted.json"))
+        self.assertEqual(omission["schema"], "keyspilli-evidence-omissions/v1")
+        self.assertEqual(omission["members"], [dict(path=omitted_path, bytes=len(payload), sha256=sha)])
+        reconstruction = json.loads((self.root / "evidence" / doc["id"] / "reconstruction.json").read_text())
+        self.assertEqual(reconstruction["files"][f"native-piano/{sha}.ogg"]["sha256"], sha)
+
+        reconstruction["files"][f"native-piano/{sha}.ogg"]["sha256"] = "0" * 64
+        (self.root / "evidence" / doc["id"] / "reconstruction.json").write_text(json.dumps(reconstruction))
+        with self.assertRaisesRegex(ValueError, "matching sealed evidence"):
+            module.helper("evidence_bundle").export_bundle(store, self.root.parent / "must-not-export.tar.gz", omit_native_piano=True)
 
     def test_export_capacity_is_reserved_before_admitting_a_hosted_writer(self):
         module = self.module()
