@@ -166,6 +166,8 @@ class RestoreRuntimeTests(unittest.TestCase):
         create = next(call for call in self.calls if call[1] == "create")
         self.assertIn("KEYSPILLI_NATIVE_PROBE_SCOPE=owned-restore", create)
         self.assertTrue(any(arg.endswith("/qualification-source/node_modules:ro") for arg in create))
+        for relative in ("native-page-watch.ts", "native-phase-trace.ts", "native-task-counts.ts"):
+            self.assertTrue(any(arg.endswith(f"/qualification-source/apps/web/scripts/{relative}:ro") for arg in create))
         self.assertFalse(any(arg.endswith(":/qualification-source") for arg in create))
 
     def test_native_capture_precedes_pdf_capable_verification_after_readiness(self):

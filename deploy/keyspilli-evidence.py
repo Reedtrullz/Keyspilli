@@ -551,9 +551,15 @@ class Store:
                 if (info.get("Config", {}).get("Labels") or {}).get(LABEL) != run:
                     raise ValueError("image ownership changed")
                 aliases = info.get("RepoTags") or []
-                if aliases != [name] or info.get("RepoDigests"):
+                digests = info.get("RepoDigests") or []
+                descriptor = (info.get("Descriptor") or {}).get("digest")
+                # The containerd store derives the owned repository digest from the tagged manifest.
+                own_digest = (f"{name.rsplit(':', 1)[0]}@{descriptor}"
+                              if isinstance(descriptor, str) and re.fullmatch(r"sha256:[a-f0-9]{64}", descriptor)
+                              and info.get("Id") == descriptor == ids[0] else None)
+                if len(ids) != 1 or aliases != [name] or (digests and (not own_digest or digests != [own_digest])):
                     raise ValueError("image has additional protected references")
-                pin = self.image_pins(ids[0], (name,))
+                pin = self.image_pins(ids[0], (name, *digests))
                 if pin:
                     doc.setdefault("retainedResources", []).append(dict(kind="image", id=ids[0], name=name, reason=pin))
                     continue

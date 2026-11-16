@@ -1,17 +1,80 @@
-import { createHash, randomUUID } from "node:crypto";
-import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readFileSync, statSync, writeFileSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { chromium, expect, request, type APIRequestContext, type Browser, type BrowserContext } from "@playwright/test";
-import { parseMidi, parseMusicXmlNotes } from "@keyspilli/midi";
-import { capturePlayerClip, savePlayerCapture } from "../e2e/player-audio-capture";
-import { readNativePianoBank } from "../src/lib/native-player-assets";
+import { getHeapSpaceStatistics } from "node:v8";
+import type { APIRequestContext, Browser, BrowserContext, Page } from "@playwright/test";
+
+type PhaseModule = typeof import("./native-phase-trace");
+const { createPhaseTrace } = await import("./native-phase-trace.ts" as string) as PhaseModule;
+type PageWatchModule = typeof import("./native-page-watch");
+const { watchPlayerPage } = await import("./native-page-watch.ts" as string) as PageWatchModule;
+
+// phase:begin
+// Synchronous, fixed-label records survive a later deadline kill; they never imply native acceptance.
+let activePhase = "startup";
+let observeTasks = false;
+let phaseEvidenceIncomplete = false;
+let memoryDiagnosticBytes = 0;
+type CountsModule = typeof import("./native-task-counts");
+let collectTaskCounts: CountsModule["collectTaskCounts"];
+const rolePhases = /^(original|chords)-capture$|^silence$/;
+const phaseTrace = createPhaseTrace(line => writeSync(2, line));
+const memoryPhases = /^(startup|original-capture|original-browser-teardown|chords-capture|chords-browser-teardown|silence-browser-startup|silence|result)$/;
+function memorySample(name: string, state: "entry" | "exit" | "failure"): void {
+  if (!observeTasks || memoryDiagnosticBytes >= 4096 || !memoryPhases.test(name)) return;
+  const usage = process.memoryUsage();
+  const spaces = Object.fromEntries(getHeapSpaceStatistics()
+    .filter(space => ["new_space", "old_space", "large_object_space", "code_space"].includes(space.space_name))
+    .map(space => [space.space_name, space.space_used_size]));
+  const line = JSON.stringify({ kind: "keyspilli-native-memory", phase: name, state, rss: usage.rss,
+    heapTotal: usage.heapTotal, heapUsed: usage.heapUsed, external: usage.external, arrayBuffers: usage.arrayBuffers, spaces }) + "\n";
+  if (memoryDiagnosticBytes + Buffer.byteLength(line) > 4096) return;
+  try { writeSync(2, line); memoryDiagnosticBytes += Buffer.byteLength(line); } catch { /* diagnostics never alter the run */ }
+}
+function phase(name: string, state: "entry" | "exit" | "failure"): void {
+  let counts: ReturnType<CountsModule["collectTaskCounts"]> | undefined;
+  if (observeTasks) {
+    try { counts = collectTaskCounts(); }
+    catch { phaseEvidenceIncomplete = true; }
+  }
+  const { roles, vanished, ...aggregate } = counts ?? { processes: undefined, threads: undefined };
+  phaseTrace.emit(name, state, { ...aggregate, ...(vanished ? { vanished } : {}), ...(counts && state === "exit" && rolePhases.test(name) ? { roles } : {}) });
+  memorySample(name, state);
+  activePhase = state === "entry" ? name : "between-phases";
+}
+async function phaseImport<T>(name: string, action: () => Promise<T>): Promise<T> {
+  phase(name, "entry");
+  try {
+    const value = await action();
+    phase(name, "exit");
+    return value;
+  } catch (error) { phase(name, "failure"); throw error; }
+}
+// phase:end
+
+const nativeTaskCounts = await import("./native-task-counts.ts" as string) as CountsModule;
+collectTaskCounts = nativeTaskCounts.collectTaskCounts;
+const { chromium, expect, request } = await phaseImport("import-playwright", () => import("@playwright/test"));
+const { parseMidi, parseMusicXmlNotes } = await phaseImport("import-midi", () => import("@keyspilli/midi"));
+const { capturePlayerClip, savePlayerCapture } = await phaseImport("import-capture", () => import("../e2e/player-audio-capture"));
+const { readNativePianoBank } = await phaseImport("import-piano", () => import("../src/lib/native-player-assets"));
 
 type Mode = "original" | "chords";
 const origin = "http://127.0.0.1:3000";
 const output = "/browser-results";
 const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 const sha = (bytes: Buffer | string) => createHash("sha256").update(bytes).digest("hex");
+
+// diag:begin
+// Bounded failure diagnostics: counts plus <=8 clipped exemplars; no headers, bodies, credentials or queries.
+type Diag = { counts: Record<string, number>; samples: string[] };
+const cleanUrl = (value: string) => { try { const url = new URL(value); return url.protocol + "//" + url.host + url.pathname; } catch { return "[invalid-url]"; } };
+const clip = (value: unknown, max = 256) => String(value).replace(/[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]+/gi, url => cleanUrl(url))
+  .replace(/Bearer\s+\S+/gi, "Bearer [redacted]").replace(/(token|key|secret|password|authorization)(["':= ]+)\S+/gi, "$1$2[redacted]").slice(0, max);
+// Real UTF-8 bytes; over the bound the exemplars are dropped rather than clipped mid-character.
+const boundedDiag = (diag: Diag) => Buffer.byteLength(JSON.stringify(diag)) <= 8192 ? diag : { counts: diag.counts, samples: [], truncated: true };
+// diag:end
 
 export function controlXml(nonce: string): string {
   const measures = Array.from({ length: 16 }, (_, index) => `<measure number="${index + 1}">
@@ -25,9 +88,12 @@ export function controlXml(nonce: string): string {
   return `<score-partwise version="4.0"><work><work-title>Native software control ${nonce}</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
 }
 
-export async function verifyNativePlayer(revision: string): Promise<void> {
+export async function verifyNativePlayer(revision: string, diagnostic = false): Promise<void> {
+  observeTasks = diagnostic;
+  phase("startup", "entry");
   if (!/^[a-f0-9]{40}$/.test(revision) || process.platform !== "linux" || process.arch !== "x64"
       || process.env.KEYSPILLI_NATIVE_PROBE_SCOPE !== "owned-restore" || process.env.KEYSPILLI_DATA_DIR !== "/data") {
+    phase("startup", "failure");
     throw new Error("Native probe requires the owned Linux amd64 restore container and exact revision");
   }
   let api: APIRequestContext | undefined;
@@ -36,15 +102,53 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
   let baseId: string | undefined;
   let failure: unknown;
   const cleanupErrors: string[] = [];
+  const unwatch: Array<() => void> = [];
+  const releasePageWatchers = () => {
+    for (const stop of unwatch.splice(0)) {
+      try { stop(); } catch (error) { cleanupErrors.push(String(error)); }
+    }
+  };
+  const settleLifetime = async () => {
+    releasePageWatchers();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    (globalThis as typeof globalThis & { gc?: () => void }).gc?.();
+    await new Promise<void>(resolve => setImmediate(resolve));
+  };
+  // Two exemplar slots per label (original, chords, silence, route) keep the total at 8 and stop one page crowding out the rest.
+  const diag: Diag = { counts: {}, samples: [] };
+  const slots: Record<string, number> = {};
+  const note = (label: string, kind: string, detail?: unknown) => {
+    const key = label + ":" + kind;
+    diag.counts[key] = Math.min((diag.counts[key] ?? 0) + 1, 1_000_000);
+    if (detail === undefined || diag.samples.length >= 8 || (slots[label] ?? 0) >= 2) return;
+    slots[label] = (slots[label] ?? 0) + 1;
+    diag.samples.push(clip(key + ": " + clip(detail)));
+  };
   const results: object[] = [];
+  const browserObservation: { armed: boolean; commandLineSource: string; events: Array<{ phase: string; kind: string }>; stderrSource: string } = {
+    armed: false, commandLineSource: "playwright-launcher-stderr", events: [], stderrSource: "guarded-child-stderr",
+  };
+  let rejectBrowserFailure: (error: Error) => void = () => { throw new Error("Browser observer is not armed"); };
+  const browserFailure = new Promise<never>((_resolve, reject) => { rejectBrowserFailure = reject; });
+  void browserFailure.catch(() => {});
+  let closingBrowser = false;
+  const observeBrowser = (kind: string) => {
+    if (browserObservation.events.length < 16) browserObservation.events.push({ phase: activePhase, kind });
+    writeFileSync(join(output, "browser-observation.json"), JSON.stringify(browserObservation));
+    if ((kind === "page-crash" || kind === "browser-disconnected") && !closingBrowser) rejectBrowserFailure(new Error("Native browser terminal event: " + kind + " at " + activePhase));
+  };
   const pdfPackets: Array<{ mode: Mode; packet: Record<string, unknown> }> = [];
-  const xml = controlXml(randomUUID());
+  const xml = controlXml("00000000-0000-4000-8000-000000000001");
   writeFileSync(join(output, "control.musicxml"), xml, { flag: "wx" });
+  phase("startup", "exit");
   try {
+    phase("public-input", "entry");
     const bank = readNativePianoBank("/piano-input");
     results.push({ kind: "pinned-piano-input", assets: bank.assets.size, fixtureSha256: bank.fixtureSha256,
       moduleVersion: bank.moduleVersion, moduleSha256: bank.moduleSha256, rightsSource: bank.rightsSource,
       transport: "read-only local input; live CDN reachability is not tested" });
+    phase("public-input", "exit");
+    phase("health-upload-chords", "entry");
     api = await request.newContext({ baseURL: origin, extraHTTPHeaders: { Authorization: "Bearer test-token-for-e2e" } });
     const health: unknown = await (await api.get("/api/health")).json();
     if (!object(health) || health.version !== revision || health.status !== "healthy") throw new Error("Wrong candidate identity/readiness");
@@ -59,16 +163,44 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
     expect(receipt.baseId).toBe(baseId);
     const id = receipt.songIds.find((value: unknown): value is string => value === baseId + "-a");
     if (!id) throw new Error("Advanced control was not prepared");
-    browser = await chromium.launch({ headless: true });
-    context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
-    await context.route("https://smpldsnds.github.io/**", async route => {
-      const body = bank.assets.get(route.request().url());
-      if (!body) return route.abort();
-      await route.fulfill({ status: 200, contentType: "audio/ogg", body, headers: { "Access-Control-Allow-Origin": "*" } });
-    });
+    phase("health-upload-chords", "exit");
+    const openCaptureBrowser = async () => {
+      closingBrowser = false;
+      browser = await chromium.launch({ headless: true });
+      browser.on("disconnected", () => observeBrowser("browser-disconnected"));
+      browserObservation.armed = true;
+      observeBrowser("browser-launched");
+      context = await browser.newContext({ baseURL: origin, extraHTTPHeaders: { "x-keyspilli-api-token": "Bearer test-token-for-e2e" } });
+      context.on("page", (page: Page) => {
+        const label = activePhase.startsWith("chords") ? "chords" : activePhase.startsWith("silence") ? "silence" : "original";
+        const stop = watchPlayerPage(page, label, note, stopped => {
+          const index = unwatch.indexOf(stopped);
+          if (index >= 0) unwatch.splice(index, 1);
+        });
+        unwatch.push(stop);
+        page.on("crash", () => observeBrowser("page-crash"));
+        page.on("close", () => observeBrowser("page-close"));
+      });
+      await context.route("https://smpldsnds.github.io/**", async route => {
+        const body = bank.assets.get(route.request().url());
+        if (!body) { note("route", "miss", cleanUrl(route.request().url())); return route.abort(); }
+        note("route", "hit");
+        await route.fulfill({ status: 200, contentType: "audio/ogg", body, headers: { "Access-Control-Allow-Origin": "*" } });
+      });
+      return context;
+    };
+    const closeCaptureBrowser = async () => {
+      closingBrowser = true;
+      await context?.close(); context = undefined;
+      await browser?.close(); browser = undefined;
+    };
     for (const mode of ["original", "chords"] as const) {
-      const page = await context.newPage();
-      const capture = await capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [],
+      phase(mode + "-browser-startup", "entry");
+      const playbackContext = await openCaptureBrowser();
+      phase(mode + "-browser-startup", "exit");
+      phase(mode + "-capture", "entry");
+      const page = await playbackContext.newPage();
+      const capture = await Promise.race([browserFailure, capturePlayerClip(page, { songId: id, mode, durationMs: 6000, expectedAttackSeconds: [],
         retainRawCapture: async ({ wav, ...metadata }) => {
           if (wav.length > 2 * 1024 * 1024) throw new Error("Raw native capture exceeds2MiB");
           writeFileSync(join(output, mode + ".wav"), wav, { flag: "wx" });
@@ -81,18 +213,22 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
               writeFileSync(join(output, mode + "-diagnostic-error.txt"), String(error), { flag: "wx" });
             }
           }
-        } });
+        } })]);
       expect([...capture.sampleAssets].sort((a, b) => a.url.localeCompare(b.url)))
         .toEqual([...bank.sampleAssetPins].sort((a, b) => a.url.localeCompare(b.url)));
       const { wav: _wav, beforeCompressor: _before, ...metadata } = capture;
       writeFileSync(join(output, mode + "-capture.json"), JSON.stringify(metadata, null, 2), { flag: "wx" });
       results.push({ kind: "sampled-playback", mode, rms: capture.rms, peak: capture.peak,
         sampleAssets: capture.sampleAssets.length, samplerStarts: capture.samplerStarts.length, sha256: capture.sha256 });
+      phase(mode + "-capture", "exit");
+      phase(mode + "-export-dialog", "entry");
       await page.getByRole("button", { name: "Download sheet music and MIDI", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Download sheet music or MIDI", exact: true });
       await dialog.getByRole("combobox", { name: "Arrangement" }).selectOption("active");
+      phase(mode + "-export-dialog", "exit");
       let midi: ReturnType<typeof parseMidi> | undefined;
       for (const [format, label, extension] of [["midi", "Active MIDI", "mid"], ["musicxml", "Active MusicXML", "xml"]] as const) {
+        phase(mode + "-export-" + format, "entry");
         const [download, response] = await Promise.all([
           page.waitForEvent("download"),
           page.waitForResponse(value => value.url().endsWith("/active-export") && value.request().method() === "POST"),
@@ -123,39 +259,82 @@ export async function verifyNativePlayer(revision: string): Promise<void> {
           }
         }
         results.push({ kind: "active-ui-export", mode, format, bytes: bytes.length, sha256: sha(bytes) });
+        phase(mode + "-export-" + format, "exit");
       }
-      await page.screenshot({ path: join(output, mode + ".png") }); await page.close();
+      phase(mode + "-screenshot", "entry");
+      await page.screenshot({ path: join(output, mode + ".png") });
+      phase(mode + "-screenshot", "exit");
+      if (mode === "original") {
+        phase("original-sheet", "entry");
+        await page.goto("/player/" + id + "/sheet");
+        await expect.poll(() => page.evaluate(() => { const s = window as unknown as { __sheetReady?: boolean; __sheetError?: string }; if (s.__sheetError) throw new Error(s.__sheetError); return s.__sheetReady; }), { timeout: 5_000 }).toBe(true);
+        const sheet = await page.evaluate(() => { const s = window as unknown as { __sheetRenderer?: string; __sheetRenderedPages?: number }; return { renderer: s.__sheetRenderer, pages: s.__sheetRenderedPages ?? 0 }; });
+        expect(sheet.renderer).toBe("worker"); expect(sheet.pages).toBeGreaterThan(0);
+        results.push({ kind: "sheet-worker-render", renderer: sheet.renderer, pages: sheet.pages });
+        phase("original-sheet", "exit");
+      }
+      phase(mode + "-page-teardown", "entry");
+      await page.close();
+      phase(mode + "-page-teardown", "exit");
+      releasePageWatchers();
+      phase(mode + "-browser-teardown", "entry");
+      await closeCaptureBrowser();
+      await settleLifetime();
+      phase(mode + "-browser-teardown", "exit");
     }
-    const silentPage = await context.newPage();
-    const silent = await capturePlayerClip(silentPage, { songId: id, mode: "original", durationMs: 4000,
-      expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: true });
+    phase("silence-browser-startup", "entry");
+    const silenceContext = await openCaptureBrowser();
+    phase("silence-browser-startup", "exit");
+    phase("silence", "entry");
+    const silentPage = await silenceContext.newPage();
+    const silent = await Promise.race([browserFailure, capturePlayerClip(silentPage, { songId: id, mode: "original", durationMs: 4000,
+      expectedAttackSeconds: [], signalControl: "silence", capturePreCompressor: false })]);
     savePlayerCapture(join(output, "silence-control.wav"), silent);
     results.push({ kind: "silence-recorder-control", rms: silent.rms, peak: silent.peak, samplerStarts: silent.samplerStarts.length });
-    await silentPage.close(); await context.close(); context = undefined; await browser.close(); browser = undefined;
+    phase("silence", "exit");
+    phase("silence-browser-teardown", "entry");
+    await silentPage.close();
+    releasePageWatchers();
+    await closeCaptureBrowser();
+    await settleLifetime();
+    phase("silence-browser-teardown", "exit");
     // Render PDFs after the capture browser exits; both browsers share the same bounded container.
     for (const { mode, packet } of pdfPackets) {
+      phase(mode + "-export-pdf", "entry");
       const response = await api.post(`/api/song/${id}/active-export`, { data: { ...packet, type: "pdf" } });
       expect(response.status()).toBe(200); expect(response.headers()["x-active-arrangement-sha256"]).toBe(packet.expectedHash);
       const bytes = await response.body(); expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
       expect(bytes.length).toBeGreaterThan(1000); expect(bytes.length).toBeLessThanOrEqual(32 * 1024 * 1024);
       writeFileSync(join(output, mode + ".pdf"), bytes, { flag: "wx" });
       results.push({ kind: "active-api-export", mode, format: "pdf", bytes: bytes.length, sha256: sha(bytes) });
+      phase(mode + "-export-pdf", "exit");
     }
-  } catch (error) { failure = error; }
+  } catch (error) { failure = error; phase(activePhase, "failure"); }
   finally {
+    phase("diagnostics", "entry");
+    releasePageWatchers();
+    if (failure) results.push({ kind: "failure-diagnostics", ...boundedDiag(diag) });
+    phase("diagnostics", "exit");
+    phase("teardown", "entry");
+    closingBrowser = true;
     await context?.close().catch(error => cleanupErrors.push(String(error)));
     await browser?.close().catch(error => cleanupErrors.push(String(error)));
+    await settleLifetime().catch(error => cleanupErrors.push(String(error)));
     if (baseId && api) {
       try { expect((await api.delete(`/api/songs/${baseId}`)).ok()).toBe(true); }
       catch (error) { cleanupErrors.push(String(error)); }
     }
     await api?.dispose().catch(error => cleanupErrors.push(String(error)));
+    phase("teardown", cleanupErrors.length ? "failure" : "exit");
+    phase("result", "entry");
     const proof = { kind: "keyspilli-native-sampled", revision, status: failure || cleanupErrors.length ? "failed" : "passed",
-      platform: process.platform, architecture: process.arch, sourceControlSha256: sha(xml), results,
+      platform: process.platform, architecture: process.arch, sourceControlSha256: sha(xml), results, browserObservation,
+      phaseTruncated: phaseTrace.truncated || phaseEvidenceIncomplete,
       error: failure instanceof Error ? failure.message : failure ? String(failure) : null, cleanupErrors,
       scope: "Generated software control in an owned writable restore copy; actual sampled UI, MIDI/XML UI parity and PDF API transport; no musical, physical or production acceptance" };
     writeFileSync(join(output, "result.json"), JSON.stringify(proof, null, 2), { flag: "wx" });
     console.log(JSON.stringify(proof));
+    phase("result", failure || cleanupErrors.length ? "failure" : "exit");
   }
   if (failure || cleanupErrors.length) process.exitCode = 1;
 }

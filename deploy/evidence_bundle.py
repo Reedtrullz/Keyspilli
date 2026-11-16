@@ -1,12 +1,32 @@
 import io
+import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import tarfile
 import shutil
 
 
-def export_bundle(store, destination):
+def native_piano_omissions(store):
+    rows = []
+    for path in sorted((store.root / "evidence").glob("*/files/native-piano/*")):
+        match = re.fullmatch(r"([0-9a-f]{64})\.ogg", path.name)
+        if not path.is_file() or path.is_symlink() or match is None:
+            raise ValueError("invalid native piano evidence member")
+        run = path.parents[2].name
+        reconstruction = json.loads((store.root / "evidence" / run / "reconstruction.json").read_text())
+        entry = reconstruction.get("files", {}).get("native-piano/" + path.name)
+        with path.open("rb") as stream:
+            sha256 = hashlib.sha256(stream.read()).hexdigest()
+        if (not entry or entry.get("sha256") != match.group(1) or entry.get("sha256") != sha256
+                or entry.get("size") != path.stat().st_size or Path(entry.get("evidence", "")) != path):
+            raise ValueError("native piano omission lacks matching sealed evidence")
+        rows.append(dict(path=str(path.relative_to(store.root)), bytes=path.stat().st_size, sha256=sha256))
+    return rows
+
+
+def export_bundle(store, destination, omit_native_piano=False):
     destination = Path(destination).resolve()
     if destination.is_relative_to(store.root) or destination.exists():
         raise ValueError("bundle requires a fresh path outside managed storage")
@@ -15,6 +35,8 @@ def export_bundle(store, destination):
                      for path in store.external_paths(record.parent.name)]
         if uncovered:
             raise ValueError("bundle would omit uncollected external fixtures: " + ", ".join(uncovered))
+        omissions = native_piano_omissions(store) if omit_native_piano else []
+        omitted = {row["path"] for row in omissions}
         estimated = sum(p.lstat().st_size for p in store.root.rglob("*") if p.is_file() and not p.is_symlink())
         if shutil.disk_usage(destination.parent).free < estimated + store.reserve:
             raise ValueError("insufficient bundle destination space")
@@ -23,9 +45,19 @@ def export_bundle(store, destination):
             info = tarfile.TarInfo("bundle.json")
             info.size = len(data)
             archive.addfile(info, io.BytesIO(data))
+            if omissions:
+                payload = json.dumps(dict(schema="keyspilli-evidence-omissions/v1",
+                    reason="Public native piano samples are pinned by the complete sealed reconstruction and fixture digest",
+                    fixture="apps/web/scripts/fixtures/native-piano-assets.json", members=omissions),
+                    indent=2, sort_keys=True).encode() + b"\n"
+                info = tarfile.TarInfo("transport-omitted.json")
+                info.size = len(payload)
+                info.mode = 0o444
+                archive.addfile(info, io.BytesIO(payload))
             for path in sorted(store.root.iterdir()):
                 if path.name not in (".lock", "bundle.json"):
-                    archive.add(path, arcname=path.name, recursive=True)
+                    archive.add(path, arcname=path.name, recursive=True,
+                                filter=lambda member: None if member.name in omitted else member)
         with destination.open("rb") as stream:
             os.fsync(stream.fileno())
 

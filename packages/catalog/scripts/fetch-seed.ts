@@ -17,6 +17,7 @@ const LISTING =
 const TARGET = 110;
 const MAX_PER_COMPOSER = 6;
 const force = process.argv.includes("--force");
+const requireExisting = process.argv.includes("--require-existing");
 
 interface Row {
   title: string;
@@ -87,6 +88,14 @@ async function main() {
     .then((raw) => JSON.parse(raw) as { songs?: ManifestEntry[] })
     .catch(() => ({ songs: [] as ManifestEntry[] }));
   const availableSourceFiles = new Set(await readdir(SEED_DIR));
+  const requiredFiles = (existingManifest.songs ?? []).filter((song) => !song.disabled)
+    .map((song) => song.sourceFile).filter((file): file is string => typeof file === "string" && file.length > 0);
+  const missingFiles = requiredFiles.filter((file) => !availableSourceFiles.has(file));
+  if (requiredFiles.length && missingFiles.length === 0 && !force) {
+    console.log(`reusing ${requiredFiles.length} complete local seed sources`);
+    return;
+  }
+  if (requireExisting) throw new Error(`seed corpus incomplete: ${missingFiles.slice(0, 8).join(", ")}`);
   const seen = new Set<string>();
   const perComposer = new Map<string, number>();
   const picked: Row[] = [];
