@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@keyspilli/midi": "workspace:*",
-    "smplr": "^1.1.0"
+    "smplr": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
