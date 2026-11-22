@@ -18,6 +18,11 @@ updates:
       npm-security:
         applies-to: security-updates
         patterns: ["*"]
+      # playwright and @playwright/test must share one version; a split bump
+      # loads two Playwright copies and breaks `playwright test` (see #388).
+      playwright:
+        applies-to: version-updates
+        patterns: ["playwright", "@playwright/test"]
   - package-ecosystem: pip
     directory: /services/transcribe
     schedule: { interval: monthly }
